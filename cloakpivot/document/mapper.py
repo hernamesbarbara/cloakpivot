@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from presidio_analyzer import RecognizerResult
 

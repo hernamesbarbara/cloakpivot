@@ -1,17 +1,17 @@
 """Result data structures for masking and unmasking operations."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timedelta
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from .cloakmap import CloakMap
 
 
 class OperationStatus(Enum):
     """Status of a masking or unmasking operation."""
-    
+
     SUCCESS = "success"
     PARTIAL = "partial"  # Some entities processed, some failed
     FAILED = "failed"
@@ -21,7 +21,7 @@ class OperationStatus(Enum):
 @dataclass(frozen=True)
 class ProcessingStats:
     """Statistics about entity processing during masking/unmasking."""
-    
+
     total_entities_found: int = 0
     entities_masked: int = 0
     entities_skipped: int = 0
@@ -29,14 +29,14 @@ class ProcessingStats:
     confidence_threshold_rejections: int = 0
     allow_list_skips: int = 0
     deny_list_forced: int = 0
-    
+
     @property
     def success_rate(self) -> float:
         """Calculate the success rate of entity processing."""
         if self.total_entities_found == 0:
             return 1.0
         return self.entities_masked / self.total_entities_found
-    
+
     @property
     def entities_by_outcome(self) -> Dict[str, int]:
         """Get a breakdown of entities by processing outcome."""
@@ -53,7 +53,7 @@ class ProcessingStats:
 @dataclass(frozen=True)
 class PerformanceMetrics:
     """Performance metrics for masking/unmasking operations."""
-    
+
     start_time: datetime = field(default_factory=datetime.utcnow)
     end_time: Optional[datetime] = None
     total_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
@@ -65,45 +65,45 @@ class PerformanceMetrics:
     cloakmap_creation_time: Optional[timedelta] = None
     memory_peak_mb: float = 0.0
     throughput_mb_per_sec: float = 0.0
-    
+
     @property
     def total_duration(self) -> Optional[timedelta]:
         """Get the total duration of the operation."""
         if self.end_time:
             return self.end_time - self.start_time
         return None
-    
+
     @property
     def total_time_seconds(self) -> float:
         """Get the total_time in seconds."""
         return self.total_time.total_seconds()
-    
+
     @property
     def efficiency_ratio(self) -> float:
         """Calculate the ratio of core operation time to total time."""
         total_seconds = self.total_time.total_seconds()
-        
+
         if total_seconds == 0:
             return 1.0
-        
+
         # Sum core operation times
         core_time_seconds = 0.0
-        
+
         if self.detection_time:
             core_time_seconds += self.detection_time.total_seconds()
         if self.masking_time:
             core_time_seconds += self.masking_time.total_seconds()
         if self.serialization_time:
             core_time_seconds += self.serialization_time.total_seconds()
-        
+
         return core_time_seconds / total_seconds
-    
+
     @property
     def duration_seconds(self) -> Optional[float]:
         """Get the total duration in seconds."""
         duration = self.total_duration
         return duration.total_seconds() if duration else None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert metrics to dictionary."""
         return {
@@ -121,41 +121,41 @@ class PerformanceMetrics:
 @dataclass(frozen=True)
 class DiagnosticInfo:
     """Diagnostic information about processing issues and warnings."""
-    
+
     warnings: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     entity_conflicts: List[Dict[str, Any]] = field(default_factory=list)
     policy_violations: List[str] = field(default_factory=list)
     anchor_issues: List[str] = field(default_factory=list)
     debug_info: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def has_warnings(self) -> bool:
         """Check if there are any warnings."""
         return bool(self.warnings)
-    
+
     @property
     def has_errors(self) -> bool:
         """Check if there are any errors."""
         return bool(self.errors)
-    
+
     @property
     def total_issues(self) -> int:
         """Get total count of all issues."""
-        return (len(self.warnings) + len(self.errors) + 
+        return (len(self.warnings) + len(self.errors) +
                 len(self.entity_conflicts) + len(self.policy_violations) +
                 len(self.anchor_issues))
-    
+
     @property
     def has_issues(self) -> bool:
         """Check if there are any issues (warnings or errors)."""
         return self.has_warnings or self.has_errors
-    
+
     @property
     def issue_count(self) -> int:
         """Get total count of warnings and errors only."""
         return len(self.warnings) + len(self.errors)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert diagnostics to dictionary."""
         return {
@@ -205,7 +205,7 @@ class MaskResult:
         >>> print(f"Masked {result.stats.entities_masked} entities")
         >>> print(f"Success rate: {result.stats.success_rate:.2%}")
     """
-    
+
     status: OperationStatus
     masked_document: Any  # Could be DoclingDocument, string, bytes, etc.
     cloakmap: CloakMap
@@ -216,27 +216,27 @@ class MaskResult:
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     diagnostics: DiagnosticInfo = field(default_factory=DiagnosticInfo)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def is_successful(self) -> bool:
         """Check if the masking operation was successful."""
         return self.status == OperationStatus.SUCCESS
-    
+
     @property
     def is_partial(self) -> bool:
         """Check if the masking operation was partially successful."""
         return self.status == OperationStatus.PARTIAL
-    
+
     @property
     def entities_by_type(self) -> Dict[str, int]:
         """Get count of masked entities by type."""
         return self.cloakmap.entity_count_by_type
-    
+
     @property
     def total_anchors(self) -> int:
         """Get total number of anchors in the CloakMap."""
         return self.cloakmap.anchor_count
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the masking operation."""
         return {
@@ -253,7 +253,7 @@ class MaskResult:
             "has_errors": self.diagnostics.has_errors,
             "cloakmap_stats": self.cloakmap.get_stats()
         }
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
@@ -310,7 +310,7 @@ class UnmaskResult:
         >>> print(f"Restored {result.restored_stats.entities_masked} entities")
         >>> print(f"Validation passed: {result.validation_passed}")
     """
-    
+
     status: OperationStatus
     unmasked_document: Any  # Could be DoclingDocument, string, bytes, etc.
     cloakmap: CloakMap
@@ -322,28 +322,28 @@ class UnmaskResult:
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     diagnostics: DiagnosticInfo = field(default_factory=DiagnosticInfo)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def is_successful(self) -> bool:
         """Check if the unmasking operation was successful."""
         return self.status == OperationStatus.SUCCESS
-    
+
     @property
     def is_partial(self) -> bool:
         """Check if the unmasking operation was partially successful."""
         return self.status == OperationStatus.PARTIAL
-    
+
     @property
     def validation_passed(self) -> bool:
         """Check if validation checks passed."""
         valid = self.validation_results.get("valid", False)
         return bool(valid)
-    
+
     @property
     def entities_restored(self) -> int:
         """Get the number of entities successfully restored."""
         return self.restored_stats.entities_masked  # In unmasking, this represents restored entities
-    
+
     @property
     def restoration_rate(self) -> float:
         """Calculate the success rate of entity restoration."""
@@ -351,7 +351,7 @@ class UnmaskResult:
         if total_anchors == 0:
             return 1.0
         return self.entities_restored / total_anchors
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the unmasking operation."""
         return {
@@ -368,7 +368,7 @@ class UnmaskResult:
             "has_errors": self.diagnostics.has_errors,
             "cloakmap_integrity": self.validation_results
         }
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
@@ -396,7 +396,7 @@ class BatchResult:
     
     Contains results from multiple file operations along with overall statistics.
     """
-    
+
     operation_type: str  # "mask" or "unmask"
     status: OperationStatus = OperationStatus.SUCCESS
     individual_results: List[Union[MaskResult, UnmaskResult]] = field(default_factory=list)
@@ -405,39 +405,39 @@ class BatchResult:
     batch_stats: Dict[str, Any] = field(default_factory=dict)
     overall_performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def total_files(self) -> int:
         """Get total number of files processed."""
         return len(self.individual_results) + len(self.failed_files)
-    
+
     @property
     def successful_files(self) -> int:
         """Get number of successfully processed files."""
         return sum(1 for result in self.individual_results if result.is_successful)
-    
+
     @property
     def partial_files(self) -> int:
         """Get number of partially processed files."""
         return sum(1 for result in self.individual_results if result.is_partial)
-    
+
     @property
     def failed_file_count(self) -> int:
         """Get number of completely failed files."""
         return len(self.failed_files)
-    
+
     @property
     def success_rate(self) -> float:
         """Calculate overall success rate."""
         if self.total_files == 0:
             return 1.0
         return self.successful_files / self.total_files
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the batch operation."""
         total_entities = 0
         total_processed = 0
-        
+
         for result in self.individual_results:
             if isinstance(result, MaskResult):
                 total_entities += result.stats.total_entities_found
@@ -445,7 +445,7 @@ class BatchResult:
             elif isinstance(result, UnmaskResult):
                 total_entities += result.cloakmap.anchor_count
                 total_processed += result.entities_restored
-        
+
         return {
             "operation_type": self.operation_type,
             "total_files": self.total_files,

@@ -1,19 +1,19 @@
 """DocumentMasker for applying masked replacements to DoclingDocument structures."""
 
 import logging
-from typing import List, Dict, Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
-    TextItem,
-    TitleItem,
-    SectionHeaderItem,
-    ListItem,
-    TableItem,
-    KeyValueItem,
     CodeItem,
     FormulaItem,
+    KeyValueItem,
+    ListItem,
     NodeItem,
+    SectionHeaderItem,
+    TableItem,
+    TextItem,
+    TitleItem,
 )
 
 from ..core.anchors import AnchorEntry
