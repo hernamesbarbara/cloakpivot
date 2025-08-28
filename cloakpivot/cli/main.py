@@ -378,8 +378,9 @@ def mask(
         with click.progressbar(length=1, label="Saving masked document") as progress:
             # Use docpivot serializer to save the document
             from docpivot import LexicalDocSerializer
-            serializer = LexicalDocSerializer()
-            serialized_content = serializer.serialize(masking_result.masked_document)
+            serializer = LexicalDocSerializer(masking_result.masked_document)
+            result = serializer.serialize()
+            serialized_content = result.text
 
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(serialized_content)
@@ -540,8 +541,9 @@ def unmask(
                 with click.progressbar(length=1, label="Saving restored document") as progress:
                     # Use docpivot serializer to save the restored document
                     from docpivot import LexicalDocSerializer
-                    serializer = LexicalDocSerializer()
-                    serialized_content = serializer.serialize(unmasking_result.restored_document)
+                    serializer = LexicalDocSerializer(unmasking_result.restored_document)
+                    result = serializer.serialize()
+                    serialized_content = result.text
 
                     with open(output_path, 'w', encoding='utf-8') as f:
                         f.write(serialized_content)
