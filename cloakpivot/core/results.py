@@ -56,11 +56,15 @@ class PerformanceMetrics:
     
     start_time: datetime = field(default_factory=datetime.utcnow)
     end_time: Optional[datetime] = None
+    total_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
     document_load_time: Optional[timedelta] = None
     entity_detection_time: Optional[timedelta] = None
-    masking_time: Optional[timedelta] = None
-    serialization_time: Optional[timedelta] = None
+    detection_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
+    masking_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
+    serialization_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
     cloakmap_creation_time: Optional[timedelta] = None
+    memory_peak_mb: float = 0.0
+    throughput_mb_per_sec: float = 0.0
     
     @property
     def total_duration(self) -> Optional[timedelta]:
@@ -68,6 +72,31 @@ class PerformanceMetrics:
         if self.end_time:
             return self.end_time - self.start_time
         return None
+    
+    @property
+    def total_time_seconds(self) -> float:
+        """Get the total_time in seconds."""
+        return self.total_time.total_seconds()
+    
+    @property
+    def efficiency_ratio(self) -> float:
+        """Calculate the ratio of core operation time to total time."""
+        total_seconds = self.total_time.total_seconds()
+        
+        if total_seconds == 0:
+            return 1.0
+        
+        # Sum core operation times
+        core_time_seconds = 0.0
+        
+        if self.detection_time:
+            core_time_seconds += self.detection_time.total_seconds()
+        if self.masking_time:
+            core_time_seconds += self.masking_time.total_seconds()
+        if self.serialization_time:
+            core_time_seconds += self.serialization_time.total_seconds()
+        
+        return core_time_seconds / total_seconds
     
     @property
     def duration_seconds(self) -> Optional[float]:
@@ -98,6 +127,7 @@ class DiagnosticInfo:
     entity_conflicts: List[Dict[str, Any]] = field(default_factory=list)
     policy_violations: List[str] = field(default_factory=list)
     anchor_issues: List[str] = field(default_factory=list)
+    debug_info: Dict[str, Any] = field(default_factory=dict)
     
     @property
     def has_warnings(self) -> bool:
@@ -115,6 +145,16 @@ class DiagnosticInfo:
         return (len(self.warnings) + len(self.errors) + 
                 len(self.entity_conflicts) + len(self.policy_violations) +
                 len(self.anchor_issues))
+    
+    @property
+    def has_issues(self) -> bool:
+        """Check if there are any issues (warnings or errors)."""
+        return self.has_warnings or self.has_errors
+    
+    @property
+    def issue_count(self) -> int:
+        """Get total count of warnings and errors only."""
+        return len(self.warnings) + len(self.errors)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert diagnostics to dictionary."""
@@ -296,7 +336,8 @@ class UnmaskResult:
     @property
     def validation_passed(self) -> bool:
         """Check if validation checks passed."""
-        return self.validation_results.get("valid", False)
+        valid = self.validation_results.get("valid", False)
+        return bool(valid)
     
     @property
     def entities_restored(self) -> int:
@@ -357,10 +398,12 @@ class BatchResult:
     """
     
     operation_type: str  # "mask" or "unmask"
+    status: OperationStatus = OperationStatus.SUCCESS
     individual_results: List[Union[MaskResult, UnmaskResult]] = field(default_factory=list)
+    failed_files: List[str] = field(default_factory=list)
+    total_processing_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
     batch_stats: Dict[str, Any] = field(default_factory=dict)
     overall_performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
-    failed_files: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     @property
@@ -435,41 +478,46 @@ def create_performance_metrics(
     Returns:
         PerformanceMetrics instance
     """
+    total_time = end_time - start_time
     return PerformanceMetrics(
         start_time=start_time,
         end_time=end_time,
+        total_time=total_time,
         document_load_time=durations.get('document_load'),
         entity_detection_time=durations.get('entity_detection'),
-        masking_time=durations.get('masking'),
-        serialization_time=durations.get('serialization'),
+        detection_time=durations.get('entity_detection', timedelta(seconds=0)),
+        masking_time=durations.get('masking', timedelta(seconds=0)),
+        serialization_time=durations.get('serialization', timedelta(seconds=0)),
         cloakmap_creation_time=durations.get('cloakmap_creation')
     )
 
 
 def create_processing_stats(
     entities_found: int = 0,
-    entities_processed: int = 0,
-    **counts: int
+    entities_masked: int = 0,
+    entities_skipped: int = 0,
+    **kwargs
 ) -> ProcessingStats:
     """
     Create processing statistics with entity counts.
     
     Args:
         entities_found: Total entities found
-        entities_processed: Entities successfully processed
-        **counts: Named count parameters
+        entities_masked: Entities successfully masked
+        entities_skipped: Entities skipped during processing
+        **kwargs: Additional parameters (ignored for compatibility)
         
     Returns:
         ProcessingStats instance
     """
     return ProcessingStats(
         total_entities_found=entities_found,
-        entities_masked=entities_processed,
-        entities_skipped=counts.get('skipped', 0),
-        entities_failed=counts.get('failed', 0),
-        confidence_threshold_rejections=counts.get('threshold_rejected', 0),
-        allow_list_skips=counts.get('allow_list_skipped', 0),
-        deny_list_forced=counts.get('deny_list_forced', 0)
+        entities_masked=entities_masked,
+        entities_skipped=entities_skipped,
+        entities_failed=kwargs.get('entities_failed', 0),
+        confidence_threshold_rejections=kwargs.get('threshold_rejected', 0),
+        allow_list_skips=kwargs.get('allow_list_skipped', 0),
+        deny_list_forced=kwargs.get('deny_list_forced', 0)
     )
 
 

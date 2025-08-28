@@ -153,7 +153,9 @@ class MaskingPolicy:
                 return Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False})
             
             if "strategy" in context_rule:
-                return context_rule["strategy"]
+                strategy = context_rule["strategy"]
+                if isinstance(strategy, Strategy):
+                    return strategy
         
         # Check entity-specific strategy
         if entity_type in self.per_entity:
@@ -177,7 +179,9 @@ class MaskingPolicy:
         if context and context in self.context_rules:
             context_rule = self.context_rules[context]
             if "threshold" in context_rule:
-                return context_rule["threshold"]
+                threshold = context_rule["threshold"]
+                if isinstance(threshold, (int, float)):
+                    return float(threshold)
         
         # Check entity-specific threshold
         if entity_type in self.thresholds:

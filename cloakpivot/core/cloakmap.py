@@ -84,7 +84,7 @@ class CloakMap:
     def _validate_version(self) -> None:
         """Validate version string format."""
         if not isinstance(self.version, str) or not self.version.strip():
-            raise ValueError("version must be a non-empty string")
+            raise ValueError("Version cannot be empty")
         
         # Basic semantic version validation (major.minor format)
         parts = self.version.split('.')
@@ -100,13 +100,13 @@ class CloakMap:
     def _validate_doc_fields(self) -> None:
         """Validate document identification fields."""
         if not isinstance(self.doc_id, str) or not self.doc_id.strip():
-            raise ValueError("doc_id must be a non-empty string")
+            raise ValueError("Document ID cannot be empty")
         
-        if not isinstance(self.doc_hash, str):
-            raise ValueError("doc_hash must be a string")
+        if not isinstance(self.doc_hash, str) or not self.doc_hash.strip():
+            raise ValueError("Document hash cannot be empty")
         
         # Basic SHA-256 hash validation if provided
-        if self.doc_hash and len(self.doc_hash) == 64:
+        if len(self.doc_hash) == 64:
             try:
                 int(self.doc_hash, 16)
             except ValueError:
@@ -144,7 +144,7 @@ class CloakMap:
     @property
     def entity_count_by_type(self) -> Dict[str, int]:
         """Get count of entities by type."""
-        counts = {}
+        counts: Dict[str, int] = {}
         for anchor in self.anchors:
             counts[anchor.entity_type] = counts.get(anchor.entity_type, 0) + 1
         return counts
@@ -279,6 +279,18 @@ class CloakMap:
             metadata=self.metadata
         )
     
+    def sign(self, secret_key: str) -> "CloakMap":
+        """
+        Sign the CloakMap with a secret key (alias for with_signature).
+        
+        Args:
+            secret_key: The secret key to use for signing
+            
+        Returns:
+            New CloakMap with signature
+        """
+        return self.with_signature(secret_key)
+    
     def with_encryption_metadata(self, algorithm: str, key_id: str, 
                                additional_params: Optional[Dict[str, Any]] = None) -> "CloakMap":
         """
@@ -313,9 +325,9 @@ class CloakMap:
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics about the CloakMap."""
         total_confidence = sum(a.confidence for a in self.anchors)
-        avg_confidence = total_confidence / len(self.anchors) if self.anchors else 0.0
+        avg_confidence = round(total_confidence / len(self.anchors), 10) if self.anchors else 0.0
         
-        strategy_counts = {}
+        strategy_counts: Dict[str, int] = {}
         for anchor in self.anchors:
             strategy = anchor.strategy_used
             strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
@@ -328,7 +340,10 @@ class CloakMap:
             "version": self.version,
             "doc_id": self.doc_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "anchor_count": len(self.anchors),
             "total_anchors": len(self.anchors),
+            "total_original_length": total_original_length,
+            "total_masked_length": total_masked_length,
             "entity_counts": self.entity_count_by_type,
             "strategy_counts": strategy_counts,
             "average_confidence": avg_confidence,
@@ -458,7 +473,7 @@ class CloakMap:
 
 # Utility functions for CloakMap operations
 
-def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: str) -> CloakMap:
+def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: Optional[str] = None) -> CloakMap:
     """
     Merge multiple CloakMaps into a single consolidated map.
     
@@ -482,7 +497,15 @@ def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: str) -> CloakMap:
     base_version = cloakmaps[0].version
     for cm in cloakmaps[1:]:
         if cm.version != base_version:
-            raise ValueError(f"Incompatible versions: {base_version} vs {cm.version}")
+            raise ValueError("Cannot merge CloakMaps with different versions")
+    
+    # Infer target_doc_id if not provided
+    if target_doc_id is None:
+        target_doc_id = cloakmaps[0].doc_id
+        # Check that all have the same doc_id
+        for cm in cloakmaps[1:]:
+            if cm.doc_id != target_doc_id:
+                raise ValueError("Cannot merge CloakMaps from different documents without explicit target_doc_id")
     
     # Collect all anchors and check for conflicts
     all_anchors = []
@@ -495,6 +518,12 @@ def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: str) -> CloakMap:
             
             all_anchors.append(anchor)
             replacement_ids.add(anchor.replacement_id)
+    
+    # Check for anchor overlaps within the same node
+    for i, anchor1 in enumerate(all_anchors):
+        for anchor2 in all_anchors[i+1:]:
+            if anchor1.overlaps_with(anchor2):
+                raise ValueError("Anchor overlap detected")
     
     # Merge metadata
     merged_metadata = {}
@@ -538,7 +567,7 @@ def validate_cloakmap_integrity(cloakmap: CloakMap, secret_key: Optional[str] = 
     Returns:
         Dictionary with validation results
     """
-    results = {
+    results: Dict[str, Any] = {
         "valid": True,
         "errors": [],
         "warnings": [],

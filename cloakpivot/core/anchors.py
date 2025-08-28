@@ -398,8 +398,8 @@ class AnchorIndex:
     
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the indexed anchors."""
-        entity_counts = {}
-        strategy_counts = {}
+        entity_counts: Dict[str, int] = {}
+        strategy_counts: Dict[str, int] = {}
         total_confidence = 0.0
         
         for anchor in self._anchors:
@@ -412,7 +412,7 @@ class AnchorIndex:
             # Accumulate confidence
             total_confidence += anchor.confidence
         
-        avg_confidence = total_confidence / len(self._anchors) if self._anchors else 0.0
+        avg_confidence = round(total_confidence / len(self._anchors), 10) if self._anchors else 0.0
         
         return {
             "total_anchors": len(self._anchors),

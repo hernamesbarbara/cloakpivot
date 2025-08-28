@@ -1,11 +1,7 @@
 # Test Failures
 
-No test runner found - this is not a Rust project.
-Searched for:
-- Cargo.toml (not found)
-- package.json (not found) 
-- pyproject.toml (not found)
-- requirements.txt (not found)
-- test files (only found in Python virtual environment packages)
+## Current Failures (2025-08-28)
 
-This appears to be a data processing project with PDF and JSON files, not a software project with unit tests.
+- tests/test_results.py::TestMaskResult::test_create_minimal_mask_result
+- tests/test_results.py::TestBatchResult::test_success_rate_property
+- tests/test_results.py::TestUtilityFunctions::test_create_performance_metrics
