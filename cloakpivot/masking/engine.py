@@ -1,5 +1,6 @@
 """Core MaskingEngine for orchestrating PII masking operations."""
 
+import copy
 import hashlib
 import logging
 import uuid
@@ -11,7 +12,9 @@ from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
 
 from ..core.anchors import AnchorEntry
+from ..core.analyzer import EntityDetectionResult
 from ..core.cloakmap import CloakMap
+from ..core.normalization import ConflictResolutionConfig, EntityNormalizer
 from ..core.policies import MaskingPolicy
 from ..core.strategies import Strategy
 from ..document.extractor import TextSegment
@@ -58,11 +61,18 @@ class MaskingEngine:
         >>> print(f"Masked {len(result.cloakmap.anchors)} entities")
     """
 
-    def __init__(self) -> None:
-        """Initialize the masking engine."""
+    def __init__(self, resolve_conflicts: bool = False, conflict_resolution_config: Optional[ConflictResolutionConfig] = None) -> None:
+        """Initialize the masking engine.
+        
+        Args:
+            resolve_conflicts: Whether to resolve entity conflicts or raise errors (default: False for backward compatibility)
+            conflict_resolution_config: Configuration for conflict resolution (uses defaults if None)
+        """
         self.strategy_applicator = StrategyApplicator()
         self.document_masker = DocumentMasker()
-        logger.debug("MaskingEngine initialized")
+        self.resolve_conflicts = resolve_conflicts
+        self.entity_normalizer = EntityNormalizer(conflict_resolution_config or ConflictResolutionConfig()) if resolve_conflicts else None
+        logger.debug(f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}")
 
     def mask_document(
         self,
@@ -93,12 +103,12 @@ class MaskingEngine:
         # Validate inputs
         self._validate_inputs(document, entities, policy, text_segments)
 
-        # Check for overlapping entities
-        self._check_overlapping_entities(entities, text_segments)
+        # Resolve entity conflicts or check for overlaps
+        resolved_entities = self._resolve_entity_conflicts(entities, text_segments)
 
-        # Generate masked replacements for each entity
+        # Generate masked replacements for each resolved entity
         anchor_entries = []
-        for entity in entities:
+        for entity in resolved_entities:
             # Find the text segment containing this entity
             segment = self._find_segment_for_entity(entity, text_segments)
             if not segment:
@@ -199,6 +209,137 @@ class MaskingEngine:
                     "all text_segments must be TextSegment instances"
                 )
 
+    def _resolve_entity_conflicts(
+        self,
+        entities: list[RecognizerResult],
+        text_segments: list[TextSegment],
+    ) -> list[RecognizerResult]:
+        """Resolve entity conflicts using EntityNormalizer or validate no overlaps.
+
+        This method handles entity conflicts in two modes based on the resolve_conflicts flag:
+        
+        1. Legacy mode (resolve_conflicts=False): Validates that no overlapping entities exist
+           and raises ValueError if any are found, maintaining backward compatibility.
+           
+        2. Conflict resolution mode (resolve_conflicts=True): Uses EntityNormalizer to
+           intelligently resolve overlapping and adjacent entities through merging,
+           priority-based selection, or confidence-based resolution.
+
+        Args:
+            entities: List of RecognizerResult instances from Presidio analysis
+            text_segments: List of TextSegment instances containing document text
+
+        Returns:
+            List of RecognizerResult instances with conflicts resolved (if enabled)
+            or original entities (if validation-only mode)
+
+        Raises:
+            ValueError: If resolve_conflicts=False and overlapping entities are detected
+
+        Note:
+            The method converts between RecognizerResult and EntityDetectionResult types
+            internally to leverage the EntityNormalizer's conflict resolution capabilities.
+            Text extraction is performed relative to each segment's boundaries to ensure
+            correct entity text content is preserved during the conversion process.
+        """
+        if not self.resolve_conflicts:
+            # Legacy behavior: check for overlaps and raise error if found
+            self._check_overlapping_entities(entities, text_segments)
+            return entities
+
+        if not entities:
+            return entities
+
+        # Convert RecognizerResult to EntityDetectionResult
+        entity_detection_results = []
+        text_by_segment = {}  # Cache text content by segment
+        
+        for entity in entities:
+            segment = self._find_segment_for_entity(entity, text_segments)
+            if not segment:
+                logger.warning(
+                    f"No segment found for entity at {entity.start}-{entity.end}, skipping"
+                )
+                continue
+                
+            # Get segment text for entity text extraction
+            if segment.node_id not in text_by_segment:
+                text_by_segment[segment.node_id] = segment.text
+            
+            segment_text = text_by_segment[segment.node_id]
+            
+            # Convert to relative positions within segment
+            segment_relative_start = entity.start - segment.start_offset
+            segment_relative_end = entity.end - segment.start_offset
+            
+            # Validate entity bounds relative to segment
+            if segment_relative_start < 0:
+                logger.warning(
+                    f"Entity start {entity.start} before segment start {segment.start_offset}, "
+                    f"adjusting to segment boundary"
+                )
+                segment_relative_start = 0
+                
+            if segment_relative_end > len(segment_text):
+                logger.warning(
+                    f"Entity end {entity.end} beyond segment text length {len(segment_text)}, "
+                    f"adjusting to segment boundary"
+                )
+                segment_relative_end = len(segment_text)
+                
+            if segment_relative_start >= segment_relative_end:
+                logger.warning(
+                    f"Invalid entity bounds after adjustment: start={segment_relative_start}, "
+                    f"end={segment_relative_end}, skipping entity"
+                )
+                continue
+            
+            # Extract entity text with bounds checking
+            try:
+                entity_text = segment_text[segment_relative_start:segment_relative_end]
+                if not entity_text.strip():
+                    logger.warning(
+                        f"Empty or whitespace-only entity text at {entity.start}-{entity.end}, skipping"
+                    )
+                    continue
+                    
+            except (IndexError, TypeError) as e:
+                logger.warning(
+                    f"Failed to extract entity text at {entity.start}-{entity.end}: {e}, skipping"
+                )
+                continue
+            
+            # Create detection result with error handling
+            try:
+                detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
+                entity_detection_results.append(detection_result)
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    f"Failed to create EntityDetectionResult for entity at {entity.start}-{entity.end}: {e}, skipping"
+                )
+                continue
+
+        # Use EntityNormalizer to resolve conflicts
+        normalization_result = self.entity_normalizer.normalize_entities(entity_detection_results)
+
+        logger.info(
+            f"Entity conflict resolution: {len(entities)} -> {len(normalization_result.normalized_entities)} entities, "
+            f"{normalization_result.conflicts_resolved} conflicts resolved"
+        )
+
+        # Convert back to RecognizerResult
+        resolved_entities = []
+        for detection_result in normalization_result.normalized_entities:
+            recognizer_result = RecognizerResult(
+                entity_type=detection_result.entity_type,
+                start=detection_result.start,
+                end=detection_result.end,
+                score=detection_result.confidence,
+            )
+            resolved_entities.append(recognizer_result)
+
+        return resolved_entities
+
     def _check_overlapping_entities(
         self,
         entities: list[RecognizerResult],
@@ -283,8 +424,6 @@ class MaskingEngine:
         """Create a deep copy of the document for masking."""
         # For now, use simple copy approach
         # In a production implementation, we'd use a proper deep copy mechanism
-        import copy
-
         return copy.deepcopy(document)
 
     def _compute_document_hash(self, document: DoclingDocument) -> str:
