@@ -6,7 +6,7 @@ from .document_masker import DocumentMasker
 
 __all__ = [
     "MaskingEngine",
-    "MaskingResult", 
+    "MaskingResult",
     "StrategyApplicator",
     "DocumentMasker",
 ]
