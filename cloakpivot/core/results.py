@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .cloakmap import CloakMap
 
@@ -38,7 +38,7 @@ class ProcessingStats:
         return self.entities_masked / self.total_entities_found
 
     @property
-    def entities_by_outcome(self) -> Dict[str, int]:
+    def entities_by_outcome(self) -> dict[str, int]:
         """Get a breakdown of entities by processing outcome."""
         return {
             "masked": self.entities_masked,
@@ -104,7 +104,7 @@ class PerformanceMetrics:
         duration = self.total_duration
         return duration.total_seconds() if duration else None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metrics to dictionary."""
         return {
             "start_time": self.start_time.isoformat(),
@@ -122,12 +122,12 @@ class PerformanceMetrics:
 class DiagnosticInfo:
     """Diagnostic information about processing issues and warnings."""
 
-    warnings: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    entity_conflicts: List[Dict[str, Any]] = field(default_factory=list)
-    policy_violations: List[str] = field(default_factory=list)
-    anchor_issues: List[str] = field(default_factory=list)
-    debug_info: Dict[str, Any] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    entity_conflicts: list[dict[str, Any]] = field(default_factory=list)
+    policy_violations: list[str] = field(default_factory=list)
+    anchor_issues: list[str] = field(default_factory=list)
+    debug_info: dict[str, Any] = field(default_factory=dict)
 
     @property
     def has_warnings(self) -> bool:
@@ -156,7 +156,7 @@ class DiagnosticInfo:
         """Get total count of warnings and errors only."""
         return len(self.warnings) + len(self.errors)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert diagnostics to dictionary."""
         return {
             "warnings": self.warnings,
@@ -176,10 +176,10 @@ class DiagnosticInfo:
 class MaskResult:
     """
     Result of a document masking operation.
-    
+
     Contains the masked document, associated CloakMap, processing statistics,
     performance metrics, and diagnostic information.
-    
+
     Attributes:
         status: Overall status of the masking operation
         masked_document: The masked document content or structure
@@ -191,7 +191,7 @@ class MaskResult:
         performance: Performance metrics for the operation
         diagnostics: Diagnostic information about issues encountered
         metadata: Additional operation metadata
-        
+
     Examples:
         >>> # Successful masking result
         >>> result = MaskResult(
@@ -201,7 +201,7 @@ class MaskResult:
         ...     input_file_path="/path/to/input.json",
         ...     stats=ProcessingStats(total_entities_found=5, entities_masked=5)
         ... )
-        >>> 
+        >>>
         >>> print(f"Masked {result.stats.entities_masked} entities")
         >>> print(f"Success rate: {result.stats.success_rate:.2%}")
     """
@@ -215,7 +215,7 @@ class MaskResult:
     stats: ProcessingStats = field(default_factory=ProcessingStats)
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     diagnostics: DiagnosticInfo = field(default_factory=DiagnosticInfo)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_successful(self) -> bool:
@@ -228,7 +228,7 @@ class MaskResult:
         return self.status == OperationStatus.PARTIAL
 
     @property
-    def entities_by_type(self) -> Dict[str, int]:
+    def entities_by_type(self) -> dict[str, int]:
         """Get count of masked entities by type."""
         return self.cloakmap.entity_count_by_type
 
@@ -237,7 +237,7 @@ class MaskResult:
         """Get total number of anchors in the CloakMap."""
         return self.cloakmap.anchor_count
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the masking operation."""
         return {
             "status": self.status.value,
@@ -254,7 +254,7 @@ class MaskResult:
             "cloakmap_stats": self.cloakmap.get_stats()
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
@@ -280,10 +280,10 @@ class MaskResult:
 class UnmaskResult:
     """
     Result of a document unmasking operation.
-    
+
     Contains the restored original document, validation information,
     processing statistics, and diagnostic data.
-    
+
     Attributes:
         status: Overall status of the unmasking operation
         unmasked_document: The restored original document content
@@ -296,7 +296,7 @@ class UnmaskResult:
         performance: Performance metrics for the operation
         diagnostics: Diagnostic information about issues encountered
         metadata: Additional operation metadata
-        
+
     Examples:
         >>> # Successful unmasking result
         >>> result = UnmaskResult(
@@ -306,7 +306,7 @@ class UnmaskResult:
         ...     masked_file_path="/path/to/masked.json",
         ...     restored_stats=ProcessingStats(entities_masked=5)
         ... )
-        >>> 
+        >>>
         >>> print(f"Restored {result.restored_stats.entities_masked} entities")
         >>> print(f"Validation passed: {result.validation_passed}")
     """
@@ -318,10 +318,10 @@ class UnmaskResult:
     output_file_path: Optional[Union[str, Path]] = None
     cloakmap_file_path: Optional[Union[str, Path]] = None
     restored_stats: ProcessingStats = field(default_factory=ProcessingStats)
-    validation_results: Dict[str, Any] = field(default_factory=dict)
+    validation_results: dict[str, Any] = field(default_factory=dict)
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     diagnostics: DiagnosticInfo = field(default_factory=DiagnosticInfo)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_successful(self) -> bool:
@@ -352,7 +352,7 @@ class UnmaskResult:
             return 1.0
         return self.entities_restored / total_anchors
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the unmasking operation."""
         return {
             "status": self.status.value,
@@ -369,7 +369,7 @@ class UnmaskResult:
             "cloakmap_integrity": self.validation_results
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
@@ -393,18 +393,18 @@ class UnmaskResult:
 class BatchResult:
     """
     Result of a batch masking or unmasking operation.
-    
+
     Contains results from multiple file operations along with overall statistics.
     """
 
     operation_type: str  # "mask" or "unmask"
     status: OperationStatus = OperationStatus.SUCCESS
-    individual_results: List[Union[MaskResult, UnmaskResult]] = field(default_factory=list)
-    failed_files: List[str] = field(default_factory=list)
+    individual_results: list[Union[MaskResult, UnmaskResult]] = field(default_factory=list)
+    failed_files: list[str] = field(default_factory=list)
     total_processing_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
-    batch_stats: Dict[str, Any] = field(default_factory=dict)
+    batch_stats: dict[str, Any] = field(default_factory=dict)
     overall_performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_files(self) -> int:
@@ -433,7 +433,7 @@ class BatchResult:
             return 1.0
         return self.successful_files / self.total_files
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the batch operation."""
         total_entities = 0
         total_processed = 0
@@ -469,12 +469,12 @@ def create_performance_metrics(
 ) -> PerformanceMetrics:
     """
     Create performance metrics with timing information.
-    
+
     Args:
         start_time: Operation start time
         end_time: Operation end time
         **durations: Named duration parameters
-        
+
     Returns:
         PerformanceMetrics instance
     """
@@ -500,13 +500,13 @@ def create_processing_stats(
 ) -> ProcessingStats:
     """
     Create processing statistics with entity counts.
-    
+
     Args:
         entities_found: Total entities found
         entities_masked: Entities successfully masked
         entities_skipped: Entities skipped during processing
         **kwargs: Additional parameters (ignored for compatibility)
-        
+
     Returns:
         ProcessingStats instance
     """
@@ -522,18 +522,18 @@ def create_processing_stats(
 
 
 def create_diagnostics(
-    warnings: Optional[List[str]] = None,
-    errors: Optional[List[str]] = None,
-    **issue_lists: List[Any]
+    warnings: Optional[list[str]] = None,
+    errors: Optional[list[str]] = None,
+    **issue_lists: list[Any]
 ) -> DiagnosticInfo:
     """
     Create diagnostic information with issue lists.
-    
+
     Args:
         warnings: List of warning messages
         errors: List of error messages
         **issue_lists: Named lists of specific issue types
-        
+
     Returns:
         DiagnosticInfo instance
     """

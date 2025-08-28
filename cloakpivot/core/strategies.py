@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class StrategyKind(Enum):
@@ -21,27 +21,27 @@ class StrategyKind(Enum):
 class Strategy:
     """
     A masking strategy that defines how to transform detected PII entities.
-    
+
     Attributes:
         kind: The type of masking strategy to apply
         parameters: Strategy-specific parameters for configuration
-    
+
     Examples:
         >>> # Simple redaction
         >>> redact_strategy = Strategy(StrategyKind.REDACT)
-        
+
         >>> # Template replacement
         >>> phone_strategy = Strategy(
         ...     StrategyKind.TEMPLATE,
         ...     parameters={"template": "[PHONE]"}
         ... )
-        
+
         >>> # Partial masking (show last 4 digits)
         >>> ssn_strategy = Strategy(
         ...     StrategyKind.PARTIAL,
         ...     parameters={"visible_chars": 4, "position": "end", "mask_char": "*"}
         ... )
-        
+
         >>> # Hash with salt
         >>> hash_strategy = Strategy(
         ...     StrategyKind.HASH,
@@ -50,7 +50,7 @@ class Strategy:
     """
 
     kind: StrategyKind
-    parameters: Optional[Dict[str, Any]] = None
+    parameters: Optional[dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         """Validate strategy parameters after initialization."""
@@ -77,7 +77,7 @@ class Strategy:
         elif self.kind == StrategyKind.CUSTOM:
             self._validate_custom_params(params)
 
-    def _validate_redact_params(self, params: Dict[str, Any]) -> None:
+    def _validate_redact_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for redact strategy."""
         # Default redaction character is '*'
         if "redact_char" in params:
@@ -88,7 +88,7 @@ class Strategy:
         if "preserve_length" in params and not isinstance(params["preserve_length"], bool):
             raise ValueError("preserve_length must be a boolean")
 
-    def _validate_template_params(self, params: Dict[str, Any]) -> None:
+    def _validate_template_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for template strategy."""
         auto_generate = params.get("auto_generate", False)
 
@@ -118,7 +118,7 @@ class Strategy:
                 if not re.search(placeholder_pattern, template):
                     raise ValueError("Template should contain placeholders like {entity_type}")
 
-    def _validate_hash_params(self, params: Dict[str, Any]) -> None:
+    def _validate_hash_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for hash strategy."""
         valid_algorithms = {"md5", "sha1", "sha256", "sha384", "sha512"}
 
@@ -153,7 +153,7 @@ class Strategy:
         if "preserve_format_structure" in params and not isinstance(params["preserve_format_structure"], bool):
             raise ValueError("preserve_format_structure must be a boolean")
 
-    def _validate_surrogate_params(self, params: Dict[str, Any]) -> None:
+    def _validate_surrogate_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for surrogate strategy."""
         if "format_type" in params:
             valid_formats = {"phone", "ssn", "credit_card", "email", "name", "address", "custom"}
@@ -170,7 +170,7 @@ class Strategy:
         if "pattern" in params and not isinstance(params["pattern"], str):
             raise ValueError("Pattern must be a string")
 
-    def _validate_partial_params(self, params: Dict[str, Any]) -> None:
+    def _validate_partial_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for partial masking strategy."""
         if "visible_chars" not in params:
             raise ValueError("Partial strategy requires 'visible_chars' parameter")
@@ -203,7 +203,7 @@ class Strategy:
         if "deterministic" in params and not isinstance(params["deterministic"], bool):
             raise ValueError("deterministic must be a boolean")
 
-    def _validate_custom_params(self, params: Dict[str, Any]) -> None:
+    def _validate_custom_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for custom strategy."""
         if "callback" not in params:
             raise ValueError("Custom strategy requires 'callback' parameter")

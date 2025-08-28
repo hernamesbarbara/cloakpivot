@@ -4,7 +4,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from functools import total_ordering
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from .policies import MaskingPolicy
 
@@ -58,9 +58,9 @@ class AnalyzerConfig:
 
     language: str = field(default="en")
     min_confidence: float = field(default=0.5)
-    enabled_recognizers: Optional[List[str]] = field(default=None)
-    disabled_recognizers: Set[str] = field(default_factory=set)
-    custom_recognizers: Dict[str, Any] = field(default_factory=dict)
+    enabled_recognizers: Optional[list[str]] = field(default=None)
+    disabled_recognizers: set[str] = field(default_factory=set)
+    custom_recognizers: dict[str, Any] = field(default_factory=dict)
     nlp_engine_name: str = field(default="spacy")
 
     def __post_init__(self) -> None:
@@ -142,24 +142,24 @@ class RecognizerRegistry:
         "LOCATION",
     }
 
-    def __init__(self, enabled_recognizers: Optional[List[str]] = None):
+    def __init__(self, enabled_recognizers: Optional[list[str]] = None):
         """Initialize recognizer registry.
 
         Args:
             enabled_recognizers: Specific recognizers to enable (None for defaults)
         """
-        self._enabled: Set[str] = (
+        self._enabled: set[str] = (
             set(enabled_recognizers)
             if enabled_recognizers is not None
             else self.DEFAULT_RECOGNIZERS.copy()
         )
-        self._custom_recognizers: Dict[str, Any] = {}
+        self._custom_recognizers: dict[str, Any] = {}
 
         logger.info(
             f"Initialized recognizer registry with {len(self._enabled)} enabled recognizers"
         )
 
-    def get_enabled_recognizers(self) -> List[str]:
+    def get_enabled_recognizers(self) -> list[str]:
         """Get list of currently enabled recognizers."""
         return list(self._enabled)
 
@@ -192,7 +192,7 @@ class RecognizerRegistry:
         self._enabled.add(name)
         logger.info(f"Added custom recognizer: {name}")
 
-    def get_custom_recognizers(self) -> Dict[str, Any]:
+    def get_custom_recognizers(self) -> dict[str, Any]:
         """Get dictionary of custom recognizers."""
         return self._custom_recognizers.copy()
 
@@ -291,7 +291,7 @@ class EntityDetectionResult:
             and self.text == other.text
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "entity_type": self.entity_type,
@@ -409,9 +409,9 @@ class AnalyzerEngineWrapper:
     def analyze_text(
         self,
         text: str,
-        entities: Optional[List[str]] = None,
+        entities: Optional[list[str]] = None,
         min_confidence: Optional[float] = None,
-    ) -> List[EntityDetectionResult]:
+    ) -> list[EntityDetectionResult]:
         """Analyze text for PII entities.
 
         Args:
@@ -475,7 +475,7 @@ class AnalyzerEngineWrapper:
             logger.error(f"Error during text analysis: {e}")
             raise RuntimeError(f"Error during text analysis: {e}") from e
 
-    def get_supported_entities(self) -> List[str]:
+    def get_supported_entities(self) -> list[str]:
         """Get list of supported entity types."""
         self._initialize_engine()
 
@@ -484,7 +484,7 @@ class AnalyzerEngineWrapper:
 
         return self._engine.get_supported_entities(language=self.config.language)
 
-    def validate_configuration(self) -> Dict[str, Any]:
+    def validate_configuration(self) -> dict[str, Any]:
         """Validate current configuration and return diagnostics.
 
         Returns:

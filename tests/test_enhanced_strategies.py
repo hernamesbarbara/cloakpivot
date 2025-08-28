@@ -63,7 +63,7 @@ class TestEnhancedTemplateStrategy:
             ("123456789", "XXXXXXXXX"),
         ]
 
-        for ssn, expected_pattern in test_cases:
+        for ssn, _expected_pattern in test_cases:
             result = applicator.apply_strategy(
                 ssn, "US_SSN", strategy, 0.9
             )

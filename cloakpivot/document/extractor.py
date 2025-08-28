@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
@@ -52,7 +52,7 @@ class TextSegment:
     start_offset: int
     end_offset: int
     node_type: str
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         """Validate segment data after initialization."""
@@ -114,7 +114,7 @@ class TextExtractor:
             f"TextExtractor initialized with normalize_whitespace={normalize_whitespace}"
         )
 
-    def extract_text_segments(self, document: DoclingDocument) -> List[TextSegment]:
+    def extract_text_segments(self, document: DoclingDocument) -> list[TextSegment]:
         """
         Extract text segments from a DoclingDocument with structural anchors.
 
@@ -135,7 +135,7 @@ class TextExtractor:
         """
         logger.info(f"Extracting text segments from document: {document.name}")
 
-        segments: List[TextSegment] = []
+        segments: list[TextSegment] = []
         current_offset = 0
 
         # Extract from text items (paragraphs, headings, etc.)
@@ -182,7 +182,7 @@ class TextExtractor:
         return self._segment_separator.join(segment.text for segment in segments)
 
     def find_segment_containing_offset(
-        self, segments: List[TextSegment], offset: int
+        self, segments: list[TextSegment], offset: int
     ) -> Optional[TextSegment]:
         """
         Find the text segment that contains the given global offset.
@@ -199,7 +199,7 @@ class TextExtractor:
                 return segment
         return None
 
-    def get_extraction_stats(self, document: DoclingDocument) -> Dict[str, Any]:
+    def get_extraction_stats(self, document: DoclingDocument) -> dict[str, Any]:
         """
         Get statistics about extractable content in the document.
 
@@ -209,7 +209,7 @@ class TextExtractor:
         Returns:
             Dict[str, Any]: Statistics about the document content
         """
-        stats: Dict[str, Any] = {
+        stats: dict[str, Any] = {
             "total_text_items": len(document.texts),
             "total_tables": len(document.tables),
             "total_key_value_items": len(document.key_value_items),
@@ -218,7 +218,7 @@ class TextExtractor:
         }
 
         # Analyze text item types
-        text_types: Dict[str, int] = {}
+        text_types: dict[str, int] = {}
         for text_item in document.texts:
             item_type = type(text_item).__name__
             text_types[item_type] = text_types.get(item_type, 0) + 1
@@ -266,9 +266,9 @@ class TextExtractor:
 
     def _extract_from_table_item(
         self, table_item: TableItem, start_offset: int
-    ) -> List[TextSegment]:
+    ) -> list[TextSegment]:
         """Extract text from a table item, creating segments for each cell."""
-        segments: List[TextSegment] = []
+        segments: list[TextSegment] = []
         current_offset = start_offset
 
         if not hasattr(table_item, "data") or not table_item.data:
@@ -310,9 +310,9 @@ class TextExtractor:
 
     def _extract_from_key_value_item(
         self, kv_item: KeyValueItem, start_offset: int
-    ) -> List[TextSegment]:
+    ) -> list[TextSegment]:
         """Extract text from a key-value item."""
-        segments: List[TextSegment] = []
+        segments: list[TextSegment] = []
         current_offset = start_offset
         base_node_id = self._get_node_id(kv_item)
 
@@ -387,7 +387,7 @@ class TextExtractor:
         text_item: Union[
             TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem
         ],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract metadata from a text item."""
         metadata = {"item_type": type(text_item).__name__}
 

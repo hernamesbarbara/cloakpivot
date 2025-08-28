@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .analyzer import EntityDetectionResult
 
@@ -43,7 +43,7 @@ class ConflictResolutionConfig:
     """
 
     strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.HIGHEST_CONFIDENCE
-    entity_priorities: Dict[str, EntityPriority] = field(default_factory=dict)
+    entity_priorities: dict[str, EntityPriority] = field(default_factory=dict)
     confidence_threshold: float = 0.1
     merge_threshold_chars: int = 4
     allow_partial_overlaps: bool = False
@@ -92,11 +92,11 @@ class NormalizationResult:
         resolution_details: Detailed information about each resolution
     """
 
-    normalized_entities: List[EntityDetectionResult] = field(default_factory=list)
+    normalized_entities: list[EntityDetectionResult] = field(default_factory=list)
     conflicts_resolved: int = 0
     entities_merged: int = 0
     entities_removed: int = 0
-    resolution_details: List[Dict[str, Any]] = field(default_factory=list)
+    resolution_details: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def total_changes(self) -> int:
@@ -108,7 +108,7 @@ class NormalizationResult:
 class EntityGroup:
     """Group of overlapping or adjacent entities for conflict resolution."""
 
-    entities: List[EntityDetectionResult] = field(default_factory=list)
+    entities: list[EntityDetectionResult] = field(default_factory=list)
     start_pos: int = 0
     end_pos: int = 0
 
@@ -152,7 +152,7 @@ class EntityNormalizer:
         )
 
     def normalize_entities(
-        self, entities: List[EntityDetectionResult]
+        self, entities: list[EntityDetectionResult]
     ) -> NormalizationResult:
         """Normalize a list of entities by resolving conflicts and merging adjacent entities.
 
@@ -219,8 +219,8 @@ class EntityNormalizer:
         return result
 
     def _group_entities(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityGroup]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityGroup]:
         """Group overlapping and adjacent entities.
 
         Args:
@@ -232,7 +232,7 @@ class EntityNormalizer:
         if not entities:
             return []
 
-        groups: List[EntityGroup] = []
+        groups: list[EntityGroup] = []
 
         for entity in entities:
             # Find groups that this entity overlaps with or is adjacent to
@@ -300,8 +300,8 @@ class EntityNormalizer:
         return EntityGroup(resolved_entities)
 
     def _resolve_by_confidence(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Resolve conflicts by preferring highest confidence entities."""
         if not entities:
             return []
@@ -325,8 +325,8 @@ class EntityNormalizer:
         return sorted_entities
 
     def _resolve_by_length(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Resolve conflicts by preferring longest entities."""
         sorted_entities = sorted(entities, key=lambda e: len(e.text), reverse=True)
 
@@ -338,8 +338,8 @@ class EntityNormalizer:
         return result
 
     def _resolve_by_specificity(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Resolve conflicts by preferring more specific entity types."""
         # Sort by priority (lower number = higher priority)
         sorted_entities = sorted(
@@ -358,8 +358,8 @@ class EntityNormalizer:
         return result
 
     def _resolve_by_position(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Resolve conflicts by keeping entities in order of appearance."""
         sorted_entities = sorted(entities, key=lambda e: (e.start, e.end))
 
@@ -371,14 +371,14 @@ class EntityNormalizer:
         return result
 
     def _resolve_by_merging(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Resolve conflicts by merging adjacent entities of same type."""
         if not entities:
             return []
 
         # Group by entity type
-        by_type: Dict[str, List[EntityDetectionResult]] = {}
+        by_type: dict[str, list[EntityDetectionResult]] = {}
         for entity in entities:
             if entity.entity_type not in by_type:
                 by_type[entity.entity_type] = []
@@ -425,7 +425,7 @@ class EntityNormalizer:
         return sorted(result)
 
     def _merge_entity_group(
-        self, entities: List[EntityDetectionResult], entity_type: str
+        self, entities: list[EntityDetectionResult], entity_type: str
     ) -> EntityDetectionResult:
         """Merge a group of adjacent entities into a single entity."""
         if not entities:
@@ -458,8 +458,8 @@ class EntityNormalizer:
         )
 
     def _remove_overlaps(
-        self, entities: List[EntityDetectionResult]
-    ) -> List[EntityDetectionResult]:
+        self, entities: list[EntityDetectionResult]
+    ) -> list[EntityDetectionResult]:
         """Remove overlapping entities, keeping the first in sorted order."""
         if not entities:
             return []
@@ -475,9 +475,9 @@ class EntityNormalizer:
 
     def validate_normalization(
         self,
-        original: List[EntityDetectionResult],
-        normalized: List[EntityDetectionResult],
-    ) -> Dict[str, Any]:
+        original: list[EntityDetectionResult],
+        normalized: list[EntityDetectionResult],
+    ) -> dict[str, Any]:
         """Validate that normalization preserved important properties.
 
         Args:

@@ -1,7 +1,12 @@
 """Tests for surrogate generation functionality."""
 
 import pytest
-from cloakpivot.core.surrogate import SurrogateGenerator, FormatPattern, SurrogateQualityMetrics
+
+from cloakpivot.core.surrogate import (
+    FormatPattern,
+    SurrogateGenerator,
+    SurrogateQualityMetrics,
+)
 
 
 class TestFormatPattern:
@@ -53,10 +58,10 @@ class TestSurrogateGenerator:
         """Test that generation is deterministic with same input and seed."""
         original = "555-123-4567"
         entity_type = "PHONE_NUMBER"
-        
+
         result1 = generator.generate_surrogate(original, entity_type)
         result2 = generator.generate_surrogate(original, entity_type)
-        
+
         assert result1 == result2
         assert result1 != original
         assert len(result1) == len(original)
@@ -65,7 +70,7 @@ class TestSurrogateGenerator:
         """Test format preservation for phone numbers."""
         original = "555-123-4567"
         surrogate = generator.generate_surrogate(original, "PHONE_NUMBER")
-        
+
         # Should preserve format
         assert len(surrogate) == len(original)
         assert surrogate[3] == '-'
@@ -76,7 +81,7 @@ class TestSurrogateGenerator:
         """Test format preservation for SSN."""
         original = "123-45-6789"
         surrogate = generator.generate_surrogate(original, "US_SSN")
-        
+
         # Should preserve format
         assert len(surrogate) == len(original)
         assert surrogate[3] == '-'
@@ -87,7 +92,7 @@ class TestSurrogateGenerator:
         """Test format preservation for email addresses."""
         original = "user@example.com"
         surrogate = generator.generate_surrogate(original, "EMAIL_ADDRESS")
-        
+
         # Should preserve email structure
         assert '@' in surrogate
         assert '.' in surrogate
@@ -99,13 +104,13 @@ class TestSurrogateGenerator:
         """Test that different seeds produce different results."""
         original = "555-123-4567"
         entity_type = "PHONE_NUMBER"
-        
+
         gen1 = SurrogateGenerator(seed="seed1")
         gen2 = SurrogateGenerator(seed="seed2")
-        
+
         result1 = gen1.generate_surrogate(original, entity_type)
         result2 = gen2.generate_surrogate(original, entity_type)
-        
+
         assert result1 != result2
         # But both should preserve format
         assert len(result1) == len(result2) == len(original)
@@ -114,11 +119,11 @@ class TestSurrogateGenerator:
         """Test collision detection and resolution."""
         original1 = "555-123-4567"
         original2 = "555-987-6543"
-        
+
         # Generate multiple surrogates
         surrogate1 = generator.generate_surrogate(original1, "PHONE_NUMBER")
         surrogate2 = generator.generate_surrogate(original2, "PHONE_NUMBER")
-        
+
         # Should be different (very low probability of collision with good RNG)
         assert surrogate1 != surrogate2
 
@@ -126,11 +131,11 @@ class TestSurrogateGenerator:
         """Test that surrogates are unique within a document scope."""
         originals = [f"555-123-456{i}" for i in range(10)]
         surrogates = []
-        
+
         for original in originals:
             surrogate = generator.generate_surrogate(original, "PHONE_NUMBER")
             surrogates.append(surrogate)
-        
+
         # All should be unique
         assert len(set(surrogates)) == len(surrogates)
 
@@ -138,10 +143,10 @@ class TestSurrogateGenerator:
         """Test that surrogates don't accidentally contain real data."""
         original = "555-123-4567"
         surrogate = generator.generate_surrogate(original, "PHONE_NUMBER")
-        
+
         # Should not contain original digits in same positions
         assert surrogate != original
-        
+
         # Get quality metrics
         metrics = generator.get_quality_metrics()
         assert metrics.format_preservation_rate > 0.9
@@ -151,7 +156,7 @@ class TestSurrogateGenerator:
         """Test custom pattern-based generation."""
         pattern = "XXX-XX-9999"  # X=letter, 9=digit
         surrogate = generator.generate_from_pattern(pattern)
-        
+
         assert len(surrogate) == len(pattern)
         assert surrogate[3] == '-'
         assert surrogate[6] == '-'
@@ -165,14 +170,14 @@ class TestSurrogateGenerator:
         phone_surrogate = generator.generate_surrogate("555-123-4567", "PHONE_NUMBER")
         ssn_surrogate = generator.generate_surrogate("123-45-6789", "US_SSN")
         email_surrogate = generator.generate_surrogate("user@example.com", "EMAIL_ADDRESS")
-        
+
         # Each should follow appropriate patterns
         assert '-' in phone_surrogate
         assert phone_surrogate.replace('-', '').isdigit()
-        
+
         assert '-' in ssn_surrogate
         assert ssn_surrogate.replace('-', '').isdigit()
-        
+
         assert '@' in email_surrogate and '.' in email_surrogate
 
 
@@ -182,11 +187,11 @@ class TestSurrogateQualityMetrics:
     def test_format_preservation_measurement(self):
         """Test format preservation measurement."""
         metrics = SurrogateQualityMetrics()
-        
+
         # Record successful format preservation
         metrics.record_generation("555-123-4567", "555-987-6543", True, True, True)
         metrics.record_generation("123-45-6789", "987-65-4321", True, True, True)
-        
+
         assert metrics.total_generated == 2
         assert metrics.format_preservation_rate == 1.0
         assert metrics.uniqueness_rate == 1.0
@@ -195,11 +200,11 @@ class TestSurrogateQualityMetrics:
     def test_quality_degradation_tracking(self):
         """Test tracking when quality degrades."""
         metrics = SurrogateQualityMetrics()
-        
+
         # Mixed results
         metrics.record_generation("555-123-4567", "555-987-6543", True, True, True)
         metrics.record_generation("bad-input", "fallback", False, True, False)
-        
+
         assert metrics.total_generated == 2
         assert metrics.format_preservation_rate == 0.5
         assert metrics.validation_success_rate == 0.5
@@ -207,9 +212,9 @@ class TestSurrogateQualityMetrics:
     def test_collision_tracking(self):
         """Test collision detection and tracking."""
         metrics = SurrogateQualityMetrics()
-        
+
         # Simulate collision
         metrics.record_collision("555-123-4567", "duplicate_value")
-        
+
         assert metrics.collision_count == 1
         assert "duplicate_value" in metrics.collision_examples

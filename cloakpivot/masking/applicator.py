@@ -185,13 +185,13 @@ class StrategyApplicator:
     ) -> str:
         """
         Compose multiple strategies in sequence or parallel.
-        
+
         Args:
             original_text: The original PII text to mask
             entity_type: Type of entity
             strategies: List of strategies to compose
             confidence: Detection confidence score
-            
+
         Returns:
             str: The result of composed strategies
         """
@@ -603,7 +603,7 @@ class StrategyApplicator:
     ) -> str:
         """Apply format-aware partial masking that preserves delimiters and structure."""
         # Detect common delimiters and structural elements
-        delimiters = set(['-', '_', '.', '@', ' ', '(', ')', '+'])
+        delimiters = {'-', '_', '.', '@', ' ', '(', ')', '+'}
 
         # Find delimiter positions
         delimiter_positions = []
@@ -721,13 +721,13 @@ class StrategyApplicator:
         pattern = strategy.get_parameter("pattern")
         if pattern:
             return self._surrogate_generator.generate_from_pattern(pattern)
-        
+
         # Use the enhanced surrogate generator for format-preserving generation
         try:
             return self._surrogate_generator.generate_surrogate(original_text, entity_type)
         except Exception as e:
             logger.warning(f"Enhanced surrogate generation failed for {entity_type}: {e}")
-            
+
             # Fallback to legacy generation methods for backward compatibility
             return self._apply_legacy_surrogate_strategy(original_text, entity_type, strategy)
 
