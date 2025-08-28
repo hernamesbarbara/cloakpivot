@@ -106,7 +106,7 @@ class TestStrategy:
             Strategy(StrategyKind.PARTIAL, {"visible_chars": -1})
         
         # Invalid position
-        with pytest.raises(ValueError, match="Position must be 'start', 'end', or 'middle'"):
+        with pytest.raises(ValueError, match="Position must be 'start', 'end', 'middle', or 'random'"):
             Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "invalid"})
     
     def test_custom_validation(self) -> None:

@@ -351,3 +351,113 @@ PARTIAL_POLICY = MaskingPolicy(
         "US_SSN": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"})
     }
 )
+
+# Enhanced policies for new features
+FORMAT_AWARE_TEMPLATE_POLICY = MaskingPolicy(
+    per_entity={
+        "PHONE_NUMBER": Strategy(StrategyKind.TEMPLATE, {
+            "auto_generate": True, 
+            "preserve_format": True
+        }),
+        "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {
+            "auto_generate": True,
+            "preserve_format": True
+        }),
+        "US_SSN": Strategy(StrategyKind.TEMPLATE, {
+            "template": "XXX-XX-XXXX",
+            "preserve_format": True
+        }),
+        "CREDIT_CARD": Strategy(StrategyKind.TEMPLATE, {
+            "template": "XXXX-XXXX-XXXX-XXXX",
+            "preserve_format": True
+        })
+    }
+)
+
+FORMAT_AWARE_PARTIAL_POLICY = MaskingPolicy(
+    per_entity={
+        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {
+            "visible_chars": 4, 
+            "position": "end",
+            "format_aware": True,
+            "preserve_delimiters": True,
+            "deterministic": True
+        }),
+        "EMAIL_ADDRESS": Strategy(StrategyKind.PARTIAL, {
+            "visible_chars": 3, 
+            "position": "start",
+            "format_aware": True,
+            "preserve_delimiters": True,
+            "deterministic": True
+        }),
+        "CREDIT_CARD": Strategy(StrategyKind.PARTIAL, {
+            "visible_chars": 4, 
+            "position": "end",
+            "format_aware": True,
+            "preserve_delimiters": True,
+            "deterministic": True
+        }),
+        "US_SSN": Strategy(StrategyKind.PARTIAL, {
+            "visible_chars": 4, 
+            "position": "end",
+            "format_aware": True,
+            "preserve_delimiters": True,
+            "deterministic": True
+        })
+    }
+)
+
+DETERMINISTIC_HASH_POLICY = MaskingPolicy(
+    default_strategy=Strategy(StrategyKind.HASH, {
+        "algorithm": "sha256",
+        "truncate": 8,
+        "format_output": "hex",
+        "consistent_length": True,
+        "per_entity_salt": {
+            "PHONE_NUMBER": "phone_salt_v1",
+            "EMAIL_ADDRESS": "email_salt_v1", 
+            "CREDIT_CARD": "cc_salt_v1",
+            "US_SSN": "ssn_salt_v1",
+            "PERSON": "name_salt_v1",
+            "default": "default_salt_v1"
+        }
+    }),
+    seed="deterministic-hash-policy-v1"
+)
+
+MIXED_STRATEGY_POLICY = MaskingPolicy(
+    per_entity={
+        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {
+            "visible_chars": 4, 
+            "position": "end",
+            "format_aware": True,
+            "preserve_delimiters": True
+        }),
+        "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {
+            "auto_generate": True,
+            "preserve_format": True
+        }),
+        "CREDIT_CARD": Strategy(StrategyKind.HASH, {
+            "algorithm": "sha256",
+            "truncate": 12,
+            "prefix": "CC_",
+            "per_entity_salt": {"CREDIT_CARD": "cc_secure_v1"}
+        }),
+        "US_SSN": Strategy(StrategyKind.TEMPLATE, {
+            "template": "XXX-XX-XXXX"
+        }),
+        "PERSON": Strategy(StrategyKind.HASH, {
+            "algorithm": "sha256",
+            "truncate": 8,
+            "prefix": "NAME_",
+            "per_entity_salt": {"PERSON": "name_secure_v1"}
+        })
+    },
+    thresholds={
+        "PHONE_NUMBER": 0.8,
+        "EMAIL_ADDRESS": 0.7,
+        "CREDIT_CARD": 0.9,
+        "US_SSN": 0.9,
+        "PERSON": 0.75
+    }
+)

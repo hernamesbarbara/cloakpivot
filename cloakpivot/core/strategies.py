@@ -90,19 +90,33 @@ class Strategy:
     
     def _validate_template_params(self, params: Dict[str, Any]) -> None:
         """Validate parameters for template strategy."""
-        if "template" not in params:
-            raise ValueError("Template strategy requires 'template' parameter")
+        auto_generate = params.get("auto_generate", False)
         
-        template = params["template"]
-        if not isinstance(template, str):
-            raise ValueError("Template must be a string")
+        # Either template or auto_generate must be provided
+        if "template" not in params and not auto_generate:
+            raise ValueError("Template strategy requires 'template' parameter or auto_generate=True")
+        
+        if "template" in params:
+            template = params["template"]
+            if not isinstance(template, str):
+                raise ValueError("Template must be a string")
+        
+        # Validate auto_generate parameter
+        if "auto_generate" in params and not isinstance(params["auto_generate"], bool):
+            raise ValueError("auto_generate must be a boolean")
+        
+        # Validate preserve_format parameter
+        if "preserve_format" in params and not isinstance(params["preserve_format"], bool):
+            raise ValueError("preserve_format must be a boolean")
         
         # Optional: template validation (check for placeholders)
         if "validate_placeholders" in params and params["validate_placeholders"]:
-            # Check for common placeholder patterns like {entity_type}, {index}, etc.
-            placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
-            if not re.search(placeholder_pattern, template):
-                raise ValueError("Template should contain placeholders like {entity_type}")
+            if "template" in params:
+                template = params["template"]
+                # Check for common placeholder patterns like {entity_type}, {index}, etc.
+                placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
+                if not re.search(placeholder_pattern, template):
+                    raise ValueError("Template should contain placeholders like {entity_type}")
     
     def _validate_hash_params(self, params: Dict[str, Any]) -> None:
         """Validate parameters for hash strategy."""
@@ -115,6 +129,11 @@ class Strategy:
         if "salt" in params and not isinstance(params["salt"], str):
             raise ValueError("Salt must be a string")
         
+        if "per_entity_salt" in params:
+            per_entity_salt = params["per_entity_salt"]
+            if not isinstance(per_entity_salt, dict):
+                raise ValueError("per_entity_salt must be a dictionary")
+        
         if "truncate" in params:
             truncate = params["truncate"]
             if not isinstance(truncate, int) or truncate < 1:
@@ -122,6 +141,17 @@ class Strategy:
         
         if "prefix" in params and not isinstance(params["prefix"], str):
             raise ValueError("Prefix must be a string")
+        
+        if "format_output" in params:
+            format_output = params["format_output"]
+            if format_output not in {"hex", "base64", "base32"}:
+                raise ValueError("format_output must be 'hex', 'base64', or 'base32'")
+        
+        if "consistent_length" in params and not isinstance(params["consistent_length"], bool):
+            raise ValueError("consistent_length must be a boolean")
+        
+        if "preserve_format_structure" in params and not isinstance(params["preserve_format_structure"], bool):
+            raise ValueError("preserve_format_structure must be a boolean")
     
     def _validate_surrogate_params(self, params: Dict[str, Any]) -> None:
         """Validate parameters for surrogate strategy."""
@@ -150,8 +180,8 @@ class Strategy:
             raise ValueError("visible_chars must be a non-negative integer")
         
         position = params.get("position", "end")
-        if position not in {"start", "end", "middle"}:
-            raise ValueError("Position must be 'start', 'end', or 'middle'")
+        if position not in {"start", "end", "middle", "random"}:
+            raise ValueError("Position must be 'start', 'end', 'middle', or 'random'")
         
         mask_char = params.get("mask_char", "*")
         if not isinstance(mask_char, str) or len(mask_char) != 1:
@@ -162,6 +192,16 @@ class Strategy:
             min_length = params["min_length"]
             if not isinstance(min_length, int) or min_length < 1:
                 raise ValueError("min_length must be a positive integer")
+        
+        # Format-aware options validation
+        if "format_aware" in params and not isinstance(params["format_aware"], bool):
+            raise ValueError("format_aware must be a boolean")
+        
+        if "preserve_delimiters" in params and not isinstance(params["preserve_delimiters"], bool):
+            raise ValueError("preserve_delimiters must be a boolean")
+        
+        if "deterministic" in params and not isinstance(params["deterministic"], bool):
+            raise ValueError("deterministic must be a boolean")
     
     def _validate_custom_params(self, params: Dict[str, Any]) -> None:
         """Validate parameters for custom strategy."""
