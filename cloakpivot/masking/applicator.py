@@ -1,10 +1,10 @@
 """StrategyApplicator for generating masked replacement tokens."""
 
-import logging
 import hashlib
+import logging
 import random
 import string
-from typing import Optional
+from typing import Any, Optional
 
 from ..core.strategies import Strategy, StrategyKind
 
@@ -97,7 +97,7 @@ class StrategyApplicator:
             logger.warning(
                 f"Strategy {strategy.kind.value} failed for {entity_type}: {e}"
             )
-            
+
             # Try fallback strategies
             return self._apply_fallback_strategy(
                 original_text, entity_type, strategy, confidence, str(e)
@@ -151,7 +151,7 @@ class StrategyApplicator:
             Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": True}),
             Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False})
         ]
-        
+
         for fallback_strategy in fallback_strategies:
             try:
                 logger.info(
@@ -165,7 +165,7 @@ class StrategyApplicator:
                     f"Fallback {fallback_strategy.kind.value} failed: {fallback_error}"
                 )
                 continue
-        
+
         # Ultimate fallback - simple asterisk masking
         logger.error(
             f"All fallback strategies failed for {entity_type}, using ultimate fallback"
@@ -193,10 +193,10 @@ class StrategyApplicator:
         """
         if not strategies:
             raise ValueError("At least one strategy must be provided")
-        
+
         if len(strategies) == 1:
             return self.apply_strategy(original_text, entity_type, strategies[0], confidence)
-        
+
         # For now, implement sequential composition
         # Could be extended to support parallel composition with voting
         result = original_text
@@ -209,31 +209,31 @@ class StrategyApplicator:
                 )
                 # Continue with current result
                 continue
-        
+
         return result
 
     def _apply_redact_strategy(
         self, original_text: str, strategy: Strategy
     ) -> str:
         """Apply redaction strategy - replace with redaction characters."""
-        redact_char = strategy.get_parameter("redact_char", "*")
-        preserve_length = strategy.get_parameter("preserve_length", True)
+        redact_char = str(strategy.get_parameter("redact_char", "*"))
+        preserve_length = bool(strategy.get_parameter("preserve_length", True))
 
         if preserve_length:
-            return redact_char * len(original_text)
+            return str(redact_char) * len(original_text)
         else:
             # Fixed length redaction
-            redaction_length = strategy.get_parameter("redaction_length", 8)
-            return redact_char * redaction_length
+            redaction_length = int(strategy.get_parameter("redaction_length", 8))
+            return str(redact_char) * redaction_length
 
     def _apply_template_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
     ) -> str:
         """Apply template strategy - replace with format-preserving templates."""
         template = strategy.get_parameter("template")
-        preserve_format = strategy.get_parameter("preserve_format", False)
-        auto_generate = strategy.get_parameter("auto_generate", False)
-        
+        preserve_format = bool(strategy.get_parameter("preserve_format", False))
+        auto_generate = bool(strategy.get_parameter("auto_generate", False))
+
         if not template and not auto_generate:
             raise ValueError("Template strategy requires 'template' parameter or auto_generate=True")
 
@@ -263,7 +263,7 @@ class StrategyApplicator:
         """Generate a format-preserving template based on the original text structure."""
         if not original_text:
             return "[REDACTED]"
-            
+
         # Entity-specific format templates
         entity_templates = {
             "PHONE_NUMBER": self._generate_phone_template,
@@ -271,11 +271,11 @@ class StrategyApplicator:
             "CREDIT_CARD": self._generate_credit_card_template,
             "EMAIL_ADDRESS": self._generate_email_template,
         }
-        
+
         # Try entity-specific template generation first
         if entity_type in entity_templates:
             return entity_templates[entity_type](original_text)
-        
+
         # Generic format template generation
         return self._generate_generic_template(original_text)
 
@@ -333,19 +333,19 @@ class StrategyApplicator:
         """Generate format-preserving template for email addresses."""
         if '@' not in original_text:
             return "[EMAIL]"
-        
+
         username, domain = original_text.split('@', 1)
-        
+
         # Preserve username length and domain structure
         username_template = "x" * len(username)
-        
+
         # Preserve domain structure
         if '.' in domain:
             domain_parts = domain.split('.')
             domain_template = ".".join("x" * len(part) for part in domain_parts)
         else:
             domain_template = "x" * len(domain)
-        
+
         return f"{username_template}@{domain_template}"
 
     def _generate_generic_template(self, original_text: str) -> str:
@@ -379,12 +379,12 @@ class StrategyApplicator:
         # If user template contains format placeholders, replace them
         if "{format}" in user_template:
             return user_template.replace("{format}", format_template)
-        
+
         # If user template is simple (like [PHONE]), append format info
         if user_template.startswith("[") and user_template.endswith("]"):
             base_template = user_template[1:-1]
             return f"[{base_template}:{len(original_text)}]"
-        
+
         # Otherwise return user template as-is
         return user_template
 
@@ -392,15 +392,15 @@ class StrategyApplicator:
         self, original_text: str, strategy: Strategy
     ) -> str:
         """Apply hash strategy - replace with deterministic hashed values."""
-        algorithm = strategy.get_parameter("algorithm", "sha256")
-        salt = strategy.get_parameter("salt", "")
+        algorithm = str(strategy.get_parameter("algorithm", "sha256"))
+        salt = str(strategy.get_parameter("salt", ""))
         per_entity_salt = strategy.get_parameter("per_entity_salt", None)
-        entity_type = strategy.get_parameter("entity_type", "UNKNOWN")
+        entity_type = str(strategy.get_parameter("entity_type", "UNKNOWN"))
         truncate = strategy.get_parameter("truncate", None)
-        prefix = strategy.get_parameter("prefix", "")
-        format_output = strategy.get_parameter("format_output", "hex")
-        consistent_length = strategy.get_parameter("consistent_length", True)
-        preserve_format_structure = strategy.get_parameter("preserve_format_structure", False)
+        prefix = str(strategy.get_parameter("prefix", ""))
+        format_output = str(strategy.get_parameter("format_output", "hex"))
+        consistent_length = bool(strategy.get_parameter("consistent_length", True))
+        preserve_format_structure = bool(strategy.get_parameter("preserve_format_structure", False))
 
         # Build deterministic salt
         effective_salt = self._build_deterministic_salt(
@@ -416,7 +416,7 @@ class StrategyApplicator:
         # Compute hash
         hash_obj = self._get_hash_algorithm(algorithm)
         hash_obj.update(content_to_hash.encode("utf-8"))
-        
+
         # Get hash result in requested format
         if format_output == "hex":
             hash_result = hash_obj.hexdigest()
@@ -442,29 +442,29 @@ class StrategyApplicator:
             hash_result = self._preserve_format_in_hash(
                 original_text, hash_result, prefix
             )
-        
-        return prefix + hash_result
+
+        return str(prefix) + str(hash_result)
 
     def _build_deterministic_salt(
         self, base_salt: str, per_entity_salt: dict, entity_type: str, original_text: str
     ) -> str:
         """Build a deterministic salt combining base, per-entity, and content-based salts."""
         salt_components = [base_salt or ""]
-        
+
         # Add per-entity-type salt for security isolation
         if per_entity_salt and isinstance(per_entity_salt, dict):
             entity_salt = per_entity_salt.get(entity_type, per_entity_salt.get("default", ""))
             salt_components.append(str(entity_salt))
-        
+
         # Add content-length-based component for additional entropy
         salt_components.append(f"len:{len(original_text)}")
-        
+
         # Add entity type for separation
         salt_components.append(f"type:{entity_type}")
-        
+
         return "|".join(salt_components)
 
-    def _get_hash_algorithm(self, algorithm: str):
+    def _get_hash_algorithm(self, algorithm: str) -> Any:
         """Get hash algorithm object."""
         if algorithm == "md5":
             return hashlib.md5()
@@ -485,7 +485,7 @@ class StrategyApplicator:
         """Apply truncation that's consistent for similar-length inputs."""
         if truncate >= len(hash_result):
             return hash_result
-        
+
         # Use original text characteristics to determine truncation offset
         # This ensures similar inputs get similar hash patterns
         offset = hash(original_text + algorithm) % max(1, len(hash_result) - truncate)
@@ -496,45 +496,45 @@ class StrategyApplicator:
         # Detect structural elements in original text
         delimiters = []
         delimiter_positions = []
-        
+
         for i, char in enumerate(original_text):
             if char in ['-', '_', '.', '@', ' ', '(', ')', '+']:
                 delimiters.append(char)
                 delimiter_positions.append(i)
-        
+
         if not delimiters:
             return hash_result
-        
+
         # Try to maintain similar structure in hash
         result = list(hash_result)
-        
+
         # Insert delimiters at proportional positions
         hash_len = len(hash_result)
         orig_len = len(original_text)
-        
+
         for i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions)):
             # Calculate proportional position in hash
             if orig_len > 0:
                 hash_pos = int((orig_pos / orig_len) * hash_len)
                 hash_pos = min(hash_pos, len(result) - 1)
-                
+
                 # Insert delimiter if it makes sense
                 if hash_pos < len(result) and result[hash_pos].isalnum():
                     result[hash_pos] = delimiter
-        
+
         return ''.join(result)
 
     def _apply_partial_strategy(
         self, original_text: str, strategy: Strategy
     ) -> str:
         """Apply partial strategy - show some chars, mask others with format awareness."""
-        visible_chars = strategy.get_parameter("visible_chars", 4)
-        position = strategy.get_parameter("position", "end")
-        mask_char = strategy.get_parameter("mask_char", "*")
-        min_length = strategy.get_parameter("min_length", 1)
-        format_aware = strategy.get_parameter("format_aware", True)
-        preserve_delimiters = strategy.get_parameter("preserve_delimiters", True)
-        deterministic = strategy.get_parameter("deterministic", True)
+        visible_chars = int(strategy.get_parameter("visible_chars", 4))
+        position = str(strategy.get_parameter("position", "end"))
+        mask_char = str(strategy.get_parameter("mask_char", "*"))
+        min_length = int(strategy.get_parameter("min_length", 1))
+        format_aware = bool(strategy.get_parameter("format_aware", True))
+        preserve_delimiters = bool(strategy.get_parameter("preserve_delimiters", True))
+        deterministic = bool(strategy.get_parameter("deterministic", True))
 
         if len(original_text) < min_length:
             # Text too short, mask completely
@@ -543,7 +543,7 @@ class StrategyApplicator:
         # Apply format-aware partial masking if enabled
         if format_aware:
             return self._apply_format_aware_partial_masking(
-                original_text, visible_chars, position, mask_char, 
+                original_text, visible_chars, position, mask_char,
                 preserve_delimiters, deterministic
             )
 
@@ -594,20 +594,20 @@ class StrategyApplicator:
             )
 
     def _apply_format_aware_partial_masking(
-        self, original_text: str, visible_chars: int, position: str, 
+        self, original_text: str, visible_chars: int, position: str,
         mask_char: str, preserve_delimiters: bool, deterministic: bool
     ) -> str:
         """Apply format-aware partial masking that preserves delimiters and structure."""
         # Detect common delimiters and structural elements
         delimiters = set(['-', '_', '.', '@', ' ', '(', ')', '+'])
-        
+
         # Find delimiter positions
         delimiter_positions = []
         if preserve_delimiters:
             for i, char in enumerate(original_text):
                 if char in delimiters:
                     delimiter_positions.append(i)
-        
+
         # Extract maskable characters (non-delimiters)
         maskable_chars = []
         maskable_positions = []
@@ -615,35 +615,35 @@ class StrategyApplicator:
             if not preserve_delimiters or char not in delimiters:
                 maskable_chars.append(char)
                 maskable_positions.append(i)
-        
+
         if not maskable_chars:
             # All characters are delimiters, return as-is
             return original_text
-        
+
         # Apply partial masking to maskable characters only
         visible_chars = min(visible_chars, len(maskable_chars))
-        
+
         # Determine which characters to keep visible
         visible_indices = self._select_visible_characters(
             len(maskable_chars), visible_chars, position, deterministic, original_text
         )
-        
+
         # Build result by preserving delimiters and masking non-visible characters
         result = list(original_text)
         for i, pos in enumerate(maskable_positions):
             if i not in visible_indices:
                 result[pos] = mask_char
-        
+
         return ''.join(result)
 
     def _select_visible_characters(
-        self, total_chars: int, visible_chars: int, position: str, 
+        self, total_chars: int, visible_chars: int, position: str,
         deterministic: bool, original_text: str
     ) -> set:
         """Select which character indices should remain visible."""
         if visible_chars >= total_chars:
             return set(range(total_chars))
-        
+
         if position == "start":
             return set(range(visible_chars))
         elif position == "end":
@@ -652,17 +652,17 @@ class StrategyApplicator:
             # Show chars at both ends
             chars_per_side = visible_chars // 2
             remaining = visible_chars % 2
-            
+
             start_chars = chars_per_side + remaining
             end_chars = chars_per_side
-            
+
             if start_chars + end_chars >= total_chars:
                 # Fallback to showing alternating characters
                 return self._select_alternating_characters(
                     total_chars, visible_chars, deterministic, original_text
                 )
-            
-            visible_indices = set()
+
+            visible_indices: set[int] = set()
             visible_indices.update(range(start_chars))
             visible_indices.update(range(total_chars - end_chars, total_chars))
             return visible_indices
@@ -681,16 +681,16 @@ class StrategyApplicator:
             # Non-deterministic alternating
             step = max(1, total_chars // visible_chars)
             return set(range(0, total_chars, step)[:visible_chars])
-        
+
         # Deterministic alternating based on text content
         hash_seed = hash(original_text) % total_chars
         step = max(1, total_chars // visible_chars)
         visible_indices = set()
-        
+
         for i in range(visible_chars):
             idx = (hash_seed + i * step) % total_chars
             visible_indices.add(idx)
-        
+
         return visible_indices
 
     def _select_random_characters(

@@ -1,19 +1,19 @@
 """Core MaskingEngine for orchestrating PII masking operations."""
 
-import logging
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
 import hashlib
+import logging
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
 
-from ..core.strategies import Strategy
-from ..core.policies import MaskingPolicy
-from ..core.cloakmap import CloakMap
 from ..core.anchors import AnchorEntry
+from ..core.cloakmap import CloakMap
+from ..core.policies import MaskingPolicy
+from ..core.strategies import Strategy
 from ..document.extractor import TextSegment
 from .applicator import StrategyApplicator
 from .document_masker import DocumentMasker

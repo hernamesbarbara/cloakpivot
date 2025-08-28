@@ -1,6 +1,7 @@
 """Tests for enhanced masking strategies (template, partial, hash)."""
 
 import pytest
+
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.masking.applicator import StrategyApplicator
 
@@ -12,7 +13,7 @@ class TestEnhancedTemplateStrategy:
         """Test auto-generation of phone number templates."""
         applicator = StrategyApplicator()
         strategy = Strategy(StrategyKind.TEMPLATE, {"auto_generate": True})
-        
+
         # Test various phone formats
         test_cases = [
             ("555-123-4567", "XXX-XXX-XXXX"),
@@ -20,7 +21,7 @@ class TestEnhancedTemplateStrategy:
             ("5551234567", "XXX-XXX-XXXX"),  # Should format
             ("+1 555-123-4567", "+X XXX-XXX-XXXX"),
         ]
-        
+
         for phone_number, expected_pattern in test_cases:
             result = applicator.apply_strategy(
                 phone_number, "PHONE_NUMBER", strategy, 0.9
@@ -34,13 +35,13 @@ class TestEnhancedTemplateStrategy:
         """Test auto-generation of email templates."""
         applicator = StrategyApplicator()
         strategy = Strategy(StrategyKind.TEMPLATE, {"auto_generate": True})
-        
+
         test_cases = [
             "john@example.com",
             "user.name@subdomain.example.org",
             "simple@test.co",
         ]
-        
+
         for email in test_cases:
             result = applicator.apply_strategy(
                 email, "EMAIL_ADDRESS", strategy, 0.9
@@ -56,12 +57,12 @@ class TestEnhancedTemplateStrategy:
         """Test auto-generation of SSN templates."""
         applicator = StrategyApplicator()
         strategy = Strategy(StrategyKind.TEMPLATE, {"auto_generate": True})
-        
+
         test_cases = [
             ("123-45-6789", "XXX-XX-XXXX"),
             ("123456789", "XXXXXXXXX"),
         ]
-        
+
         for ssn, expected_pattern in test_cases:
             result = applicator.apply_strategy(
                 ssn, "US_SSN", strategy, 0.9
@@ -77,7 +78,7 @@ class TestEnhancedTemplateStrategy:
             "template": "[PHONE]",
             "preserve_format": True
         })
-        
+
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
         )
@@ -90,7 +91,7 @@ class TestEnhancedTemplateStrategy:
         strategy = Strategy(StrategyKind.TEMPLATE, {
             "template": "[{entity_type}:{length}]"
         })
-        
+
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
         )
@@ -109,11 +110,11 @@ class TestEnhancedPartialStrategy:
             "format_aware": True,
             "preserve_delimiters": True
         })
-        
+
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
         )
-        
+
         # Should preserve delimiters and show last 4 digits
         assert "-" in result  # Delimiters preserved
         assert "4567" in result  # Last 4 digits visible
@@ -129,11 +130,11 @@ class TestEnhancedPartialStrategy:
             "format_aware": True,
             "preserve_delimiters": True
         })
-        
+
         result = applicator.apply_strategy(
             "john@example.com", "EMAIL_ADDRESS", strategy, 0.9
         )
-        
+
         # Should preserve @ and . and show first 3 chars
         assert "@" in result
         assert "." in result
@@ -148,38 +149,38 @@ class TestEnhancedPartialStrategy:
             "position": "random",
             "deterministic": True
         })
-        
+
         # Same input should produce same output
         text = "sensitive-information"
         result1 = applicator.apply_strategy(text, "TEST", strategy, 0.9)
         result2 = applicator.apply_strategy(text, "TEST", strategy, 0.9)
-        
+
         assert result1 == result2
 
     def test_partial_position_variations(self):
         """Test different position options for partial masking."""
         applicator = StrategyApplicator()
         text = "1234567890"
-        
+
         test_cases = [
             ("start", 3),
-            ("end", 3), 
+            ("end", 3),
             ("middle", 4),
             ("random", 5),
         ]
-        
+
         for position, visible_chars in test_cases:
             strategy = Strategy(StrategyKind.PARTIAL, {
                 "visible_chars": visible_chars,
                 "position": position,
                 "deterministic": True
             })
-            
+
             result = applicator.apply_strategy(text, "TEST", strategy, 0.9)
-            
+
             # Result should be same length
             assert len(result) == len(text)
-            
+
             # Should have correct number of visible characters
             visible_count = sum(1 for c in result if c != '*')
             assert visible_count == min(visible_chars, len(text))
@@ -195,11 +196,11 @@ class TestEnhancedHashStrategy:
             "algorithm": "sha256",
             "salt": "test_salt"
         })
-        
+
         text = "sensitive-data"
         result1 = applicator.apply_strategy(text, "TEST", strategy, 0.9)
         result2 = applicator.apply_strategy(text, "TEST", strategy, 0.9)
-        
+
         assert result1 == result2
 
     def test_per_entity_salt(self):
@@ -213,11 +214,11 @@ class TestEnhancedHashStrategy:
             },
             "truncate": 8
         })
-        
+
         same_text = "123456789"
         phone_result = applicator.apply_strategy(same_text, "PHONE_NUMBER", strategy, 0.9)
         email_result = applicator.apply_strategy(same_text, "EMAIL_ADDRESS", strategy, 0.9)
-        
+
         # Same text with different entity types should produce different hashes
         assert phone_result != email_result
 
@@ -225,21 +226,21 @@ class TestEnhancedHashStrategy:
         """Test different hash output formats."""
         applicator = StrategyApplicator()
         text = "test-data"
-        
+
         formats = ["hex", "base64", "base32"]
-        
+
         for format_type in formats:
             strategy = Strategy(StrategyKind.HASH, {
                 "algorithm": "sha256",
                 "format_output": format_type,
                 "truncate": 12
             })
-            
+
             result = applicator.apply_strategy(text, "TEST", strategy, 0.9)
-            
+
             # Should be truncated to requested length
             assert len(result) == 12
-            
+
             if format_type == "hex":
                 # Hex should only contain 0-9, a-f
                 assert all(c in "0123456789abcdef" for c in result.lower())
@@ -252,14 +253,14 @@ class TestEnhancedHashStrategy:
             "truncate": 8,
             "consistent_length": True
         })
-        
+
         # Similar length inputs should have similar hash patterns
         text1 = "test1234"
         text2 = "test5678"
-        
+
         result1 = applicator.apply_strategy(text1, "TEST", strategy, 0.9)
         result2 = applicator.apply_strategy(text2, "TEST", strategy, 0.9)
-        
+
         assert len(result1) == len(result2) == 8
 
     def test_preserve_format_structure_in_hash(self):
@@ -270,11 +271,11 @@ class TestEnhancedHashStrategy:
             "preserve_format_structure": True,
             "truncate": 12
         })
-        
+
         # Test with structured input
         text = "123-45-6789"
         result = applicator.apply_strategy(text, "US_SSN", strategy, 0.9)
-        
+
         # Should potentially preserve some structural elements
         # This is a heuristic test since format preservation is best-effort
         assert len(result) >= 8  # Should have reasonable length
@@ -286,18 +287,18 @@ class TestStrategyComposition:
     def test_strategy_fallback_on_failure(self):
         """Test fallback when primary strategy fails."""
         applicator = StrategyApplicator()
-        
+
         # Create a custom strategy that will fail at runtime
         def failing_callback(original_text, entity_type, confidence):
             raise RuntimeError("Intentional failure for testing")
-        
+
         failing_strategy = Strategy(StrategyKind.CUSTOM, {"callback": failing_callback})
-        
+
         # Should fallback gracefully
         result = applicator.apply_strategy(
             "test-data", "TEST", failing_strategy, 0.9
         )
-        
+
         # Should not raise exception and should return masked value
         assert result is not None
         assert len(result) > 0
@@ -306,16 +307,16 @@ class TestStrategyComposition:
     def test_strategy_composition(self):
         """Test composing multiple strategies."""
         applicator = StrategyApplicator()
-        
+
         strategies = [
             Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
             Strategy(StrategyKind.HASH, {"algorithm": "sha256", "truncate": 8})
         ]
-        
+
         result = applicator.compose_strategies(
             "sensitive-data", "TEST", strategies, 0.9
         )
-        
+
         # Should apply strategies in sequence
         assert result is not None
         assert result != "sensitive-data"
@@ -324,7 +325,7 @@ class TestStrategyComposition:
         """Test handling of empty inputs."""
         applicator = StrategyApplicator()
         strategy = Strategy(StrategyKind.TEMPLATE, {"template": "[REDACTED]"})
-        
+
         result = applicator.apply_strategy("", "TEST", strategy, 0.9)
         assert result == "[REDACTED]"
 
@@ -336,14 +337,14 @@ class TestStrategyComposition:
             "position": "end",
             "format_aware": True
         })
-        
+
         test_inputs = [
             "test@#$%",
             "123-!@#-456",
             "üñíçødé",  # Unicode
             "emoji👨‍💻test",  # Emoji
         ]
-        
+
         for test_input in test_inputs:
             result = applicator.apply_strategy(test_input, "TEST", strategy, 0.9)
             assert result is not None
@@ -356,9 +357,9 @@ class TestPolicyIntegration:
     def test_format_aware_template_policy(self):
         """Test the FORMAT_AWARE_TEMPLATE_POLICY."""
         from cloakpivot.core.policies import FORMAT_AWARE_TEMPLATE_POLICY
-        
+
         policy = FORMAT_AWARE_TEMPLATE_POLICY
-        
+
         # Test phone number strategy
         phone_strategy = policy.get_strategy_for_entity("PHONE_NUMBER")
         assert phone_strategy.kind == StrategyKind.TEMPLATE
@@ -368,9 +369,9 @@ class TestPolicyIntegration:
     def test_format_aware_partial_policy(self):
         """Test the FORMAT_AWARE_PARTIAL_POLICY."""
         from cloakpivot.core.policies import FORMAT_AWARE_PARTIAL_POLICY
-        
+
         policy = FORMAT_AWARE_PARTIAL_POLICY
-        
+
         # Test email strategy
         email_strategy = policy.get_strategy_for_entity("EMAIL_ADDRESS")
         assert email_strategy.kind == StrategyKind.PARTIAL
@@ -381,13 +382,13 @@ class TestPolicyIntegration:
     def test_deterministic_hash_policy(self):
         """Test the DETERMINISTIC_HASH_POLICY."""
         from cloakpivot.core.policies import DETERMINISTIC_HASH_POLICY
-        
+
         policy = DETERMINISTIC_HASH_POLICY
-        
+
         # Should have per-entity salts configured
         default_strategy = policy.default_strategy
         assert default_strategy.kind == StrategyKind.HASH
-        
+
         per_entity_salt = default_strategy.get_parameter("per_entity_salt")
         assert isinstance(per_entity_salt, dict)
         assert "PHONE_NUMBER" in per_entity_salt
@@ -397,18 +398,18 @@ class TestPolicyIntegration:
     def test_mixed_strategy_policy(self):
         """Test the MIXED_STRATEGY_POLICY with different strategies per entity."""
         from cloakpivot.core.policies import MIXED_STRATEGY_POLICY
-        
+
         policy = MIXED_STRATEGY_POLICY
-        
+
         # Test that different entities use different strategies
         phone_strategy = policy.get_strategy_for_entity("PHONE_NUMBER")
-        email_strategy = policy.get_strategy_for_entity("EMAIL_ADDRESS") 
+        email_strategy = policy.get_strategy_for_entity("EMAIL_ADDRESS")
         credit_card_strategy = policy.get_strategy_for_entity("CREDIT_CARD")
-        
+
         assert phone_strategy.kind == StrategyKind.PARTIAL
         assert email_strategy.kind == StrategyKind.TEMPLATE
         assert credit_card_strategy.kind == StrategyKind.HASH
-        
+
         # Test thresholds are configured
         assert policy.get_threshold_for_entity("PHONE_NUMBER") == 0.8
         assert policy.get_threshold_for_entity("EMAIL_ADDRESS") == 0.7

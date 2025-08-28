@@ -31,7 +31,7 @@ def _validate_mask_arguments(output_path: Optional[Path], cloakmap: Optional[Pat
         )
 
 
-def _set_default_paths(input_path: Path, output_path: Optional[Path], 
+def _set_default_paths(input_path: Path, output_path: Optional[Path],
                       cloakmap: Optional[Path], output_format: str) -> tuple[Path, Path]:
     """Set default output paths if not specified."""
     if not output_path:
@@ -44,13 +44,13 @@ def _set_default_paths(input_path: Path, output_path: Optional[Path],
 def _load_masking_policy(policy: Optional[Path], verbose: bool):
     """Load masking policy from file or use default."""
     from ..core.policies import MaskingPolicy
-    
+
     if policy:
         if verbose:
             click.echo(f"📋 Loading policy: {policy}")
         try:
             import yaml
-            with open(policy, 'r', encoding='utf-8') as f:
+            with open(policy, encoding='utf-8') as f:
                 policy_data = yaml.safe_load(f)
             masking_policy = MaskingPolicy.from_dict(policy_data)
             if verbose:
@@ -70,33 +70,33 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool):
 def _perform_entity_detection(document, masking_policy, verbose: bool):
     """Perform PII entity detection on document."""
     from ..core.detection import EntityDetectionPipeline
-    
+
     if verbose:
-        click.echo(f"🔍 Detecting PII entities")
-        
+        click.echo("🔍 Detecting PII entities")
+
     detection_pipeline = EntityDetectionPipeline()
-    
+
     with click.progressbar(length=1, label="Analyzing document for PII") as progress:
         detection_result = detection_pipeline.analyze_document(document, masking_policy)
         progress.update(1)
-        
+
     if verbose:
         click.echo(f"✓ Detected {detection_result.total_entities} entities")
         for entity_type, count in detection_result.entity_breakdown.items():
             click.echo(f"  {entity_type}: {count}")
-            
+
     if detection_result.total_entities == 0:
         click.echo("ℹ️  No PII entities detected in document")
         if not click.confirm("Continue with masking anyway?"):
             raise click.Abort()
-    
+
     return detection_result
 
 
 def _prepare_entities_for_masking(detection_result):
     """Convert detection results to format expected by masking engine."""
     from presidio_analyzer import RecognizerResult
-    
+
     entities = []
     for segment_result in detection_result.segment_results:
         for entity in segment_result.entities:
@@ -112,16 +112,16 @@ def _prepare_entities_for_masking(detection_result):
 
 def _perform_masking(document, entities, masking_policy, verbose: bool):
     """Perform the actual masking operation."""
-    from ..masking.engine import MaskingEngine
     from ..document.extractor import TextExtractor
-    
+    from ..masking.engine import MaskingEngine
+
     masking_engine = MaskingEngine()
     text_extractor = TextExtractor()
     text_segments = text_extractor.extract_text_segments(document)
-    
+
     if verbose:
         click.echo(f"📝 Extracted {len(text_segments)} text segments")
-        
+
     with click.progressbar(length=1, label="Masking PII entities") as progress:
         masking_result = masking_engine.mask_document(
             document=document,
@@ -130,10 +130,10 @@ def _perform_masking(document, entities, masking_policy, verbose: bool):
             text_segments=text_segments
         )
         progress.update(1)
-        
+
     if verbose:
         click.echo(f"✓ Masked {len(masking_result.cloakmap.anchors)} entities")
-    
+
     return masking_result
 
 
@@ -141,12 +141,12 @@ def _save_masked_document(masking_result, output_path: Path, verbose: bool) -> N
     """Save the masked document to file."""
     if verbose:
         click.echo(f"💾 Saving masked document: {output_path}")
-        
+
     with click.progressbar(length=1, label="Saving masked document") as progress:
         from docpivot import LexicalDocSerializer
         serializer = LexicalDocSerializer()
         serialized_content = serializer.serialize(masking_result.masked_document)
-        
+
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(serialized_content)
         progress.update(1)
@@ -155,10 +155,10 @@ def _save_masked_document(masking_result, output_path: Path, verbose: bool) -> N
 def _save_cloakmap(masking_result, cloakmap: Path, verbose: bool) -> None:
     """Save the CloakMap to file."""
     import json
-    
+
     if verbose:
         click.echo(f"🗺️  Saving CloakMap: {cloakmap}")
-        
+
     with click.progressbar(length=1, label="Saving CloakMap") as progress:
         with open(cloakmap, 'w', encoding='utf-8') as f:
             json.dump(masking_result.cloakmap.to_dict(), f, indent=2, default=str)
@@ -220,49 +220,49 @@ def mask(
         cloakpivot mask document.pdf --out masked.json --cloakmap map.json
     """
     verbose = ctx.obj["verbose"]
-    
+
     try:
         # Import required modules
-        from ..document.processor import DocumentProcessor
+        import json
+
         from ..core.detection import EntityDetectionPipeline
         from ..core.policies import MaskingPolicy
+        from ..document.processor import DocumentProcessor
         from ..masking.engine import MaskingEngine
 
-        import json
-        
         if verbose:
             click.echo(f"🔍 Loading document: {input_path}")
-        
+
         # Validate input arguments
         if not output_path and not cloakmap:
             raise click.ClickException(
                 "Must specify either --out for masked output or --cloakmap for CloakMap output"
             )
-        
+
         # Set default output paths if not specified
         if not output_path:
             output_path = input_path.with_suffix(f".masked.{output_format}.json")
         if not cloakmap:
             cloakmap = input_path.with_suffix(".cloakmap.json")
-            
+
         # Load document
         with click.progressbar(length=1, label="Loading document") as progress:
             processor = DocumentProcessor()
             document = processor.load_document(input_path, validate=True)
             progress.update(1)
-            
+
         if verbose:
             click.echo(f"✓ Loaded document: {document.name}")
             click.echo(f"  Text items: {len(document.texts)}")
             click.echo(f"  Tables: {len(document.tables)}")
-            
+
         # Load or create masking policy
         if policy:
             if verbose:
                 click.echo(f"📋 Loading policy: {policy}")
             try:
                 import yaml
-                with open(policy, 'r', encoding='utf-8') as f:
+                with open(policy, encoding='utf-8') as f:
                     policy_data = yaml.safe_load(f)
                 masking_policy = MaskingPolicy.from_dict(policy_data)
                 if verbose:
@@ -276,39 +276,39 @@ def mask(
                 masking_policy = MaskingPolicy()
         else:
             masking_policy = MaskingPolicy()  # Use default policy
-            
+
         # Initialize detection pipeline
         if verbose:
             click.echo(f"🔍 Detecting PII entities (min_score: {min_score}, lang: {lang})")
-            
+
         detection_pipeline = EntityDetectionPipeline()
-        
+
         # Detect entities with progress
         with click.progressbar(length=1, label="Analyzing document for PII") as progress:
             detection_result = detection_pipeline.analyze_document(document, masking_policy)
             progress.update(1)
-            
+
         if verbose:
             click.echo(f"✓ Detected {detection_result.total_entities} entities")
             for entity_type, count in detection_result.entity_breakdown.items():
                 click.echo(f"  {entity_type}: {count}")
-                
+
         if detection_result.total_entities == 0:
             click.echo("ℹ️  No PII entities detected in document")
             if not click.confirm("Continue with masking anyway?"):
                 raise click.Abort()
-                
+
         # Initialize masking engine
         masking_engine = MaskingEngine()
-        
+
         # Extract text segments (needed for masking engine)
         from ..document.extractor import TextExtractor
         text_extractor = TextExtractor()
         text_segments = text_extractor.extract_text_segments(document)
-        
+
         if verbose:
             click.echo(f"📝 Extracted {len(text_segments)} text segments")
-            
+
         # Convert detection results to RecognizerResult format expected by masking engine
         from presidio_analyzer import RecognizerResult
         entities = []
@@ -322,7 +322,7 @@ def mask(
                     score=entity.confidence
                 )
                 entities.append(recognizer_result)
-                
+
         # Perform masking
         with click.progressbar(length=1, label="Masking PII entities") as progress:
             masking_result = masking_engine.mask_document(
@@ -332,49 +332,49 @@ def mask(
                 text_segments=text_segments
             )
             progress.update(1)
-            
+
         if verbose:
             click.echo(f"✓ Masked {len(masking_result.cloakmap.anchors)} entities")
-            
+
         # Save masked document
         if verbose:
             click.echo(f"💾 Saving masked document: {output_path}")
-            
+
         with click.progressbar(length=1, label="Saving masked document") as progress:
             # Use docpivot serializer to save the document
             from docpivot import LexicalDocSerializer
             serializer = LexicalDocSerializer()
             serialized_content = serializer.serialize(masking_result.masked_document)
-            
+
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(serialized_content)
             progress.update(1)
-            
+
         # Save CloakMap
         if verbose:
             click.echo(f"🗺️  Saving CloakMap: {cloakmap}")
-            
+
         with click.progressbar(length=1, label="Saving CloakMap") as progress:
             with open(cloakmap, 'w', encoding='utf-8') as f:
                 json.dump(masking_result.cloakmap.to_dict(), f, indent=2, default=str)
             progress.update(1)
-            
+
         # Success message
         click.echo("✅ Masking completed successfully!")
         click.echo(f"   Masked document: {output_path}")
         click.echo(f"   CloakMap: {cloakmap}")
         if masking_result.stats:
             click.echo(f"   Entities processed: {masking_result.stats['total_entities_masked']}")
-            
+
     except ImportError as e:
-        raise click.ClickException(f"Missing required dependency: {e}")
+        raise click.ClickException(f"Missing required dependency: {e}") from e
     except FileNotFoundError as e:
-        raise click.ClickException(f"File not found: {e}")
+        raise click.ClickException(f"File not found: {e}") from e
     except Exception as e:
         if verbose:
             import traceback
             click.echo(f"Error details:\n{traceback.format_exc()}")
-        raise click.ClickException(f"Masking failed: {e}")
+        raise click.ClickException(f"Masking failed: {e}") from e
 
 
 @cli.command()
@@ -411,53 +411,53 @@ def unmask(
         cloakpivot unmask masked.json --cloakmap map.json --out original.json
     """
     verbose = ctx.obj["verbose"]
-    
+
     try:
         # Import required modules
+        import json
+
+        from ..core.cloakmap import CloakMap
         from ..document.processor import DocumentProcessor
         from ..unmasking.engine import UnmaskingEngine
-        from ..core.cloakmap import CloakMap
 
-        import json
-        
         if verbose:
             click.echo(f"🔓 Loading masked document: {masked_path}")
             click.echo(f"🗺️  Loading CloakMap: {cloakmap}")
             if verify_only:
                 click.echo("🔍 Verification mode only")
-                
+
         # Set default output path if not specified
         if not output_path and not verify_only:
             output_path = masked_path.with_suffix(".restored.json")
-            
+
         # Load CloakMap first for validation
         with click.progressbar(length=1, label="Loading CloakMap") as progress:
-            with open(cloakmap, 'r', encoding='utf-8') as f:
+            with open(cloakmap, encoding='utf-8') as f:
                 cloakmap_data = json.load(f)
             cloakmap_obj = CloakMap.from_dict(cloakmap_data)
             progress.update(1)
-            
+
         if verbose:
             click.echo(f"✓ Loaded CloakMap with {len(cloakmap_obj.anchors)} anchors")
             click.echo(f"  Document ID: {cloakmap_obj.doc_id}")
             click.echo(f"  Version: {cloakmap_obj.version}")
-            
+
         # Load masked document
         with click.progressbar(length=1, label="Loading masked document") as progress:
             processor = DocumentProcessor()
             masked_document = processor.load_document(masked_path, validate=True)
             progress.update(1)
-            
+
         if verbose:
             click.echo(f"✓ Loaded masked document: {masked_document.name}")
-            
+
         # Initialize unmasking engine
         unmasking_engine = UnmaskingEngine()
-        
+
         # Verify document compatibility
         if verbose:
             click.echo("🔍 Verifying document compatibility")
-            
+
         try:
             # Attempt unmasking or verification
             with click.progressbar(length=1, label="Processing unmasking") as progress:
@@ -467,15 +467,15 @@ def unmask(
                     verify_integrity=True
                 )
                 progress.update(1)
-                
+
             # Show statistics
             if verbose and unmasking_result.stats:
-                click.echo(f"✓ Unmasking completed")
+                click.echo("✓ Unmasking completed")
                 stats = unmasking_result.stats
                 click.echo(f"  Success rate: {stats.get('success_rate', 0):.1f}%")
                 click.echo(f"  Anchors resolved: {stats.get('resolved_anchors', 0)}")
                 click.echo(f"  Anchors failed: {stats.get('failed_anchors', 0)}")
-                
+
             # Check integrity
             if unmasking_result.integrity_report:
                 integrity = unmasking_result.integrity_report
@@ -486,7 +486,7 @@ def unmask(
                     click.echo("⚠️  Integrity verification failed:")
                     for issue in integrity.get('issues', []):
                         click.echo(f"   - {issue}")
-                        
+
             if verify_only:
                 # Verification mode - just report results
                 if unmasking_result.integrity_report and unmasking_result.integrity_report.get('valid', False):
@@ -501,17 +501,17 @@ def unmask(
                 # Save restored document
                 if verbose:
                     click.echo(f"💾 Saving restored document: {output_path}")
-                    
+
                 with click.progressbar(length=1, label="Saving restored document") as progress:
                     # Use docpivot serializer to save the restored document
                     from docpivot import LexicalDocSerializer
                     serializer = LexicalDocSerializer()
                     serialized_content = serializer.serialize(unmasking_result.restored_document)
-                    
+
                     with open(output_path, 'w', encoding='utf-8') as f:
                         f.write(serialized_content)
                     progress.update(1)
-                    
+
                 # Success message
                 click.echo("✅ Unmasking completed successfully!")
                 click.echo(f"   Masked document: {masked_path}")
@@ -519,7 +519,7 @@ def unmask(
                 click.echo(f"   Restored document: {output_path}")
                 if unmasking_result.stats:
                     click.echo(f"   Entities restored: {unmasking_result.stats.get('resolved_anchors', 0)}")
-                    
+
         except Exception as unmasking_error:
             # Handle unmasking-specific errors
             error_msg = str(unmasking_error)
@@ -531,24 +531,24 @@ def unmask(
                 click.echo("   Some replacement tokens could not be located in the document")
             else:
                 click.echo(f"❌ Unmasking failed: {error_msg}")
-                
+
             if verbose:
                 import traceback
                 click.echo(f"\nError details:\n{traceback.format_exc()}")
-                
-            raise click.ClickException(f"Unmasking operation failed: {error_msg}")
-            
+
+            raise click.ClickException(f"Unmasking operation failed: {error_msg}") from None
+
     except ImportError as e:
-        raise click.ClickException(f"Missing required dependency: {e}")
+        raise click.ClickException(f"Missing required dependency: {e}") from e
     except FileNotFoundError as e:
-        raise click.ClickException(f"File not found: {e}")
+        raise click.ClickException(f"File not found: {e}") from e
     except json.JSONDecodeError as e:
-        raise click.ClickException(f"Invalid CloakMap file format: {e}")
+        raise click.ClickException(f"Invalid CloakMap file format: {e}") from e
     except Exception as e:
         if verbose:
             import traceback
             click.echo(f"Error details:\n{traceback.format_exc()}")
-        raise click.ClickException(f"Unmasking failed: {e}")
+        raise click.ClickException(f"Unmasking failed: {e}") from e
 
 
 @cli.group()

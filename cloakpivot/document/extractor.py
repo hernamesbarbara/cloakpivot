@@ -2,19 +2,19 @@
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any, Union
+from typing import Any, Dict, List, Optional, Union
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
-    TextItem,
-    TitleItem,
-    SectionHeaderItem,
-    ListItem,
-    TableItem,
-    KeyValueItem,
     CodeItem,
     FormulaItem,
+    KeyValueItem,
+    ListItem,
     NodeItem,
+    SectionHeaderItem,
+    TableItem,
+    TextItem,
+    TitleItem,
 )
 
 logger = logging.getLogger(__name__)

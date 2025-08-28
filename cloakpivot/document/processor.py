@@ -1,19 +1,18 @@
 """Document processor for loading and managing DoclingDocument objects."""
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Union, Any, cast
+from typing import Any, Union, cast
 
 from docling_core.types import DoclingDocument
 from docpivot import load_document
 from docpivot.io.readers.exceptions import (
     FileAccessError,
+    TransformationError,
     UnsupportedFormatError,
     ValidationError,
-    TransformationError,
 )
-
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
