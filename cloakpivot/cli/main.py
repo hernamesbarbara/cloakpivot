@@ -42,24 +42,59 @@ def _set_default_paths(input_path: Path, output_path: Optional[Path],
 
 
 def _load_masking_policy(policy: Optional[Path], verbose: bool):
-    """Load masking policy from file or use default."""
+    """Load masking policy from file or use default with enhanced inheritance support."""
     from ..core.policies import MaskingPolicy
+    from ..core.policy_loader import PolicyLoader, PolicyValidationError, PolicyInheritanceError
 
     if policy:
         if verbose:
             click.echo(f"📋 Loading policy: {policy}")
+        
         try:
-            import yaml
-            with open(policy, encoding='utf-8') as f:
-                policy_data = yaml.safe_load(f)
-            masking_policy = MaskingPolicy.from_dict(policy_data)
+            # Try new enhanced policy loader first
+            loader = PolicyLoader()
+            masking_policy = loader.load_policy(policy)
             if verbose:
-                click.echo("✓ Custom policy loaded successfully")
+                click.echo("✓ Enhanced policy loaded successfully")
+                if hasattr(masking_policy, 'name') or policy.name.endswith(('.yaml', '.yml')):
+                    click.echo("   (with inheritance and validation support)")
+        except (PolicyValidationError, PolicyInheritanceError) as e:
+            click.echo(f"⚠️  Enhanced policy loading failed: {e}")
+            click.echo("   Falling back to basic policy loading")
+            # Fall back to basic loading
+            try:
+                import yaml
+                with open(policy, encoding='utf-8') as f:
+                    policy_data = yaml.safe_load(f)
+                masking_policy = MaskingPolicy.from_dict(policy_data)
+                if verbose:
+                    click.echo("✓ Basic policy loaded successfully")
+            except ImportError:
+                click.echo("⚠️  PyYAML not installed, using default policy")
+                masking_policy = MaskingPolicy()
+            except Exception as e:
+                click.echo(f"⚠️  Failed to load policy file: {e}")
+                click.echo("   Using default policy")
+                masking_policy = MaskingPolicy()
         except ImportError:
-            click.echo("⚠️  PyYAML not installed, using default policy")
-            masking_policy = MaskingPolicy()
+            click.echo("⚠️  Required dependencies not available for enhanced policies")
+            # Fall back to basic loading
+            try:
+                import yaml
+                with open(policy, encoding='utf-8') as f:
+                    policy_data = yaml.safe_load(f)
+                masking_policy = MaskingPolicy.from_dict(policy_data)
+                if verbose:
+                    click.echo("✓ Basic policy loaded successfully")
+            except ImportError:
+                click.echo("⚠️  PyYAML not installed, using default policy")
+                masking_policy = MaskingPolicy()
+            except Exception as e:
+                click.echo(f"⚠️  Failed to load policy file: {e}")
+                click.echo("   Using default policy")
+                masking_policy = MaskingPolicy()
         except Exception as e:
-            click.echo(f"⚠️  Failed to load policy file: {e}")
+            click.echo(f"⚠️  Unexpected error loading policy: {e}")
             click.echo("   Using default policy")
             masking_policy = MaskingPolicy()
     else:
@@ -571,62 +606,352 @@ def policy_sample(output: TextIO) -> None:
     Example:
         cloakpivot policy sample > policy.yaml
     """
-    sample_policy = """# CloakPivot Masking Policy Configuration
-# This is a sample policy that demonstrates available options
+    sample_policy = """# CloakPivot Enhanced Masking Policy Configuration
+# This sample demonstrates the comprehensive policy configuration system with 
+# inheritance support, per-entity configuration, and advanced features
 
-# Default masking strategy applied to all entities
-default_strategy:
-  kind: "redact"  # redact, template, hash, surrogate, partial, custom
-  template: "[REDACTED]"
+version: "1.0"
+name: "sample-policy"
+description: "Sample policy demonstrating all available configuration options"
 
-# Language and locale settings
+# Optional: inherit from base template (uncomment to enable)
+# extends: "templates/balanced.yaml"
+
+# Core configuration
 locale: "en"
-confidence_threshold: 0.5
+seed: "sample-policy-seed-v1"  # For deterministic operations
+min_entity_length: 2
 
-# Per-entity type strategies
+# Default strategy applied to entities without specific overrides
+default_strategy:
+  kind: "redact"
+  parameters:
+    redact_char: "*"
+    preserve_length: true
+
+# Per-entity type configuration with full options
 per_entity:
   PERSON:
-    kind: "template"
-    template: "[PERSON-{id}]"
-
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 8
+      prefix: "PERSON_"
+      per_entity_salt:
+        PERSON: "person_salt_v1"
+    threshold: 0.75
+    enabled: true
+    
   EMAIL_ADDRESS:
     kind: "partial"
-    show_prefix: 2
-    show_suffix: 0
-    mask_char: "*"
+    parameters:
+      visible_chars: 3
+      position: "start"
+      format_aware: true
+      preserve_delimiters: true
+      deterministic: true
+    threshold: 0.7
+    enabled: true
 
   PHONE_NUMBER:
     kind: "partial"
-    show_prefix: 0
-    show_suffix: 4
-    mask_char: "X"
+    parameters:
+      visible_chars: 4
+      position: "end"
+      format_aware: true
+      preserve_delimiters: true
+    threshold: 0.8
+    enabled: true
 
   CREDIT_CARD:
-    kind: "hash"
-    algorithm: "sha256"
-    salt: "your-secret-salt"
+    kind: "template"
+    parameters:
+      template: "[CARD-REDACTED]"
+    threshold: 0.9
+    enabled: true
 
-  SSN:
-    kind: "surrogate"
-    format_preserving: true
+  US_SSN:
+    kind: "template"
+    parameters:
+      template: "XXX-XX-XXXX"
+      preserve_format: true
+    threshold: 0.9
+    enabled: true
 
-# Advanced options
-custom_recognizers: []
-allow_list: []
-deny_list: []
+# Global thresholds (can be overridden in per_entity)
+thresholds:
+  IP_ADDRESS: 0.6
+  URL: 0.6
 
-# Security settings
-encryption:
-  enabled: false
-  key_id: null
+# Context-specific masking rules
+context_rules:
+  heading:
+    enabled: false  # Don't mask in document headings
+    
+  table:
+    enabled: true
+    threshold_overrides:
+      PERSON: 0.8  # Higher threshold in tables
+      
+  footer:
+    enabled: true
+    
+  header:
+    enabled: false
 
-# Audit and logging
-audit_trail: true
-log_level: "INFO"
+# Allow list - values that should never be masked
+allow_list:
+  - "support@company.com"
+  - "Company Name"
+  # Pattern-based matching (requires enhanced loader)
+  - pattern: ".*@company\\.com$"
+
+# Deny list - values that should always be masked regardless of confidence
+deny_list:
+  - "confidential"
+  - "internal use only"
+
+# Locale-specific configuration (requires enhanced loader)
+locales:
+  "es":
+    recognizers: ["SPANISH_DNI", "SPANISH_PHONE"]
+    entity_overrides:
+      PERSON:
+        threshold: 0.75
+        
+  "fr":
+    recognizers: ["FRENCH_CNI"] 
+    entity_overrides:
+      PERSON:
+        threshold: 0.75
+
+# Policy composition settings (for inheritance)
+policy_composition:
+  merge_strategy: "override"  # override, merge, strict
+  validation_level: "warn"    # strict, warn, permissive
+
+# Note: This enhanced format requires the PolicyLoader class
+# For basic compatibility, use simple key-value format without nested structure
 """
     output.write(sample_policy)
     if output != sys.stdout:
         click.echo(f"Sample policy written to {output.name}")
+
+
+@policy.command("validate")
+@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed validation information")
+def policy_validate(policy_file: Path, verbose: bool) -> None:
+    """Validate a policy file for errors and compatibility.
+    
+    Example:
+        cloakpivot policy validate my-policy.yaml
+    """
+    try:
+        from ..core.policy_loader import PolicyLoader
+        
+        if verbose:
+            click.echo(f"🔍 Validating policy file: {policy_file}")
+        
+        loader = PolicyLoader()
+        errors = loader.validate_policy_file(policy_file)
+        
+        if not errors:
+            click.echo("✅ Policy file is valid")
+            if verbose:
+                # Load and show policy summary
+                policy = loader.load_policy(policy_file)
+                click.echo(f"   Locale: {policy.locale}")
+                click.echo(f"   Entity strategies: {len(policy.per_entity)}")
+                click.echo(f"   Context rules: {len(policy.context_rules)}")
+                click.echo(f"   Allow list items: {len(policy.allow_list)}")
+                click.echo(f"   Deny list items: {len(policy.deny_list)}")
+        else:
+            click.echo("❌ Policy validation failed:")
+            for error in errors:
+                click.echo(f"   • {error}")
+            raise click.ClickException("Policy validation failed")
+            
+    except ImportError:
+        click.echo("⚠️  Enhanced policy validation requires pydantic")
+        click.echo("   Install with: pip install pydantic")
+        raise click.ClickException("Missing required dependency")
+
+
+@policy.command("template")
+@click.argument("template_name", type=click.Choice(["conservative", "balanced", "permissive"]))
+@click.option(
+    "--output",
+    "-o", 
+    type=click.File("w"),
+    default="-",
+    help="Output file (default: stdout)"
+)
+def policy_template(template_name: str, output: TextIO) -> None:
+    """Generate a policy file from a built-in template.
+    
+    Available templates:
+    - conservative: High security with strict thresholds
+    - balanced: Reasonable security with good usability  
+    - permissive: Low security for development/testing
+    
+    Example:
+        cloakpivot policy template balanced > my-policy.yaml
+    """
+    import pkg_resources
+    
+    try:
+        template_path = f"policies/templates/{template_name}.yaml"
+        template_content = pkg_resources.resource_string('cloakpivot', template_path).decode('utf-8')
+        output.write(template_content)
+        
+        if output != sys.stdout:
+            click.echo(f"✅ {template_name.title()} template written to {output.name}")
+            
+    except FileNotFoundError:
+        # Fall back to reading from file system if package resource doesn't work
+        from pathlib import Path
+        template_file = Path(__file__).parent.parent / "policies" / "templates" / f"{template_name}.yaml"
+        
+        if template_file.exists():
+            with open(template_file, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+            output.write(template_content)
+            
+            if output != sys.stdout:
+                click.echo(f"✅ {template_name.title()} template written to {output.name}")
+        else:
+            raise click.ClickException(f"Template '{template_name}' not found")
+    except Exception as e:
+        raise click.ClickException(f"Failed to load template: {e}")
+
+
+@policy.command("test")
+@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.option("--text", "-t", help="Test text to analyze with the policy")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed analysis results")
+def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
+    """Test a policy against sample text to see masking behavior.
+    
+    Example:
+        cloakpivot policy test policy.yaml --text "John Doe's email is john@example.com"
+    """
+    try:
+        from ..core.policy_loader import PolicyLoader
+        from ..core.detection import EntityDetectionPipeline
+        
+        # Load policy
+        if verbose:
+            click.echo(f"📋 Loading policy: {policy_file}")
+        
+        loader = PolicyLoader()
+        policy = loader.load_policy(policy_file)
+        
+        # Use sample text if none provided
+        if not text:
+            text = "Contact John Doe at john.doe@example.com or call (555) 123-4567. His SSN is 123-45-6789."
+            click.echo("📝 Using sample text for testing:")
+            click.echo(f"   {text}")
+        
+        # Detect entities
+        if verbose:
+            click.echo("🔍 Detecting PII entities...")
+            
+        detection_pipeline = EntityDetectionPipeline()
+        
+        # Create a simple document-like structure for testing
+        class TestDocument:
+            def __init__(self, text: str):
+                self.text = text
+        
+        test_doc = TestDocument(text)
+        
+        # This is a simplified test - in practice would use full document masking pipeline
+        click.echo("🎭 Policy test results:")
+        click.echo(f"   Default strategy: {policy.default_strategy.kind.value}")
+        click.echo(f"   Locale: {policy.locale}")
+        click.echo(f"   Per-entity strategies: {len(policy.per_entity)}")
+        
+        if verbose:
+            click.echo("📊 Configured entity strategies:")
+            for entity_type, strategy in policy.per_entity.items():
+                threshold = policy.thresholds.get(entity_type, 0.5)
+                click.echo(f"   • {entity_type}: {strategy.kind.value} (threshold: {threshold})")
+        
+        click.echo("ℹ️  Full masking test requires document input")
+        click.echo("   Use: cloakpivot mask <document> --policy <policy> --verbose")
+        
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Policy test failed: {e}")
+
+
+@policy.command("info")
+@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+def policy_info(policy_file: Path) -> None:
+    """Show detailed information about a policy file.
+    
+    Example:
+        cloakpivot policy info my-policy.yaml
+    """
+    try:
+        from ..core.policy_loader import PolicyLoader
+        
+        loader = PolicyLoader()
+        policy = loader.load_policy(policy_file)
+        
+        click.echo(f"📋 Policy Information: {policy_file.name}")
+        click.echo("=" * 50)
+        
+        # Basic info
+        click.echo(f"Locale: {policy.locale}")
+        if policy.seed:
+            click.echo(f"Seed: {policy.seed}")
+        click.echo(f"Min entity length: {policy.min_entity_length}")
+        
+        # Default strategy
+        click.echo(f"\nDefault Strategy: {policy.default_strategy.kind.value}")
+        if policy.default_strategy.parameters:
+            for key, value in policy.default_strategy.parameters.items():
+                click.echo(f"  {key}: {value}")
+        
+        # Per-entity strategies
+        if policy.per_entity:
+            click.echo(f"\nPer-Entity Strategies ({len(policy.per_entity)}):")
+            for entity_type, strategy in policy.per_entity.items():
+                threshold = policy.thresholds.get(entity_type, "default")
+                click.echo(f"  • {entity_type}: {strategy.kind.value} (threshold: {threshold})")
+                if strategy.parameters:
+                    for key, value in strategy.parameters.items():
+                        click.echo(f"    {key}: {value}")
+        
+        # Context rules
+        if policy.context_rules:
+            click.echo(f"\nContext Rules ({len(policy.context_rules)}):")
+            for context, rules in policy.context_rules.items():
+                enabled = rules.get("enabled", True)
+                status = "enabled" if enabled else "disabled"
+                click.echo(f"  • {context}: {status}")
+        
+        # Allow/deny lists
+        if policy.allow_list:
+            click.echo(f"\nAllow List ({len(policy.allow_list)} items):")
+            for item in list(policy.allow_list)[:5]:  # Show first 5
+                click.echo(f"  • {item}")
+            if len(policy.allow_list) > 5:
+                click.echo(f"  ... and {len(policy.allow_list) - 5} more")
+                
+        if policy.deny_list:
+            click.echo(f"\nDeny List ({len(policy.deny_list)} items):")
+            for item in list(policy.deny_list)[:5]:  # Show first 5
+                click.echo(f"  • {item}")
+            if len(policy.deny_list) > 5:
+                click.echo(f"  ... and {len(policy.deny_list) - 5} more")
+                
+    except Exception as e:
+        raise click.ClickException(f"Failed to read policy info: {e}")
 
 
 def main() -> None:

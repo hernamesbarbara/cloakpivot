@@ -1,0 +1,138 @@
+# Permissive Policy Template
+# Low security, high usability for development and testing
+version: "1.0"
+name: "permissive-template" 
+description: "Permissive policy for development and testing with minimal masking"
+
+locale: "en"
+min_entity_length: 1
+
+# Default to format-preserving templates for readability
+default_strategy:
+  kind: "template"
+  parameters:
+    auto_generate: true
+    preserve_format: true
+
+# Lower confidence thresholds to catch more potential PII
+thresholds:
+  PERSON: 0.5
+  EMAIL_ADDRESS: 0.5
+  PHONE_NUMBER: 0.6
+  CREDIT_CARD: 0.7
+  US_SSN: 0.7
+  IBAN_CODE: 0.6
+  IP_ADDRESS: 0.4
+  URL: 0.4
+  MEDICAL_LICENSE: 0.6
+  US_PASSPORT: 0.7
+  US_DRIVER_LICENSE: 0.6
+
+# Format-preserving strategies that maintain readability
+per_entity:
+  PERSON:
+    kind: "template"
+    parameters:
+      auto_generate: true
+      preserve_format: true
+      template_format: "FirstName LastName"
+    threshold: 0.5
+    enabled: true
+    
+  EMAIL_ADDRESS:
+    kind: "template"
+    parameters:
+      auto_generate: true
+      preserve_format: true
+      template_format: "user@domain.com"
+    threshold: 0.5
+    enabled: true
+    
+  PHONE_NUMBER:
+    kind: "template"
+    parameters:
+      auto_generate: true
+      preserve_format: true
+    threshold: 0.6
+    enabled: true
+    
+  CREDIT_CARD:
+    kind: "template"
+    parameters:
+      template: "4111-1111-1111-1111"
+      preserve_format: true
+    threshold: 0.7
+    enabled: true
+    
+  US_SSN:
+    kind: "template"
+    parameters:
+      template: "123-45-6789"
+      preserve_format: true
+    threshold: 0.7
+    enabled: true
+    
+  IBAN_CODE:
+    kind: "template"
+    parameters:
+      auto_generate: true
+      preserve_format: true
+    threshold: 0.6
+    enabled: true
+    
+  IP_ADDRESS:
+    kind: "template"
+    parameters:
+      template: "192.168.1.100"
+      preserve_format: true
+    threshold: 0.4
+    enabled: true
+    
+  URL:
+    kind: "template"
+    parameters:
+      template: "https://example.com/path"
+      preserve_format: true
+    threshold: 0.4
+    enabled: true
+
+# Relaxed context rules
+context_rules:
+  heading:
+    enabled: false  # Don't mask in headings
+    
+  table:
+    enabled: true
+    threshold_overrides:
+      PERSON: 0.6
+      EMAIL_ADDRESS: 0.6
+      
+  footer:
+    enabled: true
+    threshold_overrides:
+      PERSON: 0.6
+      EMAIL_ADDRESS: 0.6
+    
+  header:
+    enabled: false  # Don't mask in headers
+    
+  paragraph:
+    enabled: true
+
+# Common allow list for development
+allow_list:
+  - "example@example.com"
+  - "test@test.com"
+  - "admin@localhost"
+  - "user@localhost"
+  - "John Doe"
+  - "Jane Smith"
+  - "Test User"
+
+# Empty deny list by default
+deny_list: []
+
+# Policy composition settings
+policy_composition:
+  merge_strategy: "merge"
+  validation_level: "permissive"

@@ -113,8 +113,8 @@ class AnchorEntry:
 
         try:
             int(self.original_checksum, 16)
-        except ValueError:
-            raise ValueError("original_checksum must contain only hexadecimal characters")
+        except ValueError as e:
+            raise ValueError("original_checksum must contain only hexadecimal characters") from e
 
     def _validate_ids(self) -> None:
         """Validate node_id and replacement_id."""

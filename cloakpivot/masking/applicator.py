@@ -516,7 +516,7 @@ class StrategyApplicator:
         hash_len = len(hash_result)
         orig_len = len(original_text)
 
-        for i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions)):
+        for _i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions)):
             # Calculate proportional position in hash
             if orig_len > 0:
                 hash_pos = int((orig_pos / orig_len) * hash_len)

@@ -93,8 +93,8 @@ class CloakMap:
         try:
             for part in parts[:2]:  # At least major.minor must be numeric
                 int(part)
-        except ValueError:
-            raise ValueError("version major and minor components must be numeric")
+        except ValueError as e:
+            raise ValueError("version major and minor components must be numeric") from e
 
     def _validate_doc_fields(self) -> None:
         """Validate document identification fields."""
@@ -108,8 +108,8 @@ class CloakMap:
         if len(self.doc_hash) == 64:
             try:
                 int(self.doc_hash, 16)
-            except ValueError:
-                raise ValueError("doc_hash should be a valid SHA-256 hex string")
+            except ValueError as e:
+                raise ValueError("doc_hash should be a valid SHA-256 hex string") from e
 
     def _validate_anchors(self) -> None:
         """Validate anchor entries."""
@@ -408,7 +408,7 @@ class CloakMap:
             data = json.loads(json_str)
             return cls.from_dict(data)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON format: {e}")
+            raise ValueError(f"Invalid JSON format: {e}") from e
 
     @classmethod
     def load_from_file(cls, file_path: Union[str, Path]) -> "CloakMap":
@@ -421,7 +421,7 @@ class CloakMap:
             with open(path, encoding='utf-8') as f:
                 return cls.from_json(f.read())
         except Exception as e:
-            raise ValueError(f"Failed to load CloakMap from {file_path}: {e}")
+            raise ValueError(f"Failed to load CloakMap from {file_path}: {e}") from e
 
     def save_to_file(self, file_path: Union[str, Path], indent: int = 2) -> None:
         """Save CloakMap to JSON file."""
@@ -432,7 +432,7 @@ class CloakMap:
             with open(path, 'w', encoding='utf-8') as f:
                 f.write(self.to_json(indent=indent))
         except Exception as e:
-            raise ValueError(f"Failed to save CloakMap to {file_path}: {e}")
+            raise ValueError(f"Failed to save CloakMap to {file_path}: {e}") from e
 
     @classmethod
     def create(
