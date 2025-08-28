@@ -1,21 +1,18 @@
 """Tests for the UnmaskingEngine and related components."""
 
-import pytest
-from datetime import datetime
 import json
-import tempfile
-from pathlib import Path
+from datetime import datetime
 
+import pytest
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
 
-from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.unmasking.engine import UnmaskingEngine, UnmaskingResult
-from cloakpivot.unmasking.cloakmap_loader import CloakMapLoader, CloakMapLoadError
+from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.unmasking.anchor_resolver import AnchorResolver, ResolvedAnchor
+from cloakpivot.unmasking.cloakmap_loader import CloakMapLoader, CloakMapLoadError
 from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
+from cloakpivot.unmasking.engine import UnmaskingEngine, UnmaskingResult
 
 
 class TestCloakMapLoader:
@@ -126,7 +123,7 @@ class TestAnchorResolver:
     def create_test_document(self) -> DoclingDocument:
         """Create a test document with masked content."""
         doc = DoclingDocument(name="test_doc")
-        
+
         # Create a text item with masked content
         text_item = TextItem(
             text="Hello [PHONE] and [EMAIL] in text.",
@@ -134,7 +131,7 @@ class TestAnchorResolver:
             label="text",
             orig="Hello [PHONE] and [EMAIL] in text."
         )
-        
+
         doc.texts = [text_item]
         return doc
 
@@ -188,7 +185,7 @@ class TestAnchorResolver:
         """Test resolving anchors with slight position drift."""
         resolver = AnchorResolver()
         document = self.create_test_document()
-        
+
         # Create anchors with slightly wrong positions
         anchors = [
             AnchorEntry(
@@ -216,7 +213,7 @@ class TestAnchorResolver:
         """Test handling of anchors for nonexistent nodes."""
         resolver = AnchorResolver()
         document = self.create_test_document()
-        
+
         anchors = [
             AnchorEntry(
                 node_id="#/texts/999",  # Nonexistent node
@@ -274,7 +271,7 @@ class TestDocumentUnmasker:
     def test_apply_unmasking_to_text_node(self):
         """Test applying unmasking to a text node."""
         unmasker = DocumentUnmasker()
-        
+
         # Create document
         doc = DoclingDocument(name="test_doc")
         text_item = TextItem(
@@ -306,7 +303,7 @@ class TestDocumentUnmasker:
             position_delta=0,
             confidence=1.0,
         )
-        
+
         # Create CloakMap
         cloakmap = CloakMap(
             version="1.0",
@@ -330,7 +327,7 @@ class TestDocumentUnmasker:
     def test_apply_unmasking_empty_anchors(self):
         """Test applying unmasking with no anchors."""
         unmasker = DocumentUnmasker()
-        
+
         doc = DoclingDocument(name="test_doc")
         cloakmap = CloakMap(version="1.0", doc_id="test_doc", doc_hash="a" * 64, anchors=[])
 
@@ -454,7 +451,7 @@ class TestUnmaskingEngine:
     def test_unmask_document_no_anchors(self):
         """Test unmasking a document with no anchors."""
         engine = UnmaskingEngine()
-        
+
         doc = DoclingDocument(name="test_document")
         text_item = TextItem(
             text="No masked content here.",
@@ -482,7 +479,7 @@ class TestUnmaskingIntegration:
         """Test a complete round-trip workflow with placeholder content."""
         # This test demonstrates the unmasking workflow
         # In a real system, this would use actual secure content restoration
-        
+
         # Create original-style document structure
         doc = DoclingDocument(name="integration_test")
         text_item = TextItem(
@@ -533,12 +530,12 @@ class TestUnmaskingIntegration:
         # Verify results
         assert result.stats["success_rate"] == 100.0
         assert len(result.cloakmap.anchors) == 2
-        
+
         # Verify text was restored (with placeholder content)
         restored_text = result.restored_document.texts[0].text
         assert "[PHONE]" not in restored_text
         assert "[EMAIL]" not in restored_text
-        
+
         # Should contain placeholder content
         assert "555-0123" in restored_text or "555" in restored_text  # Phone placeholder
         assert "example.com" in restored_text or "@" in restored_text  # Email placeholder

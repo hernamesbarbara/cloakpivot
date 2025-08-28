@@ -1,9 +1,9 @@
 """CloakMapLoader for loading and validating CloakMap files."""
 
-import logging
-from typing import Union, Optional, Dict, Any
-from pathlib import Path
 import json
+import logging
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from ..core.cloakmap import CloakMap, validate_cloakmap_integrity
 
@@ -32,7 +32,7 @@ class CloakMapLoader:
         >>> loader = CloakMapLoader()
         >>> cloakmap = loader.load("document.cloakmap")
         >>> print(f"Loaded CloakMap v{cloakmap.version}")
-        
+
         >>> # With signature verification
         >>> cloakmap = loader.load(
         ...     "document.cloakmap",
@@ -104,7 +104,7 @@ class CloakMapLoader:
             logger.error(f"Failed to load CloakMap from {path}: {e}")
             if isinstance(e, (CloakMapLoadError, FileNotFoundError)):
                 raise
-            raise CloakMapLoadError(f"Unexpected error loading CloakMap: {e}")
+            raise CloakMapLoadError(f"Unexpected error loading CloakMap: {e}") from e
 
     def load_from_string(
         self,
@@ -156,14 +156,14 @@ class CloakMapLoader:
             logger.error(f"Failed to load CloakMap from string: {e}")
             if isinstance(e, CloakMapLoadError):
                 raise
-            raise CloakMapLoadError(f"Unexpected error loading CloakMap: {e}")
+            raise CloakMapLoadError(f"Unexpected error loading CloakMap: {e}") from e
 
     def validate_file(
         self,
         file_path: Union[str, Path],
         verify_signature: bool = False,
         secret_key: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Validate a CloakMap file without fully loading it.
 
@@ -246,31 +246,31 @@ class CloakMapLoader:
 
         try:
             # Test if file is readable by attempting to open it
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8'):
                 pass
-        except PermissionError:
-            raise CloakMapLoadError(f"Cannot read CloakMap file: {path}")
+        except PermissionError as e:
+            raise CloakMapLoadError(f"Cannot read CloakMap file: {path}") from e
 
     def _load_file_content(self, path: Path) -> str:
         """Load raw file content as string."""
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 return f.read()
         except UnicodeDecodeError as e:
             raise CloakMapLoadError(
                 f"CloakMap file contains invalid UTF-8: {path} - {e}"
-            )
+            ) from e
         except OSError as e:
             raise CloakMapLoadError(
                 f"Failed to read CloakMap file: {path} - {e}"
-            )
+            ) from e
 
-    def _parse_json_content(self, content: str) -> Dict[str, Any]:
+    def _parse_json_content(self, content: str) -> dict[str, Any]:
         """Parse JSON content and validate basic structure."""
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
-            raise CloakMapLoadError(f"Invalid JSON format: {e}")
+            raise CloakMapLoadError(f"Invalid JSON format: {e}") from e
 
         if not isinstance(data, dict):
             raise CloakMapLoadError("CloakMap JSON must be an object")
@@ -288,12 +288,12 @@ class CloakMapLoader:
 
         return data
 
-    def _create_cloakmap(self, data: Dict[str, Any]) -> CloakMap:
+    def _create_cloakmap(self, data: dict[str, Any]) -> CloakMap:
         """Create CloakMap object from parsed data."""
         try:
             return CloakMap.from_dict(data)
         except Exception as e:
-            raise CloakMapLoadError(f"Failed to create CloakMap object: {e}")
+            raise CloakMapLoadError(f"Failed to create CloakMap object: {e}") from e
 
     def _validate_cloakmap(
         self,
@@ -348,7 +348,7 @@ class CloakMapLoader:
         for warning in integrity_result.get("warnings", []):
             logger.warning(f"CloakMap validation warning: {warning}")
 
-    def get_file_info(self, file_path: Union[str, Path]) -> Dict[str, Any]:
+    def get_file_info(self, file_path: Union[str, Path]) -> dict[str, Any]:
         """
         Get basic information about a CloakMap file without full loading.
 
@@ -377,7 +377,7 @@ class CloakMapLoader:
 
         # Try to extract basic info from JSON without full parsing
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 # Read just enough to get basic metadata
                 first_chunk = f.read(1024)
                 if first_chunk:

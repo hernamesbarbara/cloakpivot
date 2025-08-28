@@ -1,20 +1,20 @@
 """AnchorResolver for resolving anchor positions in masked documents."""
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
-    TextItem,
-    TitleItem,
-    SectionHeaderItem,
-    ListItem,
-    TableItem,
-    KeyValueItem,
     CodeItem,
     FormulaItem,
+    KeyValueItem,
+    ListItem,
     NodeItem,
+    SectionHeaderItem,
+    TableItem,
+    TextItem,
+    TitleItem,
 )
 
 from ..core.anchors import AnchorEntry
@@ -38,7 +38,7 @@ class ResolvedAnchor:
 
     anchor: AnchorEntry
     node_item: NodeItem
-    found_position: Tuple[int, int]  # (start, end)
+    found_position: tuple[int, int]  # (start, end)
     found_text: str
     position_delta: int
     confidence: float
@@ -59,7 +59,7 @@ class FailedAnchor:
     anchor: AnchorEntry
     failure_reason: str
     node_found: bool
-    attempted_positions: List[Tuple[int, int]]
+    attempted_positions: list[tuple[int, int]]
 
 
 class AnchorResolver:
@@ -89,8 +89,8 @@ class AnchorResolver:
         logger.debug("AnchorResolver initialized")
 
     def resolve_anchors(
-        self, document: DoclingDocument, anchors: List[AnchorEntry]
-    ) -> Dict[str, Any]:
+        self, document: DoclingDocument, anchors: list[AnchorEntry]
+    ) -> dict[str, Any]:
         """
         Resolve a list of anchors in a masked document.
 
@@ -103,8 +103,8 @@ class AnchorResolver:
         """
         logger.info(f"Resolving {len(anchors)} anchors in document")
 
-        resolved_anchors: List[ResolvedAnchor] = []
-        failed_anchors: List[FailedAnchor] = []
+        resolved_anchors: list[ResolvedAnchor] = []
+        failed_anchors: list[FailedAnchor] = []
 
         for anchor in anchors:
             try:
@@ -213,7 +213,7 @@ class AnchorResolver:
 
     def _try_exact_position_match(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Try to match the anchor at its exact expected position."""
         if anchor.end > len(node_text):
             return None
@@ -231,7 +231,7 @@ class AnchorResolver:
 
     def _try_fuzzy_position_match(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Try to match the anchor within a window around the expected position."""
         expected_length = len(anchor.masked_value)
         search_start = max(0, anchor.start - self.FUZZY_SEARCH_WINDOW)
@@ -262,7 +262,7 @@ class AnchorResolver:
 
     def _try_content_based_search(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Search for the masked value anywhere in the node text."""
         masked_value = anchor.masked_value
 
@@ -430,7 +430,7 @@ class AnchorResolver:
 
         return None
 
-    def get_resolution_stats(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def get_resolution_stats(self, results: dict[str, Any]) -> dict[str, Any]:
         """Get detailed statistics about anchor resolution results."""
         resolved = results.get("resolved", [])
         failed = results.get("failed", [])

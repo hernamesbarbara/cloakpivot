@@ -2,16 +2,15 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Union
 from pathlib import Path
-import hashlib
+from typing import Any, Optional, Union
 
 from docling_core.types import DoclingDocument
 
 from ..core.cloakmap import CloakMap
+from .anchor_resolver import AnchorResolver
 from .cloakmap_loader import CloakMapLoader
 from .document_unmasker import DocumentUnmasker
-from .anchor_resolver import AnchorResolver
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +29,8 @@ class UnmaskingResult:
 
     restored_document: DoclingDocument
     cloakmap: CloakMap
-    stats: Optional[Dict[str, Any]] = None
-    integrity_report: Optional[Dict[str, Any]] = None
+    stats: Optional[dict[str, Any]] = None
+    integrity_report: Optional[dict[str, Any]] = None
 
 
 class UnmaskingEngine:
@@ -173,8 +172,8 @@ class UnmaskingEngine:
 
         # For now, assume we can load JSON documents
         # Real implementation would use docpivot.load_document()
-        with open(doc_path, "r", encoding="utf-8") as f:
-            doc_data = json.load(f)
+        with open(doc_path, encoding="utf-8") as f:
+            json.load(f)
 
         # Create a minimal DoclingDocument for testing
         # Real implementation would properly deserialize
@@ -226,8 +225,8 @@ class UnmaskingEngine:
         original_document: DoclingDocument,
         masked_document: DoclingDocument,
         cloakmap: CloakMap,
-        resolved_anchors: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        resolved_anchors: dict[str, Any],
+    ) -> dict[str, Any]:
         """Verify the integrity of the restoration process."""
         integrity_report = {
             "valid": True,
@@ -262,9 +261,9 @@ class UnmaskingEngine:
     def _generate_stats(
         self,
         cloakmap: CloakMap,
-        resolved_anchors: Dict[str, Any],
-        restoration_stats: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        resolved_anchors: dict[str, Any],
+        restoration_stats: dict[str, Any],
+    ) -> dict[str, Any]:
         """Generate statistics about the unmasking operation."""
         return {
             "cloakmap_version": cloakmap.version,

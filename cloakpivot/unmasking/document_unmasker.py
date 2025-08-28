@@ -1,20 +1,20 @@
 """DocumentUnmasker for restoring original content in DoclingDocument structures."""
 
-import logging
-from typing import List, Dict, Any, Optional, Union
 import hashlib
+import logging
+from typing import Any, Optional, Union
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
-    TextItem,
-    TitleItem,
-    SectionHeaderItem,
-    ListItem,
-    TableItem,
-    KeyValueItem,
     CodeItem,
     FormulaItem,
+    KeyValueItem,
+    ListItem,
     NodeItem,
+    SectionHeaderItem,
+    TableItem,
+    TextItem,
+    TitleItem,
 )
 
 from ..core.cloakmap import CloakMap
@@ -59,10 +59,10 @@ class DocumentUnmasker:
     def apply_unmasking(
         self,
         document: DoclingDocument,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         cloakmap: CloakMap,
         original_content_provider: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Apply unmasking operations to a DoclingDocument in-place.
 
@@ -131,10 +131,10 @@ class DocumentUnmasker:
         return stats
 
     def _group_resolved_anchors_by_node(
-        self, resolved_anchors: List[ResolvedAnchor]
-    ) -> Dict[str, List[ResolvedAnchor]]:
+        self, resolved_anchors: list[ResolvedAnchor]
+    ) -> dict[str, list[ResolvedAnchor]]:
         """Group resolved anchor entries by their node IDs."""
-        anchors_by_node: Dict[str, List[ResolvedAnchor]] = {}
+        anchors_by_node: dict[str, list[ResolvedAnchor]] = {}
 
         for resolved_anchor in resolved_anchors:
             node_id = resolved_anchor.anchor.node_id
@@ -152,9 +152,9 @@ class DocumentUnmasker:
         self,
         document: DoclingDocument,
         node_id: str,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Apply unmasking to a specific node in the document."""
         logger.debug(f"Unmasking node {node_id} with {len(resolved_anchors)} anchors")
 
@@ -216,9 +216,9 @@ class DocumentUnmasker:
             CodeItem,
             FormulaItem,
         ],
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Apply unmasking to a text-bearing node."""
         results = []
 
@@ -308,9 +308,9 @@ class DocumentUnmasker:
         self,
         table_item: TableItem,
         node_id: str,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Apply unmasking to a table node."""
         results = []
 
@@ -342,7 +342,7 @@ class DocumentUnmasker:
         base_node_id = self._get_node_id(table_item)
 
         # Group anchors by cell coordinates
-        cell_anchor_groups: Dict[str, List[ResolvedAnchor]] = {}
+        cell_anchor_groups: dict[str, list[ResolvedAnchor]] = {}
         for resolved_anchor in resolved_anchors:
             cell_node_id = resolved_anchor.anchor.node_id
             cell_anchor_groups.setdefault(cell_node_id, []).append(resolved_anchor)
@@ -400,9 +400,9 @@ class DocumentUnmasker:
         self,
         kv_item: KeyValueItem,
         node_id: str,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Apply unmasking to a key-value node."""
         results = []
         base_node_id = self._get_node_id(kv_item)
@@ -441,9 +441,9 @@ class DocumentUnmasker:
     def _unmask_cell_text(
         self,
         cell: Any,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Unmask text content in a table cell."""
         results = []
         original_text = cell.text
@@ -496,10 +496,10 @@ class DocumentUnmasker:
     def _unmask_key_value_text(
         self,
         text_item: Any,
-        resolved_anchors: List[ResolvedAnchor],
+        resolved_anchors: list[ResolvedAnchor],
         original_content_provider: Optional[Any],
         part_type: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Unmask text content in a key-value part."""
         results = []
         original_text = text_item.text
@@ -642,8 +642,8 @@ class DocumentUnmasker:
             return False
 
     def _calculate_restoration_stats(
-        self, restoration_results: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, restoration_results: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Calculate statistics about the restoration process."""
         total_anchors = len(restoration_results)
         successful_restorations = sum(
