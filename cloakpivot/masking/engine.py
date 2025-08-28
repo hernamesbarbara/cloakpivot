@@ -5,7 +5,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
@@ -34,7 +34,7 @@ class MaskingResult:
 
     masked_document: DoclingDocument
     cloakmap: CloakMap
-    stats: Optional[Dict[str, Any]] = None
+    stats: Optional[dict[str, Any]] = None
 
 
 class MaskingEngine:
@@ -67,9 +67,9 @@ class MaskingEngine:
     def mask_document(
         self,
         document: DoclingDocument,
-        entities: List[RecognizerResult],
+        entities: list[RecognizerResult],
         policy: MaskingPolicy,
-        text_segments: List[TextSegment],
+        text_segments: list[TextSegment],
     ) -> MaskingResult:
         """
         Mask PII entities in a document according to the given policy.
@@ -170,9 +170,9 @@ class MaskingEngine:
     def _validate_inputs(
         self,
         document: DoclingDocument,
-        entities: List[RecognizerResult],
+        entities: list[RecognizerResult],
         policy: MaskingPolicy,
-        text_segments: List[TextSegment],
+        text_segments: list[TextSegment],
     ) -> None:
         """Validate input parameters."""
         if not isinstance(document, DoclingDocument):
@@ -201,12 +201,12 @@ class MaskingEngine:
 
     def _check_overlapping_entities(
         self,
-        entities: List[RecognizerResult],
-        text_segments: List[TextSegment],
+        entities: list[RecognizerResult],
+        text_segments: list[TextSegment],
     ) -> None:
         """Check for overlapping entities and raise error if found."""
         # Group entities by their containing text segment
-        segment_entities: Dict[str, List[RecognizerResult]] = {}
+        segment_entities: dict[str, list[RecognizerResult]] = {}
 
         for entity in entities:
             segment = self._find_segment_for_entity(entity, text_segments)
@@ -216,7 +216,7 @@ class MaskingEngine:
                 segment_entities[segment.node_id].append(entity)
 
         # Check for overlaps within each segment
-        for node_id, node_entities in segment_entities.items():
+        for _node_id, node_entities in segment_entities.items():
             for i, entity1 in enumerate(node_entities):
                 for entity2 in node_entities[i + 1 :]:
                     if self._entities_overlap(entity1, entity2):
@@ -237,7 +237,7 @@ class MaskingEngine:
         )
 
     def _find_segment_for_entity(
-        self, entity: RecognizerResult, text_segments: List[TextSegment]
+        self, entity: RecognizerResult, text_segments: list[TextSegment]
     ) -> Optional[TextSegment]:
         """Find the text segment that contains the given entity."""
         for segment in text_segments:
@@ -300,13 +300,13 @@ class MaskingEngine:
 
     def _generate_stats(
         self,
-        entities: List[RecognizerResult],
-        anchor_entries: List[AnchorEntry],
+        entities: list[RecognizerResult],
+        anchor_entries: list[AnchorEntry],
         policy: MaskingPolicy,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate statistics about the masking operation."""
-        entity_counts: Dict[str, int] = {}
-        strategy_counts: Dict[str, int] = {}
+        entity_counts: dict[str, int] = {}
+        strategy_counts: dict[str, int] = {}
 
         for anchor in anchor_entries:
             entity_counts[anchor.entity_type] = (

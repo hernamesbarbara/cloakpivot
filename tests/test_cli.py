@@ -109,7 +109,7 @@ class TestMaskCommand:
             with patch('cloakpivot.document.extractor.TextExtractor'), \
                  patch('docpivot.LexicalDocSerializer'), \
                  patch('builtins.open', create=True):
-                result = runner.invoke(cli, [
+                runner.invoke(cli, [
                     '--verbose',
                     'mask', str(input_file),
                     '--out', str(output_file),
@@ -206,7 +206,7 @@ class TestUnmaskCommand:
             with patch('docpivot.LexicalDocSerializer'), \
                  patch('builtins.open', create=True), \
                  patch('json.load', return_value={'doc_id': 'test', 'anchors': []}):
-                result = runner.invoke(cli, [
+                runner.invoke(cli, [
                     '--verbose',
                     'unmask', str(masked_file),
                     '--cloakmap', str(cloakmap_file),

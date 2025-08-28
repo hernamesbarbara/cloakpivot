@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
@@ -33,7 +33,7 @@ class SegmentAnalysisResult:
     """
 
     segment: TextSegment
-    entities: List[EntityDetectionResult] = field(default_factory=list)
+    entities: list[EntityDetectionResult] = field(default_factory=list)
     processing_time_ms: float = 0.0
     error: Optional[str] = None
 
@@ -65,10 +65,10 @@ class DocumentAnalysisResult:
     document_name: str
     segments_analyzed: int = 0
     total_entities: int = 0
-    entity_breakdown: Dict[str, int] = field(default_factory=dict)
-    segment_results: List[SegmentAnalysisResult] = field(default_factory=list)
+    entity_breakdown: dict[str, int] = field(default_factory=dict)
+    segment_results: list[SegmentAnalysisResult] = field(default_factory=list)
     total_processing_time_ms: float = 0.0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     def add_segment_result(self, result: SegmentAnalysisResult) -> None:
         """Add a segment analysis result and update statistics."""
@@ -175,8 +175,8 @@ class EntityDetectionPipeline:
         return result
 
     def analyze_text_segments(
-        self, segments: List[TextSegment], policy: Optional[MaskingPolicy] = None
-    ) -> List[SegmentAnalysisResult]:
+        self, segments: list[TextSegment], policy: Optional[MaskingPolicy] = None
+    ) -> list[SegmentAnalysisResult]:
         """Analyze a list of text segments for PII entities.
 
         Args:
@@ -285,7 +285,7 @@ class EntityDetectionPipeline:
 
     def map_entities_to_anchors(
         self, analysis_result: DocumentAnalysisResult
-    ) -> List[AnchorEntry]:
+    ) -> list[AnchorEntry]:
         """Map detected entities to document anchor positions.
 
         Args:
@@ -347,7 +347,7 @@ class EntityDetectionPipeline:
         logger.info(f"Created {len(anchor_entries)} anchor entries")
         return anchor_entries
 
-    def get_analyzer_diagnostics(self) -> Dict[str, Any]:
+    def get_analyzer_diagnostics(self) -> dict[str, Any]:
         """Get diagnostic information about the analyzer configuration.
 
         Returns:
@@ -355,7 +355,7 @@ class EntityDetectionPipeline:
         """
         return self.analyzer.validate_configuration()
 
-    def get_supported_entities(self) -> List[str]:
+    def get_supported_entities(self) -> list[str]:
         """Get list of supported entity types.
 
         Returns:

@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from presidio_analyzer import RecognizerResult
 
@@ -98,11 +98,11 @@ class AnchorMapper:
 
     def create_anchors_from_detections(
         self,
-        detections: List[RecognizerResult],
-        segments: List[TextSegment],
-        original_texts: Dict[str, str],
+        detections: list[RecognizerResult],
+        segments: list[TextSegment],
+        original_texts: dict[str, str],
         strategy_used: str = "redact",
-    ) -> List[AnchorEntry]:
+    ) -> list[AnchorEntry]:
         """
         Create anchor entries from Presidio detection results.
 
@@ -189,7 +189,7 @@ class AnchorMapper:
         return anchors
 
     def map_global_to_node_position(
-        self, global_start: int, global_end: int, segments: List[TextSegment]
+        self, global_start: int, global_end: int, segments: list[TextSegment]
     ) -> Optional[NodeReference]:
         """
         Map global text positions to node-specific positions.
@@ -237,8 +237,8 @@ class AnchorMapper:
         )
 
     def map_node_to_global_position(
-        self, node_id: str, start_pos: int, end_pos: int, segments: List[TextSegment]
-    ) -> Optional[Tuple[int, int]]:
+        self, node_id: str, start_pos: int, end_pos: int, segments: list[TextSegment]
+    ) -> Optional[tuple[int, int]]:
         """
         Map node-specific positions to global text positions.
 
@@ -273,7 +273,7 @@ class AnchorMapper:
 
         return (global_start, global_end)
 
-    def resolve_anchor_conflicts(self, anchors: List[AnchorEntry]) -> List[AnchorEntry]:
+    def resolve_anchor_conflicts(self, anchors: list[AnchorEntry]) -> list[AnchorEntry]:
         """
         Resolve conflicts between overlapping anchor entries.
 
@@ -293,7 +293,7 @@ class AnchorMapper:
         logger.info(f"Resolving conflicts among {len(anchors)} anchors")
 
         # Group anchors by node_id for conflict detection
-        by_node: Dict[str, List[AnchorEntry]] = {}
+        by_node: dict[str, list[AnchorEntry]] = {}
         for anchor in anchors:
             if anchor.node_id not in by_node:
                 by_node[anchor.node_id] = []
@@ -301,7 +301,7 @@ class AnchorMapper:
 
         resolved_anchors = []
 
-        for node_id, node_anchors in by_node.items():
+        for _node_id, node_anchors in by_node.items():
             if len(node_anchors) == 1:
                 resolved_anchors.extend(node_anchors)
                 continue
@@ -310,7 +310,7 @@ class AnchorMapper:
             node_anchors.sort(key=lambda a: a.start)
 
             # Resolve overlaps within this node
-            non_overlapping: List[AnchorEntry] = []
+            non_overlapping: list[AnchorEntry] = []
             for anchor in node_anchors:
                 # Check for overlaps with already accepted anchors
                 overlaps = any(
@@ -339,7 +339,7 @@ class AnchorMapper:
         return resolved_anchors
 
     def _find_segment_for_global_position(
-        self, segments: List[TextSegment], global_position: int
+        self, segments: list[TextSegment], global_position: int
     ) -> Optional[TextSegment]:
         """Find the text segment that contains a global position."""
         for segment in segments:
@@ -351,7 +351,7 @@ class AnchorMapper:
         self,
         detection: RecognizerResult,
         segment: TextSegment,
-        all_segments: List[TextSegment],
+        all_segments: list[TextSegment],
     ) -> Optional[NodeReference]:
         """Create a node reference from a detection and its containing segment."""
         try:
@@ -386,8 +386,8 @@ class AnchorMapper:
     def _extract_original_text(
         self,
         node_ref: NodeReference,
-        original_texts: Dict[str, str],
-        segments: List[TextSegment],
+        original_texts: dict[str, str],
+        segments: list[TextSegment],
     ) -> Optional[str]:
         """Extract the original text for a node reference."""
         # Try to get from original_texts mapping first
@@ -412,7 +412,7 @@ class AnchorMapper:
         return None
 
     def _resolve_overlap_conflict(
-        self, new_anchor: AnchorEntry, existing_anchors: List[AnchorEntry]
+        self, new_anchor: AnchorEntry, existing_anchors: list[AnchorEntry]
     ) -> Optional[AnchorEntry]:
         """
         Resolve overlap conflicts by choosing the best anchor.
@@ -433,7 +433,7 @@ class AnchorMapper:
         all_candidates = conflicting_anchors + [new_anchor]
 
         # Sort by resolution criteria
-        def resolution_key(anchor: AnchorEntry) -> Tuple[float, int, int]:
+        def resolution_key(anchor: AnchorEntry) -> tuple[float, int, int]:
             return (
                 -anchor.confidence,  # Higher confidence first (negative for descending)
                 -anchor.span_length,  # Longer span first (negative for descending)

@@ -7,6 +7,7 @@ import string
 from typing import Any, Optional
 
 from ..core.strategies import Strategy, StrategyKind
+from ..core.surrogate import SurrogateGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,9 @@ class StrategyApplicator:
             self._random = random.Random(seed)
         else:
             self._random = random.Random()
+
+        # Initialize enhanced surrogate generator
+        self._surrogate_generator = SurrogateGenerator(seed=seed)
 
         logger.debug(f"StrategyApplicator initialized with seed: {seed}")
 
@@ -181,13 +185,13 @@ class StrategyApplicator:
     ) -> str:
         """
         Compose multiple strategies in sequence or parallel.
-        
+
         Args:
             original_text: The original PII text to mask
             entity_type: Type of entity
             strategies: List of strategies to compose
             confidence: Detection confidence score
-            
+
         Returns:
             str: The result of composed strategies
         """
@@ -599,7 +603,7 @@ class StrategyApplicator:
     ) -> str:
         """Apply format-aware partial masking that preserves delimiters and structure."""
         # Detect common delimiters and structural elements
-        delimiters = set(['-', '_', '.', '@', ' ', '(', ')', '+'])
+        delimiters = {'-', '_', '.', '@', ' ', '(', ')', '+'}
 
         # Find delimiter positions
         delimiter_positions = []
@@ -712,7 +716,25 @@ class StrategyApplicator:
     def _apply_surrogate_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
     ) -> str:
-        """Apply surrogate strategy - generate fake data in same format."""
+        """Apply surrogate strategy - generate fake data in same format using enhanced generator."""
+        # Check for custom pattern in strategy parameters
+        pattern = strategy.get_parameter("pattern")
+        if pattern:
+            return self._surrogate_generator.generate_from_pattern(pattern)
+
+        # Use the enhanced surrogate generator for format-preserving generation
+        try:
+            return self._surrogate_generator.generate_surrogate(original_text, entity_type)
+        except Exception as e:
+            logger.warning(f"Enhanced surrogate generation failed for {entity_type}: {e}")
+
+            # Fallback to legacy generation methods for backward compatibility
+            return self._apply_legacy_surrogate_strategy(original_text, entity_type, strategy)
+
+    def _apply_legacy_surrogate_strategy(
+        self, original_text: str, entity_type: str, strategy: Strategy
+    ) -> str:
+        """Legacy surrogate strategy implementation for backward compatibility."""
         format_type = strategy.get_parameter(
             "format_type", entity_type.lower()
         )
@@ -835,3 +857,11 @@ class StrategyApplicator:
             else:
                 result += char
         return result
+
+    def get_surrogate_quality_metrics(self):
+        """Get quality metrics from the surrogate generator."""
+        return self._surrogate_generator.get_quality_metrics()
+
+    def reset_document_scope(self) -> None:
+        """Reset document scope for new document processing."""
+        self._surrogate_generator.reset_document_scope()

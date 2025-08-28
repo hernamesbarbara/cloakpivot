@@ -1,6 +1,5 @@
 """Comprehensive tests for document integration functionality."""
 
-from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
@@ -126,7 +125,7 @@ class TestTextExtractor:
         item.self_ref = self_ref or f"#/texts/{hash(text) % 1000}"
         return item
 
-    def create_mock_document(self, text_items: List[Mock] = None) -> Mock:
+    def create_mock_document(self, text_items: list[Mock] = None) -> Mock:
         """Create a mock DoclingDocument."""
         doc = Mock(spec=DoclingDocument)
         doc.name = "test_document"

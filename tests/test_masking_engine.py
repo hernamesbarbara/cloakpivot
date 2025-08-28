@@ -1,6 +1,5 @@
 """Tests for the MaskingEngine core functionality."""
 
-from typing import List
 
 import pytest
 from docling_core.types import DoclingDocument
@@ -34,7 +33,7 @@ class TestMaskingEngine:
         return doc
 
     @pytest.fixture
-    def detected_entities(self) -> List[RecognizerResult]:
+    def detected_entities(self) -> list[RecognizerResult]:
         """Create sample detected PII entities."""
         return [
             RecognizerResult(
@@ -63,7 +62,7 @@ class TestMaskingEngine:
         )
 
     @pytest.fixture
-    def text_segments(self) -> List[TextSegment]:
+    def text_segments(self) -> list[TextSegment]:
         """Create text segments for testing."""
         return [
             TextSegment(

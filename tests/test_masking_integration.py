@@ -101,7 +101,7 @@ class TestMaskingIntegration:
 
         # Step 3: Simulate PII detection (instead of calling Presidio directly)
         # This simulates what PIIAnalyzer would return
-        detected_entities = [
+        [
             RecognizerResult(entity_type="PHONE_NUMBER", start=16, end=28, score=0.95),  # "555-123-4567"
             RecognizerResult(entity_type="EMAIL_ADDRESS", start=17, end=33, score=0.90)  # "help@company.com" in second segment
         ]
@@ -120,7 +120,7 @@ class TestMaskingIntegration:
         # Adjust entities to account for segment offsets
         # First entity is in first segment (offset 0)
         # Second entity is in second segment, need to adjust its position
-        full_text = extractor.extract_full_text(document)
+        extractor.extract_full_text(document)
         second_segment = text_segments[1]
 
         adjusted_entities = [

@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Optional
 
 from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
 
@@ -11,10 +11,10 @@ from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
 class MaskingPolicy:
     """
     Configuration for how different types of PII entities should be masked.
-    
+
     This policy defines default behavior and entity-specific overrides for
     masking operations, along with confidence thresholds and locale settings.
-    
+
     Attributes:
         default_strategy: Strategy to use for entities not in per_entity map
         per_entity: Entity type to strategy mappings for specific overrides
@@ -26,7 +26,7 @@ class MaskingPolicy:
         deny_list: Entity values to always mask regardless of confidence
         context_rules: Context-specific masking rules
         min_entity_length: Minimum length for entities to be considered
-        
+
     Examples:
         >>> # Basic policy with template strategies
         >>> policy = MaskingPolicy(
@@ -37,7 +37,7 @@ class MaskingPolicy:
         ...     },
         ...     thresholds={"PHONE_NUMBER": 0.8, "EMAIL_ADDRESS": 0.7}
         ... )
-        
+
         >>> # Policy with deterministic operations
         >>> policy = MaskingPolicy(
         ...     default_strategy=Strategy(StrategyKind.HASH, {"algorithm": "sha256"}),
@@ -47,14 +47,14 @@ class MaskingPolicy:
     """
 
     default_strategy: Strategy = field(default=DEFAULT_REDACT)
-    per_entity: Dict[str, Strategy] = field(default_factory=dict)
-    thresholds: Dict[str, float] = field(default_factory=dict)
+    per_entity: dict[str, Strategy] = field(default_factory=dict)
+    thresholds: dict[str, float] = field(default_factory=dict)
     locale: str = field(default="en")
     seed: Optional[str] = field(default=None)
-    custom_callbacks: Optional[Dict[str, Callable[[str, str, float], str]]] = field(default=None)
-    allow_list: Set[str] = field(default_factory=set)
-    deny_list: Set[str] = field(default_factory=set)
-    context_rules: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    custom_callbacks: Optional[dict[str, Callable[[str, str, float], str]]] = field(default=None)
+    allow_list: set[str] = field(default_factory=set)
+    deny_list: set[str] = field(default_factory=set)
+    context_rules: dict[str, dict[str, Any]] = field(default_factory=dict)
     min_entity_length: int = field(default=1)
 
     def __post_init__(self) -> None:
@@ -137,11 +137,11 @@ class MaskingPolicy:
     def get_strategy_for_entity(self, entity_type: str, context: Optional[str] = None) -> Strategy:
         """
         Get the appropriate strategy for a given entity type and context.
-        
+
         Args:
             entity_type: The type of entity (e.g., 'PHONE_NUMBER', 'EMAIL_ADDRESS')
             context: Optional context where the entity appears (e.g., 'heading', 'table')
-            
+
         Returns:
             The strategy to use for masking this entity type
         """
@@ -167,11 +167,11 @@ class MaskingPolicy:
     def get_threshold_for_entity(self, entity_type: str, context: Optional[str] = None) -> float:
         """
         Get the confidence threshold for a given entity type and context.
-        
+
         Args:
             entity_type: The type of entity
             context: Optional context where the entity appears
-            
+
         Returns:
             The confidence threshold (0.0-1.0) for this entity type
         """
@@ -194,13 +194,13 @@ class MaskingPolicy:
                           context: Optional[str] = None) -> bool:
         """
         Determine if an entity should be masked based on policy rules.
-        
+
         Args:
             original_text: The original text of the entity
             entity_type: The type of entity
             confidence: The confidence score (0.0-1.0)
             context: Optional context where the entity appears
-            
+
         Returns:
             True if the entity should be masked, False otherwise
         """
@@ -267,7 +267,7 @@ class MaskingPolicy:
             min_entity_length=self.min_entity_length
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert policy to dictionary for serialization."""
         return {
             "default_strategy": {
@@ -291,7 +291,7 @@ class MaskingPolicy:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MaskingPolicy":
+    def from_dict(cls, data: dict[str, Any]) -> "MaskingPolicy":
         """Create policy from dictionary representation."""
         # Convert default strategy
         default_strategy_data = data.get("default_strategy", {"kind": "redact", "parameters": {}})

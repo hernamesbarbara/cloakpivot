@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .anchors import AnchorEntry, AnchorIndex
 
@@ -16,11 +16,11 @@ class CloakMap:
     """
     A versioned, secure mapping artifact that stores all information needed
     for deterministic unmasking of a masked document.
-    
+
     The CloakMap contains anchor entries that track original-to-masked mappings,
     policy state, cryptographic metadata, and document integrity information.
     It supports encryption and digital signatures for secure storage.
-    
+
     Attributes:
         version: Schema version for compatibility management
         doc_id: Unique identifier for the source document
@@ -31,11 +31,11 @@ class CloakMap:
         signature: Optional HMAC signature for integrity verification
         created_at: Timestamp when the CloakMap was created
         metadata: Additional document and processing metadata
-        
+
     Examples:
         >>> from .policies import MaskingPolicy
         >>> from .strategies import Strategy, StrategyKind
-        >>> 
+        >>>
         >>> # Create anchors for detected entities
         >>> anchors = [
         ...     AnchorEntry.create_from_detection(
@@ -49,7 +49,7 @@ class CloakMap:
         ...         strategy_used="template"
         ...     )
         ... ]
-        >>> 
+        >>>
         >>> # Create CloakMap
         >>> cloakmap = CloakMap.create(
         ...     doc_id="my_document",
@@ -62,12 +62,12 @@ class CloakMap:
     version: str = field(default="1.0")
     doc_id: str = ""
     doc_hash: str = ""
-    anchors: List[AnchorEntry] = field(default_factory=list)
-    policy_snapshot: Dict[str, Any] = field(default_factory=dict)
-    crypto: Optional[Dict[str, Any]] = field(default=None)
+    anchors: list[AnchorEntry] = field(default_factory=list)
+    policy_snapshot: dict[str, Any] = field(default_factory=dict)
+    crypto: Optional[dict[str, Any]] = field(default=None)
     signature: Optional[str] = field(default=None)
     created_at: Optional[datetime] = field(default=None)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate CloakMap data after initialization."""
@@ -141,9 +141,9 @@ class CloakMap:
         return len(self.anchors)
 
     @property
-    def entity_count_by_type(self) -> Dict[str, int]:
+    def entity_count_by_type(self) -> dict[str, int]:
         """Get count of entities by type."""
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for anchor in self.anchors:
             counts[anchor.entity_type] = counts.get(anchor.entity_type, 0) + 1
         return counts
@@ -169,22 +169,22 @@ class CloakMap:
                 return anchor
         return None
 
-    def get_anchors_for_node(self, node_id: str) -> List[AnchorEntry]:
+    def get_anchors_for_node(self, node_id: str) -> list[AnchorEntry]:
         """Get all anchors for a specific document node, sorted by position."""
         node_anchors = [a for a in self.anchors if a.node_id == node_id]
         return sorted(node_anchors, key=lambda a: a.start)
 
-    def get_anchors_by_entity_type(self, entity_type: str) -> List[AnchorEntry]:
+    def get_anchors_by_entity_type(self, entity_type: str) -> list[AnchorEntry]:
         """Get all anchors for a specific entity type."""
         return [a for a in self.anchors if a.entity_type == entity_type]
 
     def verify_document_hash(self, document_content: Union[str, bytes]) -> bool:
         """
         Verify that the provided document content matches the stored hash.
-        
+
         Args:
             document_content: The document content to verify
-            
+
         Returns:
             True if the content matches the hash, False otherwise
         """
@@ -202,10 +202,10 @@ class CloakMap:
     def verify_signature(self, secret_key: str) -> bool:
         """
         Verify the HMAC signature of the CloakMap.
-        
+
         Args:
             secret_key: The secret key used for signing
-            
+
         Returns:
             True if the signature is valid, False otherwise
         """
@@ -238,10 +238,10 @@ class CloakMap:
     def with_signature(self, secret_key: str) -> "CloakMap":
         """
         Create a new CloakMap with an HMAC signature.
-        
+
         Args:
             secret_key: The secret key to use for signing
-            
+
         Returns:
             New CloakMap with signature
         """
@@ -281,25 +281,25 @@ class CloakMap:
     def sign(self, secret_key: str) -> "CloakMap":
         """
         Sign the CloakMap with a secret key (alias for with_signature).
-        
+
         Args:
             secret_key: The secret key to use for signing
-            
+
         Returns:
             New CloakMap with signature
         """
         return self.with_signature(secret_key)
 
     def with_encryption_metadata(self, algorithm: str, key_id: str,
-                               additional_params: Optional[Dict[str, Any]] = None) -> "CloakMap":
+                               additional_params: Optional[dict[str, Any]] = None) -> "CloakMap":
         """
         Create a new CloakMap with encryption metadata.
-        
+
         Args:
             algorithm: Encryption algorithm used (e.g., 'AES-GCM-256')
             key_id: Identifier for the encryption key
             additional_params: Additional encryption parameters
-            
+
         Returns:
             New CloakMap with encryption metadata
         """
@@ -321,12 +321,12 @@ class CloakMap:
             metadata=self.metadata
         )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get comprehensive statistics about the CloakMap."""
         total_confidence = sum(a.confidence for a in self.anchors)
         avg_confidence = round(total_confidence / len(self.anchors), 10) if self.anchors else 0.0
 
-        strategy_counts: Dict[str, int] = {}
+        strategy_counts: dict[str, int] = {}
         for anchor in self.anchors:
             strategy = anchor.strategy_used
             strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
@@ -358,7 +358,7 @@ class CloakMap:
             }
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert CloakMap to dictionary for serialization."""
         return {
             "version": self.version,
@@ -377,7 +377,7 @@ class CloakMap:
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CloakMap":
+    def from_dict(cls, data: dict[str, Any]) -> "CloakMap":
         """Create CloakMap from dictionary representation."""
         # Convert anchors
         anchors = []
@@ -439,20 +439,20 @@ class CloakMap:
         cls,
         doc_id: str,
         doc_hash: str,
-        anchors: List[AnchorEntry],
+        anchors: list[AnchorEntry],
         policy: Optional[Any] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[dict[str, Any]] = None
     ) -> "CloakMap":
         """
         Create a new CloakMap with the provided data.
-        
+
         Args:
             doc_id: Document identifier
             doc_hash: Hash of the original document
             anchors: List of anchor entries
             policy: Optional masking policy (will be serialized to policy_snapshot)
             metadata: Optional additional metadata
-            
+
         Returns:
             New CloakMap instance
         """
@@ -472,20 +472,20 @@ class CloakMap:
 
 # Utility functions for CloakMap operations
 
-def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: Optional[str] = None) -> CloakMap:
+def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = None) -> CloakMap:
     """
     Merge multiple CloakMaps into a single consolidated map.
-    
+
     This is useful when processing documents in chunks or combining
     results from different processing stages.
-    
+
     Args:
         cloakmaps: List of CloakMaps to merge
         target_doc_id: Document ID for the merged result
-        
+
     Returns:
         Merged CloakMap
-        
+
     Raises:
         ValueError: If CloakMaps have incompatible versions or conflicting data
     """
@@ -555,18 +555,18 @@ def merge_cloakmaps(cloakmaps: List[CloakMap], target_doc_id: Optional[str] = No
     )
 
 
-def validate_cloakmap_integrity(cloakmap: CloakMap, secret_key: Optional[str] = None) -> Dict[str, Any]:
+def validate_cloakmap_integrity(cloakmap: CloakMap, secret_key: Optional[str] = None) -> dict[str, Any]:
     """
     Perform comprehensive integrity validation of a CloakMap.
-    
+
     Args:
         cloakmap: CloakMap to validate
         secret_key: Optional secret key for signature verification
-        
+
     Returns:
         Dictionary with validation results
     """
-    results: Dict[str, Any] = {
+    results: dict[str, Any] = {
         "valid": True,
         "errors": [],
         "warnings": [],
@@ -599,7 +599,7 @@ def validate_cloakmap_integrity(cloakmap: CloakMap, secret_key: Optional[str] = 
 
     # Anchor validation
     try:
-        anchor_index = AnchorIndex(cloakmap.anchors)
+        AnchorIndex(cloakmap.anchors)
         results["checks"]["anchors"] = True
     except Exception as e:
         results["valid"] = False

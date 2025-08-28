@@ -14,7 +14,6 @@ Run this example with:
 """
 
 import logging
-from typing import List
 
 # Configure logging to see detailed information
 logging.basicConfig(
@@ -33,7 +32,7 @@ from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
 
 
-def create_sample_text_segments() -> List[TextSegment]:
+def create_sample_text_segments() -> list[TextSegment]:
     """Create sample text segments for demonstration."""
     # Create segments with correct length calculations
     text1 = "John Smith is our lead developer. You can reach him at john.smith@company.com or call 555-123-4567."

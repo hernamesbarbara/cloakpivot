@@ -225,10 +225,10 @@ class TestAnchorEntry:
         )
 
         # Correct text should verify
-        assert anchor.verify_original_text(original_text) == True
+        assert anchor.verify_original_text(original_text)
 
         # Incorrect text should not verify
-        assert anchor.verify_original_text("different text") == False
+        assert not anchor.verify_original_text("different text")
 
     def test_overlaps_with(self) -> None:
         """Test overlap detection."""
@@ -259,9 +259,9 @@ class TestAnchorEntry:
             strategy_used="template"
         )
 
-        assert anchor1.overlaps_with(anchor2_overlap) == True
-        assert anchor1.overlaps_with(anchor3_no_overlap) == False
-        assert anchor1.overlaps_with(anchor4_diff_node) == False
+        assert anchor1.overlaps_with(anchor2_overlap)
+        assert not anchor1.overlaps_with(anchor3_no_overlap)
+        assert not anchor1.overlaps_with(anchor4_diff_node)
 
     def test_contains_position(self) -> None:
         """Test position containment check."""
@@ -271,12 +271,12 @@ class TestAnchorEntry:
             strategy_used="template"
         )
 
-        assert anchor.contains_position(10) == True  # Start position
-        assert anchor.contains_position(15) == True  # Middle position
-        assert anchor.contains_position(19) == True  # Just before end
-        assert anchor.contains_position(20) == False  # End position (exclusive)
-        assert anchor.contains_position(5) == False  # Before start
-        assert anchor.contains_position(25) == False  # After end
+        assert anchor.contains_position(10)  # Start position
+        assert anchor.contains_position(15)  # Middle position
+        assert anchor.contains_position(19)  # Just before end
+        assert not anchor.contains_position(20)  # End position (exclusive)
+        assert not anchor.contains_position(5)  # Before start
+        assert not anchor.contains_position(25)  # After end
 
     def test_with_metadata(self) -> None:
         """Test metadata addition."""
@@ -378,7 +378,7 @@ class TestAnchorEntry:
         assert anchor.strategy_used == "template"
         assert anchor.metadata == {"source": "presidio"}
         assert anchor.replacement_id.startswith("repl_")
-        assert anchor.verify_original_text(original_text) == True
+        assert anchor.verify_original_text(original_text)
 
 
 class TestAnchorIndex:

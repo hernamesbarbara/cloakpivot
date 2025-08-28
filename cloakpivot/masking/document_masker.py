@@ -1,7 +1,7 @@
 """DocumentMasker for applying masked replacements to DoclingDocument structures."""
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
@@ -56,7 +56,7 @@ class DocumentMasker:
         logger.debug("DocumentMasker initialized")
 
     def apply_masking(
-        self, document: DoclingDocument, anchor_entries: List[AnchorEntry]
+        self, document: DoclingDocument, anchor_entries: list[AnchorEntry]
     ) -> None:
         """
         Apply masking operations to a DoclingDocument in-place.
@@ -90,10 +90,10 @@ class DocumentMasker:
         logger.info("Document masking completed successfully")
 
     def _group_anchors_by_node(
-        self, anchor_entries: List[AnchorEntry]
-    ) -> Dict[str, List[AnchorEntry]]:
+        self, anchor_entries: list[AnchorEntry]
+    ) -> dict[str, list[AnchorEntry]]:
         """Group anchor entries by their node IDs."""
-        anchors_by_node: Dict[str, List[AnchorEntry]] = {}
+        anchors_by_node: dict[str, list[AnchorEntry]] = {}
 
         for anchor in anchor_entries:
             if anchor.node_id not in anchors_by_node:
@@ -110,7 +110,7 @@ class DocumentMasker:
         self,
         document: DoclingDocument,
         node_id: str,
-        anchors: List[AnchorEntry],
+        anchors: list[AnchorEntry],
     ) -> None:
         """Apply masking to a specific node in the document."""
         logger.debug(f"Masking node {node_id} with {len(anchors)} anchors")
@@ -196,7 +196,7 @@ class DocumentMasker:
             CodeItem,
             FormulaItem,
         ],
-        anchors: List[AnchorEntry],
+        anchors: list[AnchorEntry],
     ) -> None:
         """Apply masking to a text-bearing node."""
         if not hasattr(node_item, "text") or not node_item.text:
@@ -232,7 +232,7 @@ class DocumentMasker:
         node_item.text = modified_text
 
     def _mask_table_node(
-        self, table_item: TableItem, node_id: str, anchors: List[AnchorEntry]
+        self, table_item: TableItem, node_id: str, anchors: list[AnchorEntry]
     ) -> None:
         """Apply masking to a table node."""
         if not hasattr(table_item, "data") or not table_item.data:
@@ -250,7 +250,7 @@ class DocumentMasker:
         base_node_id = self._get_node_id(table_item)
 
         # Group anchors by cell coordinates
-        cell_anchors: Dict[str, List[AnchorEntry]] = {}
+        cell_anchors: dict[str, list[AnchorEntry]] = {}
         for anchor in anchors:
             cell_anchors.setdefault(anchor.node_id, []).append(anchor)
 
@@ -302,7 +302,7 @@ class DocumentMasker:
                 logger.debug(f"Masked table cell ({row_idx}, {col_idx})")
 
     def _mask_key_value_node(
-        self, kv_item: KeyValueItem, node_id: str, anchors: List[AnchorEntry]
+        self, kv_item: KeyValueItem, node_id: str, anchors: list[AnchorEntry]
     ) -> None:
         """Apply masking to a key-value node."""
         base_node_id = self._get_node_id(kv_item)
@@ -364,8 +364,8 @@ class DocumentMasker:
             logger.debug(f"Masked key-value value: {base_node_id}")
 
     def validate_masking_integrity(
-        self, document: DoclingDocument, anchor_entries: List[AnchorEntry]
-    ) -> Dict[str, Any]:
+        self, document: DoclingDocument, anchor_entries: list[AnchorEntry]
+    ) -> dict[str, Any]:
         """
         Validate that masking was applied correctly and no PII remains.
 
