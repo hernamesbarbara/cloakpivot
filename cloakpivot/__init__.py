@@ -29,6 +29,11 @@ from .document import (
     DocumentProcessor, TextExtractor, TextSegment, AnchorMapper, NodeReference
 )
 
+# Masking system
+from .masking import (
+    MaskingEngine, MaskingResult, StrategyApplicator, DocumentMasker
+)
+
 __all__ = [
     "__version__",
     "__author__",
@@ -52,4 +57,7 @@ __all__ = [
     
     # Document processing
     "DocumentProcessor", "TextExtractor", "TextSegment", "AnchorMapper", "NodeReference",
+    
+    # Masking system
+    "MaskingEngine", "MaskingResult", "StrategyApplicator", "DocumentMasker",
 ]
