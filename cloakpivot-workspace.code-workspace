@@ -1,0 +1,9 @@
+{
+  "folders": [
+    { "path": "." },
+    { "path": "/Users/hernamesbarbara/code/github/hernamesbarbara/docpivot" }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "venv/bin/python"
+  }
+}

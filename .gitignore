@@ -1,0 +1,295 @@
+# macOS
+**/temp/*
+**/.cursor/mcp.json
+**/.DS_Store
+**/._*
+
+# Vite / Node
+**/node_modules/
+**/dist/
+
+# ========================
+# Editor and IDE settings
+# ========================
+**/.vscode/
+**/.vscode/*        # Ignore all, except common settings files
+!**/.vscode/settings.json
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
+!**/.vscode/extensions.json
+!**/.vscode/*.code-snippets
+**/cursor.json
+**/.history/
+**/.spyderproject
+**/.spyproject
+**/.ropeproject
+**/.dmypy.json
+**/.pytype/
+**/profile_default/
+**/ipython_config.py
+
+# ====================
+# Python build artifacts
+# ====================
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+**/*.pyo
+**/*.pyd
+**/*.pdb
+**/*.egg
+**/*.egg-info/
+**/develop-eggs/
+**/.eggs/
+**/dist/
+**/build/
+**/lib/
+**/lib64/
+**/parts/
+**/sdist/
+**/var/
+**/wheels/
+**/share/python-wheels/
+**/pip-wheel-metadata/
+**/.installed.cfg
+**/MANIFEST
+**/*.spec
+
+# ======================
+# Python virtual environments
+# ======================
+**/.env
+**/.env.*
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+**/.venv/
+**/.venv
+**/venv/
+**/venv.bak/
+**/ENV/
+**/env/
+**/env.bak/
+**/.pdm.toml
+**/.pdm-python
+**/.pdm-build/
+**/__pypackages__/
+**/pyvenv.cfg
+**/.Python
+
+# ================
+# Testing & coverage
+# ================
+**/.pytest_cache/
+**/.pybuilder/
+**/.coverage
+**/.coverage.*
+**/*.cover
+**/*.py,cover
+**/coverage
+**/coverage.xml
+**/htmlcov/
+**/nosetests.xml
+**/test-results/
+**/.cache/
+**/.tox/
+**/.nox/
+**/.hypothesis/
+**/cover/
+**/.coverage.*
+**/target/
+**/.junit.xml
+
+# ==================
+# Type-checking & linters
+# ==================
+**/.mypy_cache/
+**/.pyright/
+**/.pyre/
+**/.pylint.d/
+**/.ruff_cache/
+**/.pnp.*
+**/.pypirc
+
+# ============
+# Jupyter
+# ============
+**/.ipynb_checkpoints
+
+# ============
+# Logs
+# ============
+**/*.log
+**/*.pid
+**/*.seed
+**/*.pid.lock
+**/celerybeat-schedule
+**/celerybeat.pid
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/lerna-debug.log*
+**/.pnpm-debug.log*
+**/report.*.json
+
+# =================
+# Package managers / builds
+# =================
+**/node_modules/
+**/bower_components/
+**/jspm_packages/
+**/web_modules/
+**/.npm
+**/.yarn/cache
+**/.yarn/unplugged
+**/.yarn/build-state.yml
+**/.yarn/install-state.gz
+**/.yarn-integrity
+**/*.tgz
+**/package-lock.json
+**/pnpm-lock.yaml
+**/Pipfile.lock
+**/poetry.lock
+
+# =================
+# Frontend frameworks / tools
+# =================
+**/.next/
+**/.nuxt/
+**/dist/
+**/out/
+**/.parcel-cache/
+**/.vuepress/dist
+**/.temp/
+**/.docusaurus/
+**/.serverless/
+**/.fusebox/
+**/.dynamodb/
+**/.tern-port
+**/.vscode-test/
+**/.rpt2_cache/
+**/.rts2_cache_*/
+**/.rts2_cache_es/
+**/.rts2_cache_umd/
+**/*.tsbuildinfo
+
+# ==================
+# OS / system files
+# ==================
+**/.DS_Store
+**/.AppleDouble
+**/.LSOverride
+**/Icon
+**/._*
+**/.DocumentRevisions-V100
+**/.fseventsd
+**/.Spotlight-V100
+**/.TemporaryItems
+**/.Trashes
+**/.VolumeIcon.icns
+**/.com.apple.timemachine.donotpresent
+**/.AppleDB
+**/.AppleDesktop
+**/Network Trash Folder
+**/Temporary Items
+**/.apdisk
+
+# ===================
+# Dropbox / sync
+# ===================
+**/.dropbox
+**/.dropbox.attr
+**/.dropbox.cache
+
+# ====================
+# Common binary & media
+# ====================
+**/*.jpg
+**/*.jpeg
+**/*.jpe
+**/*.jif
+**/*.jfif
+**/*.jfi
+**/*.jp2
+**/*.j2k
+**/*.jpf
+**/*.jpx
+**/*.jpm
+**/*.mj2
+**/*.jxr
+**/*.hdp
+**/*.wdp
+**/*.gif
+**/*.raw
+**/*.webp
+**/*.png
+**/*.apng
+**/*.mng
+**/*.tiff
+**/*.tif
+**/*.svg
+**/*.svgz
+**/*.pdf
+**/*.xbm
+**/*.bmp
+**/*.dib
+**/*.ico
+**/*.3dm
+**/*.max
+**/*.fcpbundle
+**/*.lrv
+**/*.thm
+
+# =====================
+# Microsoft Office temp
+# =====================
+**/*.tmp
+**/~$*.doc*
+**/Backup of *.doc*
+**/~$*.xls*
+**/*.xlk
+**/~$*.ppt*
+**/*.~vsd*
+
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+.env
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+.DS_Store
+
+# Task files
+# tasks.json
+# tasks/ 
+
+# Swiss Army Hammer temp files
+.swissarmyhammer/
+
+# Code review scratch files
+CODE_REVIEW.md
+
+# MCP and semantic search
+mcp.log
+semantic.db
+output.log
+.claude/
+
+# DocPivot output files (temporary test/example outputs)
+output_*.md
+output_*.json
