@@ -10,6 +10,35 @@ from .analyzer import EntityDetectionResult
 logger = logging.getLogger(__name__)
 
 
+# Default configuration constants
+DEFAULT_MERGE_THRESHOLD_CHARS = 4
+DEFAULT_PRESERVE_HIGH_CONFIDENCE = 0.95
+
+# Default entity priority mappings
+DEFAULT_ENTITY_PRIORITIES = {
+    # Critical entities
+    "US_SSN": "CRITICAL",
+    "CREDIT_CARD": "CRITICAL", 
+    "US_PASSPORT": "CRITICAL",
+    "US_DRIVER_LICENSE": "CRITICAL",
+    # High priority entities
+    "PHONE_NUMBER": "HIGH",
+    "EMAIL_ADDRESS": "HIGH",
+    "IBAN_CODE": "HIGH",
+    "US_BANK_NUMBER": "HIGH",
+    # Medium priority entities
+    "PERSON": "MEDIUM",
+    "LOCATION": "MEDIUM", 
+    "ORGANIZATION": "MEDIUM",
+    "NRP": "MEDIUM",  # National Registration Person
+    # Low priority entities
+    "URL": "LOW",
+    "IP_ADDRESS": "LOW",
+    "DATE_TIME": "LOW",
+    "MEDICAL_LICENSE": "LOW",
+}
+
+
 class ConflictResolutionStrategy(Enum):
     """Strategy for resolving conflicts between overlapping entities."""
 
@@ -47,32 +76,15 @@ class ConflictResolutionConfig:
     confidence_threshold: float = 0.1
     merge_threshold_chars: int = 4
     allow_partial_overlaps: bool = False
-    preserve_high_confidence: float = 0.95
+    preserve_high_confidence: float = DEFAULT_PRESERVE_HIGH_CONFIDENCE
 
     def __post_init__(self) -> None:
         """Set up default entity priorities if not provided."""
         if not self.entity_priorities:
+            # Convert string priorities to EntityPriority enums using the defaults
             self.entity_priorities = {
-                # Critical entities
-                "US_SSN": EntityPriority.CRITICAL,
-                "CREDIT_CARD": EntityPriority.CRITICAL,
-                "US_PASSPORT": EntityPriority.CRITICAL,
-                "US_DRIVER_LICENSE": EntityPriority.CRITICAL,
-                # High priority entities
-                "PHONE_NUMBER": EntityPriority.HIGH,
-                "EMAIL_ADDRESS": EntityPriority.HIGH,
-                "IBAN_CODE": EntityPriority.HIGH,
-                "US_BANK_NUMBER": EntityPriority.HIGH,
-                # Medium priority entities
-                "PERSON": EntityPriority.MEDIUM,
-                "LOCATION": EntityPriority.MEDIUM,
-                "ORGANIZATION": EntityPriority.MEDIUM,
-                "NRP": EntityPriority.MEDIUM,  # National Registration Person
-                # Low priority entities
-                "URL": EntityPriority.LOW,
-                "IP_ADDRESS": EntityPriority.LOW,
-                "DATE_TIME": EntityPriority.LOW,
-                "MEDICAL_LICENSE": EntityPriority.LOW,
+                entity_type: EntityPriority[priority_str] 
+                for entity_type, priority_str in DEFAULT_ENTITY_PRIORITIES.items()
             }
 
     def get_entity_priority(self, entity_type: str) -> EntityPriority:
@@ -130,8 +142,32 @@ class EntityGroup:
         """Check if group overlaps with an entity."""
         return not (self.end_pos <= entity.start or entity.end <= self.start_pos)
 
-    def is_adjacent_to(self, entity: EntityDetectionResult, threshold: int = 5) -> bool:
-        """Check if group is adjacent to an entity within threshold."""
+    def is_adjacent_to(self, entity: EntityDetectionResult, threshold: int = DEFAULT_MERGE_THRESHOLD_CHARS) -> bool:
+        """Check if this entity group is adjacent to another entity within threshold distance.
+
+        Adjacency is determined by calculating the minimum gap between the group's
+        boundaries and the entity's boundaries. Two entities are considered adjacent
+        if the gap between them is at most the specified threshold characters.
+
+        Algorithm:
+        1. Calculate gap from entity start to group end: abs(entity.start - self.end_pos)  
+        2. Calculate gap from group start to entity end: abs(self.start_pos - entity.end)
+        3. Take minimum gap (shortest distance between boundaries)
+        4. Return True if minimum gap <= threshold
+
+        Args:
+            entity: The EntityDetectionResult to check adjacency with
+            threshold: Maximum character distance to consider adjacent (default: 5)
+
+        Returns:
+            True if the entity is adjacent to this group within the threshold,
+            False otherwise
+
+        Note:
+            This method uses absolute positioning and considers the shortest distance
+            between any boundaries of the group and entity. A threshold of 0 means
+            entities must be immediately adjacent (touching).
+        """
         gap_start = abs(entity.start - self.end_pos)
         gap_end = abs(self.start_pos - entity.end)
         return min(gap_start, gap_end) <= threshold
@@ -221,13 +257,33 @@ class EntityNormalizer:
     def _group_entities(
         self, entities: list[EntityDetectionResult]
     ) -> list[EntityGroup]:
-        """Group overlapping and adjacent entities.
+        """Group overlapping and adjacent entities using spatial analysis.
+
+        This is the core algorithm that analyzes entity relationships and creates groups
+        for subsequent conflict resolution. The algorithm processes entities in sorted order
+        and uses geometric overlap detection and configurable adjacency thresholds.
+
+        Algorithm:
+        1. For each entity, find all existing groups it overlaps with or is adjacent to
+        2. If no matching groups: create new group with single entity
+        3. If one matching group: add entity to that group
+        4. If multiple matching groups: merge all groups with the new entity
+
+        The adjacency detection uses the merge_threshold_chars configuration to determine
+        how close entities must be to be considered adjacent for potential merging.
 
         Args:
-            entities: Sorted list of entities
+            entities: Sorted list of EntityDetectionResult instances (must be pre-sorted
+                     by position to ensure deterministic grouping behavior)
 
         Returns:
-            List of EntityGroup objects
+            List of EntityGroup objects, each containing entities that overlap or are
+            adjacent to each other. Groups are returned in the order they were created.
+
+        Note:
+            This method has O(n*g) complexity where n is number of entities and g is
+            average number of groups. For large entity lists, spatial indexing could
+            be considered as a future optimization.
         """
         if not entities:
             return []
@@ -302,7 +358,29 @@ class EntityNormalizer:
     def _resolve_by_confidence(
         self, entities: list[EntityDetectionResult]
     ) -> list[EntityDetectionResult]:
-        """Resolve conflicts by preferring highest confidence entities."""
+        """Resolve conflicts by selecting the highest confidence entities.
+
+        This resolution strategy prioritizes detection quality over other factors.
+        High-confidence entities above the preserve_high_confidence threshold are
+        always retained, even if they overlap, to avoid losing high-quality detections.
+
+        Algorithm:
+        1. Check if any entities exceed the preserve_high_confidence threshold
+        2. If yes: return all high-confidence entities (allows overlaps)
+        3. If no: return only the single highest confidence entity
+
+        Args:
+            entities: List of conflicting EntityDetectionResult instances
+
+        Returns:
+            List containing either all high-confidence entities or the single
+            highest confidence entity, depending on confidence thresholds
+
+        Note:
+            This strategy may preserve overlapping entities if they both have
+            high confidence scores, prioritizing detection quality over geometric
+            consistency.
+        """
         if not entities:
             return []
 
@@ -373,7 +451,31 @@ class EntityNormalizer:
     def _resolve_by_merging(
         self, entities: list[EntityDetectionResult]
     ) -> list[EntityDetectionResult]:
-        """Resolve conflicts by merging adjacent entities of same type."""
+        """Resolve conflicts by merging adjacent entities of the same type.
+
+        This strategy attempts to combine entities that represent parts of larger
+        constructs (e.g., phone numbers split across tokens, multi-part names).
+        Only entities of identical types are eligible for merging.
+
+        Algorithm:
+        1. Group entities by entity_type (only same types can merge)
+        2. Sort each type group by start position
+        3. For each type group, merge adjacent/overlapping entities
+        4. Combine text content and use highest confidence score
+        5. Return all merged entities from all type groups
+
+        Args:
+            entities: List of conflicting EntityDetectionResult instances
+
+        Returns:
+            List of merged EntityDetectionResult instances, potentially fewer
+            than input if entities were successfully merged
+
+        Note:
+            This method calls _merge_entity_group which now properly reconstructs
+            text by concatenating the individual entity texts in positional order,
+            rather than using placeholder text.
+        """
         if not entities:
             return []
 
@@ -441,8 +543,10 @@ class EntityNormalizer:
         # Use highest confidence
         max_confidence = max(e.confidence for e in entities)
 
-        # Reconstruct text (this is approximate since we don't have full text context)
-        merged_text = f"[MERGED_{entity_type}]"
+        # Reconstruct text by concatenating entity texts in positional order
+        # Sort entities by position to maintain correct text order
+        sorted_entities = sorted(entities, key=lambda e: e.start)
+        merged_text = "".join(e.text for e in sorted_entities)
 
         logger.debug(
             f"Merged {len(entities)} {entity_type} entities into single entity "

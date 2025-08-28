@@ -1,5 +1,6 @@
 """Core MaskingEngine for orchestrating PII masking operations."""
 
+import copy
 import hashlib
 import logging
 import uuid
@@ -213,7 +214,34 @@ class MaskingEngine:
         entities: list[RecognizerResult],
         text_segments: list[TextSegment],
     ) -> list[RecognizerResult]:
-        """Resolve entity conflicts or check for overlaps based on configuration."""
+        """Resolve entity conflicts using EntityNormalizer or validate no overlaps.
+
+        This method handles entity conflicts in two modes based on the resolve_conflicts flag:
+        
+        1. Legacy mode (resolve_conflicts=False): Validates that no overlapping entities exist
+           and raises ValueError if any are found, maintaining backward compatibility.
+           
+        2. Conflict resolution mode (resolve_conflicts=True): Uses EntityNormalizer to
+           intelligently resolve overlapping and adjacent entities through merging,
+           priority-based selection, or confidence-based resolution.
+
+        Args:
+            entities: List of RecognizerResult instances from Presidio analysis
+            text_segments: List of TextSegment instances containing document text
+
+        Returns:
+            List of RecognizerResult instances with conflicts resolved (if enabled)
+            or original entities (if validation-only mode)
+
+        Raises:
+            ValueError: If resolve_conflicts=False and overlapping entities are detected
+
+        Note:
+            The method converts between RecognizerResult and EntityDetectionResult types
+            internally to leverage the EntityNormalizer's conflict resolution capabilities.
+            Text extraction is performed relative to each segment's boundaries to ensure
+            correct entity text content is preserved during the conversion process.
+        """
         if not self.resolve_conflicts:
             # Legacy behavior: check for overlaps and raise error if found
             self._check_overlapping_entities(entities, text_segments)
@@ -244,11 +272,52 @@ class MaskingEngine:
             segment_relative_start = entity.start - segment.start_offset
             segment_relative_end = entity.end - segment.start_offset
             
-            # Extract entity text
-            entity_text = segment_text[segment_relative_start:segment_relative_end]
+            # Validate entity bounds relative to segment
+            if segment_relative_start < 0:
+                logger.warning(
+                    f"Entity start {entity.start} before segment start {segment.start_offset}, "
+                    f"adjusting to segment boundary"
+                )
+                segment_relative_start = 0
+                
+            if segment_relative_end > len(segment_text):
+                logger.warning(
+                    f"Entity end {entity.end} beyond segment text length {len(segment_text)}, "
+                    f"adjusting to segment boundary"
+                )
+                segment_relative_end = len(segment_text)
+                
+            if segment_relative_start >= segment_relative_end:
+                logger.warning(
+                    f"Invalid entity bounds after adjustment: start={segment_relative_start}, "
+                    f"end={segment_relative_end}, skipping entity"
+                )
+                continue
             
-            detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
-            entity_detection_results.append(detection_result)
+            # Extract entity text with bounds checking
+            try:
+                entity_text = segment_text[segment_relative_start:segment_relative_end]
+                if not entity_text.strip():
+                    logger.warning(
+                        f"Empty or whitespace-only entity text at {entity.start}-{entity.end}, skipping"
+                    )
+                    continue
+                    
+            except (IndexError, TypeError) as e:
+                logger.warning(
+                    f"Failed to extract entity text at {entity.start}-{entity.end}: {e}, skipping"
+                )
+                continue
+            
+            # Create detection result with error handling
+            try:
+                detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
+                entity_detection_results.append(detection_result)
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    f"Failed to create EntityDetectionResult for entity at {entity.start}-{entity.end}: {e}, skipping"
+                )
+                continue
 
         # Use EntityNormalizer to resolve conflicts
         normalization_result = self.entity_normalizer.normalize_entities(entity_detection_results)
@@ -355,8 +424,6 @@ class MaskingEngine:
         """Create a deep copy of the document for masking."""
         # For now, use simple copy approach
         # In a production implementation, we'd use a proper deep copy mechanism
-        import copy
-
         return copy.deepcopy(document)
 
     def _compute_document_hash(self, document: DoclingDocument) -> str:
