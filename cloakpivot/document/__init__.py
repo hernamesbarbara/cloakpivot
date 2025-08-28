@@ -6,7 +6,7 @@ from .mapper import AnchorMapper, NodeReference
 
 __all__ = [
     "DocumentProcessor",
-    "TextExtractor", 
+    "TextExtractor",
     "TextSegment",
     "AnchorMapper",
     "NodeReference",
