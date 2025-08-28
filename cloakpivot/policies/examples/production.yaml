@@ -1,0 +1,109 @@
+# Production Policy Example
+# Inherits from conservative template with custom overrides
+version: "1.0"
+name: "production-policy"
+description: "Production masking policy with enhanced security for financial documents"
+
+# Inherit from conservative base template
+extends: "../templates/conservative.yaml"
+
+# Production-specific seed for deterministic masking
+seed: "production-seed-2024-v1"
+
+# Override specific entity strategies for better traceability
+per_entity:
+  PERSON:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 12
+      prefix: "PERSON_"
+      per_entity_salt:
+        PERSON: "person_production_salt_v1"
+    threshold: 0.85
+    enabled: true
+    
+  EMAIL_ADDRESS:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 10
+      prefix: "EMAIL_"
+      per_entity_salt:
+        EMAIL_ADDRESS: "email_production_salt_v1"
+    threshold: 0.85
+    enabled: true
+    
+  CREDIT_CARD:
+    kind: "template"
+    parameters:
+      template: "[CC-REDACTED]"
+    threshold: 0.95
+    enabled: true
+
+# Production-specific allow list for known safe values
+allow_list:
+  - "support@company.com"
+  - "noreply@company.com"
+  - "info@company.com"
+  - pattern: ".*@company\\.com$"
+  - "Company Legal Department"
+  - "Customer Service"
+
+# Production deny list for sensitive terms
+deny_list:
+  - "confidential"
+  - "proprietary"
+  - "trade secret"
+  - "internal use only"
+
+# Enhanced context rules for financial documents
+context_rules:
+  heading:
+    enabled: false
+    
+  table:
+    enabled: true
+    strategy_overrides:
+      CREDIT_CARD:
+        kind: "template"
+        parameters:
+          template: "[CARD-MASKED]"
+      US_SSN:
+        kind: "template"
+        parameters:
+          template: "[SSN-MASKED]"
+    threshold_overrides:
+      CREDIT_CARD: 0.98
+      US_SSN: 0.98
+      
+  footer:
+    enabled: true
+    threshold_overrides:
+      PERSON: 0.9
+      EMAIL_ADDRESS: 0.9
+
+# Locale-specific configuration for multi-region support  
+locales:
+  "es":
+    recognizers: ["SPANISH_DNI", "SPANISH_PHONE"]
+    entity_overrides:
+      PERSON:
+        threshold: 0.8
+        
+  "fr": 
+    recognizers: ["FRENCH_CNI", "FRENCH_PHONE"]
+    entity_overrides:
+      PERSON:
+        threshold: 0.8
+        
+  "de":
+    recognizers: ["GERMAN_ID", "GERMAN_PHONE"] 
+    entity_overrides:
+      PERSON:
+        threshold: 0.8
+
+# Strict policy composition for production
+policy_composition:
+  merge_strategy: "strict"
+  validation_level: "strict"

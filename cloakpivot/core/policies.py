@@ -107,7 +107,7 @@ class MaskingPolicy:
                 raise ValueError(f"Context rules for '{context}' must be a dictionary")
 
             # Validate rule keys
-            valid_rule_keys = {"strategy", "threshold", "enabled"}
+            valid_rule_keys = {"strategy", "threshold", "enabled", "strategy_overrides", "threshold_overrides"}
             for rule_key in rules.keys():
                 if rule_key not in valid_rule_keys:
                     raise ValueError(f"Unknown rule key '{rule_key}', valid keys: {valid_rule_keys}")

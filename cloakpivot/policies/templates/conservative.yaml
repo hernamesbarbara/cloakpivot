@@ -1,0 +1,97 @@
+# Conservative Policy Template
+# High security policy with strong masking and high confidence thresholds
+version: "1.0"
+name: "conservative-template"
+description: "Conservative masking policy with high security requirements"
+
+# High confidence thresholds to reduce false positives
+locale: "en"
+min_entity_length: 2
+
+# Default to redaction for maximum security
+default_strategy:
+  kind: "redact"
+  parameters:
+    redact_char: "*"
+    preserve_length: true
+
+# High confidence thresholds for all entities
+thresholds:
+  PERSON: 0.9
+  EMAIL_ADDRESS: 0.9
+  PHONE_NUMBER: 0.9
+  CREDIT_CARD: 0.95
+  US_SSN: 0.95
+  IBAN_CODE: 0.9
+  IP_ADDRESS: 0.8
+  URL: 0.8
+  MEDICAL_LICENSE: 0.9
+  US_PASSPORT: 0.95
+  US_DRIVER_LICENSE: 0.9
+
+# Conservative per-entity strategies
+per_entity:
+  PERSON:
+    kind: "template"
+    parameters:
+      template: "[PERSON]"
+    threshold: 0.9
+    enabled: true
+    
+  EMAIL_ADDRESS:
+    kind: "template" 
+    parameters:
+      template: "[EMAIL]"
+    threshold: 0.9
+    enabled: true
+    
+  PHONE_NUMBER:
+    kind: "template"
+    parameters:
+      template: "[PHONE]"
+    threshold: 0.9
+    enabled: true
+    
+  CREDIT_CARD:
+    kind: "template"
+    parameters:
+      template: "[CREDIT_CARD]"
+    threshold: 0.95
+    enabled: true
+    
+  US_SSN:
+    kind: "template"
+    parameters:
+      template: "[SSN]" 
+    threshold: 0.95
+    enabled: true
+    
+  IBAN_CODE:
+    kind: "template"
+    parameters:
+      template: "[IBAN]"
+    threshold: 0.9
+    enabled: true
+
+# Disable masking in headings to preserve document structure
+context_rules:
+  heading:
+    enabled: false
+    
+  table:
+    enabled: true
+    
+  footer:
+    enabled: true
+    
+  header:
+    enabled: false
+
+# Empty lists - override in specific policies
+allow_list: []
+deny_list: []
+
+# Policy composition settings
+policy_composition:
+  merge_strategy: "override"
+  validation_level: "strict"
