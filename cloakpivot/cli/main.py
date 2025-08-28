@@ -91,7 +91,7 @@ def mask(
     if cloakmap:
         click.echo(f"CloakMap: {cloakmap}")
 
-    sys.exit(1)
+    raise click.ClickException("Masking functionality not yet implemented")
 
 
 @cli.command()
@@ -140,7 +140,7 @@ def unmask(
     if output_path:
         click.echo(f"Output: {output_path}")
 
-    sys.exit(1)
+    raise click.ClickException("Unmasking functionality not yet implemented")
 
 
 @cli.group()
