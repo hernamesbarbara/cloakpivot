@@ -1,4 +1,6 @@
 # Test Failures
 
-- tests/test_masking_integration.py::TestMaskingIntegration::test_full_masking_pipeline_with_docpivot_loading
-- tests/test_masking_integration.py::TestMaskingIntegration::test_masking_with_presidio_analyzer
+## Failed Tests:
+- TestUnmaskingEngine.test_unmask_document_success
+- TestUnmaskingEngine.test_unmask_document_invalid_input
+- TestUnmaskingIntegration.test_round_trip_placeholder_workflow
