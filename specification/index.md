@@ -176,7 +176,13 @@
 - Golden files for representative formats (docling/lexical) covering edge cases (overlaps, nested styles, tables, headers/footers).
 - Fuzzing for anchor drift across serialize/deserialize cycles.
 
-### 16. Deliverables
+### 16. Sample Data for Development & Testing
+- Find realistic document data in the data/ directory
+- Documents in PDF format are in data/pdf/
+- Documents described in various json dialects are in data/json/ 
+- Json dialect is indicated by file naming convention *.lexical.json and *.docling.json
+
+### 17. Deliverables
 
 - Python package `cloakpivot` with:
   - Core API (`mask_document`, `unmask_document`, policy types, CloakMap I/O).
@@ -184,20 +190,20 @@
   - Integration with `docpivot` and Presidio; examples and docs.
   - Reference policy samples and quickstart notebook.
 
-### 17. Milestones
+### 18. Milestones
 
 - M1: Minimal mask/unmask on `docling.json` with CloakMap and CLI.
 - M2: Add `lexical` serializer round-trip and policy features (partial, hash, surrogate).
 - M3: Security hardening (encryption/signature), performance tuning, diagnostics overlay.
 - M4: Plugins and custom recognizers, batch workflows, storage backends.
 
-### 18. Dependencies
+### 19. Dependencies
 
 - `docpivot` (located in `docpivot/` directory in this repo) and its transitive `docling_core` serializers.
 - `presidio-analyzer` (and optionally `presidio-anonymizer`).
 - Crypto library for HMAC/AES-GCM (e.g., `cryptography`).
 
-### 19. Open Questions
+### 20. Open Questions
 
 - Preferred default output format for masked distribution (`lexical json` vs `docling json` vs. `markdown`): probably leaning towards docling json or lexical json.
 - Whether to support lossy exports (PDF/PNG) with visual overlays as diagnostics only: TBD
