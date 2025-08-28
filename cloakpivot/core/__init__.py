@@ -46,6 +46,29 @@ from .results import (
     create_diagnostics
 )
 
+# Presidio integration system
+from .analyzer import (
+    AnalyzerEngineWrapper,
+    AnalyzerConfig,
+    RecognizerRegistry,
+    EntityDetectionResult
+)
+
+# Entity detection pipeline
+from .detection import (
+    EntityDetectionPipeline,
+    DocumentAnalysisResult,
+    SegmentAnalysisResult
+)
+
+# Entity normalization
+from .normalization import (
+    EntityNormalizer,
+    ConflictResolutionStrategy,
+    ConflictResolutionConfig,
+    NormalizationResult
+)
+
 __all__ = [
     # Strategy exports
     "StrategyKind",
@@ -82,4 +105,21 @@ __all__ = [
     "create_performance_metrics",
     "create_processing_stats",
     "create_diagnostics",
+    
+    # Presidio integration exports
+    "AnalyzerEngineWrapper",
+    "AnalyzerConfig", 
+    "RecognizerRegistry",
+    "EntityDetectionResult",
+    
+    # Detection pipeline exports
+    "EntityDetectionPipeline",
+    "DocumentAnalysisResult",
+    "SegmentAnalysisResult",
+    
+    # Normalization exports
+    "EntityNormalizer",
+    "ConflictResolutionStrategy",
+    "ConflictResolutionConfig", 
+    "NormalizationResult",
 ]
