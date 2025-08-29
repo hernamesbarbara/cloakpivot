@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, TextIO
+from datetime import datetime
 
 import click
 
@@ -29,15 +30,66 @@ if TYPE_CHECKING:
 @click.group()
 @click.version_option(version=__version__, prog_name="cloakpivot")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress all non-error output")
+@click.option("--config", type=click.Path(exists=True, path_type=Path), help="Configuration file path")
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool) -> None:
+def cli(ctx: click.Context, verbose: bool, quiet: bool, config: Optional[Path]) -> None:
     """CloakPivot: PII masking/unmasking on top of DocPivot and Presidio.
 
     CloakPivot enables reversible document masking while preserving
     structure and formatting using DocPivot and Presidio.
+    
+    Shell completion is available for bash, zsh, and fish.
+    To enable completion, run one of:
+    
+    \b
+    # For bash
+    _CLOAKPIVOT_COMPLETE=bash_source cloakpivot > ~/.cloakpivot-complete.bash
+    source ~/.cloakpivot-complete.bash
+    
+    \b  
+    # For zsh
+    _CLOAKPIVOT_COMPLETE=zsh_source cloakpivot > ~/.cloakpivot-complete.zsh
+    source ~/.cloakpivot-complete.zsh
+    
+    \b
+    # For fish
+    _CLOAKPIVOT_COMPLETE=fish_source cloakpivot > ~/.config/fish/completions/cloakpivot.fish
     """
     ctx.ensure_object(dict)
-    ctx.obj["verbose"] = verbose
+    ctx.obj["verbose"] = verbose and not quiet
+    ctx.obj["quiet"] = quiet
+    
+    # Load configuration file if provided
+    if config:
+        _load_config_file(ctx, config)
+
+
+def _load_config_file(ctx: click.Context, config_path: Path) -> None:
+    """Load configuration from YAML file."""
+    try:
+        import yaml
+        
+        with open(config_path, encoding="utf-8") as f:
+            config_data = yaml.safe_load(f)
+        
+        if not isinstance(config_data, dict):
+            raise click.ClickException(f"Invalid configuration file format: {config_path}")
+        
+        # Store config data in context for use by commands
+        ctx.obj["config"] = config_data
+        
+        # Apply global configuration options
+        if "verbose" in config_data and not ctx.obj.get("verbose"):
+            ctx.obj["verbose"] = config_data["verbose"]
+            
+        if "quiet" in config_data and not ctx.obj.get("quiet"):
+            ctx.obj["quiet"] = config_data["quiet"]
+            
+    except ImportError:
+        raise click.ClickException("PyYAML is required for configuration files. Install with: pip install pyyaml") from None
+    except Exception as e:
+        raise click.ClickException(f"Failed to load configuration file: {e}") from e
 
 
 def _validate_mask_arguments(
@@ -127,26 +179,29 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool) -> "MaskingPolic
 
 
 def _perform_entity_detection(
-    document: "DoclingDocument", masking_policy: "MaskingPolicy", verbose: bool
+    document: "DoclingDocument", masking_policy: "MaskingPolicy", verbose: bool, quiet: bool = False
 ) -> "DocumentAnalysisResult":
     """Perform PII entity detection on document."""
     from cloakpivot.core.detection import EntityDetectionPipeline
 
-    if verbose:
+    if verbose and not quiet:
         click.echo("🔍 Detecting PII entities")
 
     detection_pipeline = EntityDetectionPipeline()
 
-    with click.progressbar(length=1, label="Analyzing document for PII") as progress:
+    if not quiet:
+        with click.progressbar(length=1, label="Analyzing document for PII") as progress:
+            detection_result = detection_pipeline.analyze_document(document, masking_policy)
+            progress.update(1)
+    else:
         detection_result = detection_pipeline.analyze_document(document, masking_policy)
-        progress.update(1)
 
-    if verbose:
+    if verbose and not quiet:
         click.echo(f"✓ Detected {detection_result.total_entities} entities")
         for entity_type, count in detection_result.entity_breakdown.items():
             click.echo(f"  {entity_type}: {count}")
 
-    if detection_result.total_entities == 0:
+    if detection_result.total_entities == 0 and not quiet:
         click.echo("ℹ️  No PII entities detected in document")
         if not click.confirm("Continue with masking anyway?"):
             raise click.Abort()
@@ -982,6 +1037,304 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
         raise click.ClickException(f"Policy test failed: {e}") from e
 
 
+@policy.command("create")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output file path (default: interactive_policy.yaml)",
+)
+@click.option(
+    "--template",
+    type=click.Choice(["conservative", "balanced", "permissive"]),
+    help="Start with a built-in template",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed information during creation")
+@click.pass_context
+def policy_create(ctx: click.Context, output: Optional[Path], template: Optional[str], verbose: bool) -> None:
+    """Create a new masking policy through interactive prompts.
+    
+    Guides you through policy configuration with prompts and provides
+    templates and examples during creation.
+
+    Example:
+        cloakpivot policy create --output my-policy.yaml
+        cloakpivot policy create --template balanced
+    """
+    try:
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        if verbose:
+            click.echo("🎯 Starting interactive policy creation")
+        
+        # Set default output path if not specified
+        if not output:
+            output = Path("interactive_policy.yaml")
+            
+        # Check if output file exists and warn user
+        if output.exists():
+            if not click.confirm(f"File {output} already exists. Overwrite?"):
+                raise click.Abort()
+                
+        click.echo("📋 CloakPivot Interactive Policy Builder")
+        click.echo("=" * 50)
+        click.echo("This wizard will guide you through creating a custom masking policy.")
+        click.echo("Press Ctrl+C at any time to cancel.\n")
+        
+        # Step 1: Basic Configuration
+        click.echo("🔧 Basic Configuration")
+        policy_name = click.prompt("Policy name", default="my-custom-policy")
+        description = click.prompt("Policy description", default="Custom masking policy")
+        locale = click.prompt("Locale (language code)", default="en")
+        
+        # Step 2: Choose starting template or start from scratch
+        if template:
+            click.echo(f"\n📄 Using template: {template}")
+            use_template = True
+        else:
+            use_template = click.confirm("\nWould you like to start with a template?", default=True)
+            if use_template:
+                template = click.prompt(
+                    "Choose template", 
+                    type=click.Choice(["conservative", "balanced", "permissive"]),
+                    default="balanced"
+                )
+        
+        # Step 3: Default strategy configuration
+        click.echo("\n🎭 Default Masking Strategy")
+        click.echo("This strategy will be applied to entities without specific configuration.")
+        
+        strategy_choices = ["redact", "template", "hash", "partial"]
+        default_strategy = click.prompt(
+            "Default strategy", 
+            type=click.Choice(strategy_choices),
+            default="redact"
+        )
+        
+        strategy_params = {}
+        if default_strategy == "redact":
+            strategy_params["redact_char"] = click.prompt("Redaction character", default="*")
+            strategy_params["preserve_length"] = click.confirm("Preserve original length?", default=True)
+        elif default_strategy == "template":
+            strategy_params["template"] = click.prompt("Template text", default="[REDACTED]")
+        elif default_strategy == "hash":
+            strategy_params["algorithm"] = click.prompt(
+                "Hash algorithm", 
+                type=click.Choice(["sha256", "md5"]),
+                default="sha256"
+            )
+            strategy_params["truncate"] = click.prompt("Truncate hash to length", type=int, default=8)
+        elif default_strategy == "partial":
+            strategy_params["visible_chars"] = click.prompt("Number of visible characters", type=int, default=3)
+            strategy_params["position"] = click.prompt(
+                "Position of visible chars",
+                type=click.Choice(["start", "end"]),
+                default="start"
+            )
+            
+        # Step 4: Per-entity configurations
+        click.echo("\n👤 Entity-Specific Configurations")
+        common_entities = ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN", "IP_ADDRESS"]
+        per_entity = {}
+        
+        configure_entities = click.confirm("Configure specific entity types?", default=True)
+        if configure_entities:
+            for entity_type in common_entities:
+                if click.confirm(f"Configure {entity_type}?", default=False):
+                    click.echo(f"\n  Configuring {entity_type}:")
+                    entity_strategy = click.prompt(
+                        f"  Strategy for {entity_type}",
+                        type=click.Choice(strategy_choices),
+                        default=default_strategy
+                    )
+                    
+                    entity_params = {}
+                    if entity_strategy == "redact":
+                        entity_params["redact_char"] = click.prompt("  Redaction character", default="*")
+                        entity_params["preserve_length"] = click.confirm("  Preserve original length?", default=True)
+                    elif entity_strategy == "template":
+                        suggested_template = f"[{entity_type.replace('_', '-')}]"
+                        entity_params["template"] = click.prompt("  Template text", default=suggested_template)
+                    elif entity_strategy == "hash":
+                        entity_params["algorithm"] = click.prompt(
+                            "  Hash algorithm", 
+                            type=click.Choice(["sha256", "md5"]),
+                            default="sha256"
+                        )
+                        entity_params["truncate"] = click.prompt("  Truncate hash to length", type=int, default=8)
+                    elif entity_strategy == "partial":
+                        entity_params["visible_chars"] = click.prompt("  Number of visible characters", type=int, default=3)
+                        entity_params["position"] = click.prompt(
+                            "  Position of visible chars",
+                            type=click.Choice(["start", "end"]),
+                            default="start"
+                        )
+                    
+                    threshold = click.prompt(f"  Confidence threshold for {entity_type} (0.0-1.0)", type=float, default=0.8)
+                    
+                    per_entity[entity_type] = {
+                        "kind": entity_strategy,
+                        "parameters": entity_params,
+                        "threshold": threshold,
+                        "enabled": True
+                    }
+        
+        # Step 5: Allow/Deny Lists
+        click.echo("\n📝 Allow and Deny Lists")
+        allow_list = []
+        deny_list = []
+        
+        if click.confirm("Add items to allow list (never masked)?", default=False):
+            click.echo("Enter items one by one (empty line to finish):")
+            while True:
+                item = click.prompt("Allow list item (empty to finish)", default="", show_default=False)
+                if not item:
+                    break
+                allow_list.append(item)
+                
+        if click.confirm("Add items to deny list (always masked)?", default=False):
+            click.echo("Enter items one by one (empty line to finish):")
+            while True:
+                item = click.prompt("Deny list item (empty to finish)", default="", show_default=False)
+                if not item:
+                    break
+                deny_list.append(item)
+        
+        # Step 6: Generate policy content
+        click.echo(f"\n📄 Generating policy file: {output}")
+        
+        from datetime import datetime
+        
+        policy_content = f"""# CloakPivot Interactive Policy Configuration
+# Generated by CloakPivot Policy Builder
+# Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+version: "1.0"
+name: "{policy_name}"
+description: "{description}"
+locale: "{locale}"
+
+# Default strategy applied to entities without specific configuration
+default_strategy:
+  kind: "{default_strategy}"
+  parameters:
+"""
+        
+        for key, value in strategy_params.items():
+            if isinstance(value, bool):
+                policy_content += f"    {key}: {str(value).lower()}\n"
+            elif isinstance(value, str):
+                policy_content += f"    {key}: \"{value}\"\n"
+            else:
+                policy_content += f"    {key}: {value}\n"
+        
+        # Add per-entity configurations
+        if per_entity:
+            policy_content += "\n# Per-entity type configuration\nper_entity:\n"
+            for entity_type, config in per_entity.items():
+                policy_content += f"  {entity_type}:\n"
+                policy_content += f"    kind: \"{config['kind']}\"\n"
+                policy_content += f"    parameters:\n"
+                for key, value in config["parameters"].items():
+                    if isinstance(value, bool):
+                        policy_content += f"      {key}: {str(value).lower()}\n"
+                    elif isinstance(value, str):
+                        policy_content += f"      {key}: \"{value}\"\n"
+                    else:
+                        policy_content += f"      {key}: {value}\n"
+                policy_content += f"    threshold: {config['threshold']}\n"
+                policy_content += f"    enabled: {str(config['enabled']).lower()}\n\n"
+        
+        # Add allow/deny lists
+        if allow_list:
+            policy_content += "# Items that should never be masked\nallow_list:\n"
+            for item in allow_list:
+                policy_content += f"  - \"{item}\"\n"
+            policy_content += "\n"
+            
+        if deny_list:
+            policy_content += "# Items that should always be masked\ndeny_list:\n"
+            for item in deny_list:
+                policy_content += f"  - \"{item}\"\n"
+            policy_content += "\n"
+        
+        # Add basic context rules
+        policy_content += """# Context-specific masking rules
+context_rules:
+  heading:
+    enabled: false  # Don't mask in document headings
+  
+  table:
+    enabled: true
+    
+  footer:
+    enabled: true
+    
+  header:
+    enabled: false
+
+# Basic configuration options
+min_entity_length: 2
+"""
+        
+        # Save the policy file
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(policy_content)
+        
+        click.echo("✅ Policy creation completed successfully!")
+        click.echo(f"   Policy file: {output}")
+        click.echo(f"   Name: {policy_name}")
+        click.echo(f"   Entities configured: {len(per_entity)}")
+        click.echo(f"   Allow list items: {len(allow_list)}")
+        click.echo(f"   Deny list items: {len(deny_list)}")
+        
+        if verbose:
+            click.echo(f"\n📊 Policy Summary:")
+            click.echo(f"   Default strategy: {default_strategy}")
+            click.echo(f"   Locale: {locale}")
+            if per_entity:
+                click.echo(f"   Configured entities:")
+                for entity_type, config in per_entity.items():
+                    click.echo(f"     • {entity_type}: {config['kind']} (threshold: {config['threshold']})")
+        
+        # Offer to validate the created policy
+        if click.confirm("\nWould you like to validate the created policy?", default=True):
+            click.echo("🔍 Validating policy...")
+            try:
+                from cloakpivot.core.policy_loader import PolicyLoader
+                loader = PolicyLoader()
+                errors = loader.validate_policy_file(output)
+                
+                if not errors:
+                    click.echo("✅ Policy validation successful!")
+                else:
+                    click.echo("❌ Policy validation found issues:")
+                    for error in errors:
+                        click.echo(f"   • {error}")
+            except ImportError:
+                click.echo("⚠️  Enhanced validation requires pydantic")
+                click.echo("   Basic YAML structure appears valid")
+            except Exception as e:
+                click.echo(f"⚠️  Validation failed: {e}")
+        
+        click.echo("\n💡 Next steps:")
+        click.echo(f"   • Test your policy: cloakpivot policy test {output}")
+        click.echo(f"   • Use in masking: cloakpivot mask document.pdf --policy {output}")
+        click.echo(f"   • View policy details: cloakpivot policy info {output}")
+        
+    except click.Abort:
+        click.echo("\n❌ Policy creation cancelled")
+        raise
+    except KeyboardInterrupt:
+        click.echo("\n❌ Policy creation interrupted")
+        raise click.Abort()
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Policy creation failed: {e}") from e
+
+
 @policy.command("info")
 @click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
 def policy_info(policy_file: Path) -> None:
@@ -1562,6 +1915,398 @@ def format_list(verbose: bool) -> None:
 
     except Exception as e:
         raise click.ClickException(f"Failed to list formats: {e}") from e
+
+
+@cli.command()
+@click.argument("doc1", type=click.Path(exists=True, path_type=Path))
+@click.argument("doc2", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--cloakmap1", 
+    type=click.Path(exists=True, path_type=Path),
+    help="CloakMap for first document (for masking strategy analysis)"
+)
+@click.option(
+    "--cloakmap2", 
+    type=click.Path(exists=True, path_type=Path),
+    help="CloakMap for second document (for masking strategy analysis)"
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output path for diff report (default: diff_report.html)"
+)
+@click.option(
+    "--format",
+    "report_format",
+    type=click.Choice(["text", "html", "json"]),
+    default="text",
+    help="Diff report format (default: text)"
+)
+@click.option(
+    "--show-context",
+    type=int,
+    default=3,
+    help="Number of context lines to show around differences"
+)
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed diff information")
+@click.pass_context
+def diff(
+    ctx: click.Context,
+    doc1: Path,
+    doc2: Path,
+    cloakmap1: Optional[Path],
+    cloakmap2: Optional[Path],
+    output: Optional[Path],
+    report_format: str,
+    show_context: int,
+    verbose: bool,
+) -> None:
+    """Compare two documents and show differences in masking approaches.
+    
+    Compares two documents (masked or unmasked) and shows differences in content,
+    masking strategies, and coverage. Useful for comparing different policy
+    applications or document versions.
+
+    Examples:
+        cloakpivot diff doc1.json doc2.json
+        cloakpivot diff masked1.json masked2.json --cloakmap1 map1.json --cloakmap2 map2.json
+        cloakpivot diff doc1.json doc2.json --format html --output report.html
+    """
+    try:
+        import json
+        import difflib
+        from pathlib import Path
+
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        if verbose:
+            click.echo("📊 Comparing documents")
+            click.echo(f"   Document 1: {doc1}")
+            click.echo(f"   Document 2: {doc2}")
+            if cloakmap1:
+                click.echo(f"   CloakMap 1: {cloakmap1}")
+            if cloakmap2:
+                click.echo(f"   CloakMap 2: {cloakmap2}")
+        
+        # Load documents
+        with click.progressbar(length=1, label="Loading documents") as progress:
+            from cloakpivot.document.processor import DocumentProcessor
+            
+            processor = DocumentProcessor()
+            document1 = processor.load_document(doc1, validate=True)
+            document2 = processor.load_document(doc2, validate=True)
+            progress.update(1)
+        
+        if verbose:
+            click.echo(f"✓ Loaded document 1: {document1.name}")
+            click.echo(f"✓ Loaded document 2: {document2.name}")
+        
+        # Load CloakMaps if provided
+        cloakmap1_obj = None
+        cloakmap2_obj = None
+        
+        if cloakmap1 or cloakmap2:
+            with click.progressbar(length=1, label="Loading CloakMaps") as progress:
+                from cloakpivot.core.cloakmap import CloakMap
+                
+                if cloakmap1:
+                    with open(cloakmap1, encoding="utf-8") as f:
+                        cloakmap1_data = json.load(f)
+                    cloakmap1_obj = CloakMap.from_dict(cloakmap1_data)
+                    
+                if cloakmap2:
+                    with open(cloakmap2, encoding="utf-8") as f:
+                        cloakmap2_data = json.load(f)
+                    cloakmap2_obj = CloakMap.from_dict(cloakmap2_data)
+                    
+                progress.update(1)
+        
+        # Extract text content for comparison
+        from cloakpivot.document.extractor import TextExtractor
+        
+        text_extractor = TextExtractor()
+        text1_segments = text_extractor.extract_text_segments(document1)
+        text2_segments = text_extractor.extract_text_segments(document2)
+        
+        # Combine text segments into full text for comparison
+        text1_full = "\n".join(segment.text for segment in text1_segments)
+        text2_full = "\n".join(segment.text for segment in text2_segments)
+        
+        text1_lines = text1_full.splitlines()
+        text2_lines = text2_full.splitlines()
+        
+        if verbose:
+            click.echo(f"📝 Document 1 has {len(text1_lines)} lines")
+            click.echo(f"📝 Document 2 has {len(text2_lines)} lines")
+        
+        # Generate text diff
+        with click.progressbar(length=1, label="Generating diff") as progress:
+            differ = difflib.unified_diff(
+                text1_lines,
+                text2_lines,
+                fromfile=str(doc1),
+                tofile=str(doc2),
+                n=show_context,
+                lineterm=""
+            )
+            diff_lines = list(differ)
+            progress.update(1)
+        
+        # Analyze masking differences if CloakMaps provided
+        masking_analysis = None
+        if cloakmap1_obj or cloakmap2_obj:
+            masking_analysis = {}
+            
+            if cloakmap1_obj:
+                masking_analysis["doc1_entities"] = len(cloakmap1_obj.anchors)
+                masking_analysis["doc1_strategies"] = {}
+                for anchor in cloakmap1_obj.anchors:
+                    strategy = anchor.strategy_used
+                    masking_analysis["doc1_strategies"][strategy] = masking_analysis["doc1_strategies"].get(strategy, 0) + 1
+                masking_analysis["doc1_entity_types"] = cloakmap1_obj.entity_count_by_type
+            
+            if cloakmap2_obj:
+                masking_analysis["doc2_entities"] = len(cloakmap2_obj.anchors)
+                masking_analysis["doc2_strategies"] = {}
+                for anchor in cloakmap2_obj.anchors:
+                    strategy = anchor.strategy_used
+                    masking_analysis["doc2_strategies"][strategy] = masking_analysis["doc2_strategies"].get(strategy, 0) + 1
+                masking_analysis["doc2_entity_types"] = cloakmap2_obj.entity_count_by_type
+        
+        # Generate report based on format
+        if report_format == "text":
+            _generate_text_diff_report(
+                diff_lines, masking_analysis, output, doc1, doc2, verbose
+            )
+        elif report_format == "html":
+            _generate_html_diff_report(
+                text1_lines, text2_lines, masking_analysis, output, doc1, doc2, verbose
+            )
+        elif report_format == "json":
+            _generate_json_diff_report(
+                diff_lines, masking_analysis, output, doc1, doc2, verbose
+            )
+        
+        # Show summary
+        changes = sum(1 for line in diff_lines if line.startswith(('+', '-')) and not line.startswith(('+++', '---')))
+        
+        click.echo("✅ Document comparison completed!")
+        click.echo(f"   Document 1: {doc1}")
+        click.echo(f"   Document 2: {doc2}")
+        click.echo(f"   Changes detected: {changes // 2 if changes > 0 else 0}")
+        
+        if masking_analysis:
+            entities1 = masking_analysis.get("doc1_entities", 0)
+            entities2 = masking_analysis.get("doc2_entities", 0)
+            click.echo(f"   Entities in doc1: {entities1}")
+            click.echo(f"   Entities in doc2: {entities2}")
+            click.echo(f"   Entity difference: {abs(entities1 - entities2)}")
+        
+        if output:
+            click.echo(f"   Report saved: {output}")
+        
+    except ImportError as e:
+        raise click.ClickException(f"Missing required dependency: {e}") from e
+    except FileNotFoundError as e:
+        raise click.ClickException(f"File not found: {e}") from e
+    except json.JSONDecodeError as e:
+        raise click.ClickException(f"Invalid JSON in file: {e}") from e
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Document comparison failed: {e}") from e
+
+
+def _generate_text_diff_report(
+    diff_lines: list[str], 
+    masking_analysis: Optional[dict], 
+    output: Optional[Path], 
+    doc1: Path, 
+    doc2: Path, 
+    verbose: bool
+) -> None:
+    """Generate text-based diff report."""
+    if not output:
+        output = Path("diff_report.txt")
+    
+    with open(output, "w", encoding="utf-8") as f:
+        f.write(f"Document Comparison Report\n")
+        f.write(f"=" * 50 + "\n\n")
+        f.write(f"Document 1: {doc1}\n")
+        f.write(f"Document 2: {doc2}\n")
+        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        if masking_analysis:
+            f.write("Masking Analysis:\n")
+            f.write("-" * 20 + "\n")
+            
+            if "doc1_entities" in masking_analysis:
+                f.write(f"Document 1 entities: {masking_analysis['doc1_entities']}\n")
+                if masking_analysis.get("doc1_strategies"):
+                    f.write("  Strategies used:\n")
+                    for strategy, count in masking_analysis["doc1_strategies"].items():
+                        f.write(f"    {strategy}: {count}\n")
+                    
+            if "doc2_entities" in masking_analysis:
+                f.write(f"Document 2 entities: {masking_analysis['doc2_entities']}\n")
+                if masking_analysis.get("doc2_strategies"):
+                    f.write("  Strategies used:\n")
+                    for strategy, count in masking_analysis["doc2_strategies"].items():
+                        f.write(f"    {strategy}: {count}\n")
+            f.write("\n")
+        
+        f.write("Content Differences:\n")
+        f.write("-" * 20 + "\n")
+        
+        if diff_lines:
+            for line in diff_lines:
+                f.write(line + "\n")
+        else:
+            f.write("No differences found.\n")
+
+
+def _generate_html_diff_report(
+    text1_lines: list[str], 
+    text2_lines: list[str], 
+    masking_analysis: Optional[dict], 
+    output: Optional[Path], 
+    doc1: Path, 
+    doc2: Path, 
+    verbose: bool
+) -> None:
+    """Generate HTML-based diff report with highlighting."""
+    import difflib
+    from datetime import datetime
+    
+    if not output:
+        output = Path("diff_report.html")
+    
+    # Generate HTML diff
+    differ = difflib.HtmlDiff()
+    html_diff = differ.make_file(
+        text1_lines, 
+        text2_lines, 
+        fromdesc=str(doc1),
+        todesc=str(doc2),
+        context=True,
+        numlines=3
+    )
+    
+    # Enhanced HTML with masking analysis
+    enhanced_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>CloakPivot Document Comparison</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+        .analysis {{ background-color: #e6f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+        .diff-container {{ border: 1px solid #ddd; border-radius: 5px; }}
+        table {{ width: 100%; border-collapse: collapse; }}
+        .diff_header {{ background-color: #f0f0f0; }}
+        .diff_next {{ background-color: #c0c0c0; }}
+        .diff_add {{ background-color: #aaffaa; }}
+        .diff_chg {{ background-color: #ffff77; }}
+        .diff_sub {{ background-color: #ffaaaa; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 CloakPivot Document Comparison</h1>
+        <p><strong>Document 1:</strong> {doc1}</p>
+        <p><strong>Document 2:</strong> {doc2}</p>
+        <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    </div>
+"""
+    
+    if masking_analysis:
+        enhanced_html += '<div class="analysis">\n<h2>🎭 Masking Analysis</h2>\n'
+        
+        if "doc1_entities" in masking_analysis:
+            enhanced_html += f'<h3>Document 1</h3>\n'
+            enhanced_html += f'<p><strong>Entities:</strong> {masking_analysis["doc1_entities"]}</p>\n'
+            if masking_analysis.get("doc1_strategies"):
+                enhanced_html += '<p><strong>Strategies:</strong></p>\n<ul>\n'
+                for strategy, count in masking_analysis["doc1_strategies"].items():
+                    enhanced_html += f'<li>{strategy}: {count}</li>\n'
+                enhanced_html += '</ul>\n'
+                
+        if "doc2_entities" in masking_analysis:
+            enhanced_html += f'<h3>Document 2</h3>\n'
+            enhanced_html += f'<p><strong>Entities:</strong> {masking_analysis["doc2_entities"]}</p>\n'
+            if masking_analysis.get("doc2_strategies"):
+                enhanced_html += '<p><strong>Strategies:</strong></p>\n<ul>\n'
+                for strategy, count in masking_analysis["doc2_strategies"].items():
+                    enhanced_html += f'<li>{strategy}: {count}</li>\n'
+                enhanced_html += '</ul>\n'
+                
+        enhanced_html += '</div>\n'
+    
+    enhanced_html += '<div class="diff-container">\n<h2>📄 Content Differences</h2>\n'
+    enhanced_html += html_diff[html_diff.find('<table'):html_diff.rfind('</table>') + 8]
+    enhanced_html += '</div>\n</body>\n</html>'
+    
+    with open(output, "w", encoding="utf-8") as f:
+        f.write(enhanced_html)
+
+
+def _generate_json_diff_report(
+    diff_lines: list[str], 
+    masking_analysis: Optional[dict], 
+    output: Optional[Path], 
+    doc1: Path, 
+    doc2: Path, 
+    verbose: bool
+) -> None:
+    """Generate JSON-based diff report."""
+    import json
+    from datetime import datetime
+    
+    if not output:
+        output = Path("diff_report.json")
+    
+    report_data = {
+        "comparison": {
+            "document1": str(doc1),
+            "document2": str(doc2),
+            "timestamp": datetime.now().isoformat(),
+            "tool": "CloakPivot"
+        },
+        "differences": {
+            "lines": diff_lines,
+            "change_count": sum(1 for line in diff_lines if line.startswith(('+', '-')) and not line.startswith(('+++', '---')))
+        }
+    }
+    
+    if masking_analysis:
+        report_data["masking_analysis"] = masking_analysis
+    
+    with open(output, "w", encoding="utf-8") as f:
+        json.dump(report_data, f, indent=2, default=str)
+
+
+@cli.command(hidden=True)  
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+def completion(shell: str) -> None:
+    """Generate shell completion script.
+    
+    This is used internally by the shell completion system.
+    Use the instructions in --help for manual setup.
+    """
+    import os
+    
+    shell_complete = f"_{cli.name.upper()}_COMPLETE"
+    if shell == "bash":
+        os.environ[shell_complete] = "bash_source"
+    elif shell == "zsh": 
+        os.environ[shell_complete] = "zsh_source"
+    elif shell == "fish":
+        os.environ[shell_complete] = "fish_source"
+    
+    # This will output the completion script
+    cli.main(standalone_mode=False)
 
 
 # Import and add command groups

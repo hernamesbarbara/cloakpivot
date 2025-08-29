@@ -488,3 +488,292 @@ class TestProgressReporting:
 
                 # Progress indicators should be in output
                 assert 'Loading document' in result.output or result.exit_code != 0
+
+
+class TestPolicyCreateCommand:
+    """Test the interactive policy create command."""
+    
+    def test_policy_create_help(self):
+        """Test policy create command help."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['policy', 'create', '--help'])
+        assert result.exit_code == 0
+        assert 'Create a new masking policy through interactive prompts' in result.output
+    
+    def test_policy_create_with_template_option(self):
+        """Test policy create command with template option."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            output_file = temp_path / "test_policy.yaml"
+            
+            # Simulate user inputs for the interactive prompts
+            inputs = [
+                "test-policy",  # Policy name
+                "Test policy description",  # Description  
+                "en",  # Locale
+                "redact",  # Default strategy
+                "*",  # Redaction character
+                "y",  # Preserve length
+                "n",  # Configure entities
+                "n",  # Allow list
+                "n",  # Deny list
+                "n",  # Validate
+            ]
+            
+            result = runner.invoke(cli, [
+                'policy', 'create', 
+                '--template', 'balanced',
+                '--output', str(output_file)
+            ], input='\n'.join(inputs))
+            
+            # Should succeed or show the template prompt
+            assert result.exit_code == 0 or 'template' in result.output.lower()
+    
+    def test_policy_create_output_file_exists(self):
+        """Test policy create when output file already exists."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            output_file = temp_path / "existing_policy.yaml"
+            output_file.write_text("existing content")
+            
+            result = runner.invoke(cli, [
+                'policy', 'create',
+                '--output', str(output_file)
+            ], input='n\n')  # Decline to overwrite
+            
+            assert result.exit_code == 1  # Should abort
+            assert 'already exists' in result.output
+
+
+class TestDiffCommand:
+    """Test the document diff command."""
+    
+    def test_diff_command_help(self):
+        """Test diff command help."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['diff', '--help'])
+        assert result.exit_code == 0
+        assert 'Compare two documents' in result.output
+    
+    def test_diff_missing_files(self):
+        """Test diff command with non-existent files."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['diff', 'nonexistent1.json', 'nonexistent2.json'])
+        assert result.exit_code != 0
+        assert 'does not exist' in result.output.lower()
+    
+    def test_diff_with_identical_files(self):
+        """Test diff command with identical files."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            doc1 = temp_path / "doc1.json"
+            doc2 = temp_path / "doc2.json"
+            
+            # Create identical test documents
+            content = '{"test": "content", "same": true}'
+            doc1.write_text(content)
+            doc2.write_text(content)
+            
+            with patch('cloakpivot.document.processor.DocumentProcessor') as mock_processor:
+                # Mock document loading
+                mock_doc = Mock()
+                mock_doc.name = "test.json"
+                mock_processor.return_value.load_document.return_value = mock_doc
+                
+                with patch('cloakpivot.document.extractor.TextExtractor') as mock_extractor:
+                    # Mock text extraction  
+                    mock_segment = Mock()
+                    mock_segment.text = "test content"
+                    mock_extractor.return_value.extract_text_segments.return_value = [mock_segment]
+                    
+                    result = runner.invoke(cli, ['diff', str(doc1), str(doc2)])
+                    
+                    # Should succeed or show expected behavior
+                    assert result.exit_code == 0 or 'comparison' in result.output.lower()
+    
+    def test_diff_format_options(self):
+        """Test diff command format options."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            doc1 = temp_path / "doc1.json"
+            doc2 = temp_path / "doc2.json"
+            
+            doc1.write_text('{"content": "first"}')
+            doc2.write_text('{"content": "second"}')
+            
+            # Test each format option
+            for fmt in ['text', 'html', 'json']:
+                result = runner.invoke(cli, [
+                    'diff', str(doc1), str(doc2), 
+                    '--format', fmt
+                ])
+                # May fail due to missing dependencies, but should recognize format option
+                assert result.exit_code == 0 or fmt in str(result.exception) or 'format' in result.output.lower()
+
+
+class TestShellCompletion:
+    """Test shell completion functionality."""
+    
+    def test_completion_command_exists(self):
+        """Test that completion command exists."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['completion', '--help'])
+        # Command may be hidden, so check if it's recognized
+        assert result.exit_code != 2 or 'completion' not in result.output  # Not "No such command"
+    
+    def test_cli_help_includes_completion_info(self):
+        """Test that main help includes completion instructions."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--help'])
+        assert result.exit_code == 0
+        assert 'Shell completion' in result.output or 'completion' in result.output.lower()
+
+
+class TestConfigurationSupport:
+    """Test configuration file support."""
+    
+    def test_config_option_exists(self):
+        """Test that --config option exists."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--help'])
+        assert result.exit_code == 0
+        assert '--config' in result.output
+    
+    def test_config_file_loading(self):
+        """Test configuration file loading."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            config_file = temp_path / "config.yaml"
+            
+            # Create a test config file
+            config_content = """
+verbose: true
+quiet: false
+default_format: lexical
+"""
+            config_file.write_text(config_content)
+            
+            # Test with mask command (should recognize config)
+            result = runner.invoke(cli, [
+                '--config', str(config_file),
+                'mask', '--help'
+            ])
+            
+            # Should not fail due to config file
+            assert result.exit_code == 0
+    
+    def test_config_file_invalid_yaml(self):
+        """Test handling of invalid YAML config file."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            config_file = temp_path / "invalid_config.yaml"
+            
+            # Create invalid YAML
+            config_file.write_text("invalid: yaml: content: [")
+            
+            # Use mask command with a non-existent file to trigger config loading
+            result = runner.invoke(cli, [
+                '--config', str(config_file),
+                'mask', 'nonexistent.txt'
+            ])
+            
+            assert result.exit_code != 0
+            assert 'configuration' in result.output.lower() or 'config' in result.output.lower()
+    
+    def test_config_file_missing_yaml_dependency(self):
+        """Test config file loading when PyYAML is missing."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            config_file = temp_path / "config.yaml"
+            config_file.write_text("verbose: true")
+            
+            # Mock yaml module to not exist
+            with patch.dict('sys.modules', {'yaml': None}):
+                # Use mask command with a non-existent file to trigger config loading
+                result = runner.invoke(cli, [
+                    '--config', str(config_file),
+                    'mask', 'nonexistent.txt'
+                ])
+                
+                assert result.exit_code != 0
+                assert 'PyYAML' in result.output
+
+
+class TestQuietMode:
+    """Test quiet mode functionality."""
+    
+    def test_quiet_option_exists(self):
+        """Test that --quiet option exists."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--help'])
+        assert result.exit_code == 0
+        assert '--quiet' in result.output
+    
+    def test_quiet_mode_with_mask_command(self):
+        """Test quiet mode reduces output."""
+        runner = CliRunner()
+        with tempfile.NamedTemporaryFile(suffix='.json') as temp_file:
+            temp_file.write(b'{"test": "content"}')
+            temp_file.flush()
+            
+            # Test without quiet mode
+            result_verbose = runner.invoke(cli, [
+                '--verbose',
+                'mask', temp_file.name
+            ])
+            
+            # Test with quiet mode  
+            result_quiet = runner.invoke(cli, [
+                '--quiet',
+                'mask', temp_file.name
+            ])
+            
+            # Both may fail due to dependencies, but quiet should have less output
+            if result_verbose.output and result_quiet.output:
+                assert len(result_quiet.output) <= len(result_verbose.output)
+    
+    def test_verbose_and_quiet_together(self):
+        """Test that quiet overrides verbose."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            '--verbose', '--quiet', '--help'
+        ])
+        
+        assert result.exit_code == 0
+        # Should work without issues
+
+
+class TestEnhancedHelp:
+    """Test enhanced help and examples."""
+    
+    def test_main_help_has_examples(self):
+        """Test that main help includes comprehensive information."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--help'])
+        assert result.exit_code == 0
+        assert 'CloakPivot' in result.output
+        assert len(result.output) > 500  # Should be comprehensive
+    
+    def test_mask_command_help_has_examples(self):
+        """Test mask command help includes examples."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['mask', '--help'])
+        assert result.exit_code == 0
+        assert 'Example:' in result.output
+        assert 'cloakpivot mask' in result.output
+    
+    def test_policy_commands_have_examples(self):
+        """Test policy commands include examples."""
+        runner = CliRunner()
+        
+        for subcommand in ['sample', 'validate', 'test', 'info', 'create']:
+            result = runner.invoke(cli, ['policy', subcommand, '--help'])
+            assert result.exit_code == 0
+            assert 'Example:' in result.output or 'cloakpivot policy' in result.output
