@@ -22,6 +22,7 @@ class TestAnchorEntry:
             masked_value="[PHONE]",
             replacement_id="repl_123",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
             timestamp=timestamp
         )
@@ -50,6 +51,7 @@ class TestAnchorEntry:
             masked_value="[PHONE]",
             replacement_id="repl_123",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template"
         )
         after_creation = datetime.utcnow()
@@ -69,6 +71,7 @@ class TestAnchorEntry:
             masked_value="[PHONE]",
             replacement_id="repl_123",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template"
         )
 
@@ -81,7 +84,7 @@ class TestAnchorEntry:
         AnchorEntry(
             node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Invalid start position
@@ -89,7 +92,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=-1, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Invalid end position
@@ -97,7 +100,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=10, end=-1, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # End <= start
@@ -105,7 +108,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=10, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
     def test_confidence_validation(self) -> None:
@@ -115,7 +118,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=conf,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Invalid confidence type
@@ -123,7 +126,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence="high",  # type: ignore
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Out of range confidence
@@ -131,14 +134,14 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=-0.1,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         with pytest.raises(ValueError, match="confidence must be between 0.0 and 1.0"):
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=1.1,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
     def test_checksum_validation(self) -> None:
@@ -148,7 +151,7 @@ class TestAnchorEntry:
         AnchorEntry(
             node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl", original_checksum=valid_checksum,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Invalid checksum length
@@ -156,7 +159,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="short",
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Invalid hex characters
@@ -164,7 +167,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="g" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
     def test_id_validation(self) -> None:
@@ -173,7 +176,7 @@ class TestAnchorEntry:
         AnchorEntry(
             node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Empty node_id
@@ -181,7 +184,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="", start=0, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Empty replacement_id
@@ -189,7 +192,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
                 masked_value="masked", replacement_id="", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
         # Empty entity_type
@@ -197,7 +200,7 @@ class TestAnchorEntry:
             AnchorEntry(
                 node_id="p1", start=0, end=10, entity_type="", confidence=0.5,
                 masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                strategy_used="template"
+                checksum_salt="dGVzdA==", strategy_used="template"
             )
 
     def test_properties(self) -> None:
@@ -205,7 +208,7 @@ class TestAnchorEntry:
         anchor = AnchorEntry(
             node_id="p1", start=10, end=25, entity_type="PHONE", confidence=0.5,
             masked_value="[PHONE]", replacement_id="repl", original_checksum="a" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         assert anchor.span_length == 15  # 25 - 10
@@ -214,13 +217,16 @@ class TestAnchorEntry:
 
     def test_verify_original_text(self) -> None:
         """Test original text verification."""
-        # Create anchor with known text
+        # Create anchor using the factory method which properly creates salted checksums
         original_text = "555-123-4567"
-        checksum = AnchorEntry._compute_checksum(original_text)
-
-        anchor = AnchorEntry(
-            node_id="p1", start=0, end=len(original_text), entity_type="PHONE", confidence=0.5,
-            masked_value="[PHONE]", replacement_id="repl", original_checksum=checksum,
+        anchor = AnchorEntry.create_from_detection(
+            node_id="p1",
+            start=0,
+            end=len(original_text),
+            entity_type="PHONE",
+            confidence=0.5,
+            original_text=original_text,
+            masked_value="[PHONE]",
             strategy_used="template"
         )
 
@@ -235,28 +241,28 @@ class TestAnchorEntry:
         anchor1 = AnchorEntry(
             node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl1", original_checksum="a" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Same node, overlapping ranges
         anchor2_overlap = AnchorEntry(
             node_id="p1", start=15, end=25, entity_type="EMAIL", confidence=0.5,
             masked_value="masked", replacement_id="repl2", original_checksum="b" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Same node, non-overlapping ranges
         anchor3_no_overlap = AnchorEntry(
             node_id="p1", start=25, end=30, entity_type="NAME", confidence=0.5,
             masked_value="masked", replacement_id="repl3", original_checksum="c" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         # Different node
         anchor4_diff_node = AnchorEntry(
             node_id="p2", start=10, end=20, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl4", original_checksum="d" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         assert anchor1.overlaps_with(anchor2_overlap)
@@ -268,7 +274,7 @@ class TestAnchorEntry:
         anchor = AnchorEntry(
             node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            strategy_used="template"
+            checksum_salt="dGVzdA==", strategy_used="template"
         )
 
         assert anchor.contains_position(10)  # Start position
@@ -283,7 +289,7 @@ class TestAnchorEntry:
         anchor = AnchorEntry(
             node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
             masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            strategy_used="template",
+            checksum_salt="dGVzdA==", strategy_used="template",
             metadata={"existing": "value"}
         )
 
@@ -302,7 +308,7 @@ class TestAnchorEntry:
         anchor = AnchorEntry(
             node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.95,
             masked_value="[PHONE]", replacement_id="repl_123", original_checksum="a" * 64,
-            strategy_used="template", timestamp=timestamp, metadata={"test": "value"}
+            checksum_salt="dGVzdA==", strategy_used="template", timestamp=timestamp, metadata={"test": "value"}
         )
 
         # Serialize to dict
@@ -316,6 +322,7 @@ class TestAnchorEntry:
             "masked_value": "[PHONE]",
             "replacement_id": "repl_123",
             "original_checksum": "a" * 64,
+            "checksum_salt": "dGVzdA==",
             "strategy_used": "template",
             "timestamp": "2023-01-01T12:00:00",
             "metadata": {"test": "value"}

@@ -30,6 +30,7 @@ class TestCloakMapLoader:
             masked_value="[TEST]",
             replacement_id="repl_123",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
             timestamp=datetime.utcnow(),
         )
@@ -95,6 +96,7 @@ class TestCloakMapLoader:
             masked_value="[TEST]",
             replacement_id="repl_123",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
         )
 
@@ -147,7 +149,8 @@ class TestAnchorResolver:
                 masked_value="[PHONE]",
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
             AnchorEntry(
                 node_id="#/texts/0",
@@ -158,7 +161,8 @@ class TestAnchorResolver:
                 masked_value="[EMAIL]",
                 replacement_id="repl_email",
                 original_checksum="b" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
         ]
 
@@ -197,7 +201,8 @@ class TestAnchorResolver:
                 masked_value="[PHONE]",
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
         ]
 
@@ -224,7 +229,8 @@ class TestAnchorResolver:
                 masked_value="[TEST]",
                 replacement_id="repl_test",
                 original_checksum="a" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
         ]
 
@@ -249,6 +255,7 @@ class TestDocumentUnmasker:
             masked_value="[PHONE]",
             replacement_id="repl_phone",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
         )
 
@@ -292,6 +299,7 @@ class TestDocumentUnmasker:
             masked_value="[PHONE]",
             replacement_id="repl_phone",
             original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
         )
 
@@ -363,7 +371,8 @@ class TestUnmaskingEngine:
                 masked_value="[PHONE]",
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
             AnchorEntry(
                 node_id="#/texts/0",
@@ -374,7 +383,8 @@ class TestUnmaskingEngine:
                 masked_value="[EMAIL]",
                 replacement_id="repl_email",
                 original_checksum="b" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
         ]
 
@@ -563,7 +573,8 @@ class TestUnmaskingIntegration:
                 masked_value="[PHONE]",
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
-                strategy_used="template",
+                checksum_salt="dGVzdA==",  # base64 encoded "test"
+            strategy_used="template",
             ),
         ]
 

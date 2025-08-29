@@ -402,22 +402,17 @@ class MaskingEngine:
         # Generate unique replacement ID
         replacement_id = f"repl_{uuid.uuid4().hex[:12]}"
 
-        # Compute checksum of original text (no plaintext storage)
-        original_checksum = hashlib.sha256(
-            original_text.encode("utf-8")
-        ).hexdigest()
-
-        return AnchorEntry(
+        # Use factory method to create anchor with salted checksum
+        return AnchorEntry.create_from_detection(
             node_id=segment.node_id,
             start=relative_start,
             end=relative_end,
             entity_type=entity.entity_type,
             confidence=entity.score,
+            original_text=original_text,
             masked_value=masked_value,
-            replacement_id=replacement_id,
-            original_checksum=original_checksum,
             strategy_used=strategy.kind.value,
-            timestamp=datetime.utcnow(),
+            replacement_id=replacement_id,
         )
 
     def _copy_document(self, document: DoclingDocument) -> DoclingDocument:
