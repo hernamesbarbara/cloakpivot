@@ -9,7 +9,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from .exceptions import (
     CloakPivotError,
@@ -43,12 +43,12 @@ class ErrorRecord:
     """Record of a single error that occurred during processing."""
     error: Exception
     timestamp: float = field(default_factory=time.time)
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     recoverable: bool = False
     retry_count: int = 0
     component: str = "unknown"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert error record to dictionary for serialization."""
         return {
             "error_type": type(self.error).__name__,
@@ -65,11 +65,11 @@ class ErrorCollector:
     """Collects and categorizes errors during processing operations."""
 
     def __init__(self):
-        self.errors: List[ErrorRecord] = []
+        self.errors: list[ErrorRecord] = []
         self.success_count = 0
         self.total_operations = 0
 
-    def record_success(self, context: Optional[Dict[str, Any]] = None) -> None:
+    def record_success(self, context: Optional[dict[str, Any]] = None) -> None:
         """Record a successful operation."""
         self.success_count += 1
         self.total_operations += 1
@@ -81,7 +81,7 @@ class ErrorCollector:
     def record_error(
         self,
         error: Exception,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
         recoverable: bool = False,
         component: str = "unknown",
     ) -> None:
@@ -122,7 +122,7 @@ class ErrorCollector:
         """Check if any errors have been recorded."""
         return len(self.errors) > 0
 
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all recorded errors."""
         error_types = {}
         components = {}
@@ -202,7 +202,7 @@ class PartialFailureManager:
         self,
         operation: Callable[..., T],
         args: tuple = (),
-        kwargs: Optional[Dict[str, Any]] = None,
+        kwargs: Optional[dict[str, Any]] = None,
         component: str = "unknown",
         recoverable: bool = True,
     ) -> Optional[T]:
@@ -271,7 +271,7 @@ class PartialFailureManager:
                 failures=failures,
             )
 
-    def get_processing_summary(self) -> Dict[str, Any]:
+    def get_processing_summary(self) -> dict[str, Any]:
         """Get comprehensive summary of processing results."""
         summary = self.error_collector.get_error_summary()
         summary["should_continue"] = self.should_continue_processing()
@@ -286,7 +286,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: float = 60.0,
-        expected_exception: Type[Exception] = Exception,
+        expected_exception: type[Exception] = Exception,
     ):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -360,7 +360,7 @@ class RetryManager:
         self,
         operation: Callable[..., T],
         args: tuple = (),
-        kwargs: Optional[Dict[str, Any]] = None,
+        kwargs: Optional[dict[str, Any]] = None,
         retryable_exceptions: tuple = (Exception,),
     ) -> T:
         """Execute operation with retry logic."""
@@ -453,7 +453,7 @@ def with_retry(
 def with_circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: float = 60.0,
-    expected_exception: Type[Exception] = Exception,
+    expected_exception: type[Exception] = Exception,
 ):
     """Decorator to add circuit breaker pattern to a function."""
     breaker = CircuitBreaker(failure_threshold, recovery_timeout, expected_exception)

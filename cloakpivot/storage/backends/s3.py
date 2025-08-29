@@ -6,7 +6,7 @@ access control, versioning, and efficient metadata operations.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ...core.cloakmap import CloakMap
 from .base import StorageBackend, StorageMetadata
@@ -15,11 +15,11 @@ from .base import StorageBackend, StorageMetadata
 class S3Storage(StorageBackend):
     """
     Amazon S3 storage backend for CloakMaps.
-    
+
     Stores CloakMaps as objects in S3 buckets with optional encryption,
     versioning, and metadata tracking. Supports both public and private
     buckets with configurable access controls.
-    
+
     Features:
     - Server-side encryption (SSE-S3, SSE-KMS)
     - Object versioning and lifecycle management
@@ -27,7 +27,7 @@ class S3Storage(StorageBackend):
     - Batch operations for large datasets
     - Retry logic with exponential backoff
     - Support for multi-part uploads for large CloakMaps
-    
+
     Configuration:
         bucket_name: S3 bucket name (required)
         aws_access_key_id: AWS access key (optional, uses boto3 defaults)
@@ -36,7 +36,7 @@ class S3Storage(StorageBackend):
         encryption: Server-side encryption configuration
         object_prefix: Prefix for all object keys (default: "cloakmaps/")
         storage_class: S3 storage class (default: "STANDARD")
-    
+
     Examples:
         >>> config = {
         ...     "bucket_name": "my-cloakmap-bucket",
@@ -50,7 +50,7 @@ class S3Storage(StorageBackend):
     def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize S3 storage backend.
-        
+
         Args:
             config: S3-specific configuration including bucket name and credentials
         """
@@ -192,12 +192,12 @@ class S3Storage(StorageBackend):
         self,
         key: str,
         cloakmap: CloakMap,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         **kwargs: Any
     ) -> StorageMetadata:
         """
         Save a CloakMap to S3.
-        
+
         Args:
             key: S3 object key (without prefix)
             cloakmap: CloakMap instance to save
@@ -258,11 +258,11 @@ class S3Storage(StorageBackend):
     def load(self, key: str, **kwargs: Any) -> CloakMap:
         """
         Load a CloakMap from S3.
-        
+
         Args:
             key: S3 object key (without prefix)
             **kwargs: Additional S3 options
-            
+
         Returns:
             Loaded CloakMap instance
         """
@@ -307,11 +307,11 @@ class S3Storage(StorageBackend):
     def delete(self, key: str, **kwargs: Any) -> bool:
         """
         Delete a CloakMap from S3.
-        
+
         Args:
             key: S3 object key (without prefix) to delete
             **kwargs: Additional S3 options
-            
+
         Returns:
             True if object was deleted, False if it didn't exist
         """
@@ -350,15 +350,15 @@ class S3Storage(StorageBackend):
         prefix: Optional[str] = None,
         limit: Optional[int] = None,
         **kwargs: Any
-    ) -> List[str]:
+    ) -> list[str]:
         """
         List CloakMap keys in S3.
-        
+
         Args:
             prefix: Optional key prefix filter
             limit: Optional maximum number of keys to return
             **kwargs: Additional S3 options
-            
+
         Returns:
             List of CloakMap keys (without object prefix)
         """
@@ -424,14 +424,14 @@ class S3Storage(StorageBackend):
     def get_metadata(self, key: str, **kwargs: Any) -> StorageMetadata:
         """
         Get metadata for a CloakMap from S3.
-        
+
         First tries to load from metadata object, falls back to
         HEAD request on the main object.
-        
+
         Args:
             key: S3 object key (without prefix)
             **kwargs: Additional S3 options
-            
+
         Returns:
             StorageMetadata for the CloakMap
         """
@@ -497,7 +497,7 @@ class S3Storage(StorageBackend):
             else:
                 raise ConnectionError(f"Failed to get S3 metadata: {e}") from e
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Perform health check of S3 storage."""
         base_result = super().health_check()
 

@@ -78,9 +78,9 @@ class DiagnosticsCollector:
 
         >>> from cloakpivot.diagnostics import DiagnosticsCollector
         >>> from cloakpivot.core.results import MaskResult, ProcessingStats
-        >>> 
+        >>>
         >>> collector = DiagnosticsCollector()
-        >>> 
+        >>>
         >>> # Collect statistics from a masking operation
         >>> stats = collector.collect_masking_statistics(mask_result)
         >>> print(f"Detected {stats.total_entities_detected} entities")
@@ -107,17 +107,17 @@ class DiagnosticsCollector:
         Analyzing entity confidence distribution:
 
         >>> from presidio_analyzer import RecognizerResult
-        >>> 
+        >>>
         >>> original_entities = [
         ...     RecognizerResult(entity_type="PERSON", start=0, end=8, score=0.95),
         ...     RecognizerResult(entity_type="EMAIL", start=10, end=25, score=0.85)
         ... ]
-        >>> 
+        >>>
         >>> stats = collector.collect_masking_statistics(
-        ...     mask_result=mask_result, 
+        ...     mask_result=mask_result,
         ...     original_entities=original_entities
         ... )
-        >>> 
+        >>>
         >>> # Access confidence distribution
         >>> conf_dist = stats.detailed_metrics.get("confidence_distribution", {})
         >>> print(f"High confidence entities: {conf_dist.get('high', 0)}")
@@ -172,7 +172,7 @@ class DiagnosticsCollector:
         entities_masked = getattr(stats_obj, 'entities_masked', 0)
         entities_skipped = getattr(stats_obj, 'entities_skipped', 0)
         entities_failed = getattr(stats_obj, 'entities_failed', 0)
-        
+
         # Safely get entities_by_type with null check
         entities_by_type = {}
         if hasattr(mask_result, 'entities_by_type') and mask_result.entities_by_type is not None:

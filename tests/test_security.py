@@ -604,7 +604,9 @@ class TestCloakMapEncryption:
 
         try:
             from cloakpivot.core.security import (
-                CloakMapEncryption, EnvironmentKeyManager, SecurityConfig
+                CloakMapEncryption,
+                EnvironmentKeyManager,
+                SecurityConfig,
             )
 
             key_manager = EnvironmentKeyManager()

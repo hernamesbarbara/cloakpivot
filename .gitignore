@@ -151,4 +151,5 @@ semantic.db
 TEST_FAILURES.md
 CODE_REVIEW.md
 diff_report.txt
-*_report.txt
+*_report.txt.merge_backups/
+.merge_backups/

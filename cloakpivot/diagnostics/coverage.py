@@ -107,9 +107,9 @@ class CoverageAnalyzer:
         >>> from cloakpivot.diagnostics import CoverageAnalyzer
         >>> from cloakpivot.document.extractor import TextSegment
         >>> from cloakpivot.core.anchors import AnchorEntry
-        >>> 
+        >>>
         >>> analyzer = CoverageAnalyzer()
-        >>> 
+        >>>
         >>> # Prepare text segments from document
         >>> text_segments = [
         ...     TextSegment(
@@ -121,13 +121,13 @@ class CoverageAnalyzer:
         ...     ),
         ...     TextSegment(
         ...         text="Contact John Doe at john@company.com",
-        ...         node_id="paragraph_1", 
+        ...         node_id="paragraph_1",
         ...         start_offset=31,
         ...         end_offset=68,
         ...         node_type="paragraph"
         ...     )
         ... ]
-        >>> 
+        >>>
         >>> # Anchor entries from masking operation
         >>> anchor_entries = [
         ...     AnchorEntry.create_from_detection(
@@ -142,7 +142,7 @@ class CoverageAnalyzer:
         ...         replacement_id="repl_1"
         ...     )
         ... ]
-        >>> 
+        >>>
         >>> # Analyze coverage
         >>> coverage = analyzer.analyze_document_coverage(text_segments, anchor_entries)
         >>> print(f"Overall coverage: {coverage.overall_coverage_rate:.1%}")
@@ -162,7 +162,7 @@ class CoverageAnalyzer:
         >>> recommendations = analyzer.generate_recommendations(coverage)
         >>> for rec in recommendations:
         ...     print(f"💡 {rec}")
-        >>> 
+        >>>
         >>> # Check specific gaps
         >>> if coverage.coverage_gaps:
         ...     print(f"Found {len(coverage.coverage_gaps)} uncovered segments:")
@@ -176,7 +176,7 @@ class CoverageAnalyzer:
         >>> print("Entity types found:")
         >>> for entity_type, count in entity_dist.items():
         ...     print(f"  {entity_type}: {count} occurrences")
-        >>> 
+        >>>
         >>> # Calculate entity density
         >>> density = coverage.entity_density
         >>> print(f"Entity density: {density:.2f} entities per segment")
@@ -375,20 +375,20 @@ class CoverageAnalyzer:
     ) -> None:
         """
         Validate that anchor entries reference valid text segments.
-        
+
         Args:
             anchor_entries: List of anchor entries to validate
             text_segments: List of text segments to validate against
-            
+
         Raises:
             ValueError: If anchor entries contain invalid node_ids or malformed data
         """
         if not anchor_entries:
             return
-            
+
         # Create set of valid node_ids for fast lookup
         valid_node_ids = {segment.node_id for segment in text_segments}
-        
+
         # Validate each anchor entry
         for i, anchor in enumerate(anchor_entries):
             # Check if anchor has required attributes
@@ -400,21 +400,21 @@ class CoverageAnalyzer:
                 raise ValueError(f"Anchor entry {i} missing required 'start' attribute")
             if not hasattr(anchor, 'end'):
                 raise ValueError(f"Anchor entry {i} missing required 'end' attribute")
-                
+
             # Validate node_id references valid text segment
             if anchor.node_id not in valid_node_ids:
                 raise ValueError(f"Anchor entry {i} references invalid node_id '{anchor.node_id}' - not found in text segments")
-                
+
             # Validate start/end positions are reasonable
             if not isinstance(anchor.start, int) or not isinstance(anchor.end, int):
                 raise ValueError(f"Anchor entry {i} has non-integer start/end positions")
-                
+
             if anchor.start < 0 or anchor.end < 0:
                 raise ValueError(f"Anchor entry {i} has negative start/end positions")
-                
+
             if anchor.start >= anchor.end:
                 raise ValueError(f"Anchor entry {i} has invalid range: start {anchor.start} >= end {anchor.end}")
-                
+
             # Validate entity_type is not empty
             if not anchor.entity_type or not isinstance(anchor.entity_type, str):
                 raise ValueError(f"Anchor entry {i} has empty or non-string entity_type")

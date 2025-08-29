@@ -1,177 +1,215 @@
-"""Helper functions for property-based masking tests."""
+"""Helper utilities for masking tests."""
 
-import time
-from typing import Optional
+import re
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
 from presidio_analyzer import AnalyzerEngine, RecognizerResult
 
 from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.document.extractor import TextExtractor
+from cloakpivot.document.extractor import TextExtractor, TextSegment
 from cloakpivot.masking.engine import MaskingEngine, MaskingResult
 
 
 def mask_document_with_detection(
     document: DoclingDocument,
     policy: MaskingPolicy,
-    analyzer: Optional[AnalyzerEngine] = None,
-    resolve_conflicts: bool = False,
+    analyzer: AnalyzerEngine = None,
+    resolve_conflicts: bool = True,
     timing_log: bool = False
 ) -> MaskingResult:
-    """Mask a document with entity detection and policy application.
+    """
+    Convenience function that performs entity detection and masking in one step.
 
-    This helper is optimized for property-based testing by:
-    1. Accepting a reusable analyzer to avoid per-example initialization
-    2. Defaulting resolve_conflicts to False to skip expensive normalization
-    3. Optional timing instrumentation for performance monitoring
+    This is used by tests that expect a simpler API for masking documents.
 
     Args:
-        document: Document to mask
-        policy: Masking policy to apply
-        analyzer: Optional reusable analyzer (creates new one if None)
-        resolve_conflicts: Whether to resolve overlapping entities (default False)
-        timing_log: Whether to log timing information for slow examples
+        document: The DoclingDocument to mask
+        policy: Masking policy defining strategies per entity type
+        analyzer: Optional Presidio AnalyzerEngine (creates default if None)
+        resolve_conflicts: Whether to enable conflict resolution (default: True)
+        timing_log: Whether to enable timing logs (default: False)
 
     Returns:
-        MaskingResult with masked document and cloakmap
+        MaskingResult containing the masked document and CloakMap
     """
-    start_time = time.perf_counter() if timing_log else 0
+    if analyzer is None:
+        analyzer = AnalyzerEngine()
 
-    # Use provided analyzer or create new one (fallback for compatibility)
-    analyzer = analyzer or AnalyzerEngine()
-
-    # Extract text segments
+    # Extract text segments from document
     extractor = TextExtractor()
-    segments = extractor.extract_text_segments(document)
+    text_segments = extractor.extract_text_segments(document)
 
-    if timing_log:
-        extraction_time = time.perf_counter() - start_time
-        if extraction_time > 0.1:  # Log if extraction takes > 100ms
-            print(f"Slow text extraction: {extraction_time:.3f}s for {len(segments)} segments")
-
-    # Detect entities in all segments
+    # Detect entities in each text segment and adjust positions to global coordinates
     all_entities = []
-    detection_start = time.perf_counter() if timing_log else 0
+    for segment in text_segments:
+        segment_entities = analyzer.analyze(
+            text=segment.text,
+            language="en"
+        )
 
-    for segment in segments:
-        if len(segment.text.strip()) > 1:  # Skip empty/single char segments
-            entity_results = analyzer.analyze(segment.text, language="en")
+        # Adjust entity positions from segment-relative to global coordinates
+        for entity in segment_entities:
+            # Entity positions from analyzer are relative to segment.text
+            # We need to adjust them to global document positions
+            adjusted_entity = RecognizerResult(
+                entity_type=entity.entity_type,
+                start=entity.start + segment.start_offset,
+                end=entity.end + segment.start_offset,
+                score=entity.score,
+                analysis_explanation=entity.analysis_explanation
+            )
+            all_entities.append(adjusted_entity)
 
-            # Convert to our internal format and adjust offsets
-            for result in entity_results:
-                # Apply confidence threshold from policy
-                threshold = policy.thresholds.get(result.entity_type, 0.5)
-                if result.score >= threshold:
-                    # Adjust offsets to be relative to segment
-                    adjusted_result = result
-                    adjusted_result.start = segment.start_offset + result.start
-                    adjusted_result.end = segment.start_offset + result.end
-                    all_entities.append(adjusted_result)
-
-    if timing_log:
-        detection_time = time.perf_counter() - detection_start
-        if detection_time > 0.5:  # Log if detection takes > 500ms
-            print(f"Slow entity detection: {detection_time:.3f}s for {len(all_entities)} entities")
-
-    # Create masking engine with controlled conflict resolution
+    # Apply masking with conflict resolution enabled
     engine = MaskingEngine(resolve_conflicts=resolve_conflicts)
-
-    # Perform masking
-    masking_start = time.perf_counter() if timing_log else 0
-    result = engine.mask_document(
+    return engine.mask_document(
         document=document,
         entities=all_entities,
         policy=policy,
-        text_segments=segments
+        text_segments=text_segments
     )
 
-    if timing_log:
-        masking_time = time.perf_counter() - masking_start
-        total_time = time.perf_counter() - start_time
-        if total_time > 1.0:  # Log if total time > 1 second
-            print(f"Slow masking example: total={total_time:.3f}s, "
-                  f"masking={masking_time:.3f}s, entities={len(all_entities)}")
 
-    return result
-
-
-def create_simple_document(text: str, doc_name: str = "test_doc") -> DoclingDocument:
-    """Create a simple document with a single text item.
-
-    Optimized for property testing with minimal overhead.
+def create_text_segments_from_document(document: DoclingDocument) -> list[TextSegment]:
     """
-    doc = DoclingDocument(name=doc_name)
+    Create text segments from a DoclingDocument.
 
-    if text.strip():  # Only add non-empty text
-        text_item = TextItem(
-            text=text,
-            self_ref="#/texts/0",
-            label="text",
-            orig=text
+    This is a simplified version for testing purposes.
+    """
+    segments = []
+
+    for i, text_item in enumerate(document.texts):
+        segment = TextSegment(
+            node_id=text_item.self_ref or f"#/texts/{i}",
+            text=text_item.text,
+            start_offset=0,
+            end_offset=len(text_item.text),
+            node_type="TextItem"
         )
-        doc.texts = [text_item]
+        segments.append(segment)
 
-    return doc
+    return segments
 
 
-def create_multi_section_document(
-    sections: list[str],
-    doc_name: str = "multi_section_doc"
-) -> DoclingDocument:
-    """Create a document with multiple text sections.
+def detect_entities_in_text_segments(
+    text_segments: list[TextSegment],
+    analyzer: AnalyzerEngine = None
+) -> list[RecognizerResult]:
+    """
+    Detect entities in text segments.
 
     Args:
-        sections: List of text sections (empty sections are skipped)
-        doc_name: Document name
+        text_segments: List of text segments to analyze
+        analyzer: Optional Presidio AnalyzerEngine
 
     Returns:
-        Document with multiple TextItems
+        List of detected entities across all segments
     """
-    doc = DoclingDocument(name=doc_name)
+    if analyzer is None:
+        analyzer = AnalyzerEngine()
 
-    text_items = []
-    for i, section in enumerate(sections):
-        if section.strip():  # Skip empty sections
-            text_item = TextItem(
-                text=section,
-                self_ref=f"#/texts/{i}",
-                label="text",
-                orig=section
-            )
-            text_items.append(text_item)
+    all_entities = []
+    for segment in text_segments:
+        segment_entities = analyzer.analyze(
+            text=segment.text,
+            language="en"
+        )
+        all_entities.extend(segment_entities)
 
-    doc.texts = text_items
+    return all_entities
+
+
+class FastRegexDetector:
+    """Fast regex-based detector for predictable unit testing.
+
+    This detector uses simple regex patterns to identify PII in text
+    for fast, deterministic testing without the overhead of full Presidio analysis.
+    """
+
+    def __init__(self):
+        """Initialize the fast regex detector with common PII patterns."""
+        self.patterns = {
+            "PHONE_NUMBER": [
+                re.compile(r'\b\d{3}-\d{3}-\d{4}\b'),  # 555-123-4567
+                re.compile(r'\b\d{3}\.\d{3}\.\d{4}\b'),  # 555.123.4567
+            ],
+            "EMAIL_ADDRESS": [
+                re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b'),
+            ],
+            "SSN": [
+                re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),  # 123-45-6789
+            ],
+        }
+
+    def analyze_text(self, text: str) -> list[RecognizerResult]:
+        """Analyze text and return detected PII entities.
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            List of RecognizerResult objects for detected entities
+        """
+        entities = []
+
+        for entity_type, patterns in self.patterns.items():
+            for pattern in patterns:
+                for match in pattern.finditer(text):
+                    entity = RecognizerResult(
+                        entity_type=entity_type,
+                        start=match.start(),
+                        end=match.end(),
+                        score=0.95  # High confidence for regex matches
+                    )
+                    entities.append(entity)
+
+        return entities
+
+
+def create_simple_document(text: str) -> DoclingDocument:
+    """Create a simple DoclingDocument with a single text section.
+
+    Args:
+        text: Text content for the document
+
+    Returns:
+        DoclingDocument with single TextItem
+    """
+    doc = DoclingDocument(name="test_doc")
+
+    text_item = TextItem(
+        text=text,
+        self_ref="#/texts/0",
+        label="text",
+        orig=text
+    )
+    doc.texts = [text_item]
+
     return doc
 
 
-# Minimal regex-based detector for unit-level properties (no Presidio overhead)
-class FastRegexDetector:
-    """Minimal regex-based entity detector for unit tests.
+def create_multi_section_document(sections: list[str]) -> DoclingDocument:
+    """Create a DoclingDocument with multiple text sections.
 
-    This provides deterministic entity detection without Presidio overhead
-    for testing masking logic in isolation.
+    Args:
+        sections: List of text strings, each becomes a separate TextItem
+
+    Returns:
+        DoclingDocument with multiple TextItems
     """
+    doc = DoclingDocument(name="multi_section_doc")
 
-    import re
+    text_items = []
+    for i, section_text in enumerate(sections):
+        text_item = TextItem(
+            text=section_text,
+            self_ref=f"#/texts/{i}",
+            label="text",
+            orig=section_text
+        )
+        text_items.append(text_item)
 
-    PATTERNS = {
-        "PHONE_NUMBER": re.compile(r'\b\d{3}-\d{3}-\d{4}\b'),
-        "EMAIL_ADDRESS": re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b'),
-        "US_SSN": re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
-    }
+    doc.texts = text_items
 
-    def analyze_text(self, text: str, language: str = "en") -> list[RecognizerResult]:
-        """Analyze text and return mock RecognizerResults."""
-        results = []
-        for entity_type, pattern in self.PATTERNS.items():
-            for match in pattern.finditer(text):
-                result = RecognizerResult(
-                    entity_type=entity_type,
-                    start=match.start(),
-                    end=match.end(),
-                    score=0.9  # Fixed high confidence
-                )
-                results.append(result)
-
-        return results
+    return doc

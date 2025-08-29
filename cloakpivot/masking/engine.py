@@ -65,23 +65,26 @@ class MaskingEngine:
         self,
         resolve_conflicts: bool = False,
         conflict_resolution_config: Optional[ConflictResolutionConfig] = None,
+        store_original_text: bool = True,
     ) -> None:
         """Initialize the masking engine.
 
         Args:
             resolve_conflicts: Whether to resolve entity conflicts or raise errors (default: False for backward compatibility)
             conflict_resolution_config: Configuration for conflict resolution (uses defaults if None)
+            store_original_text: Whether to store original text in metadata for round-trip functionality (default: True)
         """
         self.strategy_applicator = StrategyApplicator()
         self.document_masker = DocumentMasker()
         self.resolve_conflicts = resolve_conflicts
+        self.store_original_text = store_original_text
         self.entity_normalizer = (
             EntityNormalizer(conflict_resolution_config or ConflictResolutionConfig())
             if resolve_conflicts
             else None
         )
         logger.debug(
-            f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}"
+            f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}, store_original_text={store_original_text}"
         )
 
     def mask_document(
@@ -90,6 +93,7 @@ class MaskingEngine:
         entities: list[RecognizerResult],
         policy: MaskingPolicy,
         text_segments: list[TextSegment],
+        original_format: Optional[str] = None,
     ) -> MaskingResult:
         """
         Mask PII entities in a document according to the given policy.
@@ -99,6 +103,7 @@ class MaskingEngine:
             entities: List of detected PII entities from Presidio
             policy: Masking policy defining strategies per entity type
             text_segments: Text segments extracted from the document
+            original_format: Original document format for round-trip preservation
 
         Returns:
             MaskingResult containing masked document and CloakMap
@@ -166,12 +171,17 @@ class MaskingEngine:
         # Generate document hash for CloakMap
         doc_hash = self._compute_document_hash(document)
 
-        # Create CloakMap
+        # Create CloakMap with original format metadata
+        metadata = {}
+        if original_format:
+            metadata["original_format"] = original_format
+
         cloakmap = CloakMap.create(
             doc_id=document.name or "unnamed_document",
             doc_hash=doc_hash,
             anchors=anchor_entries,
             policy=policy,
+            metadata=metadata,
         )
 
         # Generate statistics
@@ -406,6 +416,17 @@ class MaskingEngine:
         # Generate unique replacement ID
         replacement_id = f"repl_{uuid.uuid4().hex[:12]}"
 
+        # Store metadata - include original text only if enabled
+        metadata = {
+            "segment_node_id": segment.node_id,
+            "segment_node_type": segment.node_type,
+            "global_start": entity.start,
+            "global_end": entity.end,
+        }
+
+        if self.store_original_text:
+            metadata["original_text"] = original_text
+
         # Use factory method to create anchor with salted checksum
         return AnchorEntry.create_from_detection(
             node_id=segment.node_id,
@@ -417,6 +438,7 @@ class MaskingEngine:
             masked_value=masked_value,
             strategy_used=strategy.kind.value,
             replacement_id=replacement_id,
+            metadata=metadata,
         )
 
     def _copy_document(self, document: DoclingDocument) -> DoclingDocument:

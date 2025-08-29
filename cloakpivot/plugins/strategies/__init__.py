@@ -5,6 +5,6 @@ from .registry import StrategyPluginRegistry
 
 __all__ = [
     "BaseStrategyPlugin",
-    "StrategyPluginResult", 
+    "StrategyPluginResult",
     "StrategyPluginRegistry",
 ]

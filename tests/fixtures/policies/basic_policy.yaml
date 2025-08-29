@@ -1,0 +1,25 @@
+locale: "en"
+privacy_level: "MEDIUM"
+entities:
+  PHONE_NUMBER:
+    kind: "PHONE_TEMPLATE"
+    parameters: {}
+  EMAIL_ADDRESS:
+    kind: "EMAIL_TEMPLATE"
+    parameters: {}
+  US_SSN:
+    kind: "SURROGATE_SECURE"
+    parameters: {}
+  CREDIT_CARD:
+    kind: "SURROGATE_SECURE"
+    parameters: {}
+  PERSON:
+    kind: "TEMPLATE"
+    parameters: 
+      auto_generate: true
+thresholds:
+  PHONE_NUMBER: 0.7
+  EMAIL_ADDRESS: 0.8
+  US_SSN: 0.9
+  CREDIT_CARD: 0.8
+  PERSON: 0.8

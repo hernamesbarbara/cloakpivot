@@ -1,7 +1,7 @@
 """Format support and serialization for CloakPivot.
 
 This module provides enhanced format support leveraging docpivot's SerializerProvider
-with CloakPivot-specific features like format detection, validation, and 
+with CloakPivot-specific features like format detection, validation, and
 masking-aware serialization.
 """
 
@@ -15,7 +15,7 @@ from .serialization import (
 
 __all__ = [
     "FormatRegistry",
-    "CloakPivotSerializer", 
+    "CloakPivotSerializer",
     "SerializationError",
     "SerializationResult",
     "SupportedFormat",

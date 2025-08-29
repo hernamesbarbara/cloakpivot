@@ -1,16 +1,19 @@
 """Tests for diagnostics and reporting functionality."""
 
-import json
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.anchors import AnchorEntry
 from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.results import MaskResult, OperationStatus, PerformanceMetrics, ProcessingStats
+from cloakpivot.core.results import (
+    MaskResult,
+    OperationStatus,
+    PerformanceMetrics,
+    ProcessingStats,
+)
 from cloakpivot.diagnostics.collector import DiagnosticsCollector, MaskingStatistics
 
 
@@ -30,21 +33,21 @@ def sample_anchor_entries():
             replacement_id="repl_1"
         ),
         AnchorEntry.create_from_detection(
-            node_id="text_1", 
+            node_id="text_1",
             start=20,
             end=35,
             entity_type="EMAIL_ADDRESS",
             confidence=0.85,
             original_text="john@example.com",
             masked_value="[EMAIL]",
-            strategy_used="template", 
+            strategy_used="template",
             replacement_id="repl_2"
         ),
         AnchorEntry.create_from_detection(
             node_id="text_2",
             start=5,
             end=17,
-            entity_type="PHONE_NUMBER", 
+            entity_type="PHONE_NUMBER",
             confidence=0.75,
             original_text="555-123-4567",
             masked_value="XXX-XXX-4567",
@@ -76,7 +79,7 @@ def sample_mask_result(sample_anchor_entries):
         created_at=datetime.now(timezone.utc),
         policy_snapshot=None
     )
-    
+
     # Create a realistic masked document structure
     masked_document = {
         "metadata": {
@@ -88,13 +91,13 @@ def sample_mask_result(sample_anchor_entries):
             "text": "Hello [PERSON_1] your email [EMAIL_1] and phone [PHONE_1] are masked.",
             "segments": [
                 {
-                    "node_id": "text_0", 
+                    "node_id": "text_0",
                     "content": "Hello [PERSON_1] your email",
                     "node_type": "paragraph"
                 },
                 {
                     "node_id": "text_1",
-                    "content": "[EMAIL_1] and phone", 
+                    "content": "[EMAIL_1] and phone",
                     "node_type": "paragraph"
                 },
                 {
@@ -105,7 +108,7 @@ def sample_mask_result(sample_anchor_entries):
             ]
         }
     }
-    
+
     return MaskResult(
         status=OperationStatus.SUCCESS,
         masked_document=masked_document,
@@ -131,12 +134,12 @@ class TestDiagnosticsCollector:
     def test_collect_masking_statistics_basic(self, sample_mask_result, sample_entities):
         """Test basic statistics collection from masking results."""
         collector = DiagnosticsCollector()
-        
+
         stats = collector.collect_masking_statistics(
             mask_result=sample_mask_result,
             original_entities=sample_entities
         )
-        
+
         assert isinstance(stats, MaskingStatistics)
         assert stats.total_entities_detected == 3
         assert stats.total_entities_masked == 3
@@ -146,15 +149,15 @@ class TestDiagnosticsCollector:
     def test_collect_masking_statistics_with_confidence_distribution(self, sample_mask_result, sample_entities):
         """Test confidence distribution calculation."""
         collector = DiagnosticsCollector()
-        
+
         stats = collector.collect_masking_statistics(
             mask_result=sample_mask_result,
             original_entities=sample_entities
         )
-        
+
         assert "confidence_distribution" in stats.detailed_metrics
         confidence_dist = stats.detailed_metrics["confidence_distribution"]
-        
+
         # Should have entries for high, medium confidence ranges
         assert "high" in confidence_dist  # >= 0.8
         assert "medium" in confidence_dist  # 0.5 - 0.8
@@ -164,12 +167,12 @@ class TestDiagnosticsCollector:
     def test_collect_masking_statistics_strategy_breakdown(self, sample_mask_result, sample_entities):
         """Test strategy usage breakdown."""
         collector = DiagnosticsCollector()
-        
+
         stats = collector.collect_masking_statistics(
             mask_result=sample_mask_result,
             original_entities=sample_entities
         )
-        
+
         assert stats.strategy_usage == {"template": 2, "partial": 1}
 
     def test_collect_masking_statistics_with_failures(self, sample_entities):
@@ -179,7 +182,7 @@ class TestDiagnosticsCollector:
         cloakmap.anchors = []  # No successful anchors
         cloakmap.entity_count_by_type = {}
         cloakmap.anchor_count = 0
-        
+
         mask_result = MaskResult(
             status=OperationStatus.PARTIAL,
             masked_document=MagicMock(),
@@ -191,13 +194,13 @@ class TestDiagnosticsCollector:
                 entities_failed=2
             )
         )
-        
+
         collector = DiagnosticsCollector()
         stats = collector.collect_masking_statistics(
             mask_result=mask_result,
             original_entities=sample_entities
         )
-        
+
         assert stats.total_entities_detected == 3
         assert stats.total_entities_masked == 0
         assert stats.masking_success_rate == 0.0
@@ -207,9 +210,9 @@ class TestDiagnosticsCollector:
     def test_collect_performance_metrics(self, sample_mask_result):
         """Test performance metrics collection."""
         collector = DiagnosticsCollector()
-        
+
         perf_metrics = collector.collect_performance_metrics(sample_mask_result)
-        
+
         assert perf_metrics["total_time_seconds"] == 2.5
         assert perf_metrics["detection_time_seconds"] == 1.0
         assert perf_metrics["masking_time_seconds"] == 1.2
@@ -220,23 +223,23 @@ class TestDiagnosticsCollector:
         """Test diagnostic information collection."""
         # Create new diagnostics object with some issues
         from cloakpivot.core.results import DiagnosticInfo, MaskResult, OperationStatus
-        
+
         diagnostics_with_issues = DiagnosticInfo(
             warnings=["Warning 1", "Warning 2"],
             errors=["Error 1"]
         )
-        
+
         mask_result = MaskResult(
             status=OperationStatus.SUCCESS,
             masked_document=MagicMock(),
             cloakmap=MagicMock(),
             diagnostics=diagnostics_with_issues
         )
-        
+
         collector = DiagnosticsCollector()
-        
+
         diagnostics = collector.collect_processing_diagnostics(mask_result)
-        
+
         assert diagnostics["warning_count"] == 2
         assert diagnostics["error_count"] == 1
         assert diagnostics["warnings"] == ["Warning 1", "Warning 2"]
@@ -245,22 +248,22 @@ class TestDiagnosticsCollector:
     def test_generate_comprehensive_report(self, sample_mask_result, sample_entities):
         """Test comprehensive report generation."""
         collector = DiagnosticsCollector()
-        
+
         report = collector.generate_comprehensive_report(
             mask_result=sample_mask_result,
             original_entities=sample_entities,
             document_metadata={"name": "test_doc.pdf", "size_bytes": 1024}
         )
-        
+
         # Check report structure
         assert "statistics" in report
-        assert "performance" in report  
+        assert "performance" in report
         assert "diagnostics" in report
 
     def test_collect_masking_statistics_with_null_stats(self):
         """Test statistics collection when MaskResult has null/missing stats."""
         collector = DiagnosticsCollector()
-        
+
         # Create mask result with no stats object
         mask_result_no_stats = MaskResult(
             status=OperationStatus.SUCCESS,
@@ -269,9 +272,9 @@ class TestDiagnosticsCollector:
             stats=None,  # Missing stats
             performance=None
         )
-        
+
         stats = collector.collect_masking_statistics(mask_result_no_stats)
-        
+
         # Should return default values when stats is None
         assert stats.total_entities_detected == 0
         assert stats.total_entities_masked == 0
@@ -282,7 +285,7 @@ class TestDiagnosticsCollector:
     def test_collect_performance_metrics_with_null_performance(self):
         """Test performance metrics collection when MaskResult has null performance."""
         collector = DiagnosticsCollector()
-        
+
         # Create mask result with no performance object
         mask_result_no_perf = MaskResult(
             status=OperationStatus.SUCCESS,
@@ -291,9 +294,9 @@ class TestDiagnosticsCollector:
             stats=MagicMock(),
             performance=None  # Missing performance
         )
-        
+
         perf_metrics = collector.collect_performance_metrics(mask_result_no_perf)
-        
+
         # Should return default values when performance is None
         assert perf_metrics["total_time_seconds"] == 0.0
         assert perf_metrics["detection_time_seconds"] == 0.0
@@ -304,14 +307,14 @@ class TestDiagnosticsCollector:
     def test_collect_performance_metrics_with_missing_fields(self):
         """Test performance metrics collection with missing optional fields."""
         collector = DiagnosticsCollector()
-        
+
         # Create performance object with missing optional fields
         incomplete_performance = MagicMock()
         incomplete_performance.total_time_seconds = None  # Missing field
         incomplete_performance.detection_time = None
         incomplete_performance.masking_time = None
         incomplete_performance.serialization_time = None
-        
+
         mask_result = MaskResult(
             status=OperationStatus.SUCCESS,
             masked_document={},
@@ -319,9 +322,9 @@ class TestDiagnosticsCollector:
             stats=MagicMock(),
             performance=incomplete_performance
         )
-        
+
         perf_metrics = collector.collect_performance_metrics(mask_result)
-        
+
         # Should handle missing fields gracefully
         assert perf_metrics["total_time_seconds"] == 0.0
         assert perf_metrics["detection_time_seconds"] == 0.0
@@ -342,7 +345,7 @@ class TestMaskingStatistics:
             entity_counts_by_type={"PERSON": 3, "EMAIL": 5},
             strategy_usage={"redact": 6, "template": 2}
         )
-        
+
         assert stats.total_entities_detected == 10
         assert stats.total_entities_masked == 8
         assert stats.masking_success_rate == 0.8
@@ -355,7 +358,7 @@ class TestMaskingStatistics:
             total_entities_masked=18,
             entity_counts_by_type={"PERSON": 8, "EMAIL": 10}
         )
-        
+
         coverage = stats.calculate_coverage_percentage()
         assert coverage == 90.0  # 18/20 * 100
 
@@ -367,9 +370,9 @@ class TestMaskingStatistics:
             entity_counts_by_type={"PERSON": 2, "EMAIL": 2},
             strategy_usage={"redact": 4}
         )
-        
+
         result = stats.to_dict()
-        
+
         assert result["total_entities_detected"] == 5
         assert result["masking_success_rate"] == 0.8
         assert result["entity_counts_by_type"]["PERSON"] == 2
@@ -379,7 +382,7 @@ class TestMaskingStatistics:
 
 class TestDiagnosticsCollectorIntegration:
     """Integration tests for DiagnosticsCollector."""
-    
+
     def test_end_to_end_statistics_collection(self, tmp_path):
         """Test end-to-end statistics collection with file I/O."""
         # This would test with actual document processing

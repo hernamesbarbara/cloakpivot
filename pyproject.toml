@@ -82,7 +82,10 @@ test = [
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
     "pytest-asyncio>=0.21.0",
-    "hypothesis>=6.0.0",
+    "hypothesis>=6.88.0",  # Property-based testing
+    "psutil>=5.9.0",       # Performance monitoring
+    "pytest-xdist>=3.0.0", # Parallel test execution
+    "pytest-benchmark>=4.0.0", # Performance benchmarking
 ]
 
 [project.scripts]
@@ -179,17 +182,40 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers"
+addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
 markers = [
     "asyncio: marks tests as asyncio tests",
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "performance: marks tests as performance tests",
-    "property: marks property-based tests using Hypothesis",
+    "unit: marks tests as unit tests (fast, isolated component tests)",
+    "integration: marks tests as integration tests (component interaction tests)",
+    "e2e: marks tests as end-to-end tests (full workflow tests)",
+    "golden: marks tests as golden file regression tests",
+    "performance: marks tests as performance benchmark tests",
+    "slow: marks tests as slow running tests (> 30 seconds)",
+    "property: marks tests as property-based tests using Hypothesis",
 ]
+# Test discovery
+norecursedirs = [
+    "*.egg",
+    ".eggs",
+    "dist",
+    "build",
+    "docs",
+    ".tox",
+    ".git",
+    "__pycache__"
+]
+# Timeout settings - requires pytest-timeout plugin
+# timeout = 300
+# timeout_method = "thread"
 
 [tool.coverage.run]
 source = ["cloakpivot"]

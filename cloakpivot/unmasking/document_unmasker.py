@@ -240,20 +240,6 @@ class DocumentUnmasker:
         # Apply replacements in reverse order (highest start position first)
         for resolved_anchor in resolved_anchors:
             anchor = resolved_anchor.anchor
-            start_pos, end_pos = resolved_anchor.found_position
-
-            if end_pos > len(modified_text):
-                logger.warning(
-                    f"Anchor end position {end_pos} exceeds text length {len(modified_text)}"
-                )
-                results.append(
-                    {
-                        "anchor_id": anchor.replacement_id,
-                        "success": False,
-                        "error": "Position exceeds text length",
-                    }
-                )
-                continue
 
             # Get the original content for this anchor
             original_content = self._get_original_content(
@@ -267,13 +253,43 @@ class DocumentUnmasker:
                     f"Using placeholder content for {anchor.replacement_id}: '{original_content}'"
                 )
 
-            # Verify the found text matches what we expect
-            found_text = modified_text[start_pos:end_pos]
-            if found_text != anchor.masked_value:
+            # Search for the masked value in the current state of the text
+            # This is more robust than relying on pre-calculated positions
+            masked_value = anchor.masked_value
+            position = modified_text.rfind(masked_value)  # Search from end for reverse processing
+
+            if position == -1:
+                # Try a forward search as fallback
+                position = modified_text.find(masked_value)
+
+            if position == -1:
                 logger.warning(
-                    f"Found text '{found_text}' does not match expected "
-                    f"masked value '{anchor.masked_value}' for anchor {anchor.replacement_id}"
+                    f"Could not find masked value '{masked_value}' in text for anchor {anchor.replacement_id}"
                 )
+                results.append(
+                    {
+                        "anchor_id": anchor.replacement_id,
+                        "success": False,
+                        "error": "Masked value not found in text",
+                    }
+                )
+                continue
+
+            start_pos = position
+            end_pos = position + len(masked_value)
+
+            if end_pos > len(modified_text):
+                logger.warning(
+                    f"Anchor end position {end_pos} exceeds text length {len(modified_text)}"
+                )
+                results.append(
+                    {
+                        "anchor_id": anchor.replacement_id,
+                        "success": False,
+                        "error": "Position exceeds text length",
+                    }
+                )
+                continue
 
             # Replace the masked text with original content
             modified_text = (
@@ -566,12 +582,16 @@ class DocumentUnmasker:
         """
         Get the original content for an anchor.
 
-        This is a placeholder implementation. In a full system, this would:
-        1. Use the original_content_provider to lookup secure content
-        2. Decrypt content using keys managed by a key management system
-        3. Fetch content from a secure vault or escrow system
-        4. Use deterministic regeneration for certain content types
+        First tries to retrieve from anchor metadata, then falls back to content provider,
+        and finally to placeholder generation.
         """
+        # First, try to get original text from anchor metadata
+        if anchor.metadata and "original_text" in anchor.metadata:
+            original_text = anchor.metadata["original_text"]
+            logger.debug(f"Retrieved original text from metadata for {anchor.replacement_id}: '{original_text}'")
+            return original_text
+
+        # Fallback to content provider if available
         if original_content_provider and hasattr(
             original_content_provider, "get_content"
         ):
@@ -584,7 +604,8 @@ class DocumentUnmasker:
                     f"Content provider failed for {anchor.replacement_id}: {e}"
                 )
 
-        # For now, return None to trigger placeholder generation
+        # Return None to trigger placeholder generation as last resort
+        logger.debug(f"No original content found for {anchor.replacement_id}, will use placeholder")
         return None
 
     def _generate_placeholder_content(self, anchor) -> str:

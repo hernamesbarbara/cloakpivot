@@ -157,6 +157,14 @@ class CloakMap:
         return counts
 
     @property
+    def entity_mappings(self) -> dict[str, str]:
+        """Get mappings from replacement IDs to masked values."""
+        mappings: dict[str, str] = {}
+        for anchor in self.anchors:
+            mappings[anchor.replacement_id] = anchor.masked_value
+        return mappings
+
+    @property
     def is_encrypted(self) -> bool:
         """Check if the CloakMap has encryption metadata."""
         return self.crypto is not None and self.crypto.get("algorithm") is not None

@@ -21,13 +21,17 @@ from .detection import (
     EntityDetectionPipeline,
     SegmentAnalysisResult,
 )
-
-# Entity normalization
-from .normalization import (
-    ConflictResolutionConfig,
-    ConflictResolutionStrategy,
-    EntityNormalizer,
-    NormalizationResult,
+from .error_handling import (
+    CircuitBreaker,
+    ErrorCollector,
+    FailureToleranceConfig,
+    FailureToleranceLevel,
+    PartialFailureManager,
+    RetryManager,
+    create_partial_failure_manager,
+    with_circuit_breaker,
+    with_error_isolation,
+    with_retry,
 )
 
 # Error handling system
@@ -47,26 +51,13 @@ from .exceptions import (
     create_processing_error,
     create_validation_error,
 )
-from .error_handling import (
-    CircuitBreaker,
-    ErrorCollector,
-    FailureToleranceConfig,
-    FailureToleranceLevel,
-    PartialFailureManager,
-    RetryManager,
-    create_partial_failure_manager,
-    with_circuit_breaker,
-    with_error_isolation,
-    with_retry,
-)
-from .validation import (
-    CloakMapValidator,
-    DocumentValidator,
-    InputValidator,
-    PolicyValidator,
-    SystemValidator,
-    validate_for_masking,
-    validate_for_unmasking,
+
+# Entity normalization
+from .normalization import (
+    ConflictResolutionConfig,
+    ConflictResolutionStrategy,
+    EntityNormalizer,
+    NormalizationResult,
 )
 
 # Policy system
@@ -98,6 +89,15 @@ from .strategies import (
     SSN_PARTIAL,
     Strategy,
     StrategyKind,
+)
+from .validation import (
+    CloakMapValidator,
+    DocumentValidator,
+    InputValidator,
+    PolicyValidator,
+    SystemValidator,
+    validate_for_masking,
+    validate_for_unmasking,
 )
 
 __all__ = [

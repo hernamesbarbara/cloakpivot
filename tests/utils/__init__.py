@@ -1,1 +1,1 @@
-"""Test utilities package."""
+"""Testing utilities for CloakPivot test suite."""

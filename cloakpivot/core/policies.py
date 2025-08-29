@@ -2,9 +2,17 @@
 
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Callable, Optional
 
 from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
+
+
+class PrivacyLevel(Enum):
+    """Privacy level enumeration for policies."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 @dataclass(frozen=True)
@@ -58,15 +66,30 @@ class MaskingPolicy:
     deny_list: set[str] = field(default_factory=set)
     context_rules: dict[str, dict[str, Any]] = field(default_factory=dict)
     min_entity_length: int = field(default=1)
+    privacy_level: PrivacyLevel = field(default=PrivacyLevel.MEDIUM)
 
     def __post_init__(self) -> None:
         """Validate policy configuration after initialization."""
+        self._validate_privacy_level()
         self._validate_thresholds()
         self._validate_locale()
         self._validate_seed()
         self._validate_entity_length()
         self._validate_context_rules()
         self._validate_callbacks()
+
+    def _validate_privacy_level(self) -> None:
+        """Validate and convert privacy level from string if needed."""
+        if isinstance(self.privacy_level, str):
+            try:
+                # Convert string to enum
+                object.__setattr__(self, 'privacy_level', PrivacyLevel(self.privacy_level))
+            except ValueError:
+                # Invalid string, use default
+                object.__setattr__(self, 'privacy_level', PrivacyLevel.MEDIUM)
+        elif not isinstance(self.privacy_level, PrivacyLevel):
+            # Neither string nor enum, use default
+            object.__setattr__(self, 'privacy_level', PrivacyLevel.MEDIUM)
 
     def _validate_thresholds(self) -> None:
         """Validate confidence threshold values."""
@@ -283,6 +306,7 @@ class MaskingPolicy:
             deny_list=self.deny_list,
             context_rules=self.context_rules,
             min_entity_length=self.min_entity_length,
+            privacy_level=self.privacy_level,
         )
 
     def with_threshold(self, entity_type: str, threshold: float) -> "MaskingPolicy":
@@ -299,6 +323,7 @@ class MaskingPolicy:
             deny_list=self.deny_list,
             context_rules=self.context_rules,
             min_entity_length=self.min_entity_length,
+            privacy_level=self.privacy_level,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -322,6 +347,7 @@ class MaskingPolicy:
             "deny_list": list(self.deny_list),
             "context_rules": dict(self.context_rules),
             "min_entity_length": self.min_entity_length,
+            "privacy_level": self.privacy_level.value,
         }
 
     @classmethod
@@ -344,6 +370,14 @@ class MaskingPolicy:
                 parameters=strategy_data.get("parameters", {}),
             )
 
+        # Convert privacy level
+        privacy_level = PrivacyLevel.MEDIUM  # default
+        if "privacy_level" in data:
+            try:
+                privacy_level = PrivacyLevel(data["privacy_level"])
+            except ValueError:
+                privacy_level = PrivacyLevel.MEDIUM
+
         return cls(
             default_strategy=default_strategy,
             per_entity=per_entity,
@@ -354,6 +388,7 @@ class MaskingPolicy:
             deny_list=set(data.get("deny_list", [])),
             context_rules=data.get("context_rules", {}),
             min_entity_length=data.get("min_entity_length", 1),
+            privacy_level=privacy_level,
         )
 
 

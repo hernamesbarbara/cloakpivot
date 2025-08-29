@@ -82,7 +82,7 @@ class TestPropertyBasedMaskingFast:
         original_text_count = len(document.texts)
 
         result = mask_document_with_detection(
-            document, policy, analyzer=shared_analyzer, resolve_conflicts=False
+            document, policy, analyzer=shared_analyzer, resolve_conflicts=True
         )
 
         # Structure should be preserved
@@ -105,7 +105,7 @@ class TestPropertyBasedMaskingFast:
         original_section_count = len(document.texts)
 
         result = mask_document_with_detection(
-            document, policy, analyzer=shared_analyzer, resolve_conflicts=False
+            document, policy, analyzer=shared_analyzer, resolve_conflicts=True
         )
 
         # All sections should be preserved
@@ -146,7 +146,7 @@ class TestPropertyBasedMaskingFast:
             all_entities.extend(entities)
 
         if all_entities:  # Only test if entities were detected
-            engine = MaskingEngine(resolve_conflicts=False)
+            engine = MaskingEngine(resolve_conflicts=True, store_original_text=False)
             result = engine.mask_document(document, all_entities, policy, segments)
 
             # PII should be masked (no original PII in final text)
@@ -176,7 +176,7 @@ class TestPropertyBasedMaskingFast:
         )
 
         result = mask_document_with_detection(
-            document, policy, analyzer=shared_analyzer, resolve_conflicts=False
+            document, policy, analyzer=shared_analyzer, resolve_conflicts=True
         )
 
         # If no entities detected, text should be unchanged
@@ -196,7 +196,7 @@ class TestPropertyBasedMaskingFast:
         document = create_simple_document(text)
 
         result = mask_document_with_detection(
-            document, policy, analyzer=shared_analyzer, resolve_conflicts=False
+            document, policy, analyzer=shared_analyzer, resolve_conflicts=True
         )
 
         cloakmap = result.cloakmap
@@ -267,7 +267,7 @@ class TestPropertyBasedMaskingSlow:
 
         result = mask_document_with_detection(
             document, policy, analyzer=shared_analyzer,
-            resolve_conflicts=False,
+            resolve_conflicts=True,
             timing_log=True
         )
 
@@ -329,7 +329,7 @@ class TestMaskingPerformanceBenchmarks:
         start_time = time.perf_counter()
         for _ in range(20):
             mask_document_with_detection(
-                document, policy, analyzer=shared_analyzer, resolve_conflicts=False
+                document, policy, analyzer=shared_analyzer, resolve_conflicts=True
             )
         no_conflicts_time = time.perf_counter() - start_time
 

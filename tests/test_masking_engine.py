@@ -142,8 +142,8 @@ class TestMaskingEngine:
     def test_no_original_text_in_cloakmap(
         self, simple_document, detected_entities, basic_policy, text_segments
     ):
-        """Test that original PII text is not stored in CloakMap."""
-        engine = MaskingEngine()
+        """Test that original PII text is not stored in CloakMap when store_original_text=False."""
+        engine = MaskingEngine(store_original_text=False)
 
         result = engine.mask_document(
             document=simple_document,
