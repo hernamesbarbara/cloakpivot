@@ -969,6 +969,247 @@ def policy_info(policy_file: Path) -> None:
         raise click.ClickException(f"Failed to read policy info: {e}") from e
 
 
+@cli.group()
+def diagnostics() -> None:
+    """Generate diagnostic reports from masking operations."""
+    pass
+
+
+@diagnostics.command("analyze")
+@click.argument("masked_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output", "-o",
+    type=click.Path(path_type=Path),
+    help="Output path for diagnostic report"
+)
+@click.option(
+    "--format", "report_format",
+    type=click.Choice(["json", "html", "markdown"]),
+    default="html",
+    help="Report format (default: html)"
+)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.pass_context
+def diagnostics_analyze(
+    ctx: click.Context,
+    masked_file: Path,
+    cloakmap_file: Path,
+    output: Optional[Path],
+    report_format: str,
+    verbose: bool
+) -> None:
+    """Analyze masking results and generate diagnostic reports.
+    
+    Analyzes a masked document and its CloakMap to generate comprehensive
+    diagnostic reports with statistics, coverage analysis, and recommendations.
+    
+    Example:
+        cloakpivot diagnostics analyze masked.json map.json -o report.html
+    """
+    try:
+        import json
+        from ..core.cloakmap import CloakMap
+        from ..document.processor import DocumentProcessor
+        from ..document.extractor import TextExtractor
+        from ..diagnostics import (
+            DiagnosticsCollector, CoverageAnalyzer, DiagnosticReporter, 
+            ReportFormat, ReportData
+        )
+        
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        if verbose:
+            click.echo(f"📊 Analyzing masking results")
+            click.echo(f"   Masked file: {masked_file}")
+            click.echo(f"   CloakMap: {cloakmap_file}")
+        
+        # Load CloakMap
+        with click.progressbar(length=1, label="Loading CloakMap") as progress:
+            with open(cloakmap_file, encoding='utf-8') as f:
+                cloakmap_data = json.load(f)
+            cloakmap = CloakMap.from_dict(cloakmap_data)
+            progress.update(1)
+        
+        if verbose:
+            click.echo(f"✓ Loaded CloakMap with {len(cloakmap.anchors)} anchors")
+        
+        # Load masked document
+        with click.progressbar(length=1, label="Loading masked document") as progress:
+            processor = DocumentProcessor()
+            masked_document = processor.load_document(masked_file, validate=True)
+            progress.update(1)
+        
+        # Extract text segments for coverage analysis
+        text_extractor = TextExtractor()
+        text_segments = text_extractor.extract_text_segments(masked_document)
+        
+        if verbose:
+            click.echo(f"✓ Extracted {len(text_segments)} text segments")
+        
+        # Create mock MaskResult for statistics collection
+        from ..core.results import MaskResult, OperationStatus, ProcessingStats, PerformanceMetrics
+        mock_result = MaskResult(
+            status=OperationStatus.SUCCESS,
+            masked_document=masked_document,
+            cloakmap=cloakmap,
+            stats=ProcessingStats(
+                total_entities_found=len(cloakmap.anchors),
+                entities_masked=len(cloakmap.anchors),
+                entities_skipped=0,
+                entities_failed=0
+            ),
+            performance=PerformanceMetrics()
+        )
+        
+        # Collect diagnostics
+        with click.progressbar(length=1, label="Analyzing coverage and statistics") as progress:
+            collector = DiagnosticsCollector()
+            coverage_analyzer = CoverageAnalyzer()
+            
+            # Generate statistics and coverage
+            statistics = collector.collect_masking_statistics(mock_result)
+            coverage = coverage_analyzer.analyze_document_coverage(text_segments, cloakmap.anchors)
+            performance = collector.collect_performance_metrics(mock_result)
+            diagnostics_info = collector.collect_processing_diagnostics(mock_result)
+            
+            # Generate recommendations
+            recommendations = coverage_analyzer.generate_recommendations(coverage)
+            
+            progress.update(1)
+        
+        # Create report data
+        report_data = ReportData(
+            statistics=statistics,
+            coverage=coverage,
+            performance=performance,
+            diagnostics=diagnostics_info,
+            document_metadata={
+                "name": masked_file.name,
+                "size_bytes": masked_file.stat().st_size,
+                "cloakmap_file": cloakmap_file.name
+            },
+            recommendations=recommendations
+        )
+        
+        # Generate report
+        reporter = DiagnosticReporter()
+        format_enum = {
+            "json": ReportFormat.JSON,
+            "html": ReportFormat.HTML,
+            "markdown": ReportFormat.MARKDOWN
+        }[report_format]
+        
+        # Set default output path
+        if not output:
+            output = masked_file.with_suffix(f".diagnostics.{report_format}")
+        
+        with click.progressbar(length=1, label=f"Generating {report_format.upper()} report") as progress:
+            reporter.save_report(report_data, output, format_enum)
+            progress.update(1)
+        
+        # Show summary
+        summary = reporter.generate_summary(report_data)
+        
+        click.echo("✅ Diagnostic analysis completed!")
+        click.echo(f"   Report saved: {output}")
+        click.echo(f"   Entities processed: {summary['entities']['detected']}")
+        click.echo(f"   Coverage rate: {summary['coverage']['rate']:.1%}")
+        click.echo(f"   Issues found: {summary['issues']['total_issues']}")
+        
+        if verbose and recommendations:
+            click.echo(f"\n💡 Recommendations:")
+            for rec in recommendations[:3]:  # Show first 3 recommendations
+                click.echo(f"   • {rec}")
+            if len(recommendations) > 3:
+                click.echo(f"   ... and {len(recommendations) - 3} more (see full report)")
+        
+    except ImportError as e:
+        raise click.ClickException(f"Missing required dependency: {e}") from e
+    except FileNotFoundError as e:
+        raise click.ClickException(f"File not found: {e}") from e
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Diagnostic analysis failed: {e}") from e
+
+
+@diagnostics.command("summary")
+@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.pass_context
+def diagnostics_summary(
+    ctx: click.Context,
+    cloakmap_file: Path,
+    verbose: bool
+) -> None:
+    """Show a quick summary of masking results from a CloakMap.
+    
+    Provides a concise overview of masking statistics without generating
+    a full diagnostic report.
+    
+    Example:
+        cloakpivot diagnostics summary map.json
+    """
+    try:
+        import json
+        from ..core.cloakmap import CloakMap
+        
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        # Load CloakMap
+        with open(cloakmap_file, encoding='utf-8') as f:
+            cloakmap_data = json.load(f)
+        cloakmap = CloakMap.from_dict(cloakmap_data)
+        
+        # Display summary
+        click.echo(f"📊 CloakMap Summary: {cloakmap_file.name}")
+        click.echo("=" * 50)
+        
+        click.echo(f"Document ID: {cloakmap.doc_id}")
+        click.echo(f"Total Anchors: {cloakmap.anchor_count}")
+        click.echo(f"CloakMap Version: {cloakmap.version}")
+        click.echo(f"Created: {cloakmap.created_at}")
+        
+        # Entity breakdown
+        entity_counts = cloakmap.entity_count_by_type
+        if entity_counts:
+            click.echo(f"\nEntity Breakdown:")
+            for entity_type, count in sorted(entity_counts.items()):
+                click.echo(f"  • {entity_type}: {count}")
+        
+        # Strategy breakdown
+        strategy_counts = {}
+        for anchor in cloakmap.anchors:
+            strategy = anchor.strategy_used
+            strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
+        
+        if strategy_counts:
+            click.echo(f"\nStrategy Usage:")
+            for strategy, count in sorted(strategy_counts.items()):
+                click.echo(f"  • {strategy}: {count}")
+        
+        if verbose:
+            # Show additional details
+            click.echo(f"\nAdditional Details:")
+            click.echo(f"  Document Hash: {cloakmap.doc_hash}")
+            if hasattr(cloakmap, 'policy_snapshot') and cloakmap.policy_snapshot:
+                click.echo(f"  Policy Snapshot: Available")
+            
+            # Show sample anchors
+            if cloakmap.anchors:
+                click.echo(f"\nSample Anchors (first 3):")
+                for i, anchor in enumerate(cloakmap.anchors[:3]):
+                    click.echo(f"  {i+1}. {anchor.entity_type} at {anchor.node_id}:{anchor.start}-{anchor.end}")
+        
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Failed to read CloakMap summary: {e}") from e
+
+
 def main() -> None:
     """Main entry point for the CLI."""
     cli()
