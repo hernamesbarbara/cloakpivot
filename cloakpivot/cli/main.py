@@ -1,5 +1,7 @@
 """Main CLI entry point for CloakPivot."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, TextIO
@@ -8,12 +10,15 @@ import click
 
 from cloakpivot import __version__
 
+# Error messages
+ERROR_MASK_ARGS = "Must specify either --out for masked output or --cloakmap for CloakMap output"
+
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
 
-    from ..core.detection import DocumentAnalysisResult
-    from ..core.policies import MaskingPolicy
-    from ..masking.engine import MaskingResult
+    from cloakpivot.core.detection import DocumentAnalysisResult
+    from cloakpivot.core.policies import MaskingPolicy
+    from cloakpivot.masking.engine import MaskingResult
 
     try:
         from docling_core.types import DoclingDocument
@@ -40,9 +45,7 @@ def _validate_mask_arguments(
 ) -> None:
     """Validate mask command arguments."""
     if not output_path and not cloakmap:
-        raise click.ClickException(
-            "Must specify either --out for masked output or --cloakmap for CloakMap output"
-        )
+        raise click.ClickException(ERROR_MASK_ARGS)
 
 
 def _set_default_paths(
@@ -59,80 +62,75 @@ def _set_default_paths(
     return output_path, cloakmap
 
 
-def _load_masking_policy(policy: Optional[Path], verbose: bool) -> "MaskingPolicy":
-    """Load masking policy from file or use default with enhanced inheritance support."""
-    from ..core.policies import MaskingPolicy
-    from ..core.policy_loader import (
-        PolicyInheritanceError,
-        PolicyLoader,
-        PolicyValidationError,
-    )
-
-    if policy:
+def _try_enhanced_policy_loading(policy: Path, verbose: bool) -> Optional["MaskingPolicy"]:
+    """Try to load policy using enhanced policy loader."""
+    try:
+        from cloakpivot.core.policy_loader import PolicyLoader
+        loader = PolicyLoader()
+        masking_policy = loader.load_policy(policy)
         if verbose:
-            click.echo(f"📋 Loading policy: {policy}")
-
-        try:
-            # Try new enhanced policy loader first
-            loader = PolicyLoader()
-            masking_policy = loader.load_policy(policy)
-            if verbose:
-                click.echo("✓ Enhanced policy loaded successfully")
-                if hasattr(masking_policy, "name") or policy.name.endswith(
-                    (".yaml", ".yml")
-                ):
-                    click.echo("   (with inheritance and validation support)")
-        except (PolicyValidationError, PolicyInheritanceError) as e:
+            click.echo("✓ Enhanced policy loaded successfully")
+            if hasattr(masking_policy, "name") or policy.name.endswith((".yaml", ".yml")):
+                click.echo("   (with inheritance and validation support)")
+        return masking_policy
+    except ImportError:
+        if verbose:
+            click.echo("⚠️  Required dependencies not available for enhanced policies")
+        return None
+    except Exception as e:
+        if verbose:
             click.echo(f"⚠️  Enhanced policy loading failed: {e}")
             click.echo("   Falling back to basic policy loading")
-            # Fall back to basic loading
-            try:
-                import yaml
+        return None
 
-                with open(policy, encoding="utf-8") as f:
-                    policy_data = yaml.safe_load(f)
-                masking_policy = MaskingPolicy.from_dict(policy_data)
-                if verbose:
-                    click.echo("✓ Basic policy loaded successfully")
-            except ImportError:
-                click.echo("⚠️  PyYAML not installed, using default policy")
-                masking_policy = MaskingPolicy()
-            except Exception as e:
-                click.echo(f"⚠️  Failed to load policy file: {e}")
-                click.echo("   Using default policy")
-                masking_policy = MaskingPolicy()
-        except ImportError:
-            click.echo("⚠️  Required dependencies not available for enhanced policies")
-            # Fall back to basic loading
-            try:
-                import yaml
 
-                with open(policy, encoding="utf-8") as f:
-                    policy_data = yaml.safe_load(f)
-                masking_policy = MaskingPolicy.from_dict(policy_data)
-                if verbose:
-                    click.echo("✓ Basic policy loaded successfully")
-            except ImportError:
-                click.echo("⚠️  PyYAML not installed, using default policy")
-                masking_policy = MaskingPolicy()
-            except Exception as e:
-                click.echo(f"⚠️  Failed to load policy file: {e}")
-                click.echo("   Using default policy")
-                masking_policy = MaskingPolicy()
-        except Exception as e:
-            click.echo(f"⚠️  Unexpected error loading policy: {e}")
+def _try_basic_policy_loading(policy: Path, verbose: bool) -> "MaskingPolicy":
+    """Try to load policy using basic YAML loading."""
+    from cloakpivot.core.policies import MaskingPolicy
+    
+    try:
+        import yaml
+        with open(policy, encoding="utf-8") as f:
+            policy_data = yaml.safe_load(f)
+        masking_policy = MaskingPolicy.from_dict(policy_data)
+        if verbose:
+            click.echo("✓ Basic policy loaded successfully")
+        return masking_policy
+    except ImportError:
+        if verbose:
+            click.echo("⚠️  PyYAML not installed, using default policy")
+        return MaskingPolicy()
+    except Exception as e:
+        if verbose:
+            click.echo(f"⚠️  Failed to load policy file: {e}")
             click.echo("   Using default policy")
-            masking_policy = MaskingPolicy()
-    else:
-        masking_policy = MaskingPolicy()
-    return masking_policy
+        return MaskingPolicy()
+
+
+def _load_masking_policy(policy: Optional[Path], verbose: bool) -> "MaskingPolicy":
+    """Load masking policy from file or use default."""
+    from cloakpivot.core.policies import MaskingPolicy
+    
+    if not policy:
+        return MaskingPolicy()
+    
+    if verbose:
+        click.echo(f"📋 Loading policy: {policy}")
+    
+    # Try enhanced loading first
+    enhanced_policy = _try_enhanced_policy_loading(policy, verbose)
+    if enhanced_policy is not None:
+        return enhanced_policy
+    
+    # Fall back to basic loading
+    return _try_basic_policy_loading(policy, verbose)
 
 
 def _perform_entity_detection(
     document: "DoclingDocument", masking_policy: "MaskingPolicy", verbose: bool
 ) -> "DocumentAnalysisResult":
     """Perform PII entity detection on document."""
-    from ..core.detection import EntityDetectionPipeline
+    from cloakpivot.core.detection import EntityDetectionPipeline
 
     if verbose:
         click.echo("🔍 Detecting PII entities")
@@ -182,8 +180,8 @@ def _perform_masking(
     verbose: bool,
 ) -> "MaskingResult":
     """Perform the actual masking operation."""
-    from ..document.extractor import TextExtractor
-    from ..masking.engine import MaskingEngine
+    from cloakpivot.document.extractor import TextExtractor
+    from cloakpivot.masking.engine import MaskingEngine
 
     masking_engine = MaskingEngine()
     text_extractor = TextExtractor()
@@ -300,10 +298,10 @@ def mask(
         # Import required modules
         import json
 
-        from ..core.detection import EntityDetectionPipeline
-        from ..core.policies import MaskingPolicy
-        from ..document.processor import DocumentProcessor
-        from ..masking.engine import MaskingEngine
+        from cloakpivot.core.detection import EntityDetectionPipeline
+        from cloakpivot.core.policies import MaskingPolicy
+        from cloakpivot.document.processor import DocumentProcessor
+        from cloakpivot.masking.engine import MaskingEngine
 
         if verbose:
             click.echo(f"🔍 Loading document: {input_path}")
@@ -384,7 +382,7 @@ def mask(
         masking_engine = MaskingEngine()
 
         # Extract text segments (needed for masking engine)
-        from ..document.extractor import TextExtractor
+        from cloakpivot.document.extractor import TextExtractor
 
         text_extractor = TextExtractor()
         text_segments = text_extractor.extract_text_segments(document)
@@ -427,7 +425,7 @@ def mask(
 
         with click.progressbar(length=1, label="Saving masked document") as progress:
             # Use CloakPivot's enhanced serializer system
-            from ..formats.serialization import CloakPivotSerializer
+            from cloakpivot.formats.serialization import CloakPivotSerializer
 
             serializer = CloakPivotSerializer()
             result = serializer.serialize_document(
@@ -508,9 +506,9 @@ def unmask(
         # Import required modules
         import json
 
-        from ..core.cloakmap import CloakMap
-        from ..document.processor import DocumentProcessor
-        from ..unmasking.engine import UnmaskingEngine
+        from cloakpivot.core.cloakmap import CloakMap
+        from cloakpivot.document.processor import DocumentProcessor
+        from cloakpivot.unmasking.engine import UnmaskingEngine
 
         if verbose:
             click.echo(f"🔓 Loading masked document: {masked_path}")
@@ -606,7 +604,7 @@ def unmask(
                     length=1, label="Saving restored document"
                 ) as progress:
                     # Use CloakPivot's enhanced serializer system
-                    from ..formats.serialization import CloakPivotSerializer
+                    from cloakpivot.formats.serialization import CloakPivotSerializer
                     
                     serializer = CloakPivotSerializer()
                     # Detect output format from file extension or default to lexical
@@ -832,7 +830,7 @@ def policy_validate(policy_file: Path, verbose: bool) -> None:
         cloakpivot policy validate my-policy.yaml
     """
     try:
-        from ..core.policy_loader import PolicyLoader
+        from cloakpivot.core.policy_loader import PolicyLoader
 
         if verbose:
             click.echo(f"🔍 Validating policy file: {policy_file}")
@@ -935,7 +933,7 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
         cloakpivot policy test policy.yaml --text "John Doe's email is john@example.com"
     """
     try:
-        from ..core.policy_loader import PolicyLoader
+        from cloakpivot.core.policy_loader import PolicyLoader
 
         # Load policy
         if verbose:
@@ -993,7 +991,7 @@ def policy_info(policy_file: Path) -> None:
         cloakpivot policy info my-policy.yaml
     """
     try:
-        from ..core.policy_loader import PolicyLoader
+        from cloakpivot.core.policy_loader import PolicyLoader
 
         loader = PolicyLoader()
         policy = loader.load_policy(policy_file)
@@ -1095,16 +1093,16 @@ def diagnostics_analyze(
     try:
         import json
 
-        from ..core.cloakmap import CloakMap
-        from ..diagnostics import (
+        from cloakpivot.core.cloakmap import CloakMap
+        from cloakpivot.diagnostics import (
             CoverageAnalyzer,
             DiagnosticReporter,
             DiagnosticsCollector,
             ReportData,
             ReportFormat,
         )
-        from ..document.extractor import TextExtractor
-        from ..document.processor import DocumentProcessor
+        from cloakpivot.document.extractor import TextExtractor
+        from cloakpivot.document.processor import DocumentProcessor
 
         verbose = verbose or ctx.obj.get("verbose", False)
 
@@ -1164,7 +1162,7 @@ def diagnostics_analyze(
             click.echo(f"✓ Extracted {len(text_segments)} text segments")
 
         # Create mock MaskResult for statistics collection
-        from ..core.results import (
+        from cloakpivot.core.results import (
             MaskResult,
             OperationStatus,
             PerformanceMetrics,
@@ -1300,7 +1298,7 @@ def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) 
     try:
         import json
 
-        from ..core.cloakmap import CloakMap
+        from cloakpivot.core.cloakmap import CloakMap
 
         verbose = verbose or ctx.obj.get("verbose", False)
 
@@ -1422,7 +1420,7 @@ def format_convert(
         cloakpivot format convert document.md --to html --out output.html
     """
     try:
-        from ..formats.serialization import CloakPivotSerializer, SerializationError
+        from cloakpivot.formats.serialization import CloakPivotSerializer, SerializationError
 
         verbose = verbose or ctx.obj.get("verbose", False)
         
@@ -1489,7 +1487,7 @@ def format_detect(ctx: click.Context, file_path: Path, verbose: bool) -> None:
         cloakpivot format detect unknown_document.json --verbose
     """
     try:
-        from ..formats.serialization import CloakPivotSerializer
+        from cloakpivot.formats.serialization import CloakPivotSerializer
 
         verbose = verbose or ctx.obj.get("verbose", False)
         
@@ -1539,7 +1537,7 @@ def format_list(verbose: bool) -> None:
         cloakpivot format list --verbose
     """
     try:
-        from ..formats.serialization import CloakPivotSerializer
+        from cloakpivot.formats.serialization import CloakPivotSerializer
 
         serializer = CloakPivotSerializer()
         formats = serializer.supported_formats
