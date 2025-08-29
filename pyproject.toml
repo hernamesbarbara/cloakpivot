@@ -39,6 +39,25 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Storage backend dependencies
+s3 = [
+    "boto3>=1.26.0",
+]
+
+gcs = [
+    "google-cloud-storage>=2.10.0",
+]
+
+database = [
+    "psycopg2-binary>=2.9.0",  # PostgreSQL support
+    "sqlalchemy>=2.0.0",      # Optional ORM support
+]
+
+# Combined storage backends
+storage = [
+    "cloakpivot[s3,gcs,database]",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -47,6 +66,7 @@ dev = [
     "mypy>=1.5.0",
     "pre-commit>=3.0.0",
     "types-PyYAML",
+    "cloakpivot[storage]",  # Include storage backends in dev
 ]
 
 test = [
@@ -63,6 +83,13 @@ cloakpivot = "cloakpivot.cli.main:main"
 
 [project.entry-points."cloakpivot.plugins.recognizers"]
 # Recognizer plugins can be registered here by external packages
+
+[project.entry-points."cloakpivot.storage.backends"]
+# Storage backend plugins can be registered here by external packages
+local = "cloakpivot.storage.backends.local:LocalStorage"
+s3 = "cloakpivot.storage.backends.s3:S3Storage"
+gcs = "cloakpivot.storage.backends.gcs:GCSStorage"
+database = "cloakpivot.storage.backends.database:DatabaseStorage"
 
 [project.urls]
 "Homepage" = "https://github.com/example/cloakpivot"
