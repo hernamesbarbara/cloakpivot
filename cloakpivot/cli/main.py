@@ -260,7 +260,7 @@ def _save_cloakmap(
 @click.option(
     "--format",
     "output_format",
-    type=click.Choice(["lexical", "docling", "markdown", "html"]),
+    type=click.Choice(["lexical", "docling", "markdown", "md", "html", "doctags"]),
     default="lexical",
     help="Output format",
 )
@@ -426,15 +426,17 @@ def mask(
             click.echo(f"💾 Saving masked document: {output_path}")
 
         with click.progressbar(length=1, label="Saving masked document") as progress:
-            # Use docpivot serializer to save the document
-            from docpivot import LexicalDocSerializer
+            # Use CloakPivot's enhanced serializer system
+            from ..formats.serialization import CloakPivotSerializer
 
-            serializer = LexicalDocSerializer(masking_result.masked_document)
-            result = serializer.serialize()
-            serialized_content = result.text
-
+            serializer = CloakPivotSerializer()
+            result = serializer.serialize_document(
+                masking_result.masked_document, 
+                output_format
+            )
+            
             with open(output_path, "w", encoding="utf-8") as f:
-                f.write(serialized_content)
+                f.write(result.content)
             progress.update(1)
 
         # Save CloakMap
@@ -603,17 +605,20 @@ def unmask(
                 with click.progressbar(
                     length=1, label="Saving restored document"
                 ) as progress:
-                    # Use docpivot serializer to save the restored document
-                    from docpivot import LexicalDocSerializer
-
-                    serializer = LexicalDocSerializer(
-                        unmasking_result.restored_document
+                    # Use CloakPivot's enhanced serializer system
+                    from ..formats.serialization import CloakPivotSerializer
+                    
+                    serializer = CloakPivotSerializer()
+                    # Detect output format from file extension or default to lexical
+                    output_format = serializer.detect_format(output_path) or "lexical"
+                    
+                    result = serializer.serialize_document(
+                        unmasking_result.restored_document,
+                        output_format
                     )
-                    result = serializer.serialize()
-                    serialized_content = result.text
 
                     with open(output_path, "w", encoding="utf-8") as f:
-                        f.write(serialized_content)
+                        f.write(result.content)
                     progress.update(1)
 
                 # Success message
@@ -1376,7 +1381,192 @@ def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) 
         raise click.ClickException(f"Failed to read CloakMap summary: {e}") from e
 
 
-# Import and add batch command group
+@cli.group()
+def format() -> None:
+    """Manage document format conversion and detection."""
+    pass
+
+
+@format.command("convert")
+@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--to",
+    "target_format",
+    required=True,
+    type=click.Choice(["lexical", "docling", "markdown", "md", "html", "doctags"]),
+    help="Target output format",
+)
+@click.option(
+    "--out",
+    "-o",
+    "output_path",
+    type=click.Path(path_type=Path),
+    help="Output file path (auto-generated if not specified)",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.pass_context
+def format_convert(
+    ctx: click.Context,
+    input_path: Path,
+    target_format: str,
+    output_path: Optional[Path],
+    verbose: bool,
+) -> None:
+    """Convert a document from one format to another.
+    
+    Supports conversion between all supported formats while preserving
+    document structure and content.
+
+    Example:
+        cloakpivot format convert document.lexical.json --to markdown
+        cloakpivot format convert document.md --to html --out output.html
+    """
+    try:
+        from ..formats.serialization import CloakPivotSerializer, SerializationError
+
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        if verbose:
+            click.echo(f"🔄 Converting document: {input_path}")
+            click.echo(f"   Target format: {target_format}")
+
+        # Initialize serializer
+        serializer = CloakPivotSerializer()
+
+        # Detect input format
+        input_format = serializer.detect_format(input_path)
+        if input_format:
+            if verbose:
+                click.echo(f"   Detected input format: {input_format}")
+        else:
+            click.echo(f"⚠️  Could not detect input format for {input_path}")
+            
+        # Perform conversion
+        with click.progressbar(length=1, label="Converting document") as progress:
+            result = serializer.convert_format(
+                input_path=input_path,
+                output_format=target_format,
+                output_path=output_path
+            )
+            progress.update(1)
+
+        # Report results
+        actual_output_path = output_path or result.metadata.get("output_path", "output file")
+        click.echo("✅ Format conversion completed!")
+        click.echo(f"   Input: {input_path} ({input_format or 'unknown'})")
+        click.echo(f"   Output: {actual_output_path} ({target_format})")
+        click.echo(f"   Size: {result.size_kb:.1f} KB")
+
+        if verbose and result.metadata:
+            click.echo("\n📊 Conversion Details:")
+            click.echo(f"   Document name: {result.metadata.get('document_name', 'N/A')}")
+            click.echo(f"   Text items: {result.metadata.get('document_texts', 'N/A')}")
+            click.echo(f"   Tables: {result.metadata.get('document_tables', 'N/A')}")
+
+    except SerializationError as e:
+        if verbose:
+            click.echo(f"Context: {e.context}")
+        raise click.ClickException(f"Format conversion failed: {e}") from e
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Conversion failed: {e}") from e
+
+
+@format.command("detect")
+@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed format information")
+@click.pass_context  
+def format_detect(ctx: click.Context, file_path: Path, verbose: bool) -> None:
+    """Detect the format of a document file.
+    
+    Analyzes file extension, naming conventions, and content to determine
+    the document format.
+
+    Example:
+        cloakpivot format detect document.lexical.json
+        cloakpivot format detect unknown_document.json --verbose
+    """
+    try:
+        from ..formats.serialization import CloakPivotSerializer
+
+        verbose = verbose or ctx.obj.get("verbose", False)
+        
+        serializer = CloakPivotSerializer()
+        
+        # Detect format
+        detected_format = serializer.detect_format(file_path)
+        
+        if detected_format:
+            click.echo(f"📄 File: {file_path}")
+            click.echo(f"🔍 Detected format: {detected_format}")
+            
+            if verbose:
+                # Get format information
+                format_info = serializer.get_format_info(detected_format)
+                click.echo("\n📋 Format Details:")
+                click.echo(f"   Supported: {format_info['supported']}")
+                click.echo(f"   Text format: {format_info['is_text_format']}")
+                click.echo(f"   JSON format: {format_info['is_json_format']}")
+                click.echo(f"   Extensions: {', '.join(format_info['extensions'])}")
+                click.echo(f"   Suggested extension: {format_info['suggested_extension']}")
+                
+        else:
+            click.echo(f"❓ Could not detect format for: {file_path}")
+            if verbose:
+                click.echo("\n💡 Supported formats:")
+                for fmt in serializer.supported_formats:
+                    info = serializer.get_format_info(fmt)
+                    click.echo(f"   • {fmt}: {', '.join(info['extensions'])}")
+
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Format detection failed: {e}") from e
+
+
+@format.command("list")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed format information")
+def format_list(verbose: bool) -> None:
+    """List all supported document formats.
+    
+    Shows available formats for input and output operations.
+
+    Example:
+        cloakpivot format list
+        cloakpivot format list --verbose
+    """
+    try:
+        from ..formats.serialization import CloakPivotSerializer
+
+        serializer = CloakPivotSerializer()
+        formats = serializer.supported_formats
+
+        click.echo(f"📋 Supported Formats ({len(formats)}):")
+        
+        for fmt in sorted(formats):
+            if verbose:
+                info = serializer.get_format_info(fmt)
+                extensions = ', '.join(info['extensions']) if info['extensions'] else 'none'
+                format_type = []
+                if info['is_text_format']:
+                    format_type.append('text')
+                if info['is_json_format']:
+                    format_type.append('json')
+                type_str = f" ({', '.join(format_type)})" if format_type else ""
+                click.echo(f"   • {fmt}{type_str}")
+                click.echo(f"     Extensions: {extensions}")
+                click.echo(f"     Suggested: {info['suggested_extension']}")
+            else:
+                click.echo(f"   • {fmt}")
+
+    except Exception as e:
+        raise click.ClickException(f"Failed to list formats: {e}") from e
+
+
+# Import and add command groups
 from .batch import batch
 cli.add_command(batch)
 
