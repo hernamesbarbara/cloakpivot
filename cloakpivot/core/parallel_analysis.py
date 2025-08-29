@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 from presidio_analyzer import RecognizerResult
 
-from .analyzer import AnalyzerEngineWrapper, AnalyzerConfig, EntityDetectionResult
+from .analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from .chunking import ChunkBoundary, ChunkedDocumentProcessor
 from .policies import MaskingPolicy
 
@@ -63,13 +63,13 @@ class ParallelAnalysisEngine:
         self.analyzer_config = analyzer_config or AnalyzerConfig()
         self.max_workers = max_workers or self._calculate_optimal_workers()
         self.enable_performance_monitoring = enable_performance_monitoring
-        
+
         # Thread-local analyzer instances to avoid contention
         self._analyzer_cache: dict[int, AnalyzerEngineWrapper] = {}
         self._cache_lock = Lock()
-        
+
         self.chunked_processor = ChunkedDocumentProcessor()
-        
+
         logger.info(
             f"ParallelAnalysisEngine initialized with {self.max_workers} workers, "
             f"performance_monitoring={self.enable_performance_monitoring}"
@@ -81,11 +81,11 @@ class ParallelAnalysisEngine:
             cpu_count = os.cpu_count() or 4
         except (AttributeError, OSError):
             cpu_count = 4
-        
+
         # Use heuristic: min(32, cpu_count + 4) for I/O vs CPU bound balance
         # This accounts for I/O wait time during Presidio analysis
         optimal_workers = min(32, cpu_count + 4)
-        
+
         # Allow environment override
         env_workers = os.environ.get("CLOAKPIVOT_MAX_WORKERS")
         if env_workers:
@@ -98,20 +98,20 @@ class ParallelAnalysisEngine:
                     logger.warning(f"Invalid CLOAKPIVOT_MAX_WORKERS: {env_workers}, using calculated value")
             except ValueError:
                 logger.warning(f"Invalid CLOAKPIVOT_MAX_WORKERS format: {env_workers}, using calculated value")
-        
+
         return optimal_workers
 
     def _get_thread_analyzer(self) -> AnalyzerEngineWrapper:
         """Get thread-local analyzer instance."""
         import threading
         thread_id = threading.get_ident()
-        
+
         with self._cache_lock:
             if thread_id not in self._analyzer_cache:
                 # Create new analyzer instance for this thread
                 self._analyzer_cache[thread_id] = AnalyzerEngineWrapper(self.analyzer_config)
                 logger.debug(f"Created analyzer instance for thread {thread_id}")
-            
+
             return self._analyzer_cache[thread_id]
 
     def analyze_document_parallel(
@@ -133,18 +133,18 @@ class ParallelAnalysisEngine:
         """
         import time
         start_time = time.perf_counter()
-        
+
         logger.info(f"Starting parallel analysis of document {document.name}")
-        
+
         # Configure chunked processor if custom chunk size provided
         if chunk_size:
             processor = ChunkedDocumentProcessor(chunk_size=chunk_size)
         else:
             processor = self.chunked_processor
-        
+
         # Create chunks
         chunks = processor.chunk_document(document)
-        
+
         if not chunks:
             logger.warning(f"No chunks created for document {document.name}")
             return ParallelAnalysisResult(
@@ -156,30 +156,30 @@ class ParallelAnalysisEngine:
                 threads_used=0,
                 performance_stats={},
             )
-        
+
         logger.info(f"Created {len(chunks)} chunks for parallel analysis")
-        
+
         # Analyze chunks in parallel
         chunk_results = self._analyze_chunks_parallel(chunks, policy)
-        
+
         # Aggregate results
         all_entities = []
         for result in chunk_results:
             if result.entities:
                 all_entities.extend(result.entities)
-        
+
         # Sort entities by position for deterministic ordering
         all_entities.sort(key=lambda e: (e.start, e.end, e.entity_type))
-        
+
         total_time = (time.perf_counter() - start_time) * 1000
-        
+
         performance_stats = self._calculate_performance_stats(chunk_results, chunks)
-        
+
         logger.info(
             f"Parallel analysis completed: {len(all_entities)} entities found "
             f"in {total_time:.1f}ms using {self.max_workers} threads"
         )
-        
+
         return ParallelAnalysisResult(
             entities=all_entities,
             chunk_results=chunk_results,
@@ -195,33 +195,33 @@ class ParallelAnalysisEngine:
     ) -> list[ChunkAnalysisResult]:
         """Analyze chunks in parallel using ThreadPoolExecutor."""
         chunk_results = []
-        
+
         # Prepare analyzer configuration from policy
         analyzer_config = AnalyzerConfig.from_policy(policy)
-        
+
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all chunk analysis tasks
             future_to_chunk = {}
-            
+
             for chunk in chunks:
                 future = executor.submit(
                     self._analyze_single_chunk, chunk, analyzer_config
                 )
                 future_to_chunk[future] = chunk
-            
+
             # Collect results as they complete
             for future in as_completed(future_to_chunk):
                 chunk = future_to_chunk[future]
                 try:
                     result = future.result()
                     chunk_results.append(result)
-                    
+
                     if self.enable_performance_monitoring:
                         logger.debug(
                             f"Chunk {result.chunk_id} analyzed: {len(result.entities)} entities "
                             f"in {result.processing_time_ms:.1f}ms"
                         )
-                        
+
                 except Exception as e:
                     logger.error(f"Error analyzing chunk {chunk.chunk_id}: {e}")
                     # Create error result
@@ -233,10 +233,10 @@ class ParallelAnalysisEngine:
                         error=str(e),
                     )
                     chunk_results.append(error_result)
-        
+
         # Sort results by chunk_id to maintain order
         chunk_results.sort(key=lambda r: r.chunk_id)
-        
+
         return chunk_results
 
     def _analyze_single_chunk(
@@ -245,14 +245,14 @@ class ParallelAnalysisEngine:
         """Analyze a single chunk for PII entities."""
         import time
         start_time = time.perf_counter()
-        
+
         try:
             # Get thread-local analyzer
             analyzer = self._get_thread_analyzer()
-            
+
             # Extract text from chunk
             chunk_text = self.chunked_processor.extract_chunk_text(chunk)
-            
+
             if not chunk_text.strip():
                 return ChunkAnalysisResult(
                     chunk_id=chunk.chunk_id,
@@ -260,19 +260,19 @@ class ParallelAnalysisEngine:
                     processing_time_ms=0.0,
                     chunk_size=chunk.size,
                 )
-            
+
             # Analyze text for entities
             detection_results = analyzer.analyze_text(chunk_text)
-            
+
             # Convert EntityDetectionResult back to RecognizerResult
             # and adjust offsets to document-global coordinates
             recognizer_results = []
-            
+
             for detection in detection_results:
                 # Adjust positions to global document coordinates
                 global_start = chunk.start_offset + detection.start
                 global_end = chunk.start_offset + detection.end
-                
+
                 recognizer_result = RecognizerResult(
                     entity_type=detection.entity_type,
                     start=global_start,
@@ -280,20 +280,20 @@ class ParallelAnalysisEngine:
                     score=detection.confidence,
                 )
                 recognizer_results.append(recognizer_result)
-            
+
             processing_time = (time.perf_counter() - start_time) * 1000
-            
+
             return ChunkAnalysisResult(
                 chunk_id=chunk.chunk_id,
                 entities=recognizer_results,
                 processing_time_ms=processing_time,
                 chunk_size=chunk.size,
             )
-            
+
         except Exception as e:
             processing_time = (time.perf_counter() - start_time) * 1000
             logger.error(f"Error in chunk analysis {chunk.chunk_id}: {e}")
-            
+
             return ChunkAnalysisResult(
                 chunk_id=chunk.chunk_id,
                 entities=[],
@@ -308,15 +308,15 @@ class ParallelAnalysisEngine:
         """Calculate detailed performance statistics."""
         if not self.enable_performance_monitoring:
             return {}
-        
+
         successful_results = [r for r in chunk_results if r.error is None]
         error_results = [r for r in chunk_results if r.error is not None]
-        
+
         if successful_results:
             processing_times = [r.processing_time_ms for r in successful_results]
             chunk_sizes = [r.chunk_size for r in successful_results]
             entity_counts = [len(r.entities) for r in successful_results]
-            
+
             stats = {
                 "successful_chunks": len(successful_results),
                 "failed_chunks": len(error_results),
@@ -339,7 +339,7 @@ class ParallelAnalysisEngine:
                 "failed_chunks": len(error_results),
                 "errors": [r.error for r in error_results if r.error],
             }
-        
+
         return stats
 
     def cleanup_analyzer_cache(self) -> None:
@@ -353,29 +353,29 @@ class ParallelAnalysisEngine:
     ) -> list[str]:
         """Generate performance optimization recommendations based on analysis results."""
         recommendations = []
-        
+
         if not self.enable_performance_monitoring:
             recommendations.append("Enable performance monitoring for detailed recommendations")
             return recommendations
-        
+
         stats = analysis_result.performance_stats
-        
+
         # Check processing rate
         if stats.get("processing_rate_chars_per_second", 0) < 10000:
             recommendations.append("Consider increasing chunk size or thread count for better throughput")
-        
+
         # Check for failed chunks
         if stats.get("failed_chunks", 0) > 0:
             recommendations.append(
                 f"Investigate {stats['failed_chunks']} failed chunks to improve reliability"
             )
-        
+
         # Check thread utilization
         if analysis_result.threads_used < self.max_workers:
             recommendations.append(
                 "Consider smaller chunk sizes to better utilize available threads"
             )
-        
+
         # Check processing time variance
         min_time = stats.get("min_chunk_processing_time_ms", 0)
         max_time = stats.get("max_chunk_processing_time_ms", 0)
@@ -383,5 +383,5 @@ class ParallelAnalysisEngine:
             recommendations.append(
                 "High variance in chunk processing times - consider more uniform chunk sizes"
             )
-        
+
         return recommendations

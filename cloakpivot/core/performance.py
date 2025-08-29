@@ -3,10 +3,11 @@
 import functools
 import logging
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Generator, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +21,16 @@ class PerformanceMetric:
     start_time: float
     end_time: float
     duration_ms: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     memory_delta_mb: Optional[float] = None
-    
+
     @property
     def timestamp(self) -> str:
         """Get ISO timestamp for this metric."""
         return datetime.fromtimestamp(self.start_time, tz=timezone.utc).isoformat()
 
 
-@dataclass  
+@dataclass
 class OperationStats:
     """Aggregated statistics for an operation type."""
     operation: str
@@ -53,7 +54,7 @@ class PerformanceProfiler:
     - Aggregated statistics and reporting
     - Integration with memory monitoring
     """
-    
+
     def __init__(
         self,
         enable_memory_tracking: bool = True,
@@ -71,10 +72,10 @@ class PerformanceProfiler:
         self.enable_memory_tracking = enable_memory_tracking
         self.enable_detailed_logging = enable_detailed_logging
         self.auto_report_threshold_ms = auto_report_threshold_ms
-        
+
         self._metrics: list[PerformanceMetric] = []
-        self._operation_stats: Dict[str, OperationStats] = {}
-        
+        self._operation_stats: dict[str, OperationStats] = {}
+
         if self.enable_memory_tracking:
             try:
                 from .memory_optimization import MemoryMonitor
@@ -85,18 +86,18 @@ class PerformanceProfiler:
                 self._memory_monitor = None
         else:
             self._memory_monitor = None
-        
+
         logger.debug(
             f"PerformanceProfiler initialized: memory_tracking={enable_memory_tracking}, "
             f"detailed_logging={enable_detailed_logging}, "
             f"auto_report_threshold={auto_report_threshold_ms}ms"
         )
-    
+
     @contextmanager
     def measure_operation(
-        self, 
-        operation: str, 
-        metadata: Optional[Dict[str, Any]] = None
+        self,
+        operation: str,
+        metadata: Optional[dict[str, Any]] = None
     ) -> Generator[PerformanceMetric, None, None]:
         """
         Context manager for measuring operation performance.
@@ -110,11 +111,11 @@ class PerformanceProfiler:
         """
         start_time = time.perf_counter()
         start_memory = None
-        
+
         if self._memory_monitor and self.enable_memory_tracking:
             self._memory_monitor.set_baseline()
             start_memory = self._memory_monitor.get_memory_stats().process_memory_mb
-        
+
         # Create metric object
         metric = PerformanceMetric(
             operation=operation,
@@ -123,7 +124,7 @@ class PerformanceProfiler:
             duration_ms=0.0,
             metadata=metadata or {},
         )
-        
+
         try:
             yield metric
             success = True
@@ -133,28 +134,28 @@ class PerformanceProfiler:
         finally:
             end_time = time.perf_counter()
             duration_ms = (end_time - start_time) * 1000
-            
+
             # Update metric
             metric.end_time = end_time
             metric.duration_ms = duration_ms
-            
+
             # Add memory delta if tracking enabled
             if self._memory_monitor and self.enable_memory_tracking and start_memory:
                 current_memory = self._memory_monitor.get_memory_stats().process_memory_mb
                 metric.memory_delta_mb = current_memory - start_memory
-            
+
             # Record metric
             self._record_metric(metric, success)
-            
+
             # Auto-report slow operations
             if duration_ms >= self.auto_report_threshold_ms:
                 logger.warning(
                     f"Slow operation detected: {operation} took {duration_ms:.1f}ms"
                 )
-    
+
     def timing_decorator(
-        self, 
-        operation: Optional[str] = None, 
+        self,
+        operation: Optional[str] = None,
         include_args: bool = False
     ) -> Callable[[F], F]:
         """
@@ -169,27 +170,27 @@ class PerformanceProfiler:
         """
         def decorator(func: F) -> F:
             @functools.wraps(func)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 op_name = operation or f"{func.__module__}.{func.__name__}"
-                
+
                 metadata = {}
                 if include_args:
                     metadata['args_count'] = len(args)
                     metadata['kwargs_keys'] = list(kwargs.keys())
-                
+
                 with self.measure_operation(op_name, metadata):
                     return func(*args, **kwargs)
-            
-            return wrapper
+
+            return wrapper  # type: ignore
         return decorator
-    
+
     def _record_metric(self, metric: PerformanceMetric, success: bool) -> None:
         """Record a performance metric and update statistics."""
         self._metrics.append(metric)
-        
+
         # Update operation statistics
         op_name = metric.operation
-        
+
         if op_name not in self._operation_stats:
             self._operation_stats[op_name] = OperationStats(
                 operation=op_name,
@@ -202,7 +203,7 @@ class PerformanceProfiler:
                 success_rate=0.0,
                 failure_count=0,
             )
-        
+
         stats = self._operation_stats[op_name]
         stats.total_calls += 1
         stats.total_duration_ms += metric.duration_ms
@@ -210,23 +211,23 @@ class PerformanceProfiler:
         stats.min_duration_ms = min(stats.min_duration_ms, metric.duration_ms)
         stats.max_duration_ms = max(stats.max_duration_ms, metric.duration_ms)
         stats.last_call_time = metric.start_time
-        
+
         if not success:
             stats.failure_count += 1
-        
+
         stats.success_rate = (stats.total_calls - stats.failure_count) / stats.total_calls
-        
+
         # Log detailed information if enabled
         if self.enable_detailed_logging:
             memory_info = ""
             if metric.memory_delta_mb is not None:
                 memory_info = f" (Δ{metric.memory_delta_mb:+.1f} MB)"
-            
+
             logger.debug(
                 f"Performance metric: {op_name} completed in {metric.duration_ms:.1f}ms{memory_info}"
             )
-    
-    def get_operation_stats(self, operation: Optional[str] = None) -> Union[OperationStats, Dict[str, OperationStats]]:
+
+    def get_operation_stats(self, operation: Optional[str] = None) -> Union[OperationStats, dict[str, OperationStats]]:
         """
         Get performance statistics for operations.
         
@@ -246,12 +247,12 @@ class PerformanceProfiler:
                 max_duration_ms=0.0,
                 last_call_time=0.0,
             ))
-        
+
         return self._operation_stats.copy()
-    
+
     def get_recent_metrics(
-        self, 
-        operation: Optional[str] = None, 
+        self,
+        operation: Optional[str] = None,
         limit: int = 100
     ) -> list[PerformanceMetric]:
         """
@@ -265,14 +266,14 @@ class PerformanceProfiler:
             List of recent PerformanceMetric objects
         """
         metrics = self._metrics
-        
+
         if operation:
             metrics = [m for m in metrics if m.operation == operation]
-        
+
         # Return most recent metrics first
         return sorted(metrics, key=lambda m: m.start_time, reverse=True)[:limit]
-    
-    def generate_performance_report(self) -> Dict[str, Any]:
+
+    def generate_performance_report(self) -> dict[str, Any]:
         """
         Generate comprehensive performance report.
         
@@ -281,24 +282,24 @@ class PerformanceProfiler:
         """
         total_operations = sum(stats.total_calls for stats in self._operation_stats.values())
         total_time = sum(stats.total_duration_ms for stats in self._operation_stats.values())
-        
+
         # Find slowest operations
         slowest_ops = sorted(
             self._operation_stats.values(),
             key=lambda s: s.average_duration_ms,
             reverse=True
         )[:5]
-        
+
         # Find most frequent operations
         frequent_ops = sorted(
             self._operation_stats.values(),
             key=lambda s: s.total_calls,
             reverse=True
         )[:5]
-        
+
         # Calculate success rates
         failed_ops = [s for s in self._operation_stats.values() if s.failure_count > 0]
-        
+
         report = {
             "summary": {
                 "total_operations": total_operations,
@@ -339,56 +340,56 @@ class PerformanceProfiler:
             "recommendations": self._generate_recommendations(),
             "report_timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        
+
         return report
-    
+
     def _generate_recommendations(self) -> list[str]:
         """Generate performance optimization recommendations."""
         recommendations = []
-        
+
         # Check for slow operations
         slow_ops = [
-            s for s in self._operation_stats.values() 
+            s for s in self._operation_stats.values()
             if s.average_duration_ms > self.auto_report_threshold_ms
         ]
-        
+
         if slow_ops:
             recommendations.append(
                 f"Consider optimizing {len(slow_ops)} operations with average duration "
                 f"> {self.auto_report_threshold_ms}ms"
             )
-        
+
         # Check for failed operations
         failed_ops = [s for s in self._operation_stats.values() if s.failure_count > 0]
-        
+
         if failed_ops:
             recommendations.append(
                 f"Investigate {len(failed_ops)} operations with failures to improve reliability"
             )
-        
+
         # Check for high-frequency operations
         high_freq_ops = [
             s for s in self._operation_stats.values()
             if s.total_calls > 100 and s.average_duration_ms > 100
         ]
-        
+
         if high_freq_ops:
             recommendations.append(
                 f"Focus optimization on {len(high_freq_ops)} high-frequency operations"
             )
-        
+
         return recommendations
-    
+
     def reset_metrics(self) -> None:
         """Reset all collected metrics and statistics."""
         self._metrics.clear()
         self._operation_stats.clear()
         logger.info("Performance metrics reset")
-    
+
     def export_metrics_to_log(self) -> None:
         """Export performance metrics to structured logs for analysis."""
         report = self.generate_performance_report()
-        
+
         logger.info(
             "Performance Report",
             extra={
@@ -408,10 +409,10 @@ _global_profiler: Optional[PerformanceProfiler] = None
 def get_profiler() -> PerformanceProfiler:
     """Get or create the global performance profiler instance."""
     global _global_profiler
-    
+
     if _global_profiler is None:
         _global_profiler = PerformanceProfiler()
-    
+
     return _global_profiler
 
 

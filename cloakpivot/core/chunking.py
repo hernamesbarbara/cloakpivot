@@ -2,8 +2,9 @@
 
 import logging
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 from docling_core.types import DoclingDocument
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ChunkedTextSegment(TextSegment):
     """
     Extended TextSegment with chunk boundary information.
-    
+
     Attributes:
         chunk_id: Unique identifier for the chunk containing this segment
         chunk_start: Start offset of the chunk in the full document
@@ -24,9 +25,9 @@ class ChunkedTextSegment(TextSegment):
         is_chunk_boundary: True if this segment spans across chunk boundaries
         original_segment_id: Reference to the original segment before chunking
     """
-    chunk_id: str
-    chunk_start: int
-    chunk_end: int
+    chunk_id: str = ""
+    chunk_start: int = 0
+    chunk_end: int = 0
     is_chunk_boundary: bool = False
     original_segment_id: Optional[str] = None
 
@@ -98,7 +99,7 @@ class ChunkedDocumentProcessor:
         self.overlap_size = overlap_size
         self.preserve_segment_boundaries = preserve_segment_boundaries
         self.text_extractor = TextExtractor()
-        
+
         logger.info(
             f"ChunkedDocumentProcessor initialized: chunk_size={self.chunk_size}, "
             f"overlap_size={self.overlap_size}, preserve_boundaries={self.preserve_segment_boundaries}"
@@ -116,7 +117,7 @@ class ChunkedDocumentProcessor:
                 return chunk_size
             except ValueError:
                 logger.warning(f"Invalid CLOAKPIVOT_CHUNK_SIZE format: {env_chunk_size}, using default")
-        
+
         return self.DEFAULT_CHUNK_SIZE
 
     def chunk_document(self, document: DoclingDocument) -> list[ChunkBoundary]:
@@ -130,39 +131,39 @@ class ChunkedDocumentProcessor:
             List of ChunkBoundary objects representing the chunks
         """
         logger.info(f"Chunking document {document.name} with chunk size {self.chunk_size}")
-        
+
         # Extract all text segments first
         segments = self.text_extractor.extract_text_segments(document)
-        
+
         if not segments:
             logger.warning(f"No text segments found in document {document.name}")
             return []
-        
+
         # Calculate total text length
         total_length = segments[-1].end_offset if segments else 0
         logger.debug(f"Total document text length: {total_length} characters")
-        
+
         # If document is smaller than chunk size, return single chunk
         if total_length <= self.chunk_size:
             logger.debug("Document fits in single chunk")
             return [self._create_single_chunk(segments)]
-        
+
         # Create chunks
         chunks = []
         current_offset = 0
         chunk_counter = 0
-        
+
         while current_offset < total_length:
             chunk_counter += 1
             chunk_id = f"chunk_{chunk_counter:03d}"
-            
+
             chunk_end = min(current_offset + self.chunk_size, total_length)
-            
+
             # Find segments that fall within this chunk
             chunk_segments = self._get_segments_in_range(
                 segments, current_offset, chunk_end
             )
-            
+
             # Adjust chunk end to preserve segment boundaries if enabled
             if self.preserve_segment_boundaries and chunk_segments:
                 chunk_end = self._adjust_chunk_end_for_boundaries(
@@ -172,23 +173,23 @@ class ChunkedDocumentProcessor:
                 chunk_segments = self._get_segments_in_range(
                     segments, current_offset, chunk_end
                 )
-            
+
             # Create chunked segments
             chunked_segments = []
             cross_chunk_segments = []
-            
+
             for segment in chunk_segments:
-                is_boundary = (segment.start_offset < current_offset or 
+                is_boundary = (segment.start_offset < current_offset or
                               segment.end_offset > chunk_end)
-                
+
                 if is_boundary:
                     cross_chunk_segments.append(segment.node_id)
-                
+
                 chunked_segment = ChunkedTextSegment.from_text_segment(
                     segment, chunk_id, current_offset, chunk_end, is_boundary
                 )
                 chunked_segments.append(chunked_segment)
-            
+
             chunk = ChunkBoundary(
                 chunk_id=chunk_id,
                 start_offset=current_offset,
@@ -197,29 +198,29 @@ class ChunkedDocumentProcessor:
                 cross_chunk_segments=cross_chunk_segments,
             )
             chunks.append(chunk)
-            
+
             logger.debug(
                 f"Created {chunk_id}: offset {current_offset}-{chunk_end} "
                 f"({chunk.size} chars, {len(chunked_segments)} segments)"
             )
-            
+
             # Move to next chunk with overlap
             current_offset = max(chunk_end - self.overlap_size, current_offset + 1)
-        
+
         logger.info(f"Created {len(chunks)} chunks for document {document.name}")
         return chunks
 
     def _create_single_chunk(self, segments: list[TextSegment]) -> ChunkBoundary:
         """Create a single chunk containing all segments."""
         total_length = segments[-1].end_offset if segments else 0
-        
+
         chunked_segments = [
             ChunkedTextSegment.from_text_segment(
                 segment, "chunk_001", 0, total_length, False
             )
             for segment in segments
         ]
-        
+
         return ChunkBoundary(
             chunk_id="chunk_001",
             start_offset=0,
@@ -252,7 +253,7 @@ class ChunkedDocumentProcessor:
                 # Otherwise, end before this segment starts
                 else:
                     return segment.start_offset
-        
+
         # No problematic segment found, use target end
         return target_end
 
@@ -260,13 +261,13 @@ class ChunkedDocumentProcessor:
         """Get statistics about the chunking operation."""
         if not chunks:
             return {"total_chunks": 0, "total_size": 0}
-        
+
         total_size = sum(chunk.size for chunk in chunks)
         total_segments = sum(len(chunk.segments) for chunk in chunks)
         total_cross_chunk = sum(len(chunk.cross_chunk_segments) for chunk in chunks)
-        
+
         chunk_sizes = [chunk.size for chunk in chunks]
-        
+
         return {
             "total_chunks": len(chunks),
             "total_size": total_size,
@@ -305,5 +306,5 @@ class ChunkedDocumentProcessor:
         chunk_texts = []
         for segment in chunk.segments:
             chunk_texts.append(segment.text)
-        
+
         return "\n\n".join(chunk_texts)
