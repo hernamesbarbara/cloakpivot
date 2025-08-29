@@ -1376,6 +1376,11 @@ def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) 
         raise click.ClickException(f"Failed to read CloakMap summary: {e}") from e
 
 
+# Import and add batch command group
+from .batch import batch
+cli.add_command(batch)
+
+
 def main() -> None:
     """Main entry point for the CLI."""
     cli()
