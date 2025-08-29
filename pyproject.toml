@@ -59,12 +59,10 @@ test = [
 cloakpivot = "cloakpivot.cli.main:main"
 
 [project.entry-points."cloakpivot.plugins.strategies"]
-# Built-in example strategy plugins can be added here
-# example_strategy = "cloakpivot.plugins.examples.strategies:ExampleStrategyPlugin"
+# Strategy plugins can be registered here by external packages
 
 [project.entry-points."cloakpivot.plugins.recognizers"]
-# Built-in example recognizer plugins can be added here  
-# example_recognizer = "cloakpivot.plugins.examples.recognizers:ExampleRecognizerPlugin"
+# Recognizer plugins can be registered here by external packages
 
 [project.urls]
 "Homepage" = "https://github.com/example/cloakpivot"

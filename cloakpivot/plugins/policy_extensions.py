@@ -151,7 +151,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
             if plugin_config and plugin_config.enabled:
                 # Return a custom strategy that indicates plugin usage
                 # Add a dummy callback to satisfy Strategy validation
-                def plugin_callback(original_text, entity_type, confidence):
+                def plugin_callback(original_text: str, entity_type: str, confidence: float) -> str:
                     return f"PLUGIN_{plugin_name}[{original_text}]"
                 
                 return Strategy(

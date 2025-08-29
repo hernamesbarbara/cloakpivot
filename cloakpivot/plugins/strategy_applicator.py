@@ -91,9 +91,10 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
         fallback_strategy = strategy.get_parameter("fallback_strategy")
         
         if not plugin_name:
-            logger.error("Plugin strategy missing plugin_name parameter")
+            error_msg = "Plugin strategy missing plugin_name parameter"
+            logger.error(error_msg)
             return self._apply_fallback_strategy(
-                original_text, entity_type, fallback_strategy, confidence
+                original_text, entity_type, strategy, confidence, error_msg
             )
         
         try:
@@ -113,30 +114,32 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
                 )
                 return result.masked_text
             else:
-                logger.warning(
-                    f"Plugin strategy {plugin_name} failed: {result.error_message}"
-                )
+                error_msg = f"Plugin strategy {plugin_name} failed: {result.error_message}"
+                logger.warning(error_msg)
                 return self._apply_fallback_strategy(
-                    original_text, entity_type, fallback_strategy, confidence
+                    original_text, entity_type, strategy, confidence, error_msg
                 )
                 
         except PluginExecutionError as e:
-            logger.error(f"Plugin strategy {plugin_name} execution error: {e}")
+            error_msg = f"Plugin strategy {plugin_name} execution error: {e}"
+            logger.error(error_msg)
             return self._apply_fallback_strategy(
-                original_text, entity_type, fallback_strategy, confidence
+                original_text, entity_type, strategy, confidence, error_msg
             )
         except Exception as e:
-            logger.error(f"Unexpected error in plugin strategy {plugin_name}: {e}")
+            error_msg = f"Unexpected error in plugin strategy {plugin_name}: {e}"
+            logger.error(error_msg)
             return self._apply_fallback_strategy(
-                original_text, entity_type, fallback_strategy, confidence
+                original_text, entity_type, strategy, confidence, error_msg
             )
     
     def _apply_fallback_strategy(
         self,
         original_text: str,
         entity_type: str,
-        fallback_strategy: Optional[Strategy],
+        primary_strategy: Strategy,
         confidence: float,
+        error_msg: str,
     ) -> str:
         """
         Apply fallback strategy when plugin fails.
@@ -144,19 +147,19 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
         Args:
             original_text: Original text
             entity_type: Entity type
-            fallback_strategy: Optional fallback strategy
+            primary_strategy: Primary strategy to apply
             confidence: Confidence score
+            error_msg: Error message from failed plugin
             
         Returns:
             Fallback masked text
         """
-        if fallback_strategy:
-            try:
-                logger.info(f"Applying fallback strategy for {entity_type}")
-                return super().apply_strategy(
-                    original_text, entity_type, fallback_strategy, confidence
-                )
-            except Exception as e:
+        try:
+            logger.info(f"Applying fallback strategy for {entity_type}: {error_msg}")
+            return super().apply_strategy(
+                original_text, entity_type, primary_strategy, confidence
+            )
+        except Exception as e:
                 logger.error(f"Fallback strategy also failed: {e}")
         
         # Ultimate fallback - simple redaction
@@ -165,7 +168,7 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
     
     def register_strategy_plugin_with_config(
         self,
-        plugin,
+        plugin: Any,
         config: Optional[Dict[str, Any]] = None
     ) -> None:
         """

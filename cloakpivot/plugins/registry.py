@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
-from importlib.metadata import entry_points
+from importlib.metadata import entry_points, EntryPoint
 
 from .base import BasePlugin, PluginInfo, PluginStatus
 from .exceptions import (
@@ -74,14 +74,14 @@ class PluginRegistry:
             # Discover strategy plugins
             self._discover_entry_point_plugins(
                 "cloakpivot.plugins.strategies",
-                BaseStrategyPlugin,
+                BaseStrategyPlugin,  # type: ignore[type-abstract]
                 "strategy"
             )
             
             # Discover recognizer plugins  
             self._discover_entry_point_plugins(
                 "cloakpivot.plugins.recognizers",
-                BaseRecognizerPlugin,
+                BaseRecognizerPlugin,  # type: ignore[type-abstract]
                 "recognizer"
             )
             
@@ -135,7 +135,7 @@ class PluginRegistry:
     
     def _load_entry_point_plugin(
         self,
-        entry_point,
+        entry_point: EntryPoint,
         base_class: Type[BasePlugin], 
         plugin_type: str
     ) -> None:
@@ -436,7 +436,7 @@ class PluginRegistry:
         Returns:
             Dictionary with registry statistics and status
         """
-        status_counts = {}
+        status_counts: Dict[str, int] = {}
         for info in self._plugin_infos.values():
             status = info.status.value
             status_counts[status] = status_counts.get(status, 0) + 1

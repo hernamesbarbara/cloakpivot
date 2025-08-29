@@ -267,7 +267,7 @@ class BaseRecognizerPlugin(BasePlugin):
         Returns:
             List of supported entity types
         """
-        return self.get_config_value("entity_types", [])
+        return self.get_config_value("entity_types", []) or []
     
     def get_supported_languages(self) -> List[str]:
         """
@@ -276,7 +276,7 @@ class BaseRecognizerPlugin(BasePlugin):
         Returns:
             List of supported language codes
         """
-        return self.get_config_value("supported_languages", ["en"])
+        return self.get_config_value("supported_languages", ["en"]) or ["en"]
     
     def supports_language(self, language: str) -> bool:
         """
