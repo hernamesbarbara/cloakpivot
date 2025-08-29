@@ -478,8 +478,14 @@ class TestUnmaskingEngine:
             anchors=[],
         )
 
-        with pytest.raises(ValueError, match="CloakMap contains no anchors to restore"):
-            engine.unmask_document(doc, cloakmap)
+        # Should not raise an exception, but return document unchanged
+        result = engine.unmask_document(doc, cloakmap)
+            
+        # Should return the document unchanged
+        assert result.restored_document is not None
+        assert result.stats["total_anchors_processed"] == 0
+        assert result.stats["successful_restorations"] == 0
+        assert result.stats["failed_restorations"] == 0
 
 
 class TestUnmaskingIntegration:

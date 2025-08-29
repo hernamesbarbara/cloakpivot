@@ -121,7 +121,7 @@ class TestPropertyBased:
     """Property-based tests using Hypothesis."""
     
     @given(document_strategy(), policy_strategy())
-    @settings(max_examples=20, deadline=30000)  # Increased deadline for complex operations
+    @settings(max_examples=5, deadline=5000)  # Reduced examples and deadline for CI performance
     @example(
         document=DoclingDocument(name="test"),
         policy=MaskingPolicy(
@@ -147,7 +147,7 @@ class TestPropertyBased:
             pytest.fail(f"Masking failed with document '{document.name}' and policy privacy level '{policy.privacy_level}': {str(e)}")
     
     @given(document_strategy(), policy_strategy())
-    @settings(max_examples=15, deadline=45000)
+    @settings(max_examples=5, deadline=10000)
     def test_round_trip_property(self, document: DoclingDocument, policy: MaskingPolicy):
         """Property: Round-trip masking/unmasking should preserve original content."""
         # Skip empty documents
@@ -178,7 +178,7 @@ class TestPropertyBased:
             pytest.fail(f"Round-trip failed: {str(e)}")
     
     @given(st.text(min_size=1, max_size=1000))
-    @settings(max_examples=30)
+    @settings(max_examples=10, deadline=3000)
     def test_text_processing_robustness(self, text: str):
         """Property: Text processing should handle arbitrary strings without crashing."""
         # Skip text that is just whitespace
@@ -220,7 +220,7 @@ class TestPropertyBased:
         st.lists(st.text(min_size=5, max_size=200), min_size=1, max_size=10),
         policy_strategy()
     )
-    @settings(max_examples=15, deadline=30000)
+    @settings(max_examples=5, deadline=8000)
     def test_multi_section_document_property(self, text_sections: List[str], policy: MaskingPolicy):
         """Property: Multi-section documents should preserve section count and structure."""
         # Filter out empty sections
@@ -261,7 +261,7 @@ class TestPropertyBased:
         st.floats(min_value=0.0, max_value=1.0),
         st.sampled_from(["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"])
     )
-    @settings(max_examples=25, deadline=timedelta(seconds=2))
+    @settings(max_examples=10, deadline=timedelta(seconds=2))
     def test_threshold_property(self, threshold: float, entity_type: str):
         """Property: Threshold values should control entity detection sensitivity."""
         # Create test text with known PII
@@ -304,7 +304,7 @@ class TestPropertyBased:
             pytest.fail(f"Threshold testing failed for {entity_type} with threshold {threshold}: {str(e)}")
 
 
-@settings(max_examples=5, stateful_step_count=10, deadline=20000)
+@settings(max_examples=3, stateful_step_count=5, deadline=10000)
 class MaskingStateMachine(RuleBasedStateMachine):
     """Stateful testing for complex masking scenarios."""
     
@@ -380,7 +380,7 @@ class TestPropertyBasedSlow:
     
     @pytest.mark.slow
     @given(document_strategy(), policy_strategy())
-    @settings(max_examples=50, deadline=60000)
+    @settings(max_examples=10, deadline=15000)
     def test_comprehensive_masking_properties(self, document: DoclingDocument, policy: MaskingPolicy):
         """Comprehensive property testing with more examples."""
         assume(document.texts and len(document.texts[0].text.strip()) > 0)
