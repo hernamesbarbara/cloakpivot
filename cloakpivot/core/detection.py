@@ -305,22 +305,19 @@ class EntityDetectionPipeline:
                 global_start = segment.start_offset + entity.start
                 global_end = segment.start_offset + entity.end
 
-                # Create anchor entry with correct parameters for AnchorEntry
-                import hashlib
-
-                original_checksum = hashlib.sha256(entity.text.encode()).hexdigest()
+                # Create anchor entry using factory method with salted checksum
                 replacement_id = f"repl_{anchor_id:06d}"
 
-                anchor_entry = AnchorEntry(
+                anchor_entry = AnchorEntry.create_from_detection(
                     node_id=segment.node_id,
                     start=entity.start,  # Relative to segment
                     end=entity.end,  # Relative to segment
                     entity_type=entity.entity_type,
                     confidence=entity.confidence,
+                    original_text=entity.text,
                     masked_value="[DETECTED]",  # Placeholder masked value
-                    replacement_id=replacement_id,
-                    original_checksum=original_checksum,
                     strategy_used="detection",  # Strategy used for detection phase
+                    replacement_id=replacement_id,
                     metadata={
                         "segment_type": segment.node_type,
                         "segment_length": segment.length,

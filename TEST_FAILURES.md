@@ -1,5 +1,1 @@
-# Test Failures
-
-## Failed Tests
-
-- tests/test_normalization.py::TestConflictResolutionConfig::test_default_config
+FAILED tests/test_security.py::TestCloakMapSecurity::test_security_validator

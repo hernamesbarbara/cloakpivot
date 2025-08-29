@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
+from .security import CryptoUtils, SecurityConfig
+
 
 @dataclass(frozen=True)
 class AnchorEntry:
@@ -13,7 +15,7 @@ class AnchorEntry:
 
     This class tracks the precise location of a detected entity in the document
     structure and its corresponding masked replacement, enabling deterministic
-    unmasking while maintaining security through checksums.
+    unmasking while maintaining security through salted checksums.
 
     Attributes:
         node_id: Unique identifier for the docpivot document node
@@ -23,13 +25,14 @@ class AnchorEntry:
         confidence: Detection confidence score from Presidio (0.0-1.0)
         masked_value: The replacement text that appears in the masked document
         replacement_id: Unique identifier for this replacement (for reverse lookup)
-        original_checksum: SHA-256 checksum of the original text (no plaintext stored)
+        original_checksum: Salted checksum of the original text (no plaintext stored)
+        checksum_salt: Salt used for the checksum (base64 encoded)
         strategy_used: The masking strategy that was applied
         timestamp: When this anchor was created
         metadata: Additional context information
 
     Examples:
-        >>> # Basic anchor for a phone number
+        >>> # Basic anchor for a phone number with salted checksum
         >>> anchor = AnchorEntry(
         ...     node_id="paragraph_0_text_1",
         ...     start=15,
@@ -39,6 +42,7 @@ class AnchorEntry:
         ...     masked_value="[PHONE]",
         ...     replacement_id="repl_123456",
         ...     original_checksum="a1b2c3d4...",
+        ...     checksum_salt="YWJjZGVmZ2g=",
         ...     strategy_used="template"
         ... )
 
@@ -52,6 +56,7 @@ class AnchorEntry:
         ...     masked_value="***-**-1234",
         ...     replacement_id="repl_789012",
         ...     original_checksum="e5f6g7h8...",
+        ...     checksum_salt="aWprbG1ub3A=",
         ...     strategy_used="partial"
         ... )
     """
@@ -64,6 +69,7 @@ class AnchorEntry:
     masked_value: str
     replacement_id: str
     original_checksum: str
+    checksum_salt: str
     strategy_used: str
     timestamp: Optional[datetime] = None
     metadata: Optional[dict[str, Any]] = None
@@ -103,7 +109,7 @@ class AnchorEntry:
             raise ValueError(f"confidence must be between 0.0 and 1.0, got {self.confidence}")
 
     def _validate_checksum(self) -> None:
-        """Validate original checksum format."""
+        """Validate original checksum and salt format."""
         if not isinstance(self.original_checksum, str):
             raise ValueError("original_checksum must be a string")
 
@@ -115,6 +121,16 @@ class AnchorEntry:
             int(self.original_checksum, 16)
         except ValueError as e:
             raise ValueError("original_checksum must contain only hexadecimal characters") from e
+
+        # Validate checksum salt
+        if not isinstance(self.checksum_salt, str):
+            raise ValueError("checksum_salt must be a string")
+
+        try:
+            import base64
+            base64.b64decode(self.checksum_salt)
+        except Exception as e:
+            raise ValueError("checksum_salt must be valid base64") from e
 
     def _validate_ids(self) -> None:
         """Validate node_id and replacement_id."""
@@ -145,18 +161,27 @@ class AnchorEntry:
         """Get the difference in length between original and replacement."""
         return self.replacement_length - self.span_length
 
-    def verify_original_text(self, original_text: str) -> bool:
+    def verify_original_text(self, original_text: str,
+                            config: Optional[SecurityConfig] = None) -> bool:
         """
-        Verify that the provided original text matches the stored checksum.
+        Verify that the provided original text matches the stored salted checksum.
 
         Args:
             original_text: The original text to verify
+            config: Security configuration for verification
 
         Returns:
             True if the text matches the checksum, False otherwise
         """
-        computed_checksum = self._compute_checksum(original_text)
-        return computed_checksum == self.original_checksum
+        if config is None:
+            config = SecurityConfig()
+
+        import base64
+        salt = base64.b64decode(self.checksum_salt)
+
+        return CryptoUtils.verify_salted_checksum(
+            original_text, salt, self.original_checksum, config
+        )
 
     def overlaps_with(self, other: "AnchorEntry") -> bool:
         """
@@ -207,6 +232,7 @@ class AnchorEntry:
             masked_value=self.masked_value,
             replacement_id=self.replacement_id,
             original_checksum=self.original_checksum,
+            checksum_salt=self.checksum_salt,
             strategy_used=self.strategy_used,
             timestamp=self.timestamp,
             metadata=merged_metadata
@@ -223,6 +249,7 @@ class AnchorEntry:
             "masked_value": self.masked_value,
             "replacement_id": self.replacement_id,
             "original_checksum": self.original_checksum,
+            "checksum_salt": self.checksum_salt,
             "strategy_used": self.strategy_used,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "metadata": self.metadata
@@ -235,6 +262,14 @@ class AnchorEntry:
         if data.get("timestamp"):
             timestamp = datetime.fromisoformat(data["timestamp"])
 
+        # Handle backward compatibility with old format without checksum_salt
+        checksum_salt = data.get("checksum_salt")
+        if not checksum_salt:
+            # For backward compatibility, generate a default salt if missing
+            import base64
+            default_salt = CryptoUtils.generate_salt(16)  # Smaller salt for compatibility
+            checksum_salt = base64.b64encode(default_salt).decode('ascii')
+
         return cls(
             node_id=data["node_id"],
             start=data["start"],
@@ -244,15 +279,20 @@ class AnchorEntry:
             masked_value=data["masked_value"],
             replacement_id=data["replacement_id"],
             original_checksum=data["original_checksum"],
+            checksum_salt=checksum_salt,
             strategy_used=data["strategy_used"],
             timestamp=timestamp,
             metadata=data.get("metadata")
         )
 
     @staticmethod
-    def _compute_checksum(text: str) -> str:
-        """Compute SHA-256 checksum of text."""
-        return hashlib.sha256(text.encode('utf-8')).hexdigest()
+    def _compute_salted_checksum(text: str, salt: bytes,
+                                config: Optional[SecurityConfig] = None) -> str:
+        """Compute salted checksum of text using PBKDF2."""
+        if config is None:
+            config = SecurityConfig()
+
+        return CryptoUtils.compute_salted_checksum(text, salt, config)
 
     @staticmethod
     def create_replacement_id(entity_type: str, node_id: str, start: int) -> str:
@@ -284,10 +324,11 @@ class AnchorEntry:
         masked_value: str,
         strategy_used: str,
         replacement_id: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None
+        metadata: Optional[dict[str, Any]] = None,
+        config: Optional[SecurityConfig] = None
     ) -> "AnchorEntry":
         """
-        Create an anchor entry from PII detection results.
+        Create an anchor entry from PII detection results using salted checksums.
 
         Args:
             node_id: Document node identifier
@@ -300,14 +341,22 @@ class AnchorEntry:
             strategy_used: The masking strategy applied
             replacement_id: Optional replacement ID (auto-generated if not provided)
             metadata: Optional additional metadata
+            config: Security configuration for checksum generation
 
         Returns:
-            New AnchorEntry instance
+            New AnchorEntry instance with salted checksum
         """
         if replacement_id is None:
             replacement_id = cls.create_replacement_id(entity_type, node_id, start)
 
-        original_checksum = cls._compute_checksum(original_text)
+        if config is None:
+            config = SecurityConfig()
+
+        # Generate salt and compute salted checksum
+        import base64
+        salt = CryptoUtils.generate_salt(config.salt_length)
+        original_checksum = cls._compute_salted_checksum(original_text, salt, config)
+        checksum_salt = base64.b64encode(salt).decode('ascii')
 
         return cls(
             node_id=node_id,
@@ -318,6 +367,7 @@ class AnchorEntry:
             masked_value=masked_value,
             replacement_id=replacement_id,
             original_checksum=original_checksum,
+            checksum_salt=checksum_salt,
             strategy_used=strategy_used,
             metadata=metadata
         )

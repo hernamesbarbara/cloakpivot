@@ -10,6 +10,7 @@ from cloakpivot import __version__
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
+
     from ..core.detection import DocumentAnalysisResult
     from ..core.policies import MaskingPolicy
     from ..masking.engine import MaskingResult
@@ -54,7 +55,11 @@ def _set_default_paths(input_path: Path, output_path: Optional[Path],
 def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolicy':
     """Load masking policy from file or use default with enhanced inheritance support."""
     from ..core.policies import MaskingPolicy
-    from ..core.policy_loader import PolicyLoader, PolicyValidationError, PolicyInheritanceError
+    from ..core.policy_loader import (
+        PolicyInheritanceError,
+        PolicyLoader,
+        PolicyValidationError,
+    )
 
     if policy:
         if verbose:
@@ -790,7 +795,7 @@ def policy_validate(policy_file: Path, verbose: bool) -> None:
     except ImportError:
         click.echo("⚠️  Enhanced policy validation requires pydantic")
         click.echo("   Install with: pip install pydantic")
-        raise click.ClickException("Missing required dependency")
+        raise click.ClickException("Missing required dependency") from None
 
 
 @policy.command("template")
@@ -829,16 +834,16 @@ def policy_template(template_name: str, output: TextIO) -> None:
         template_file = Path(__file__).parent.parent / "policies" / "templates" / f"{template_name}.yaml"
 
         if template_file.exists():
-            with open(template_file, 'r', encoding='utf-8') as f:
+            with open(template_file, encoding='utf-8') as f:
                 template_content = f.read()
             output.write(template_content)
 
             if output != sys.stdout:
                 click.echo(f"✅ {template_name.title()} template written to {output.name}")
         else:
-            raise click.ClickException(f"Template '{template_name}' not found")
+            raise click.ClickException(f"Template '{template_name}' not found") from None
     except Exception as e:
-        raise click.ClickException(f"Failed to load template: {e}")
+        raise click.ClickException(f"Failed to load template: {e}") from e
 
 
 @policy.command("test")
@@ -853,7 +858,6 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
     """
     try:
         from ..core.policy_loader import PolicyLoader
-        from ..core.detection import EntityDetectionPipeline
 
         # Load policy
         if verbose:
@@ -896,7 +900,7 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
         if verbose:
             import traceback
             click.echo(f"Error details:\n{traceback.format_exc()}")
-        raise click.ClickException(f"Policy test failed: {e}")
+        raise click.ClickException(f"Policy test failed: {e}") from e
 
 
 @policy.command("info")
@@ -962,7 +966,7 @@ def policy_info(policy_file: Path) -> None:
                 click.echo(f"  ... and {len(policy.deny_list) - 5} more")
 
     except Exception as e:
-        raise click.ClickException(f"Failed to read policy info: {e}")
+        raise click.ClickException(f"Failed to read policy info: {e}") from e
 
 
 def main() -> None:

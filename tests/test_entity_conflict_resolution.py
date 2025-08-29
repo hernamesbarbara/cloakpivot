@@ -312,7 +312,7 @@ class TestErrorConditions:
         """Test normalization with empty entity list."""
         normalizer = EntityNormalizer()
         result = normalizer.normalize_entities([])
-        
+
         assert len(result.normalized_entities) == 0
         assert result.conflicts_resolved == 0
 
@@ -325,10 +325,10 @@ class TestErrorConditions:
             confidence=0.9,
             text="John"
         )
-        
+
         normalizer = EntityNormalizer()
         result = normalizer.normalize_entities([entity])
-        
+
         assert len(result.normalized_entities) == 1
         assert result.normalized_entities[0] == entity
         assert result.conflicts_resolved == 0
@@ -338,8 +338,8 @@ class TestErrorConditions:
         # Test invalid preserve_high_confidence
         config = ConflictResolutionConfig(preserve_high_confidence=1.5)
         assert config.preserve_high_confidence == 1.5  # Should not raise during construction
-        
-        # Test invalid merge_threshold_chars  
+
+        # Test invalid merge_threshold_chars
         config = ConflictResolutionConfig(merge_threshold_chars=-1)
         assert config.merge_threshold_chars == -1  # Should not raise during construction
 
@@ -353,14 +353,14 @@ class TestErrorConditions:
             EntityDetectionResult("EMAIL", 30, 40, 0.85, "john@email"),
             EntityDetectionResult("EMAIL", 40, 44, 0.8, ".com"),  # Adjacent EMAIL parts
         ]
-        
+
         config = ConflictResolutionConfig(
             strategy=ConflictResolutionStrategy.MERGE_ADJACENT,
             merge_threshold_chars=1
         )
         normalizer = EntityNormalizer(config)
         result = normalizer.normalize_entities(entities)
-        
+
         # Should merge adjacent entities of same type
         assert len(result.normalized_entities) <= len(entities)
         assert result.conflicts_resolved >= 0
@@ -368,7 +368,7 @@ class TestErrorConditions:
     def test_large_entity_list_performance(self):
         """Test performance with large entity lists."""
         import time
-        
+
         # Create a large list of entities (100 entities)
         entities = []
         for i in range(100):
@@ -380,13 +380,13 @@ class TestErrorConditions:
                 text=f"test{i}"
             )
             entities.append(entity)
-        
+
         normalizer = EntityNormalizer()
-        
+
         start_time = time.time()
         result = normalizer.normalize_entities(entities)
         duration = time.time() - start_time
-        
+
         # Should complete within reasonable time (< 1 second)
         assert duration < 1.0
         assert len(result.normalized_entities) <= len(entities)
@@ -394,9 +394,9 @@ class TestErrorConditions:
     def test_masking_engine_error_recovery(self):
         """Test MaskingEngine error recovery during entity conversion."""
         # Create a simple document for testing
-        from docling_core.types.doc.document import TextItem
         from docling_core.types import DoclingDocument
-        
+        from docling_core.types.doc.document import TextItem
+
         doc = DoclingDocument(name="test_doc")
         text_item = TextItem(
             text="Test document with some text",
@@ -405,7 +405,7 @@ class TestErrorConditions:
             orig="Test document with some text",
         )
         doc.texts = [text_item]
-        
+
         # Create text segments
         text_segments = [
             TextSegment(
@@ -422,12 +422,12 @@ class TestErrorConditions:
             RecognizerResult(entity_type="PHONE", start=500, end=600, score=0.8),  # Beyond text
             RecognizerResult(entity_type="EMAIL", start=10, end=8, score=0.7),     # Invalid range
         ]
-        
+
         engine = MaskingEngine(resolve_conflicts=True)
-        
+
         # Should not raise exception, but handle errors gracefully
         result = engine._resolve_entity_conflicts(problematic_entities, text_segments)
-        
+
         # Should return empty list since all entities are invalid
         assert isinstance(result, list)
         assert len(result) == 0

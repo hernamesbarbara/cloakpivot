@@ -11,8 +11,8 @@ from typing import Any, Optional
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
 
-from ..core.anchors import AnchorEntry
 from ..core.analyzer import EntityDetectionResult
+from ..core.anchors import AnchorEntry
 from ..core.cloakmap import CloakMap
 from ..core.normalization import ConflictResolutionConfig, EntityNormalizer
 from ..core.policies import MaskingPolicy
@@ -63,7 +63,7 @@ class MaskingEngine:
 
     def __init__(self, resolve_conflicts: bool = False, conflict_resolution_config: Optional[ConflictResolutionConfig] = None) -> None:
         """Initialize the masking engine.
-        
+
         Args:
             resolve_conflicts: Whether to resolve entity conflicts or raise errors (default: False for backward compatibility)
             conflict_resolution_config: Configuration for conflict resolution (uses defaults if None)
@@ -217,10 +217,10 @@ class MaskingEngine:
         """Resolve entity conflicts using EntityNormalizer or validate no overlaps.
 
         This method handles entity conflicts in two modes based on the resolve_conflicts flag:
-        
+
         1. Legacy mode (resolve_conflicts=False): Validates that no overlapping entities exist
            and raises ValueError if any are found, maintaining backward compatibility.
-           
+
         2. Conflict resolution mode (resolve_conflicts=True): Uses EntityNormalizer to
            intelligently resolve overlapping and adjacent entities through merging,
            priority-based selection, or confidence-based resolution.
@@ -253,7 +253,7 @@ class MaskingEngine:
         # Convert RecognizerResult to EntityDetectionResult
         entity_detection_results = []
         text_by_segment = {}  # Cache text content by segment
-        
+
         for entity in entities:
             segment = self._find_segment_for_entity(entity, text_segments)
             if not segment:
@@ -261,17 +261,17 @@ class MaskingEngine:
                     f"No segment found for entity at {entity.start}-{entity.end}, skipping"
                 )
                 continue
-                
+
             # Get segment text for entity text extraction
             if segment.node_id not in text_by_segment:
                 text_by_segment[segment.node_id] = segment.text
-            
+
             segment_text = text_by_segment[segment.node_id]
-            
+
             # Convert to relative positions within segment
             segment_relative_start = entity.start - segment.start_offset
             segment_relative_end = entity.end - segment.start_offset
-            
+
             # Validate entity bounds relative to segment
             if segment_relative_start < 0:
                 logger.warning(
@@ -279,21 +279,21 @@ class MaskingEngine:
                     f"adjusting to segment boundary"
                 )
                 segment_relative_start = 0
-                
+
             if segment_relative_end > len(segment_text):
                 logger.warning(
                     f"Entity end {entity.end} beyond segment text length {len(segment_text)}, "
                     f"adjusting to segment boundary"
                 )
                 segment_relative_end = len(segment_text)
-                
+
             if segment_relative_start >= segment_relative_end:
                 logger.warning(
                     f"Invalid entity bounds after adjustment: start={segment_relative_start}, "
                     f"end={segment_relative_end}, skipping entity"
                 )
                 continue
-            
+
             # Extract entity text with bounds checking
             try:
                 entity_text = segment_text[segment_relative_start:segment_relative_end]
@@ -302,13 +302,13 @@ class MaskingEngine:
                         f"Empty or whitespace-only entity text at {entity.start}-{entity.end}, skipping"
                     )
                     continue
-                    
+
             except (IndexError, TypeError) as e:
                 logger.warning(
                     f"Failed to extract entity text at {entity.start}-{entity.end}: {e}, skipping"
                 )
                 continue
-            
+
             # Create detection result with error handling
             try:
                 detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
@@ -402,22 +402,17 @@ class MaskingEngine:
         # Generate unique replacement ID
         replacement_id = f"repl_{uuid.uuid4().hex[:12]}"
 
-        # Compute checksum of original text (no plaintext storage)
-        original_checksum = hashlib.sha256(
-            original_text.encode("utf-8")
-        ).hexdigest()
-
-        return AnchorEntry(
+        # Use factory method to create anchor with salted checksum
+        return AnchorEntry.create_from_detection(
             node_id=segment.node_id,
             start=relative_start,
             end=relative_end,
             entity_type=entity.entity_type,
             confidence=entity.score,
+            original_text=original_text,
             masked_value=masked_value,
-            replacement_id=replacement_id,
-            original_checksum=original_checksum,
             strategy_used=strategy.kind.value,
-            timestamp=datetime.utcnow(),
+            replacement_id=replacement_id,
         )
 
     def _copy_document(self, document: DoclingDocument) -> DoclingDocument:

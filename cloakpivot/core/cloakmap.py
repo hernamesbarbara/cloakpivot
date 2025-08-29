@@ -1,7 +1,6 @@
 """CloakMap system for secure, reversible masking operations."""
 
 import hashlib
-import hmac
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -9,6 +8,12 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from .anchors import AnchorEntry, AnchorIndex
+from .security import (
+    CryptoUtils,
+    KeyManager,
+    SecurityConfig,
+    create_default_key_manager,
+)
 
 
 @dataclass(frozen=True)
@@ -199,12 +204,16 @@ class CloakMap:
         computed_hash = hashlib.sha256(content_bytes).hexdigest()
         return computed_hash == self.doc_hash
 
-    def verify_signature(self, secret_key: str) -> bool:
+    def verify_signature(self, key_manager: Optional[KeyManager] = None,
+                        secret_key: Optional[str] = None,
+                        config: Optional[SecurityConfig] = None) -> bool:
         """
         Verify the HMAC signature of the CloakMap.
 
         Args:
-            secret_key: The secret key used for signing
+            key_manager: Key manager for retrieving signing keys
+            secret_key: Direct secret key (deprecated, use key_manager)
+            config: Security configuration
 
         Returns:
             True if the signature is valid, False otherwise
@@ -212,14 +221,24 @@ class CloakMap:
         if not self.signature:
             return False
 
+        if config is None:
+            config = SecurityConfig()
+
+        # Get signing key using the key_id from crypto metadata
+        key_id = self.crypto.get('key_id', 'default') if self.crypto else 'default'
+        signing_key = self._get_signing_key(key_manager, secret_key, key_id)
+        if not signing_key:
+            return False
+
         # Create a copy without signature for verification
+        # NOTE: crypto must be None during verification to match signing content
         unsigned_map = CloakMap(
             version=self.version,
             doc_id=self.doc_id,
             doc_hash=self.doc_hash,
             anchors=self.anchors,
             policy_snapshot=self.policy_snapshot,
-            crypto=self.crypto,
+            crypto=None,  # Must be None to match signing content
             signature=None,
             created_at=self.created_at,
             metadata=self.metadata
@@ -227,24 +246,40 @@ class CloakMap:
 
         # Compute expected signature
         content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode('utf-8')
-        expected_signature = hmac.new(
-            secret_key.encode('utf-8'),
-            content,
-            hashlib.sha256
-        ).hexdigest()
 
-        return hmac.compare_digest(self.signature, expected_signature)
+        # Use enhanced crypto utilities
+        algorithm = self.crypto.get('signature_algorithm', config.hmac_algorithm) if self.crypto else config.hmac_algorithm
+        CryptoUtils.compute_hmac(content, signing_key, algorithm)
 
-    def with_signature(self, secret_key: str) -> "CloakMap":
+        return CryptoUtils.verify_hmac(
+            content, signing_key, self.signature, algorithm,
+            config.constant_time_verification
+        )
+
+    def with_signature(self, key_manager: Optional[KeyManager] = None,
+                      secret_key: Optional[str] = None,
+                      key_id: str = "default",
+                      config: Optional[SecurityConfig] = None) -> "CloakMap":
         """
         Create a new CloakMap with an HMAC signature.
 
         Args:
-            secret_key: The secret key to use for signing
+            key_manager: Key manager for retrieving signing keys
+            secret_key: Direct secret key (deprecated, use key_manager)
+            key_id: Key identifier for key manager
+            config: Security configuration
 
         Returns:
             New CloakMap with signature
         """
+        if config is None:
+            config = SecurityConfig()
+
+        # Get signing key
+        signing_key = self._get_signing_key(key_manager, secret_key, key_id)
+        if not signing_key:
+            raise ValueError("No signing key available")
+
         # Create unsigned version for signing
         unsigned_map = CloakMap(
             version=self.version,
@@ -258,13 +293,17 @@ class CloakMap:
             metadata=self.metadata
         )
 
-        # Generate signature
+        # Generate signature with enhanced crypto
         content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode('utf-8')
-        signature = hmac.new(
-            secret_key.encode('utf-8'),
-            content,
-            hashlib.sha256
-        ).hexdigest()
+        signature = CryptoUtils.compute_hmac(content, signing_key, config.hmac_algorithm)
+
+        # Update crypto metadata with signing information
+        crypto_data = self.crypto.copy() if self.crypto else {}
+        crypto_data.update({
+            'signature_algorithm': config.hmac_algorithm,
+            'key_id': key_id,
+            'signed_at': datetime.utcnow().isoformat()
+        })
 
         return CloakMap(
             version=self.version,
@@ -272,23 +311,61 @@ class CloakMap:
             doc_hash=self.doc_hash,
             anchors=self.anchors,
             policy_snapshot=self.policy_snapshot,
-            crypto=self.crypto,
+            crypto=crypto_data,
             signature=signature,
             created_at=self.created_at,
             metadata=self.metadata
         )
 
-    def sign(self, secret_key: str) -> "CloakMap":
+    def sign(self, key_manager: Optional[KeyManager] = None,
+            secret_key: Optional[str] = None,
+            key_id: str = "default",
+            config: Optional[SecurityConfig] = None) -> "CloakMap":
         """
         Sign the CloakMap with a secret key (alias for with_signature).
 
         Args:
-            secret_key: The secret key to use for signing
+            key_manager: Key manager for retrieving signing keys
+            secret_key: Direct secret key (deprecated, use key_manager)
+            key_id: Key identifier for key manager
+            config: Security configuration
 
         Returns:
             New CloakMap with signature
         """
-        return self.with_signature(secret_key)
+        return self.with_signature(key_manager, secret_key, key_id, config)
+
+    def _get_signing_key(self, key_manager: Optional[KeyManager],
+                        secret_key: Optional[str],
+                        key_id: str = "default") -> Optional[bytes]:
+        """
+        Get signing key from manager or direct string.
+
+        Args:
+            key_manager: Key manager instance
+            secret_key: Direct secret key string
+            key_id: Key identifier
+
+        Returns:
+            Key bytes or None if not found
+        """
+        if key_manager:
+            try:
+                return key_manager.get_key(key_id)
+            except (KeyError, ValueError):
+                pass
+
+        if secret_key:
+            return secret_key.encode('utf-8')
+
+        # Try default key manager as fallback
+        try:
+            default_manager = create_default_key_manager()
+            return default_manager.get_key(key_id)
+        except (KeyError, ValueError):
+            pass
+
+        return None
 
     def with_encryption_metadata(self, algorithm: str, key_id: str,
                                additional_params: Optional[dict[str, Any]] = None) -> "CloakMap":
@@ -555,79 +632,32 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
     )
 
 
-def validate_cloakmap_integrity(cloakmap: CloakMap, secret_key: Optional[str] = None) -> dict[str, Any]:
+def validate_cloakmap_integrity(cloakmap: CloakMap,
+                               key_manager: Optional[KeyManager] = None,
+                               secret_key: Optional[str] = None,
+                               config: Optional[SecurityConfig] = None) -> dict[str, Any]:
     """
-    Perform comprehensive integrity validation of a CloakMap.
+    Perform comprehensive integrity validation of a CloakMap using enhanced security.
 
     Args:
         cloakmap: CloakMap to validate
-        secret_key: Optional secret key for signature verification
+        key_manager: Key manager for signature verification
+        secret_key: Optional direct secret key (deprecated, use key_manager)
+        config: Security configuration
 
     Returns:
-        Dictionary with validation results
+        Dictionary with detailed validation results
     """
-    results: dict[str, Any] = {
-        "valid": True,
-        "errors": [],
-        "warnings": [],
-        "checks": {
-            "structure": False,
-            "anchors": False,
-            "signature": False,
-            "duplicates": False
-        }
-    }
+    from .security import SecurityValidator
 
-    # Structure validation
-    try:
-        # This will trigger __post_init__ validation
-        CloakMap(
-            version=cloakmap.version,
-            doc_id=cloakmap.doc_id,
-            doc_hash=cloakmap.doc_hash,
-            anchors=cloakmap.anchors,
-            policy_snapshot=cloakmap.policy_snapshot,
-            crypto=cloakmap.crypto,
-            signature=cloakmap.signature,
-            created_at=cloakmap.created_at,
-            metadata=cloakmap.metadata
-        )
-        results["checks"]["structure"] = True
-    except Exception as e:
-        results["valid"] = False
-        results["errors"].append(f"Structure validation failed: {e}")
+    # Use enhanced security validator
+    if key_manager is None and secret_key:
+        # Create temporary key manager for backward compatibility
+        import os
 
-    # Anchor validation
-    try:
-        AnchorIndex(cloakmap.anchors)
-        results["checks"]["anchors"] = True
-    except Exception as e:
-        results["valid"] = False
-        results["errors"].append(f"Anchor validation failed: {e}")
+        from .security import EnvironmentKeyManager
+        os.environ['CLOAKPIVOT_KEY_DEFAULT'] = secret_key
+        key_manager = EnvironmentKeyManager()
 
-    # Duplicate check
-    replacement_ids = [a.replacement_id for a in cloakmap.anchors]
-    if len(replacement_ids) == len(set(replacement_ids)):
-        results["checks"]["duplicates"] = True
-    else:
-        results["valid"] = False
-        results["errors"].append("Duplicate replacement IDs found")
-
-    # Signature verification
-    if cloakmap.is_signed:
-        if secret_key:
-            try:
-                if cloakmap.verify_signature(secret_key):
-                    results["checks"]["signature"] = True
-                else:
-                    results["valid"] = False
-                    results["errors"].append("Signature verification failed")
-            except Exception as e:
-                results["valid"] = False
-                results["errors"].append(f"Signature verification error: {e}")
-        else:
-            results["warnings"].append("CloakMap is signed but no secret key provided for verification")
-    else:
-        results["checks"]["signature"] = True  # No signature to verify
-
-    return results
+    validator = SecurityValidator(config=config, key_manager=key_manager)
+    return validator.validate_cloakmap(cloakmap)
