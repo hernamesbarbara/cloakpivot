@@ -1,7 +1,6 @@
 """CloakMap system for secure, reversible masking operations."""
 
 import hashlib
-import hmac
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -10,11 +9,10 @@ from typing import Any, Optional, Union
 
 from .anchors import AnchorEntry, AnchorIndex
 from .security import (
-    KeyManager, 
-    SecurityConfig, 
-    SecurityMetadata, 
-    CryptoUtils, 
-    create_default_key_manager
+    CryptoUtils,
+    KeyManager,
+    SecurityConfig,
+    create_default_key_manager,
 )
 
 
@@ -206,7 +204,7 @@ class CloakMap:
         computed_hash = hashlib.sha256(content_bytes).hexdigest()
         return computed_hash == self.doc_hash
 
-    def verify_signature(self, key_manager: Optional[KeyManager] = None, 
+    def verify_signature(self, key_manager: Optional[KeyManager] = None,
                         secret_key: Optional[str] = None,
                         config: Optional[SecurityConfig] = None) -> bool:
         """
@@ -248,13 +246,13 @@ class CloakMap:
 
         # Compute expected signature
         content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode('utf-8')
-        
+
         # Use enhanced crypto utilities
         algorithm = self.crypto.get('signature_algorithm', config.hmac_algorithm) if self.crypto else config.hmac_algorithm
-        expected_signature = CryptoUtils.compute_hmac(content, signing_key, algorithm)
+        CryptoUtils.compute_hmac(content, signing_key, algorithm)
 
         return CryptoUtils.verify_hmac(
-            content, signing_key, self.signature, algorithm, 
+            content, signing_key, self.signature, algorithm,
             config.constant_time_verification
         )
 
@@ -337,17 +335,17 @@ class CloakMap:
         """
         return self.with_signature(key_manager, secret_key, key_id, config)
 
-    def _get_signing_key(self, key_manager: Optional[KeyManager], 
-                        secret_key: Optional[str], 
+    def _get_signing_key(self, key_manager: Optional[KeyManager],
+                        secret_key: Optional[str],
                         key_id: str = "default") -> Optional[bytes]:
         """
         Get signing key from manager or direct string.
-        
+
         Args:
             key_manager: Key manager instance
-            secret_key: Direct secret key string  
+            secret_key: Direct secret key string
             key_id: Key identifier
-            
+
         Returns:
             Key bytes or None if not found
         """
@@ -356,17 +354,17 @@ class CloakMap:
                 return key_manager.get_key(key_id)
             except (KeyError, ValueError):
                 pass
-        
+
         if secret_key:
             return secret_key.encode('utf-8')
-        
+
         # Try default key manager as fallback
         try:
             default_manager = create_default_key_manager()
             return default_manager.get_key(key_id)
         except (KeyError, ValueError):
             pass
-        
+
         return None
 
     def with_encryption_metadata(self, algorithm: str, key_id: str,
@@ -634,7 +632,7 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
     )
 
 
-def validate_cloakmap_integrity(cloakmap: CloakMap, 
+def validate_cloakmap_integrity(cloakmap: CloakMap,
                                key_manager: Optional[KeyManager] = None,
                                secret_key: Optional[str] = None,
                                config: Optional[SecurityConfig] = None) -> dict[str, Any]:
@@ -651,14 +649,15 @@ def validate_cloakmap_integrity(cloakmap: CloakMap,
         Dictionary with detailed validation results
     """
     from .security import SecurityValidator
-    
+
     # Use enhanced security validator
     if key_manager is None and secret_key:
         # Create temporary key manager for backward compatibility
-        from .security import EnvironmentKeyManager
         import os
+
+        from .security import EnvironmentKeyManager
         os.environ['CLOAKPIVOT_KEY_DEFAULT'] = secret_key
         key_manager = EnvironmentKeyManager()
-    
+
     validator = SecurityValidator(config=config, key_manager=key_manager)
     return validator.validate_cloakmap(cloakmap)

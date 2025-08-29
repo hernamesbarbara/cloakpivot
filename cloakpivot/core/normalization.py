@@ -18,7 +18,7 @@ DEFAULT_PRESERVE_HIGH_CONFIDENCE = 0.95
 DEFAULT_ENTITY_PRIORITIES = {
     # Critical entities
     "US_SSN": "CRITICAL",
-    "CREDIT_CARD": "CRITICAL", 
+    "CREDIT_CARD": "CRITICAL",
     "US_PASSPORT": "CRITICAL",
     "US_DRIVER_LICENSE": "CRITICAL",
     # High priority entities
@@ -28,7 +28,7 @@ DEFAULT_ENTITY_PRIORITIES = {
     "US_BANK_NUMBER": "HIGH",
     # Medium priority entities
     "PERSON": "MEDIUM",
-    "LOCATION": "MEDIUM", 
+    "LOCATION": "MEDIUM",
     "ORGANIZATION": "MEDIUM",
     "NRP": "MEDIUM",  # National Registration Person
     # Low priority entities
@@ -83,7 +83,7 @@ class ConflictResolutionConfig:
         if not self.entity_priorities:
             # Convert string priorities to EntityPriority enums using the defaults
             self.entity_priorities = {
-                entity_type: EntityPriority[priority_str] 
+                entity_type: EntityPriority[priority_str]
                 for entity_type, priority_str in DEFAULT_ENTITY_PRIORITIES.items()
             }
 
@@ -150,7 +150,7 @@ class EntityGroup:
         if the gap between them is at most the specified threshold characters.
 
         Algorithm:
-        1. Calculate gap from entity start to group end: abs(entity.start - self.end_pos)  
+        1. Calculate gap from entity start to group end: abs(entity.start - self.end_pos)
         2. Calculate gap from group start to entity end: abs(self.start_pos - entity.end)
         3. Take minimum gap (shortest distance between boundaries)
         4. Return True if minimum gap <= threshold

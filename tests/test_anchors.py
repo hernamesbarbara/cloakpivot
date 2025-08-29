@@ -75,7 +75,7 @@ class TestAnchorEntry:
             strategy_used="template"
         )
 
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
             anchor.start = 15  # type: ignore
 
     def test_position_validation(self) -> None:

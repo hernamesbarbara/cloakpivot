@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
-from .security import SecurityConfig, CryptoUtils
+from .security import CryptoUtils, SecurityConfig
 
 
 @dataclass(frozen=True)
@@ -161,7 +161,7 @@ class AnchorEntry:
         """Get the difference in length between original and replacement."""
         return self.replacement_length - self.span_length
 
-    def verify_original_text(self, original_text: str, 
+    def verify_original_text(self, original_text: str,
                             config: Optional[SecurityConfig] = None) -> bool:
         """
         Verify that the provided original text matches the stored salted checksum.
@@ -178,7 +178,7 @@ class AnchorEntry:
 
         import base64
         salt = base64.b64decode(self.checksum_salt)
-        
+
         return CryptoUtils.verify_salted_checksum(
             original_text, salt, self.original_checksum, config
         )
@@ -286,12 +286,12 @@ class AnchorEntry:
         )
 
     @staticmethod
-    def _compute_salted_checksum(text: str, salt: bytes, 
+    def _compute_salted_checksum(text: str, salt: bytes,
                                 config: Optional[SecurityConfig] = None) -> str:
         """Compute salted checksum of text using PBKDF2."""
         if config is None:
             config = SecurityConfig()
-        
+
         return CryptoUtils.compute_salted_checksum(text, salt, config)
 
     @staticmethod

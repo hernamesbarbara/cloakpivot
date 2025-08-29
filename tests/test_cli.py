@@ -289,7 +289,7 @@ class TestPolicyCommands:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             policy_file = temp_path / "valid_policy.yaml"
-            
+
             # Create valid policy file
             policy_content = """
 version: "1.0"
@@ -300,7 +300,7 @@ default_strategy:
   kind: "redact"
   parameters:
     redact_char: "*"
-    
+
 per_entity:
   PERSON:
     kind: "template"
@@ -309,7 +309,7 @@ per_entity:
     threshold: 0.8
 """
             policy_file.write_text(policy_content)
-            
+
             result = runner.invoke(cli, ['policy', 'validate', str(policy_file)])
             # May fail due to missing dependencies, but should recognize the command
             assert 'policy' in result.output.lower() or result.exit_code == 0
@@ -318,7 +318,7 @@ per_entity:
         """Test policy template command."""
         runner = CliRunner()
         result = runner.invoke(cli, ['policy', 'template', 'balanced'])
-        
+
         # May fail due to missing template files, but should recognize command
         assert result.exit_code == 0 or 'template' in result.output.lower()
 
@@ -328,7 +328,7 @@ per_entity:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             policy_file = temp_path / "info_policy.yaml"
-            
+
             # Create policy file
             policy_content = """
 version: "1.0"
@@ -339,7 +339,7 @@ default_strategy:
   kind: "redact"
 """
             policy_file.write_text(policy_content)
-            
+
             result = runner.invoke(cli, ['policy', 'info', str(policy_file)])
             # May fail due to dependencies, but should recognize command
             assert 'info' in result.output.lower() or 'Policy Information' in result.output
@@ -350,7 +350,7 @@ default_strategy:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             policy_file = temp_path / "test_policy.yaml"
-            
+
             policy_content = """
 version: "1.0"
 name: "test-policy"
@@ -362,9 +362,9 @@ default_strategy:
     template: "[REDACTED]"
 """
             policy_file.write_text(policy_content)
-            
+
             result = runner.invoke(cli, [
-                'policy', 'test', str(policy_file), 
+                'policy', 'test', str(policy_file),
                 '--text', 'John Doe email is john@example.com'
             ])
             # May fail due to dependencies, but should recognize command
@@ -374,7 +374,7 @@ default_strategy:
         """Test policy template command with invalid template choice."""
         runner = CliRunner()
         result = runner.invoke(cli, ['policy', 'template', 'invalid_template'])
-        
+
         assert result.exit_code != 0
         assert 'Invalid value' in result.output or 'Choice' in result.output
 
@@ -382,29 +382,29 @@ default_strategy:
         """Test policy validate with non-existent file."""
         runner = CliRunner()
         result = runner.invoke(cli, ['policy', 'validate', 'nonexistent_policy.yaml'])
-        
+
         assert result.exit_code != 0
         assert 'does not exist' in result.output.lower() or 'not found' in result.output.lower()
 
     def test_policy_commands_help(self):
         """Test help for individual policy commands."""
         runner = CliRunner()
-        
+
         # Test validate help
         result = runner.invoke(cli, ['policy', 'validate', '--help'])
         assert result.exit_code == 0
         assert 'Validate a policy file' in result.output
-        
+
         # Test template help
         result = runner.invoke(cli, ['policy', 'template', '--help'])
         assert result.exit_code == 0
         assert 'Generate a policy file from a built-in template' in result.output
-        
+
         # Test info help
         result = runner.invoke(cli, ['policy', 'info', '--help'])
         assert result.exit_code == 0
         assert 'Show detailed information about a policy file' in result.output
-        
+
         # Test test help
         result = runner.invoke(cli, ['policy', 'test', '--help'])
         assert result.exit_code == 0

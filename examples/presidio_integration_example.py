@@ -15,12 +15,6 @@ Run this example with:
 
 import logging
 
-# Configure logging to see detailed information
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
 from cloakpivot.core.analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from cloakpivot.core.detection import DocumentAnalysisResult, EntityDetectionPipeline
 from cloakpivot.core.normalization import (
@@ -30,6 +24,12 @@ from cloakpivot.core.normalization import (
 )
 from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
+
+# Configure logging to see detailed information
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 
 def create_sample_text_segments() -> list[TextSegment]:
