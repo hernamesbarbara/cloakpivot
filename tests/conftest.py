@@ -1,7 +1,6 @@
 """Test configuration and shared fixtures."""
 
 import os
-from typing import Optional
 
 import pytest
 from hypothesis import HealthCheck, Phase, settings
@@ -11,7 +10,7 @@ from presidio_analyzer import AnalyzerEngine
 @pytest.fixture(scope="session")
 def shared_analyzer() -> AnalyzerEngine:
     """Create a shared AnalyzerEngine for the entire test session.
-    
+
     This fixture prevents per-test initialization overhead by reusing
     the same analyzer across all property-based tests.
     """
@@ -33,7 +32,7 @@ settings.register_profile(
 )
 
 settings.register_profile(
-    "ci", 
+    "ci",
     max_examples=12,
     deadline=3000,  # 3 second deadline for CI stability
     suppress_health_check=[
@@ -75,11 +74,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         # Add property marker to tests using Hypothesis
         if hasattr(item, "function") and hasattr(item.function, "_hypothesis_internal_test"):
             item.add_marker(pytest.mark.property)
-        
+
         # Add slow marker to tests with "slow" in the name
         if "slow" in item.name.lower():
             item.add_marker(pytest.mark.slow)
-            
+
         # Add performance marker to tests with "performance" in the name
         if "performance" in item.name.lower():
             item.add_marker(pytest.mark.performance)
