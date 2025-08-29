@@ -1,7 +1,5 @@
 """Simple tests for plugin-aware strategy applicator to achieve basic coverage."""
 
-import pytest
-
 from cloakpivot.plugins.strategy_applicator import PluginAwareStrategyApplicator
 from cloakpivot.plugins.strategies.registry import StrategyPluginRegistry
 

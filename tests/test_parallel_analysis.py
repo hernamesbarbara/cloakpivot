@@ -2,9 +2,7 @@
 
 import os
 from unittest.mock import Mock, patch
-from concurrent.futures import ThreadPoolExecutor
 
-import pytest
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.analyzer import AnalyzerConfig

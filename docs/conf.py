@@ -5,7 +5,6 @@ For the full list of built-in configuration values, see the documentation:
 https://www.sphinx-doc.org/en/master/usage/configuration.html
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -37,7 +36,7 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.githubpages",
     "myst_parser",
-    "nbsphinx",
+    # "nbsphinx",  # Temporarily disabled due to template issues
     "sphinx_click",
     "sphinx_rtd_theme",
 ]
@@ -172,9 +171,12 @@ texinfo_documents = [
 ]
 
 # -- Sphinx-Click configuration ----------------------------------------------
+
+
 def setup(app):
     """Sphinx setup function."""
     app.setup_extension("sphinx_click")
+
 
 # Mock imports for dependencies that might not be available during docs build
 autodoc_mock_imports = [

@@ -1,7 +1,5 @@
 """Simplified tests for plugin examples to achieve basic coverage."""
 
-import pytest
-
 from cloakpivot.plugins.examples.recognizers import (
     CustomPhoneRecognizerPlugin,
     LicensePlateRecognizerPlugin,
@@ -71,7 +69,7 @@ class TestIPv4AddressRecognizerPlugin:
         """Test plugin info is accessible."""
         plugin = IPv4AddressRecognizerPlugin()
         info = plugin.info
-        assert info.name == "ipv4_address_recognizer" 
+        assert info.name == "ipv4_address_recognizer"
         assert info.plugin_type == "recognizer"
 
     def test_initialization(self):
@@ -100,7 +98,7 @@ class TestROT13StrategyPlugin:
         """Test apply_strategy method works."""
         plugin = ROT13StrategyPlugin()
         result = plugin.apply_strategy("Hello", "PERSON", 0.9)
-        
+
         assert result.masked_text is not None
         assert result.success is True
         assert result.metadata is not None
@@ -125,7 +123,7 @@ class TestUpsideDownStrategyPlugin:
         """Test apply_strategy method works."""
         plugin = UpsideDownStrategyPlugin()
         result = plugin.apply_strategy("Hello", "PERSON", 0.9)
-        
+
         assert result.masked_text != "Hello"  # Should be transformed
         assert result.success is True
         assert result.metadata is not None
@@ -150,7 +148,7 @@ class TestColorCodeStrategyPlugin:
         """Test apply_strategy method works."""
         plugin = ColorCodeStrategyPlugin()
         result = plugin.apply_strategy("Hello", "PERSON", 0.9)
-        
+
         assert result.success is True
         assert result.metadata is not None
 
@@ -174,6 +172,6 @@ class TestWordShuffleStrategyPlugin:
         """Test apply_strategy method works."""
         plugin = WordShuffleStrategyPlugin()
         result = plugin.apply_strategy("Hello World", "PERSON", 0.9)
-        
+
         assert result.success is True
         assert result.metadata is not None
