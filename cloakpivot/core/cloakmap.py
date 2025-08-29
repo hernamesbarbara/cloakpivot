@@ -10,6 +10,7 @@ from typing import Any, Optional, Union
 from .anchors import AnchorEntry, AnchorIndex
 from .security import (
     CryptoUtils,
+    EncryptedCloakMap,
     KeyManager,
     SecurityConfig,
     create_default_key_manager,
@@ -398,6 +399,148 @@ class CloakMap:
             metadata=self.metadata
         )
 
+    def encrypt(self, key_manager: Optional[KeyManager] = None,
+                key_id: str = "default", key_version: Optional[str] = None,
+                config: Optional[SecurityConfig] = None) -> "EncryptedCloakMap":
+        """
+        Encrypt this CloakMap using AES-GCM encryption.
+
+        Args:
+            key_manager: Key manager for retrieving encryption keys
+            key_id: Encryption key identifier
+            key_version: Optional key version
+            config: Security configuration
+
+        Returns:
+            EncryptedCloakMap with encrypted sensitive data
+
+        Raises:
+            KeyError: If encryption key is not found
+            ValueError: If encryption fails
+        """
+        from .security import CloakMapEncryption, create_default_key_manager
+
+        if key_manager is None:
+            key_manager = create_default_key_manager()
+
+        if config is None:
+            config = SecurityConfig()
+
+        encryption = CloakMapEncryption(key_manager, config)
+        return encryption.encrypt_cloakmap(self, key_id, key_version)
+
+    def save_encrypted(self, file_path: Union[str, Path],
+                      key_manager: Optional[KeyManager] = None,
+                      key_id: str = "default", key_version: Optional[str] = None,
+                      config: Optional[SecurityConfig] = None,
+                      indent: int = 2) -> None:
+        """
+        Encrypt and save CloakMap to JSON file.
+
+        Args:
+            file_path: Path to save encrypted file
+            key_manager: Key manager for encryption keys
+            key_id: Encryption key identifier
+            key_version: Optional key version
+            config: Security configuration
+            indent: JSON indentation
+
+        Raises:
+            KeyError: If encryption key is not found
+            ValueError: If encryption or save fails
+        """
+        encrypted_map = self.encrypt(key_manager, key_id, key_version, config)
+
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(encrypted_map.to_json(indent=indent))
+        except Exception as e:
+            raise ValueError(f"Failed to save encrypted CloakMap to {file_path}: {e}") from e
+
+    @classmethod
+    def load_encrypted(cls, file_path: Union[str, Path],
+                      key_manager: Optional[KeyManager] = None,
+                      config: Optional[SecurityConfig] = None) -> "CloakMap":
+        """
+        Load and decrypt an EncryptedCloakMap from JSON file.
+
+        Args:
+            file_path: Path to encrypted CloakMap file
+            key_manager: Key manager for decryption keys
+            config: Security configuration
+
+        Returns:
+            Decrypted CloakMap
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            KeyError: If decryption key is not found
+            ValueError: If decryption fails
+        """
+        from .security import CloakMapEncryption, EncryptedCloakMap, create_default_key_manager
+
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Encrypted CloakMap file not found: {file_path}")
+
+        if key_manager is None:
+            key_manager = create_default_key_manager()
+
+        if config is None:
+            config = SecurityConfig()
+
+        try:
+            with open(path, encoding='utf-8') as f:
+                encrypted_map = EncryptedCloakMap.from_json(f.read())
+
+            encryption = CloakMapEncryption(key_manager, config)
+            return encryption.decrypt_cloakmap(encrypted_map)
+
+        except Exception as e:
+            raise ValueError(f"Failed to load encrypted CloakMap from {file_path}: {e}") from e
+
+    @classmethod
+    def load_from_file(cls, file_path: Union[str, Path],
+                      key_manager: Optional[KeyManager] = None,
+                      config: Optional[SecurityConfig] = None) -> "CloakMap":
+        """
+        Load CloakMap from JSON file, auto-detecting encrypted vs unencrypted format.
+
+        Args:
+            file_path: Path to CloakMap file
+            key_manager: Optional key manager for encrypted files
+            config: Security configuration
+
+        Returns:
+            Loaded CloakMap
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            ValueError: If loading fails
+        """
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"CloakMap file not found: {file_path}")
+
+        try:
+            with open(path, encoding='utf-8') as f:
+                content = f.read()
+                data = json.loads(content)
+
+            # Check if this is an encrypted format
+            if "encrypted_content" in data:
+                # This is an encrypted CloakMap
+                return cls.load_encrypted(file_path, key_manager, config)
+            else:
+                # This is a standard unencrypted CloakMap
+                return cls.from_json(content)
+
+        except Exception as e:
+            raise ValueError(f"Failed to load CloakMap from {file_path}: {e}") from e
+
     def get_stats(self) -> dict[str, Any]:
         """Get comprehensive statistics about the CloakMap."""
         total_confidence = sum(a.confidence for a in self.anchors)
@@ -487,18 +630,7 @@ class CloakMap:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {e}") from e
 
-    @classmethod
-    def load_from_file(cls, file_path: Union[str, Path]) -> "CloakMap":
-        """Load CloakMap from JSON file."""
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"CloakMap file not found: {file_path}")
 
-        try:
-            with open(path, encoding='utf-8') as f:
-                return cls.from_json(f.read())
-        except Exception as e:
-            raise ValueError(f"Failed to load CloakMap from {file_path}: {e}") from e
 
     def save_to_file(self, file_path: Union[str, Path], indent: int = 2) -> None:
         """Save CloakMap to JSON file."""
