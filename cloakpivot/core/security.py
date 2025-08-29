@@ -53,10 +53,10 @@ class SecurityConfig:
 
         if self.salt_length < 16:
             raise ValueError("Salt length must be at least 16 bytes")
-        
+
         if self.nonce_length < 12:
             raise ValueError("Nonce length must be at least 12 bytes for AES-GCM")
-            
+
         if self.key_length not in {16, 24, 32}:
             raise ValueError("Key length must be 16, 24, or 32 bytes for AES")
 
@@ -95,7 +95,7 @@ class KeyManager(ABC):
     def get_encryption_key(self, key_id: str, version: Optional[str] = None) -> bytes:
         """
         Retrieve an encryption key by ID and optional version.
-        
+
         Default implementation delegates to get_key() but can be overridden
         for different encryption key handling.
 
@@ -385,34 +385,34 @@ class CryptoUtils:
     def generate_nonce(length: int = DEFAULT_NONCE_LENGTH) -> bytes:
         """
         Generate a cryptographically secure random nonce.
-        
+
         Args:
             length: Length of nonce in bytes (defaults to 12 for AES-GCM)
-            
+
         Returns:
             Random nonce bytes
         """
         return secrets.token_bytes(length)
 
     @staticmethod
-    def derive_encryption_key(base_key: bytes, salt: bytes, 
+    def derive_encryption_key(base_key: bytes, salt: bytes,
                             key_length: int = DEFAULT_KEY_LENGTH,
                             config: Optional[SecurityConfig] = None) -> bytes:
         """
         Derive an encryption key from base key material using PBKDF2.
-        
+
         Args:
             base_key: Base key material
             salt: Salt for key derivation
             key_length: Desired key length in bytes
             config: Security configuration
-            
+
         Returns:
             Derived encryption key
         """
         if config is None:
             config = SecurityConfig()
-            
+
         return hashlib.pbkdf2_hmac(
             config.hmac_algorithm,
             base_key,
@@ -426,30 +426,30 @@ class CryptoUtils:
                     associated_data: Optional[bytes] = None) -> tuple[bytes, bytes]:
         """
         Encrypt data using AES-GCM.
-        
+
         Args:
             data: Data to encrypt
             key: Encryption key (32 bytes for AES-256)
             nonce: Optional nonce (generates random if None)
             associated_data: Optional additional authenticated data
-            
+
         Returns:
             Tuple of (ciphertext, nonce)
-            
+
         Raises:
             ValueError: If key length is invalid
         """
         if len(key) not in {16, 24, 32}:
             raise ValueError("Key must be 16, 24, or 32 bytes for AES")
-            
+
         if nonce is None:
             nonce = CryptoUtils.generate_nonce()
         elif len(nonce) != DEFAULT_NONCE_LENGTH:
             raise ValueError(f"Nonce must be {DEFAULT_NONCE_LENGTH} bytes for AES-GCM")
-            
+
         aesgcm = AESGCM(key)
         ciphertext = aesgcm.encrypt(nonce, data, associated_data)
-        
+
         return ciphertext, nonce
 
     @staticmethod
@@ -457,26 +457,26 @@ class CryptoUtils:
                     associated_data: Optional[bytes] = None) -> bytes:
         """
         Decrypt data using AES-GCM.
-        
+
         Args:
             ciphertext: Encrypted data
             key: Decryption key (32 bytes for AES-256)
             nonce: Nonce used during encryption
             associated_data: Optional additional authenticated data
-            
+
         Returns:
             Decrypted plaintext data
-            
+
         Raises:
             ValueError: If key/nonce length is invalid
             cryptography.exceptions.InvalidTag: If authentication fails
         """
         if len(key) not in {16, 24, 32}:
             raise ValueError("Key must be 16, 24, or 32 bytes for AES")
-            
+
         if len(nonce) != DEFAULT_NONCE_LENGTH:
             raise ValueError(f"Nonce must be {DEFAULT_NONCE_LENGTH} bytes for AES-GCM")
-            
+
         aesgcm = AESGCM(key)
         return aesgcm.decrypt(nonce, ciphertext, associated_data)
 
@@ -529,31 +529,31 @@ class SecurityMetadata:
 class EncryptedCloakMap:
     """
     Encrypted wrapper for CloakMap data with metadata preserved for indexing.
-    
+
     This class represents an encrypted CloakMap where sensitive anchor data
     is encrypted but document metadata remains in cleartext for indexing.
     """
-    
+
     # Cleartext metadata for indexing
     version: str
     doc_id: str
     doc_hash: str
     created_at: Optional[str] = None
-    
+
     # Encryption metadata
     algorithm: str = DEFAULT_ENCRYPTION_ALGORITHM
     key_id: str = "default"
     key_version: Optional[str] = None
     nonce: str = ""  # Base64-encoded nonce
-    
+
     # Encrypted content (Base64-encoded)
     encrypted_anchors: str = ""
     encrypted_policy: str = ""
     encrypted_metadata: str = ""
-    
+
     # Optional signature for integrity
     signature: Optional[str] = None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -574,17 +574,17 @@ class EncryptedCloakMap:
             },
             "signature": self.signature,
         }
-    
+
     def to_json(self, indent: Optional[int] = None) -> str:
         """Convert to JSON string."""
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "EncryptedCloakMap":
         """Create from dictionary representation."""
         crypto = data.get("crypto", {})
         encrypted_content = data.get("encrypted_content", {})
-        
+
         return cls(
             version=data.get("version", "1.0"),
             doc_id=data.get("doc_id", ""),
@@ -599,7 +599,7 @@ class EncryptedCloakMap:
             encrypted_metadata=encrypted_content.get("metadata", ""),
             signature=data.get("signature"),
         )
-    
+
     @classmethod
     def from_json(cls, json_str: str) -> "EncryptedCloakMap":
         """Create from JSON string."""
@@ -612,31 +612,31 @@ class EncryptedCloakMap:
 
 class CloakMapEncryption:
     """Utility class for CloakMap encryption and decryption operations."""
-    
+
     def __init__(self, key_manager: KeyManager, config: Optional[SecurityConfig] = None):
         """
         Initialize encryption utility.
-        
+
         Args:
             key_manager: Key manager for retrieving encryption keys
             config: Security configuration
         """
         self.key_manager = key_manager
         self.config = config or SecurityConfig()
-    
+
     def encrypt_cloakmap(self, cloakmap: "CloakMap", key_id: str = "default",
                         key_version: Optional[str] = None) -> EncryptedCloakMap:
         """
         Encrypt a CloakMap, keeping metadata in cleartext for indexing.
-        
+
         Args:
             cloakmap: CloakMap to encrypt
             key_id: Encryption key identifier
             key_version: Optional key version
-            
+
         Returns:
             EncryptedCloakMap with encrypted sensitive data
-            
+
         Raises:
             KeyError: If encryption key is not found
             ValueError: If encryption fails
@@ -650,32 +650,32 @@ class CloakMapEncryption:
                 encryption_key = CryptoUtils.derive_encryption_key(
                     encryption_key, salt, self.config.key_length, self.config
                 )
-            
+
             # Generate nonce
             nonce = CryptoUtils.generate_nonce(self.config.nonce_length)
-            
+
             # Use doc_id as associated data for authentication
             associated_data = cloakmap.doc_id.encode('utf-8')
-            
+
             # Encrypt sensitive data sections
             anchors_json = json.dumps([anchor.to_dict() for anchor in cloakmap.anchors])
             anchors_data = anchors_json.encode('utf-8')
             encrypted_anchors, _ = CryptoUtils.encrypt_data(
                 anchors_data, encryption_key, nonce, associated_data
             )
-            
+
             policy_json = json.dumps(cloakmap.policy_snapshot)
             policy_data = policy_json.encode('utf-8')
             encrypted_policy, _ = CryptoUtils.encrypt_data(
                 policy_data, encryption_key, nonce, associated_data
             )
-            
+
             metadata_json = json.dumps(cloakmap.metadata)
             metadata_data = metadata_json.encode('utf-8')
             encrypted_metadata, _ = CryptoUtils.encrypt_data(
                 metadata_data, encryption_key, nonce, associated_data
             )
-            
+
             # Create encrypted CloakMap
             return EncryptedCloakMap(
                 version=cloakmap.version,
@@ -691,20 +691,20 @@ class CloakMapEncryption:
                 encrypted_metadata=base64.b64encode(encrypted_metadata).decode('ascii'),
                 signature=cloakmap.signature,
             )
-            
+
         except Exception as e:
             raise ValueError(f"Failed to encrypt CloakMap: {e}") from e
-    
+
     def decrypt_cloakmap(self, encrypted_cloakmap: EncryptedCloakMap) -> "CloakMap":
         """
         Decrypt an EncryptedCloakMap back to a standard CloakMap.
-        
+
         Args:
             encrypted_cloakmap: EncryptedCloakMap to decrypt
-            
+
         Returns:
             Decrypted CloakMap
-            
+
         Raises:
             KeyError: If decryption key is not found
             ValueError: If decryption fails
@@ -721,47 +721,47 @@ class CloakMapEncryption:
                 decryption_key = CryptoUtils.derive_encryption_key(
                     decryption_key, salt, self.config.key_length, self.config
                 )
-            
+
             # Decode nonce
             nonce = base64.b64decode(encrypted_cloakmap.nonce)
-            
+
             # Use doc_id as associated data for authentication
             associated_data = encrypted_cloakmap.doc_id.encode('utf-8')
-            
+
             # Decrypt sections
             encrypted_anchors_data = base64.b64decode(encrypted_cloakmap.encrypted_anchors)
             anchors_data = CryptoUtils.decrypt_data(
                 encrypted_anchors_data, decryption_key, nonce, associated_data
             )
-            
+
             encrypted_policy_data = base64.b64decode(encrypted_cloakmap.encrypted_policy)
             policy_data = CryptoUtils.decrypt_data(
                 encrypted_policy_data, decryption_key, nonce, associated_data
             )
-            
+
             encrypted_metadata_data = base64.b64decode(encrypted_cloakmap.encrypted_metadata)
             metadata_data = CryptoUtils.decrypt_data(
                 encrypted_metadata_data, decryption_key, nonce, associated_data
             )
-            
+
             # Parse decrypted JSON data
             anchors_dict = json.loads(anchors_data.decode('utf-8'))
             policy_snapshot = json.loads(policy_data.decode('utf-8'))
             metadata = json.loads(metadata_data.decode('utf-8'))
-            
+
             # Reconstruct anchors
             from .anchors import AnchorEntry
             anchors = [AnchorEntry.from_dict(anchor_data) for anchor_data in anchors_dict]
-            
+
             # Parse timestamp
             created_at = None
             if encrypted_cloakmap.created_at:
                 from datetime import datetime
                 created_at = datetime.fromisoformat(encrypted_cloakmap.created_at)
-            
+
             # Import CloakMap class
             from .cloakmap import CloakMap
-            
+
             return CloakMap(
                 version=encrypted_cloakmap.version,
                 doc_id=encrypted_cloakmap.doc_id,
@@ -777,23 +777,23 @@ class CloakMapEncryption:
                 created_at=created_at,
                 metadata=metadata,
             )
-            
+
         except Exception as e:
             raise ValueError(f"Failed to decrypt CloakMap: {e}") from e
-    
+
     def rotate_encryption_key(self, encrypted_cloakmap: EncryptedCloakMap,
                              new_key_id: str, new_key_version: Optional[str] = None) -> EncryptedCloakMap:
         """
         Rotate encryption key by decrypting with old key and re-encrypting with new key.
-        
+
         Args:
             encrypted_cloakmap: EncryptedCloakMap with old key
             new_key_id: New encryption key identifier
             new_key_version: Optional new key version
-            
+
         Returns:
             EncryptedCloakMap encrypted with new key
-            
+
         Raises:
             KeyError: If old or new key is not found
             ValueError: If rotation fails
@@ -801,21 +801,21 @@ class CloakMapEncryption:
         try:
             # Decrypt with old key
             decrypted_map = self.decrypt_cloakmap(encrypted_cloakmap)
-            
+
             # Re-encrypt with new key
             return self.encrypt_cloakmap(decrypted_map, new_key_id, new_key_version)
-            
+
         except Exception as e:
             raise ValueError(f"Failed to rotate encryption key: {e}") from e
 
 
 class KeyRotationManager:
     """Utility for bulk key rotation operations."""
-    
+
     def __init__(self, key_manager: KeyManager, config: Optional[SecurityConfig] = None):
         """
         Initialize key rotation manager.
-        
+
         Args:
             key_manager: Key manager with both old and new keys
             config: Security configuration
@@ -823,7 +823,7 @@ class KeyRotationManager:
         self.key_manager = key_manager
         self.config = config or SecurityConfig()
         self.encryption = CloakMapEncryption(key_manager, config)
-    
+
     def rotate_directory(self, directory_path: Union[str, Path],
                         old_key_id: str, new_key_id: str,
                         old_key_version: Optional[str] = None,
@@ -832,32 +832,32 @@ class KeyRotationManager:
                         backup: bool = True) -> dict[str, Any]:
         """
         Rotate encryption keys for all CloakMap files in a directory.
-        
+
         Args:
             directory_path: Directory containing CloakMap files
             old_key_id: Current key identifier
-            new_key_id: New key identifier  
+            new_key_id: New key identifier
             old_key_version: Current key version
             new_key_version: New key version
             pattern: File pattern to match
             backup: Whether to create backup files
-            
+
         Returns:
             Dictionary with rotation statistics
-            
+
         Raises:
             ValueError: If directory doesn't exist or rotation fails
         """
         from glob import glob
-        
+
         directory = Path(directory_path)
         if not directory.exists():
             raise ValueError(f"Directory does not exist: {directory_path}")
-        
+
         # Find files matching pattern
         file_pattern = str(directory / pattern)
         files = glob(file_pattern)
-        
+
         results = {
             "total_files": len(files),
             "processed": 0,
@@ -866,74 +866,74 @@ class KeyRotationManager:
             "errors": [],
             "backup_created": backup
         }
-        
+
         for file_path in files:
             try:
                 results["processed"] += 1
-                
+
                 # Check if file is encrypted CloakMap
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.loads(f.read())
-                
+
                 if "encrypted_content" not in data:
                     # Skip unencrypted files
                     continue
-                
+
                 # Load encrypted CloakMap
                 encrypted_map = EncryptedCloakMap.from_dict(data)
-                
+
                 # Skip if already using new key
-                if (encrypted_map.key_id == new_key_id and 
+                if (encrypted_map.key_id == new_key_id and
                     encrypted_map.key_version == new_key_version):
                     continue
-                
+
                 # Create backup if requested
                 if backup:
                     backup_path = Path(file_path).with_suffix('.bak')
                     import shutil
                     shutil.copy2(file_path, backup_path)
-                
+
                 # Rotate key
                 rotated_map = self.encryption.rotate_encryption_key(
                     encrypted_map, new_key_id, new_key_version
                 )
-                
+
                 # Save rotated file
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(rotated_map.to_json(indent=2))
-                
+
                 results["succeeded"] += 1
-                
+
             except Exception as e:
                 results["failed"] += 1
                 results["errors"].append(f"{file_path}: {e}")
-        
+
         return results
-    
-    def verify_key_availability(self, key_ids: list[str], 
+
+    def verify_key_availability(self, key_ids: list[str],
                               versions: Optional[list[Optional[str]]] = None) -> dict[str, bool]:
         """
         Verify that required keys are available in the key manager.
-        
+
         Args:
             key_ids: List of key identifiers to check
             versions: Optional list of key versions to check
-            
+
         Returns:
             Dictionary mapping key_id to availability status
         """
         if versions is None:
             versions = [None] * len(key_ids)
-        
+
         availability = {}
-        
+
         for key_id, version in zip(key_ids, versions):
             try:
                 self.key_manager.get_encryption_key(key_id, version)
                 availability[key_id] = True
             except (KeyError, ValueError):
                 availability[key_id] = False
-        
+
         return availability
 
 

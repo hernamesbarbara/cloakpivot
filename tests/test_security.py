@@ -511,7 +511,7 @@ class TestEncryption:
         base_key = b"test-base-key"
         salt = CryptoUtils.generate_salt()
         config = SecurityConfig()
-        
+
         derived_key = CryptoUtils.derive_encryption_key(base_key, salt, 32, config)
         assert len(derived_key) == 32
 
@@ -535,7 +535,7 @@ class TestEncryption:
 
         # Encrypt
         ciphertext, nonce = CryptoUtils.encrypt_data(data, key, None, associated_data)
-        
+
         assert len(nonce) == 12
         assert len(ciphertext) > len(data)  # Includes auth tag
         assert ciphertext != data
@@ -601,15 +601,15 @@ class TestCloakMapEncryption:
         """Test full CloakMap encryption and decryption round trip."""
         # Setup environment
         os.environ['CLOAKPIVOT_KEY_TEST_ENC'] = 'hex:' + '0' * 64  # 32-byte key in hex
-        
+
         try:
             from cloakpivot.core.security import (
                 CloakMapEncryption, EnvironmentKeyManager, SecurityConfig
             )
-            
+
             key_manager = EnvironmentKeyManager()
             config = SecurityConfig()
-            
+
             # Create test CloakMap
             anchors = [
                 AnchorEntry.create_from_detection(
@@ -624,39 +624,39 @@ class TestCloakMapEncryption:
                     config=config
                 )
             ]
-            
+
             cloakmap = CloakMap.create(
                 doc_id="test_document",
                 doc_hash="a" * 64,
                 anchors=anchors,
                 metadata={"test": "metadata"}
             )
-            
+
             # Encrypt
             encryption = CloakMapEncryption(key_manager, config)
             encrypted_map = encryption.encrypt_cloakmap(cloakmap, "test_enc")
-            
+
             assert encrypted_map.doc_id == cloakmap.doc_id
             assert encrypted_map.doc_hash == cloakmap.doc_hash
             assert encrypted_map.key_id == "test_enc"
             assert encrypted_map.nonce  # Should have nonce
             assert encrypted_map.encrypted_anchors  # Should have encrypted data
-            
+
             # Decrypt
             decrypted_map = encryption.decrypt_cloakmap(encrypted_map)
-            
+
             assert decrypted_map.doc_id == cloakmap.doc_id
             assert decrypted_map.doc_hash == cloakmap.doc_hash
             assert len(decrypted_map.anchors) == len(cloakmap.anchors)
             assert decrypted_map.metadata == cloakmap.metadata
-            
+
             # Verify anchor data
             original_anchor = cloakmap.anchors[0]
             decrypted_anchor = decrypted_map.anchors[0]
             assert decrypted_anchor.node_id == original_anchor.node_id
             assert decrypted_anchor.entity_type == original_anchor.entity_type
             assert decrypted_anchor.masked_value == original_anchor.masked_value
-            
+
         finally:
             os.environ.pop('CLOAKPIVOT_KEY_TEST_ENC', None)
 
@@ -664,11 +664,11 @@ class TestCloakMapEncryption:
         """Test CloakMap encryption methods."""
         # Setup environment
         os.environ['CLOAKPIVOT_KEY_DEFAULT'] = 'hex:' + 'a' * 64  # 32-byte key
-        
+
         try:
             key_manager = EnvironmentKeyManager()
             config = SecurityConfig()
-            
+
             # Create test CloakMap
             anchors = [
                 AnchorEntry.create_from_detection(
@@ -683,35 +683,35 @@ class TestCloakMapEncryption:
                     config=config
                 )
             ]
-            
+
             cloakmap = CloakMap.create(
                 doc_id="test_doc",
                 doc_hash="b" * 64,
                 anchors=anchors
             )
-            
+
             # Test encrypt method
             encrypted_map = cloakmap.encrypt(key_manager)
             assert encrypted_map.doc_id == cloakmap.doc_id
             assert encrypted_map.key_id == "default"
-            
+
             # Test save_encrypted and load methods
             with tempfile.TemporaryDirectory() as temp_dir:
                 file_path = Path(temp_dir) / "encrypted.json"
-                
+
                 # Save encrypted
                 cloakmap.save_encrypted(file_path, key_manager)
                 assert file_path.exists()
-                
+
                 # Load encrypted
                 loaded_map = CloakMap.load_encrypted(file_path, key_manager)
                 assert loaded_map.doc_id == cloakmap.doc_id
                 assert len(loaded_map.anchors) == len(cloakmap.anchors)
-                
+
                 # Test auto-detection load
                 auto_loaded = CloakMap.load_from_file(file_path, key_manager)
                 assert auto_loaded.doc_id == cloakmap.doc_id
-                
+
         finally:
             os.environ.pop('CLOAKPIVOT_KEY_DEFAULT', None)
 
@@ -720,14 +720,14 @@ class TestCloakMapEncryption:
         # Setup multiple keys
         os.environ['CLOAKPIVOT_KEY_OLD'] = 'hex:' + '1' * 64
         os.environ['CLOAKPIVOT_KEY_NEW'] = 'hex:' + '2' * 64
-        
+
         try:
             from cloakpivot.core.security import CloakMapEncryption, KeyRotationManager
-            
+
             key_manager = EnvironmentKeyManager()
             config = SecurityConfig()
             encryption = CloakMapEncryption(key_manager, config)
-            
+
             # Create test CloakMap
             anchors = [
                 AnchorEntry.create_from_detection(
@@ -742,36 +742,36 @@ class TestCloakMapEncryption:
                     config=config
                 )
             ]
-            
+
             cloakmap = CloakMap.create(
                 doc_id="test_doc",
                 doc_hash="c" * 64,
                 anchors=anchors
             )
-            
+
             # Encrypt with old key
             encrypted_old = encryption.encrypt_cloakmap(cloakmap, "old")
             assert encrypted_old.key_id == "old"
-            
+
             # Rotate to new key
             encrypted_new = encryption.rotate_encryption_key(encrypted_old, "new")
             assert encrypted_new.key_id == "new"
             assert encrypted_new.doc_id == encrypted_old.doc_id
-            
+
             # Verify can decrypt with new key
             decrypted = encryption.decrypt_cloakmap(encrypted_new)
             assert decrypted.doc_id == cloakmap.doc_id
             assert len(decrypted.anchors) == len(cloakmap.anchors)
-            
+
             # Test rotation manager
             rotation_manager = KeyRotationManager(key_manager, config)
-            
+
             # Test key availability check
             availability = rotation_manager.verify_key_availability(["old", "new", "missing"])
             assert availability["old"] is True
             assert availability["new"] is True
             assert availability["missing"] is False
-            
+
         finally:
             os.environ.pop('CLOAKPIVOT_KEY_OLD', None)
             os.environ.pop('CLOAKPIVOT_KEY_NEW', None)
@@ -779,22 +779,22 @@ class TestCloakMapEncryption:
     def test_encryption_errors(self):
         """Test encryption error handling."""
         from cloakpivot.core.security import CloakMapEncryption, EncryptedCloakMap
-        
+
         key_manager = EnvironmentKeyManager()
         config = SecurityConfig()
         encryption = CloakMapEncryption(key_manager, config)
-        
+
         # Create test CloakMap
         cloakmap = CloakMap.create(
             doc_id="test",
             doc_hash="d" * 64,
             anchors=[]
         )
-        
+
         # Test missing key (should raise ValueError wrapping KeyError)
         with pytest.raises(ValueError, match="Failed to encrypt CloakMap"):
             encryption.encrypt_cloakmap(cloakmap, "missing_key")
-        
+
         # Test decryption with wrong key
         os.environ['CLOAKPIVOT_KEY_WRONG'] = 'hex:' + '9' * 64
         try:
@@ -808,10 +808,10 @@ class TestCloakMapEncryption:
                 encrypted_policy="aW52YWxpZA==",
                 encrypted_metadata="aW52YWxpZA=="
             )
-            
+
             with pytest.raises(ValueError):
                 encryption.decrypt_cloakmap(encrypted_map)
-                
+
         finally:
             os.environ.pop('CLOAKPIVOT_KEY_WRONG', None)
 

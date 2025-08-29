@@ -429,7 +429,7 @@ class CloakMap:
         encryption = CloakMapEncryption(key_manager, config)
         return encryption.encrypt_cloakmap(self, key_id, key_version)
 
-    def save_encrypted(self, file_path: Union[str, Path], 
+    def save_encrypted(self, file_path: Union[str, Path],
                       key_manager: Optional[KeyManager] = None,
                       key_id: str = "default", key_version: Optional[str] = None,
                       config: Optional[SecurityConfig] = None,
@@ -450,7 +450,7 @@ class CloakMap:
             ValueError: If encryption or save fails
         """
         encrypted_map = self.encrypt(key_manager, key_id, key_version, config)
-        
+
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -502,8 +502,8 @@ class CloakMap:
         except Exception as e:
             raise ValueError(f"Failed to load encrypted CloakMap from {file_path}: {e}") from e
 
-    @classmethod  
-    def load_from_file(cls, file_path: Union[str, Path], 
+    @classmethod
+    def load_from_file(cls, file_path: Union[str, Path],
                       key_manager: Optional[KeyManager] = None,
                       config: Optional[SecurityConfig] = None) -> "CloakMap":
         """
