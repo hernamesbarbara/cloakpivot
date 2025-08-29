@@ -44,7 +44,7 @@ class StorageMetadata:
     # Storage integrity
     checksum: str | None = None
     storage_version: str | None = None
-    
+
     @classmethod
     def from_cloakmap(
         cls,
@@ -90,7 +90,7 @@ class StorageMetadata:
             "checksum": self.checksum,
             "storage_version": self.storage_version,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "StorageMetadata":
         """Create metadata from dictionary representation."""
@@ -144,18 +144,18 @@ class StorageBackend(ABC):
         """
         self.config = config or {}
         self._validate_config()
-    
+
     @property
     @abstractmethod
     def backend_type(self) -> str:
         """Return the backend type identifier."""
         pass
-    
+
     @abstractmethod
     def _validate_config(self) -> None:
         """Validate backend-specific configuration."""
         pass
-    
+
     @abstractmethod
     def save(
         self,
@@ -182,7 +182,7 @@ class StorageBackend(ABC):
             PermissionError: If write access is denied
         """
         pass
-    
+
     @abstractmethod
     def load(self, key: str, **kwargs: Any) -> CloakMap:
         """
@@ -202,42 +202,42 @@ class StorageBackend(ABC):
             PermissionError: If read access is denied
         """
         pass
-    
+
     @abstractmethod
     def exists(self, key: str, **kwargs: Any) -> bool:
         """
         Check if a CloakMap exists in storage.
-        
+
         Args:
             key: Unique identifier to check
             **kwargs: Backend-specific options
-            
+
         Returns:
             True if CloakMap exists, False otherwise
-            
+
         Raises:
             ConnectionError: If storage system is unreachable
         """
         pass
-    
+
     @abstractmethod
     def delete(self, key: str, **kwargs: Any) -> bool:
         """
         Delete a CloakMap from storage.
-        
+
         Args:
             key: Unique identifier for the CloakMap to delete
             **kwargs: Backend-specific delete options
-            
+
         Returns:
             True if CloakMap was deleted, False if it didn't exist
-            
+
         Raises:
             ConnectionError: If storage system is unreachable
             PermissionError: If delete access is denied
         """
         pass
-    
+
     @abstractmethod
     def list_keys(
         self,
@@ -261,25 +261,25 @@ class StorageBackend(ABC):
             PermissionError: If list access is denied
         """
         pass
-    
+
     @abstractmethod
     def get_metadata(self, key: str, **kwargs: Any) -> StorageMetadata:
         """
         Get metadata for a CloakMap without loading full content.
-        
+
         Args:
             key: Unique identifier for the CloakMap
             **kwargs: Backend-specific options
-            
+
         Returns:
             StorageMetadata for the CloakMap
-            
+
         Raises:
             KeyError: If CloakMap with key doesn't exist
             ConnectionError: If storage system is unreachable
         """
         pass
-    
+
     def list_metadata(
         self,
         prefix: str | None = None,
@@ -312,7 +312,7 @@ class StorageBackend(ABC):
                 continue
 
         return metadata
-    
+
     def copy(
         self,
         source_key: str,
@@ -321,21 +321,21 @@ class StorageBackend(ABC):
     ) -> StorageMetadata:
         """
         Copy a CloakMap to a new key.
-        
+
         Default implementation loads and saves. Backends may override
         for more efficient server-side copying.
-        
+
         Args:
             source_key: Source CloakMap key
             dest_key: Destination key
             **kwargs: Backend-specific options
-            
+
         Returns:
             StorageMetadata for the copied CloakMap
         """
         cloakmap = self.load(source_key, **kwargs)
         return self.save(dest_key, cloakmap, **kwargs)
-    
+
     def move(
         self,
         source_key: str,
@@ -344,47 +344,47 @@ class StorageBackend(ABC):
     ) -> StorageMetadata:
         """
         Move a CloakMap to a new key.
-        
+
         Default implementation copies then deletes. Backends may override
         for atomic move operations.
-        
+
         Args:
             source_key: Source CloakMap key
             dest_key: Destination key
             **kwargs: Backend-specific options
-            
+
         Returns:
             StorageMetadata for the moved CloakMap
         """
         metadata = self.copy(source_key, dest_key, **kwargs)
         self.delete(source_key, **kwargs)
         return metadata
-    
+
     def validate_key(self, key: str) -> None:
         """
         Validate that a key is acceptable for this backend.
-        
+
         Args:
             key: Key to validate
-            
+
         Raises:
             ValueError: If key is invalid for this backend
         """
         if not key or not key.strip():
             raise ValueError("Key cannot be empty")
-        
+
         if len(key) > 1024:
             raise ValueError("Key too long (max 1024 characters)")
-        
+
         # Check for potentially problematic characters
         invalid_chars = set('\x00\r\n')
         if any(c in invalid_chars for c in key):
             raise ValueError("Key contains invalid characters")
-    
+
     def health_check(self) -> dict[str, Any]:
         """
         Perform a health check of the storage backend.
-        
+
         Returns:
             Dictionary with health status and diagnostic information
         """
@@ -395,7 +395,7 @@ class StorageBackend(ABC):
                 "status": "healthy",
                 "backend_type": self.backend_type,
                 "timestamp": datetime.utcnow().isoformat(),
-                "config": {k: "***" if "key" in k.lower() or "secret" in k.lower() 
+                "config": {k: "***" if "key" in k.lower() or "secret" in k.lower()
                           else v for k, v in self.config.items()},
             }
         except Exception as e:
@@ -406,11 +406,11 @@ class StorageBackend(ABC):
                 "error": str(e),
                 "error_type": type(e).__name__,
             }
-    
+
     def __str__(self) -> str:
         """String representation of the storage backend."""
         return f"{self.__class__.__name__}({self.backend_type})"
-    
+
     def __repr__(self) -> str:
         """Detailed string representation."""
         return f"{self.__class__.__name__}(backend_type='{self.backend_type}', config={self.config})"

@@ -1,6 +1,5 @@
 """Custom assertion helpers for CloakPivot testing."""
 
-from typing import Any, Dict, List, Optional
 
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
@@ -8,27 +7,26 @@ from presidio_analyzer import RecognizerResult
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.masking.engine import MaskingResult
-from cloakpivot.masking.engine import MaskingEngine
 
 
 def assert_document_structure_preserved(original: DoclingDocument, processed: DoclingDocument) -> None:
     """Assert that document structure is preserved after processing."""
     assert original.name == processed.name, "Document name should be preserved"
     assert len(original.texts) == len(processed.texts), "Number of text items should be preserved"
-    
+
     for orig_item, proc_item in zip(original.texts, processed.texts):
         assert orig_item.self_ref == proc_item.self_ref, f"Text item reference should be preserved: {orig_item.self_ref}"
         assert orig_item.label == proc_item.label, f"Text item label should be preserved: {orig_item.label}"
 
 
 def assert_entities_detected(
-    entities: List[RecognizerResult], 
-    expected_types: List[str],
+    entities: list[RecognizerResult],
+    expected_types: list[str],
     min_confidence: float = 0.5
 ) -> None:
     """Assert that expected entity types are detected with minimum confidence."""
     detected_types = [entity.entity_type for entity in entities if entity.score >= min_confidence]
-    
+
     for expected_type in expected_types:
         assert expected_type in detected_types, f"Expected entity type '{expected_type}' not detected"
 
@@ -38,12 +36,12 @@ def assert_masking_result_valid(result: MaskingResult) -> None:
     assert result is not None, "MaskingResult should not be None"
     assert result.masked_document is not None, "Masked document should not be None"
     assert result.cloakmap is not None, "CloakMap should not be None"
-    
+
     # Check if any entities were actually masked using stats
     entities_masked = 0
     if result.stats and 'total_entities_masked' in result.stats:
         entities_masked = result.stats['total_entities_masked']
-    
+
     # Only expect anchors if entities were actually masked
     if entities_masked > 0:
         assert len(result.cloakmap.anchors) > 0, f"CloakMap should contain anchors when {entities_masked} entities were masked"
@@ -56,7 +54,7 @@ def assert_cloakmap_valid(cloakmap: CloakMap) -> None:
     assert cloakmap.doc_id is not None, "Document ID should be set"
     assert cloakmap.version is not None, "Version should be set"
     assert isinstance(cloakmap.anchors, list), "Anchors should be a list"
-    
+
     # Validate anchor structure
     for anchor in cloakmap.anchors:
         assert isinstance(anchor.replacement_id, str), f"Replacement ID should be string: {anchor.replacement_id}"
@@ -66,7 +64,7 @@ def assert_cloakmap_valid(cloakmap: CloakMap) -> None:
 
 def assert_round_trip_fidelity(
     original: DoclingDocument,
-    masked: DoclingDocument, 
+    masked: DoclingDocument,
     unmasked: DoclingDocument,
     cloakmap: CloakMap
 ) -> None:
@@ -74,10 +72,10 @@ def assert_round_trip_fidelity(
     # Document structure should be preserved
     assert_document_structure_preserved(original, masked)
     assert_document_structure_preserved(original, unmasked)
-    
+
     # Original and unmasked should be identical
     assert len(original.texts) == len(unmasked.texts), "Text count should match after round-trip"
-    
+
     for orig_item, unmask_item in zip(original.texts, unmasked.texts):
         assert orig_item.text == unmask_item.text, (
             f"Text content should match after round-trip:\n"
@@ -86,7 +84,7 @@ def assert_round_trip_fidelity(
         )
 
 
-def assert_text_contains_no_pii(text: str, entity_types: List[str]) -> None:
+def assert_text_contains_no_pii(text: str, entity_types: list[str]) -> None:
     """Assert that text contains no recognizable PII patterns."""
     # Simple pattern checks - in a real implementation, you might use
     # the analyzer to verify no PII is detected
@@ -96,7 +94,7 @@ def assert_text_contains_no_pii(text: str, entity_types: List[str]) -> None:
         "US_SSN": r'\d{3}-\d{2}-\d{4}',
         "CREDIT_CARD": r'\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}',
     }
-    
+
     import re
     for entity_type in entity_types:
         if entity_type in common_patterns:
@@ -110,14 +108,14 @@ def assert_text_contains_no_pii(text: str, entity_types: List[str]) -> None:
 
 def assert_policy_applied_correctly(
     policy: MaskingPolicy,
-    entities: List[RecognizerResult],
+    entities: list[RecognizerResult],
     result: MaskingResult
 ) -> None:
     """Assert that masking policy was applied correctly to detected entities."""
     # Check that entities above threshold were masked
     for entity in entities:
         threshold = policy.get_threshold_for_entity(entity.entity_type)
-        
+
         if entity.score >= threshold and policy.should_mask_entity(
             original_text="", entity_type=entity.entity_type, confidence=entity.score
         ):
@@ -142,11 +140,11 @@ def assert_performance_acceptable(
         f"Processing took {processing_time:.2f}s, expected <= {max_time_seconds}s "
         f"for document with {document_size_chars} characters"
     )
-    
+
     # Performance should scale reasonably with document size
     chars_per_second = document_size_chars / processing_time if processing_time > 0 else float('inf')
     min_chars_per_second = 50   # Realistic minimum performance threshold for testing
-    
+
     assert chars_per_second >= min_chars_per_second, (
         f"Processing rate {chars_per_second:.0f} chars/sec is below threshold "
         f"of {min_chars_per_second} chars/sec"

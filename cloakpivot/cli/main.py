@@ -400,15 +400,15 @@ def mask(
         with click.progressbar(length=1, label="Loading document") as progress:
             processor = DocumentProcessor()
             document = processor.load_document(input_path, validate=True)
-            
+
             # Detect input document format for round-trip preservation
             from cloakpivot.formats.serialization import CloakPivotSerializer
             format_serializer = CloakPivotSerializer()
             detected_input_format = format_serializer.detect_format(input_path)
-            
+
             if verbose:
                 click.echo(f"📋 Detected input format: {detected_input_format or 'unknown'}")
-            
+
             progress.update(1)
 
         if verbose:
@@ -516,11 +516,11 @@ def mask(
             from cloakpivot.formats.serialization import CloakPivotSerializer
 
             serializer = CloakPivotSerializer()
-            
+
             # For round-trip fidelity, preserve the original format when detected
             # Only use the explicit output_format if it differs from detected format
             preserve_format = detected_input_format or output_format
-            
+
             result = serializer.serialize_document(
                 masking_result.masked_document, preserve_format
             )
@@ -699,7 +699,7 @@ def unmask(
                     from cloakpivot.formats.serialization import CloakPivotSerializer
 
                     serializer = CloakPivotSerializer()
-                    
+
                     # Try to restore to original format from CloakMap metadata
                     original_format = cloakmap_obj.metadata.get("original_format")
                     if original_format:

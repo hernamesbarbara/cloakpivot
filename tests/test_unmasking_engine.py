@@ -480,7 +480,7 @@ class TestUnmaskingEngine:
 
         # Should not raise an exception, but return document unchanged
         result = engine.unmask_document(doc, cloakmap)
-            
+
         # Should return the document unchanged
         assert result.restored_document is not None
         assert result.stats["total_anchors_processed"] == 0

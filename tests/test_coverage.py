@@ -1,10 +1,15 @@
 """Tests for coverage analysis functionality."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.diagnostics.coverage import CoverageAnalyzer, CoverageMetrics, DocumentSection
+from cloakpivot.diagnostics.coverage import (
+    CoverageAnalyzer,
+    CoverageMetrics,
+    DocumentSection,
+)
 from cloakpivot.document.extractor import TextSegment
 
 
@@ -15,7 +20,7 @@ def sample_text_segments():
     text2 = "We collect personal information including names, email addresses, and phone numbers."
     text3 = "Contact: John Doe at john.doe@company.com or 555-123-4567"
     text4 = "Data Protection Officer: Jane Smith (jane@company.com)"
-    
+
     return [
         TextSegment(
             text=text1,
@@ -26,7 +31,7 @@ def sample_text_segments():
         ),
         TextSegment(
             text=text2,
-            node_id="paragraph_1", 
+            node_id="paragraph_1",
             start_offset=len(text1) + 1,
             end_offset=len(text1) + 1 + len(text2),
             node_type="paragraph"
@@ -56,7 +61,7 @@ def sample_anchor_entries():
             node_id="paragraph_2",
             start=0,
             end=8,
-            entity_type="PERSON", 
+            entity_type="PERSON",
             confidence=0.95,
             original_text="John Doe",
             masked_value="[PERSON]",
@@ -69,13 +74,13 @@ def sample_anchor_entries():
             end=35,
             entity_type="EMAIL_ADDRESS",
             confidence=0.90,
-            original_text="john.doe@company.com", 
+            original_text="john.doe@company.com",
             masked_value="[EMAIL]",
             strategy_used="template",
             replacement_id="repl_2"
         ),
         AnchorEntry.create_from_detection(
-            node_id="paragraph_2", 
+            node_id="paragraph_2",
             start=39,
             end=51,
             entity_type="PHONE_NUMBER",
@@ -91,7 +96,7 @@ def sample_anchor_entries():
             end=35,
             entity_type="PERSON",
             confidence=0.88,
-            original_text="Jane Smith", 
+            original_text="Jane Smith",
             masked_value="[PERSON]",
             strategy_used="template",
             replacement_id="repl_4"
@@ -104,7 +109,7 @@ def sample_anchor_entries():
             confidence=0.92,
             original_text="jane@company.com",
             masked_value="[EMAIL]",
-            strategy_used="template", 
+            strategy_used="template",
             replacement_id="repl_5"
         )
     ]
@@ -116,12 +121,12 @@ class TestCoverageAnalyzer:
     def test_analyze_document_coverage_basic(self, sample_text_segments, sample_anchor_entries):
         """Test basic document coverage analysis."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         assert isinstance(metrics, CoverageMetrics)
         assert metrics.total_segments == 4
         assert metrics.segments_with_entities == 2  # paragraph_2 and footer_1 have entities
@@ -130,17 +135,17 @@ class TestCoverageAnalyzer:
     def test_analyze_section_breakdown(self, sample_text_segments, sample_anchor_entries):
         """Test section-by-section coverage breakdown."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         # Check section coverage details
         assert len(metrics.section_coverage) == 3  # heading, paragraph, footer
-        
+
         paragraph_coverage = next(
-            (s for s in metrics.section_coverage if s.section_type == "paragraph"), 
+            (s for s in metrics.section_coverage if s.section_type == "paragraph"),
             None
         )
         assert paragraph_coverage is not None
@@ -151,11 +156,11 @@ class TestCoverageAnalyzer:
     def test_analyze_coverage_with_invalid_anchor_entries(self, sample_text_segments):
         """Test coverage analysis with invalid anchor entries."""
         analyzer = CoverageAnalyzer()
-        
+
         # Test with anchor entry missing required attributes
         invalid_anchor = MagicMock()
         invalid_anchor.node_id = None  # Invalid node_id
-        
+
         with pytest.raises(ValueError, match="references invalid node_id 'None'"):
             analyzer.analyze_document_coverage(
                 text_segments=sample_text_segments,
@@ -165,20 +170,20 @@ class TestCoverageAnalyzer:
     def test_analyze_coverage_with_invalid_node_id(self, sample_text_segments):
         """Test coverage analysis with anchor referencing non-existent node_id."""
         analyzer = CoverageAnalyzer()
-        
+
         # Create anchor entry with invalid node_id
         invalid_anchor = AnchorEntry.create_from_detection(
             node_id="non_existent_node",  # This node_id doesn't exist in text_segments
             start=0,
             end=5,
-            entity_type="PERSON", 
+            entity_type="PERSON",
             confidence=0.95,
             original_text="Test",
             masked_value="[PERSON]",
             strategy_used="template",
             replacement_id="repl_1"
         )
-        
+
         with pytest.raises(ValueError, match="references invalid node_id 'non_existent_node'"):
             analyzer.analyze_document_coverage(
                 text_segments=sample_text_segments,
@@ -187,15 +192,15 @@ class TestCoverageAnalyzer:
 
     def test_analyze_coverage_with_invalid_positions(self, sample_text_segments):
         """Test coverage analysis with invalid start/end positions."""
-        analyzer = CoverageAnalyzer()
-        
+        CoverageAnalyzer()
+
         # Test that creating anchor entry with negative positions raises error
         with pytest.raises(ValueError, match="start position must be a non-negative integer"):
             AnchorEntry.create_from_detection(
                 node_id="paragraph_1",
                 start=-1,  # Invalid negative position
                 end=5,
-                entity_type="PERSON", 
+                entity_type="PERSON",
                 confidence=0.95,
                 original_text="Test",
                 masked_value="[PERSON]",
@@ -205,15 +210,15 @@ class TestCoverageAnalyzer:
 
     def test_analyze_coverage_with_invalid_range(self, sample_text_segments):
         """Test coverage analysis with invalid start >= end range."""
-        analyzer = CoverageAnalyzer()
-        
+        CoverageAnalyzer()
+
         # Test that creating anchor entry with start >= end raises error
         with pytest.raises(ValueError, match="end position must be greater than start position"):
             AnchorEntry.create_from_detection(
                 node_id="paragraph_1",
                 start=10,
                 end=5,  # end < start is invalid
-                entity_type="PERSON", 
+                entity_type="PERSON",
                 confidence=0.95,
                 original_text="Test",
                 masked_value="[PERSON]",
@@ -223,8 +228,8 @@ class TestCoverageAnalyzer:
 
     def test_analyze_coverage_with_empty_entity_type(self, sample_text_segments):
         """Test coverage analysis with empty entity_type."""
-        analyzer = CoverageAnalyzer()
-        
+        CoverageAnalyzer()
+
         # Test that creating anchor entry with empty entity_type raises error
         with pytest.raises(ValueError, match="entity_type must be a non-empty string"):
             AnchorEntry.create_from_detection(
@@ -242,12 +247,12 @@ class TestCoverageAnalyzer:
     def test_analyze_entity_distribution(self, sample_text_segments, sample_anchor_entries):
         """Test entity type distribution analysis."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         # Check entity distribution
         assert metrics.entity_distribution["PERSON"] == 2
         assert metrics.entity_distribution["EMAIL_ADDRESS"] == 2
@@ -257,12 +262,12 @@ class TestCoverageAnalyzer:
     def test_calculate_entity_density(self, sample_text_segments, sample_anchor_entries):
         """Test entity density calculation."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         # Should calculate entities per segment
         expected_density = 5 / 4  # 5 entities across 4 segments
         assert abs(metrics.entity_density - expected_density) < 0.01
@@ -270,12 +275,12 @@ class TestCoverageAnalyzer:
     def test_identify_coverage_gaps(self, sample_text_segments, sample_anchor_entries):
         """Test identification of coverage gaps."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         # Should identify segments without entities as gaps
         gaps = metrics.coverage_gaps
         assert len(gaps) == 2  # heading_1 and paragraph_1 have no entities
@@ -286,20 +291,20 @@ class TestCoverageAnalyzer:
     def test_generate_coverage_recommendations(self, sample_text_segments, sample_anchor_entries):
         """Test generation of coverage improvement recommendations."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=sample_anchor_entries
         )
-        
+
         recommendations = analyzer.generate_recommendations(metrics)
-        
+
         assert isinstance(recommendations, list)
         assert len(recommendations) > 0
-        
+
         # Should recommend reviewing segments without entities
         gap_recommendation = any(
-            "uncovered segments" in rec.lower() or "gap" in rec.lower() 
+            "uncovered segments" in rec.lower() or "gap" in rec.lower()
             for rec in recommendations
         )
         assert gap_recommendation
@@ -307,12 +312,12 @@ class TestCoverageAnalyzer:
     def test_empty_document_coverage(self):
         """Test coverage analysis with empty document."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=[],
             anchor_entries=[]
         )
-        
+
         assert metrics.total_segments == 0
         assert metrics.segments_with_entities == 0
         assert metrics.overall_coverage_rate == 1.0  # 100% for empty document
@@ -321,12 +326,12 @@ class TestCoverageAnalyzer:
     def test_no_entities_coverage(self, sample_text_segments):
         """Test coverage analysis with no entities found."""
         analyzer = CoverageAnalyzer()
-        
+
         metrics = analyzer.analyze_document_coverage(
             text_segments=sample_text_segments,
             anchor_entries=[]
         )
-        
+
         assert metrics.total_segments == 4
         assert metrics.segments_with_entities == 0
         assert metrics.overall_coverage_rate == 0.0
@@ -344,7 +349,7 @@ class TestCoverageMetrics:
             segments_with_entities=2,
             entity_count=5
         )
-        
+
         metrics = CoverageMetrics(
             total_segments=10,
             segments_with_entities=8,
@@ -354,7 +359,7 @@ class TestCoverageMetrics:
             entity_density=0.5,
             coverage_gaps=[{"node_id": "gap1", "type": "paragraph"}]
         )
-        
+
         assert metrics.total_segments == 10
         assert metrics.overall_coverage_rate == 0.8
         assert metrics.total_entities == 5  # 3 + 2
@@ -368,7 +373,7 @@ class TestCoverageMetrics:
             segments_with_entities=1,
             entity_count=1
         )
-        
+
         metrics = CoverageMetrics(
             total_segments=5,
             segments_with_entities=3,
@@ -378,9 +383,9 @@ class TestCoverageMetrics:
             entity_density=0.2,
             coverage_gaps=[]
         )
-        
+
         result = metrics.to_dict()
-        
+
         assert result["total_segments"] == 5
         assert result["overall_coverage_rate"] == 0.6
         assert result["entity_distribution"]["PERSON"] == 1
@@ -399,7 +404,7 @@ class TestDocumentSection:
             segments_with_entities=7,
             entity_count=15
         )
-        
+
         assert section.coverage_rate == 0.7  # 7/10
         assert section.average_entities_per_segment == 1.5  # 15/10
 
@@ -411,21 +416,21 @@ class TestDocumentSection:
             segments_with_entities=0,
             entity_count=0
         )
-        
+
         assert section.coverage_rate == 1.0  # Default to 100% for empty sections
         assert section.average_entities_per_segment == 0.0
 
     def test_document_section_to_dict(self):
-        """Test conversion to dictionary.""" 
+        """Test conversion to dictionary."""
         section = DocumentSection(
             section_type="footer",
             total_segments=3,
             segments_with_entities=2,
             entity_count=4
         )
-        
+
         result = section.to_dict()
-        
+
         assert result["section_type"] == "footer"
         assert result["total_segments"] == 3
         assert result["coverage_rate"] == pytest.approx(0.667, abs=0.01)

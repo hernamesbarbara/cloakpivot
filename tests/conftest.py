@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
 from unittest.mock import Mock
 
 import pytest
@@ -51,7 +50,7 @@ def simple_document(sample_text_with_pii: str) -> DoclingDocument:
 def complex_document() -> DoclingDocument:
     """Create a complex document with multiple text items and structures."""
     doc = DoclingDocument(name="complex_test_document")
-    
+
     # Header
     header = TextItem(
         text="Employee Information Report",
@@ -59,28 +58,28 @@ def complex_document() -> DoclingDocument:
         label="text",
         orig="Employee Information Report"
     )
-    
+
     # Content with PII
     content1 = TextItem(
         text="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543",
-        self_ref="#/texts/1", 
+        self_ref="#/texts/1",
         label="text",
         orig="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543"
     )
-    
+
     content2 = TextItem(
         text="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876",
         self_ref="#/texts/2",
-        label="text", 
+        label="text",
         orig="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876"
     )
-    
+
     doc.texts = [header, content1, content2]
     return doc
 
 
 @pytest.fixture
-def detected_entities() -> List[RecognizerResult]:
+def detected_entities() -> list[RecognizerResult]:
     """Sample detected PII entities for testing."""
     return [
         RecognizerResult(
@@ -90,7 +89,7 @@ def detected_entities() -> List[RecognizerResult]:
             score=0.95
         ),
         RecognizerResult(
-            entity_type="EMAIL_ADDRESS", 
+            entity_type="EMAIL_ADDRESS",
             start=36,
             end=56,
             score=0.88
@@ -155,7 +154,7 @@ def strict_masking_policy() -> MaskingPolicy:
 
 
 @pytest.fixture
-def mock_analyzer_results() -> List[RecognizerResult]:
+def mock_analyzer_results() -> list[RecognizerResult]:
     """Mock analyzer results for various PII types."""
     return [
         RecognizerResult(entity_type="PHONE_NUMBER", start=0, end=12, score=0.95),
@@ -209,7 +208,7 @@ def mock_presidio_anonymizer():
 
 
 @pytest.fixture
-def simple_text_segments(sample_text_with_pii: str) -> List[TextSegment]:
+def simple_text_segments(sample_text_with_pii: str) -> list[TextSegment]:
     """Create text segments for simple document testing."""
     return [
         TextSegment(
@@ -223,7 +222,7 @@ def simple_text_segments(sample_text_with_pii: str) -> List[TextSegment]:
 
 
 @pytest.fixture
-def complex_text_segments() -> List[TextSegment]:
+def complex_text_segments() -> list[TextSegment]:
     """Create text segments for complex document testing."""
     return [
         TextSegment(
@@ -255,7 +254,7 @@ def complex_text_segments() -> List[TextSegment]:
 def large_document(sample_text_with_pii: str) -> DoclingDocument:
     """Create a large document for performance testing."""
     doc = DoclingDocument(name="large_test_document")
-    
+
     # Create 100 text items with PII content
     text_items = []
     for i in range(100):
@@ -266,7 +265,7 @@ def large_document(sample_text_with_pii: str) -> DoclingDocument:
             orig=f"Section {i}: {sample_text_with_pii}"
         )
         text_items.append(text_item)
-    
+
     doc.texts = text_items
     return doc
 
@@ -274,7 +273,7 @@ def large_document(sample_text_with_pii: str) -> DoclingDocument:
 # Parametrized fixtures for comprehensive testing
 @pytest.fixture(params=[
     "low",
-    "medium", 
+    "medium",
     "high"
 ])
 def privacy_level(request) -> str:
@@ -290,7 +289,7 @@ def privacy_level(request) -> str:
     StrategyKind.PARTIAL,
 ])
 def strategy_kind(request) -> StrategyKind:
-    """Parametrized strategy kind for comprehensive strategy testing.""" 
+    """Parametrized strategy kind for comprehensive strategy testing."""
     return request.param
 
 
@@ -327,7 +326,7 @@ def benchmark_policy() -> MaskingPolicy:
 @pytest.fixture(scope="session")
 def shared_analyzer():
     """Shared AnalyzerEngine instance for performance testing.
-    
+
     This fixture creates a single AnalyzerEngine instance that can be reused
     across multiple tests to avoid the overhead of repeatedly initializing
     the engine and loading language models.

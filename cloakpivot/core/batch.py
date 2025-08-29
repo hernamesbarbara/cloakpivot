@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from .error_handling import ErrorCollector
 from .performance import PerformanceProfiler
@@ -54,7 +54,7 @@ class BatchConfig:
 
     # Core settings
     operation_type: BatchOperationType
-    input_patterns: List[str]
+    input_patterns: list[str]
     output_directory: Optional[Path] = None
     cloakmap_directory: Optional[Path] = None
 
@@ -97,9 +97,9 @@ class BatchResult:
     skipped_files: int
     total_processing_time_ms: float
     total_entities_processed: int
-    file_results: List[BatchFileItem] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    performance_stats: Dict[str, Any] = field(default_factory=dict)
+    file_results: list[BatchFileItem] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    performance_stats: dict[str, Any] = field(default_factory=dict)
 
     @property
     def duration_ms(self) -> float:
@@ -205,7 +205,7 @@ class DefaultProgressCallback:
             f"Batch processing completed: {result.successful_files}/{result.total_files} "
             f"files successful ({success_rate:.1f}%)"
         )
-        print(f"🏁 Batch processing completed!")
+        print("🏁 Batch processing completed!")
         print(f"   Total files: {result.total_files}")
         print(f"   Successful: {result.successful_files}")
         print(f"   Failed: {result.failed_files}")
@@ -273,7 +273,7 @@ class BatchProcessor:
             f"with max_workers={config.max_workers}"
         )
 
-    def discover_files(self) -> List[BatchFileItem]:
+    def discover_files(self) -> list[BatchFileItem]:
         """
         Discover files matching the input patterns.
 
@@ -474,7 +474,7 @@ class BatchProcessor:
 
         return result
 
-    def _create_output_directories(self, files: List[BatchFileItem]) -> None:
+    def _create_output_directories(self, files: list[BatchFileItem]) -> None:
         """Create necessary output directories."""
         directories_to_create = set()
 
@@ -493,8 +493,8 @@ class BatchProcessor:
                 raise
 
     def _filter_existing_files(
-        self, files: List[BatchFileItem]
-    ) -> List[BatchFileItem]:
+        self, files: list[BatchFileItem]
+    ) -> list[BatchFileItem]:
         """Filter out files that would overwrite existing outputs."""
         filtered_files = []
 
@@ -523,8 +523,8 @@ class BatchProcessor:
         return filtered_files
 
     def _process_files_parallel(
-        self, files: List[BatchFileItem]
-    ) -> List[BatchFileItem]:
+        self, files: list[BatchFileItem]
+    ) -> list[BatchFileItem]:
         """Process files in parallel using ThreadPoolExecutor."""
         processed_files = []
 
@@ -645,11 +645,12 @@ class BatchProcessor:
 
     def _process_mask_operation(self, file_item: BatchFileItem) -> None:
         """Process a single file for masking operation."""
-        from ..document.processor import DocumentProcessor
-        from ..masking.engine import MaskingEngine
+        import json
+
         from ..core.detection import EntityDetectionPipeline
         from ..document.extractor import TextExtractor
-        import json
+        from ..document.processor import DocumentProcessor
+        from ..masking.engine import MaskingEngine
 
         # Load document
         processor = DocumentProcessor()
@@ -708,10 +709,11 @@ class BatchProcessor:
 
     def _process_unmask_operation(self, file_item: BatchFileItem) -> None:
         """Process a single file for unmasking operation."""
+        import json
+
+        from ..core.cloakmap import CloakMap
         from ..document.processor import DocumentProcessor
         from ..unmasking.engine import UnmaskingEngine
-        from ..core.cloakmap import CloakMap
-        import json
 
         if not file_item.cloakmap_path or not file_item.cloakmap_path.exists():
             raise FileNotFoundError(
@@ -753,9 +755,10 @@ class BatchProcessor:
 
     def _process_analyze_operation(self, file_item: BatchFileItem) -> None:
         """Process a single file for analysis operation."""
-        from ..document.processor import DocumentProcessor
-        from ..core.detection import EntityDetectionPipeline
         import json
+
+        from ..core.detection import EntityDetectionPipeline
+        from ..document.processor import DocumentProcessor
 
         # Load document
         processor = DocumentProcessor()

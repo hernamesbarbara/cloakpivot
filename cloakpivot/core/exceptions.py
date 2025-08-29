@@ -5,7 +5,7 @@ categorization, partial failure isolation, and enhanced error recovery throughou
 the CloakPivot system.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 
 class CloakPivotError(Exception):
@@ -26,8 +26,8 @@ class CloakPivotError(Exception):
         self,
         message: str,
         error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        recovery_suggestions: Optional[List[str]] = None,
+        context: Optional[dict[str, Any]] = None,
+        recovery_suggestions: Optional[list[str]] = None,
         component: Optional[str] = None,
     ):
         super().__init__(message)
@@ -66,7 +66,7 @@ class CloakPivotError(Exception):
         if suggestion not in self.recovery_suggestions:
             self.recovery_suggestions.append(suggestion)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert error to structured dictionary for logging/reporting."""
         return {
             "error_type": self.__class__.__name__,
@@ -177,7 +177,7 @@ class UnmaskingError(CloakPivotError):
         message: str,
         cloakmap_version: Optional[str] = None,
         anchor_count: Optional[int] = None,
-        failed_anchors: Optional[List[str]] = None,
+        failed_anchors: Optional[list[str]] = None,
         **kwargs,
     ):
         super().__init__(message, **kwargs)
@@ -248,7 +248,7 @@ class PartialProcessingError(CloakPivotError):
         total_operations: int,
         successful_operations: int,
         failed_operations: int,
-        failures: List[Dict[str, Any]],
+        failures: list[dict[str, Any]],
         **kwargs,
     ):
         super().__init__(message, **kwargs)

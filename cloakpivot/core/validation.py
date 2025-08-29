@@ -8,7 +8,7 @@ error detection with clear, actionable error messages.
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .exceptions import (
     ConfigurationError,
@@ -198,7 +198,7 @@ class DocumentValidator:
         import json
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 data = json.load(f)
 
             # Check if it's a valid docling document structure
@@ -242,7 +242,7 @@ class PolicyValidator:
     """Validates masking policy configuration."""
 
     @staticmethod
-    def validate_policy_structure(policy_data: Dict[str, Any]) -> None:
+    def validate_policy_structure(policy_data: dict[str, Any]) -> None:
         """Validate basic policy structure and required fields."""
         required_fields = ['default_strategy']
         missing_fields = [field for field in required_fields if field not in policy_data]
@@ -266,7 +266,7 @@ class PolicyValidator:
                     type(policy_data['per_entity'])
                 )
 
-            for entity_type, strategy in policy_data['per_entity'].items():
+            for _entity_type, strategy in policy_data['per_entity'].items():
                 PolicyValidator._validate_strategy(strategy)
 
     @staticmethod
@@ -297,7 +297,7 @@ class PolicyValidator:
             )
 
     @staticmethod
-    def validate_thresholds(thresholds: Dict[str, float]) -> None:
+    def validate_thresholds(thresholds: dict[str, float]) -> None:
         """Validate confidence thresholds are within valid range."""
         for entity_type, threshold in thresholds.items():
             if not isinstance(threshold, (int, float)):
@@ -321,7 +321,7 @@ class CloakMapValidator:
     """Validates CloakMap structure and integrity."""
 
     @staticmethod
-    def validate_cloakmap_structure(cloakmap_data: Dict[str, Any]) -> None:
+    def validate_cloakmap_structure(cloakmap_data: dict[str, Any]) -> None:
         """Validate CloakMap has required structure."""
         required_fields = ['doc_id', 'version', 'anchors', 'created_at']
         missing_fields = [field for field in required_fields if field not in cloakmap_data]
@@ -395,7 +395,7 @@ class InputValidator:
     def validate_masking_inputs(
         self,
         document_path: Union[str, Path],
-        policy_data: Optional[Dict[str, Any]] = None,
+        policy_data: Optional[dict[str, Any]] = None,
         output_path: Optional[Union[str, Path]] = None,
     ) -> None:
         """Validate all inputs required for masking operation."""
@@ -440,7 +440,7 @@ class InputValidator:
         # CloakMap structure validation
         import json
         try:
-            with open(cloakmap_path, 'r', encoding='utf-8') as f:
+            with open(cloakmap_path, encoding='utf-8') as f:
                 cloakmap_data = json.load(f)
             self.cloakmap_validator.validate_cloakmap_structure(cloakmap_data)
         except json.JSONDecodeError as e:
@@ -458,7 +458,7 @@ class InputValidator:
                 create_if_missing=True,
             )
 
-    def validate_configuration(self, config: Dict[str, Any]) -> List[str]:
+    def validate_configuration(self, config: dict[str, Any]) -> list[str]:
         """Validate configuration and return list of warnings (non-fatal issues)."""
         warnings = []
 
@@ -487,9 +487,9 @@ class InputValidator:
 
 def validate_for_masking(
     document_path: Union[str, Path],
-    policy_data: Optional[Dict[str, Any]] = None,
+    policy_data: Optional[dict[str, Any]] = None,
     output_path: Optional[Union[str, Path]] = None,
-) -> List[str]:
+) -> list[str]:
     """Validate inputs for masking operation and return any warnings."""
     validator = InputValidator()
     validator.validate_masking_inputs(document_path, policy_data, output_path)
@@ -506,7 +506,7 @@ def validate_for_unmasking(
     masked_document_path: Union[str, Path],
     cloakmap_path: Union[str, Path],
     output_path: Optional[Union[str, Path]] = None,
-) -> List[str]:
+) -> list[str]:
     """Validate inputs for unmasking operation and return any warnings."""
     validator = InputValidator()
     validator.validate_unmasking_inputs(masked_document_path, cloakmap_path, output_path)

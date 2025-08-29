@@ -4,26 +4,22 @@ These tests generate random inputs to discover edge cases and verify
 properties that should hold for all valid inputs.
 """
 
-import re
 from datetime import timedelta
-from typing import Any, Dict, List
 
 import pytest
-from hypothesis import given, strategies as st, settings, assume, example
-from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, Bundle
-
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
-from presidio_analyzer import RecognizerResult
+from hypothesis import assume, example, given, settings
+from hypothesis import strategies as st
+from hypothesis.stateful import Bundle, RuleBasedStateMachine, invariant, rule
 
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
-from cloakpivot.masking.engine import MaskingEngine
 from cloakpivot.unmasking.engine import UnmaskingEngine
 from tests.utils.assertions import (
     assert_document_structure_preserved,
+    assert_masking_result_valid,
     assert_round_trip_fidelity,
-    assert_masking_result_valid
 )
 from tests.utils.masking_helpers import mask_document_with_detection
 
@@ -33,16 +29,16 @@ from tests.utils.masking_helpers import mask_document_with_detection
 def text_with_pii(draw):
     """Generate text containing various PII patterns."""
     base_text = draw(st.text(min_size=10, max_size=500))
-    
+
     # Add some PII patterns
     phone_patterns = ["555-123-4567", "(555) 987-6543", "555.234.5678"]
     email_patterns = ["john@example.com", "alice.smith@company.org", "user123@test.net"]
     ssn_patterns = ["123-45-6789", "987-65-4321", "555-44-3333"]
-    
+
     phone = draw(st.sampled_from(phone_patterns))
     email = draw(st.sampled_from(email_patterns))
     ssn = draw(st.sampled_from(ssn_patterns))
-    
+
     # Randomly insert PII into text
     pii_text = f"{base_text} Contact: {phone} Email: {email} SSN: {ssn}"
     return pii_text
@@ -53,7 +49,7 @@ def document_strategy(draw):
     """Generate DoclingDocument instances."""
     name = draw(st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Nd'))))
     text_content = draw(text_with_pii())
-    
+
     doc = DoclingDocument(name=name)
     text_item = TextItem(
         text=text_content,
@@ -69,26 +65,26 @@ def document_strategy(draw):
 def policy_strategy(draw):
     """Generate MaskingPolicy instances."""
     locale = draw(st.sampled_from(["en", "es", "fr", "de"]))
-    privacy_level = draw(st.sampled_from(["low", "medium", "high"]))
-    
+    draw(st.sampled_from(["low", "medium", "high"]))
+
     # Generate entities configuration
     entity_types = ["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON", "CREDIT_CARD"]
     selected_entities = draw(st.lists(st.sampled_from(entity_types), min_size=1, max_size=len(entity_types), unique=True))
-    
+
     strategy_kinds = [StrategyKind.TEMPLATE, StrategyKind.HASH, StrategyKind.SURROGATE, StrategyKind.PARTIAL]
-    
+
     entities = {}
     thresholds = {}
-    
+
     for entity_type in selected_entities:
         strategy_kind = draw(st.sampled_from(strategy_kinds))
-        
+
         # Use appropriate strategy for entity type
         if entity_type == "PHONE_NUMBER" and strategy_kind not in [StrategyKind.TEMPLATE, StrategyKind.HASH, StrategyKind.SURROGATE]:
             strategy_kind = StrategyKind.TEMPLATE
         elif entity_type == "EMAIL_ADDRESS" and strategy_kind not in [StrategyKind.TEMPLATE, StrategyKind.HASH, StrategyKind.SURROGATE]:
             strategy_kind = StrategyKind.TEMPLATE
-        
+
         # Generate appropriate parameters for each strategy kind
         parameters = {}
         if strategy_kind == StrategyKind.TEMPLATE:
@@ -100,16 +96,16 @@ def policy_strategy(draw):
         elif strategy_kind == StrategyKind.SURROGATE:
             format_types = {
                 "PHONE_NUMBER": "phone",
-                "EMAIL_ADDRESS": "email", 
+                "EMAIL_ADDRESS": "email",
                 "US_SSN": "ssn",
                 "CREDIT_CARD": "credit_card",
                 "PERSON": "name"
             }
             parameters = {"format_type": format_types.get(entity_type, "custom")}
-        
+
         entities[entity_type] = Strategy(kind=strategy_kind, parameters=parameters)
         thresholds[entity_type] = draw(st.floats(min_value=0.1, max_value=0.95))
-    
+
     return MaskingPolicy(
         locale=locale,
         per_entity=entities,
@@ -119,7 +115,7 @@ def policy_strategy(draw):
 
 class TestPropertyBased:
     """Property-based tests using Hypothesis."""
-    
+
     @given(document_strategy(), policy_strategy())
     @settings(max_examples=5, deadline=5000)  # Reduced examples and deadline for CI performance
     @example(
@@ -134,38 +130,38 @@ class TestPropertyBased:
         """Property: Masking should always preserve document structure."""
         # Skip empty documents
         assume(document.texts and len(document.texts[0].text.strip()) > 0)
-        
+
         try:
             result = mask_document_with_detection(document, policy)
-            
+
             # Document structure should be preserved
             assert_document_structure_preserved(document, result.masked_document)
             assert_masking_result_valid(result)
-            
+
         except Exception as e:
             # Log the inputs that caused the failure for debugging
             pytest.fail(f"Masking failed with document '{document.name}' and policy privacy level '{policy.privacy_level}': {str(e)}")
-    
+
     @given(document_strategy(), policy_strategy())
     @settings(max_examples=5, deadline=10000)
     def test_round_trip_property(self, document: DoclingDocument, policy: MaskingPolicy):
         """Property: Round-trip masking/unmasking should preserve original content."""
         # Skip empty documents
         assume(document.texts and len(document.texts[0].text.strip()) > 0)
-        
+
         try:
             unmasking_engine = UnmaskingEngine()
-            
+
             # Mask document
             mask_result = mask_document_with_detection(document, policy)
             assert_masking_result_valid(mask_result)
-            
+
             # Unmask document
             unmask_result = unmasking_engine.unmask_document(
                 mask_result.masked_document,
                 mask_result.cloakmap
             )
-            
+
             # Round-trip should preserve content
             assert_round_trip_fidelity(
                 document,
@@ -173,17 +169,17 @@ class TestPropertyBased:
                 unmask_result.unmasked_document,
                 mask_result.cloakmap
             )
-            
+
         except Exception as e:
             pytest.fail(f"Round-trip failed: {str(e)}")
-    
+
     @given(st.text(min_size=1, max_size=1000))
     @settings(max_examples=10, deadline=3000)
     def test_text_processing_robustness(self, text: str):
         """Property: Text processing should handle arbitrary strings without crashing."""
         # Skip text that is just whitespace
         assume(text.strip())
-        
+
         try:
             # Create document
             doc = DoclingDocument(name="property_test")
@@ -194,7 +190,7 @@ class TestPropertyBased:
                 orig=text
             )
             doc.texts = [text_item]
-            
+
             # Create simple policy
             policy = MaskingPolicy(
                 locale="en",
@@ -202,36 +198,36 @@ class TestPropertyBased:
                 entities={"PHONE_NUMBER": Strategy(kind=StrategyKind.TEMPLATE)},
                 thresholds={"PHONE_NUMBER": 0.5}
             )
-            
+
             # Should not crash
             result = mask_document_with_detection(doc, policy)
-            
+
             # Basic invariants
             assert result is not None
             assert result.masked_document is not None
             assert result.cloakmap is not None
-            
+
         except Exception as e:
             # Some text might be problematic, but we want to know about crashes
             if "critical" in str(e).lower() or "fatal" in str(e).lower():
                 pytest.fail(f"Critical failure with text processing: {str(e)}")
-    
+
     @given(
         st.lists(st.text(min_size=5, max_size=200), min_size=1, max_size=10),
         policy_strategy()
     )
     @settings(max_examples=5, deadline=8000)
-    def test_multi_section_document_property(self, text_sections: List[str], policy: MaskingPolicy):
+    def test_multi_section_document_property(self, text_sections: list[str], policy: MaskingPolicy):
         """Property: Multi-section documents should preserve section count and structure."""
         # Filter out empty sections
         text_sections = [section.strip() for section in text_sections if section.strip()]
         assume(len(text_sections) > 0)
-        
+
         try:
             # Create multi-section document
             doc = DoclingDocument(name="multi_section_test")
             text_items = []
-            
+
             for i, section in enumerate(text_sections):
                 text_item = TextItem(
                     text=section,
@@ -240,23 +236,23 @@ class TestPropertyBased:
                     orig=section
                 )
                 text_items.append(text_item)
-            
+
             doc.texts = text_items
-            
+
             # Apply masking
             result = mask_document_with_detection(doc, policy)
-            
+
             # Section count should be preserved
             assert len(result.masked_document.texts) == len(text_sections)
-            
+
             # Each section should maintain its reference structure
             for orig_item, masked_item in zip(doc.texts, result.masked_document.texts):
                 assert orig_item.self_ref == masked_item.self_ref
                 assert orig_item.label == masked_item.label
-                
+
         except Exception as e:
             pytest.fail(f"Multi-section processing failed: {str(e)}")
-    
+
     @given(
         st.floats(min_value=0.0, max_value=1.0),
         st.sampled_from(["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"])
@@ -271,15 +267,15 @@ class TestPropertyBased:
             "US_SSN": "SSN: 123-45-6789",
             "PERSON": "Contact John Smith"
         }
-        
+
         text = test_patterns.get(entity_type, f"Test {entity_type} content")
-        
+
         try:
             # Create document
             doc = DoclingDocument(name="threshold_test")
             text_item = TextItem(text=text, self_ref="#/texts/0", label="text", orig=text)
             doc.texts = [text_item]
-            
+
             # Create policy with specific threshold
             strategy_map = {
                 "PHONE_NUMBER": StrategyKind.TEMPLATE,
@@ -287,19 +283,19 @@ class TestPropertyBased:
                 "US_SSN": StrategyKind.HASH,
                 "PERSON": StrategyKind.TEMPLATE
             }
-            
+
             policy = MaskingPolicy(
                 locale="en",
                 privacy_level="medium",
                 per_entity={entity_type: Strategy(kind=strategy_map[entity_type], parameters={"template": f"[{entity_type}]"})},
                 thresholds={entity_type: threshold}
             )
-            
+
             result = mask_document_with_detection(doc, policy)
-            
+
             # Basic property: result should be valid regardless of threshold
             assert_masking_result_valid(result)
-            
+
         except Exception as e:
             pytest.fail(f"Threshold testing failed for {entity_type} with threshold {threshold}: {str(e)}")
 
@@ -307,11 +303,11 @@ class TestPropertyBased:
 @settings(max_examples=3, stateful_step_count=5, deadline=10000)
 class MaskingStateMachine(RuleBasedStateMachine):
     """Stateful testing for complex masking scenarios."""
-    
+
     documents = Bundle('documents')
     policies = Bundle('policies')
     masked_results = Bundle('masked_results')
-    
+
     @rule(target=documents, name=st.text(min_size=1, max_size=30), content=text_with_pii())
     def create_document(self, name: str, content: str):
         """Create a new document."""
@@ -319,7 +315,7 @@ class MaskingStateMachine(RuleBasedStateMachine):
         text_item = TextItem(text=content, self_ref="#/texts/0", label="text", orig=content)
         doc.texts = [text_item]
         return doc
-    
+
     @rule(target=policies)
     def create_policy(self):
         """Create a new masking policy."""
@@ -332,7 +328,7 @@ class MaskingStateMachine(RuleBasedStateMachine):
             },
             thresholds={"PHONE_NUMBER": 0.7, "EMAIL_ADDRESS": 0.8}
         )
-    
+
     @rule(target=masked_results, document=documents, policy=policies)
     def mask_document(self, document: DoclingDocument, policy: MaskingPolicy):
         """Apply masking to a document."""
@@ -340,22 +336,22 @@ class MaskingStateMachine(RuleBasedStateMachine):
             result = mask_document_with_detection(document, policy)
             assert_masking_result_valid(result)
             return (result, document)  # Store both result and original
-        except Exception as e:
+        except Exception:
             # Some combinations might be invalid, that's okay
             assume(False)
-    
+
     @rule(masked_data=masked_results)
     def unmask_document(self, masked_data):
         """Unmask a previously masked document."""
         mask_result, original_doc = masked_data
-        
+
         try:
             engine = UnmaskingEngine()
             unmask_result = engine.unmask_document(
                 mask_result.masked_document,
                 mask_result.cloakmap
             )
-            
+
             # Verify round-trip fidelity
             assert_round_trip_fidelity(
                 original_doc,
@@ -363,10 +359,10 @@ class MaskingStateMachine(RuleBasedStateMachine):
                 unmask_result.unmasked_document,
                 mask_result.cloakmap
             )
-            
+
         except Exception as e:
             pytest.fail(f"Unmasking failed: {str(e)}")
-    
+
     @invariant()
     def documents_are_valid(self):
         """Invariant: All documents should remain valid."""
@@ -377,38 +373,38 @@ class MaskingStateMachine(RuleBasedStateMachine):
 # Slow property-based tests
 class TestPropertyBasedSlow:
     """Slower, more comprehensive property-based tests."""
-    
+
     @pytest.mark.slow
     @given(document_strategy(), policy_strategy())
     @settings(max_examples=10, deadline=15000)
     def test_comprehensive_masking_properties(self, document: DoclingDocument, policy: MaskingPolicy):
         """Comprehensive property testing with more examples."""
         assume(document.texts and len(document.texts[0].text.strip()) > 0)
-        
+
         try:
             unmasking_engine = UnmaskingEngine()
-            
+
             # Test masking
             mask_result = mask_document_with_detection(document, policy)
             assert_masking_result_valid(mask_result)
-            
+
             # Test structure preservation
             assert_document_structure_preserved(document, mask_result.masked_document)
-            
+
             # Test round-trip if we have entities to mask
             if len(mask_result.cloakmap.entity_mappings) > 0:
                 unmask_result = unmasking_engine.unmask_document(
                     mask_result.masked_document,
                     mask_result.cloakmap
                 )
-                
+
                 assert_round_trip_fidelity(
                     document,
                     mask_result.masked_document,
                     unmask_result.unmasked_document,
                     mask_result.cloakmap
                 )
-                
+
         except Exception as e:
             pytest.fail(f"Comprehensive testing failed: {str(e)}")
 
@@ -416,7 +412,7 @@ class TestPropertyBasedSlow:
 # Test class for running stateful tests
 class TestStateful:
     """Test stateful behavior."""
-    
+
     @pytest.mark.slow
     def test_stateful_masking(self):
         """Run stateful testing scenario."""

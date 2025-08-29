@@ -299,16 +299,16 @@ class DiagnosticReporter:
         """Generate HTML recommendations section."""
         if not data.recommendations:
             return ""
-            
+
         html_content = """
         <div class="section">
             <h2>Recommendations</h2>
             <div class="recommendations">
                 <ul>"""
-        
+
         for recommendation in data.recommendations:
             html_content += f"<li>{recommendation}</li>"
-            
+
         html_content += """
                 </ul>
             </div>
@@ -320,7 +320,7 @@ class DiagnosticReporter:
         # Create entity distribution data for charts
         entity_labels = list(data.statistics.entity_counts_by_type.keys())
         entity_counts = list(data.statistics.entity_counts_by_type.values())
-        
+
         return f"""
     <script>
         // Entity Distribution Chart

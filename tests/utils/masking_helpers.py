@@ -1,7 +1,6 @@
 """Helper utilities for masking tests."""
 
 import re
-from typing import List
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
@@ -13,7 +12,7 @@ from cloakpivot.masking.engine import MaskingEngine, MaskingResult
 
 
 def mask_document_with_detection(
-    document: DoclingDocument, 
+    document: DoclingDocument,
     policy: MaskingPolicy,
     analyzer: AnalyzerEngine = None,
     resolve_conflicts: bool = True,
@@ -21,26 +20,26 @@ def mask_document_with_detection(
 ) -> MaskingResult:
     """
     Convenience function that performs entity detection and masking in one step.
-    
+
     This is used by tests that expect a simpler API for masking documents.
-    
+
     Args:
         document: The DoclingDocument to mask
         policy: Masking policy defining strategies per entity type
         analyzer: Optional Presidio AnalyzerEngine (creates default if None)
         resolve_conflicts: Whether to enable conflict resolution (default: True)
         timing_log: Whether to enable timing logs (default: False)
-        
+
     Returns:
         MaskingResult containing the masked document and CloakMap
     """
     if analyzer is None:
         analyzer = AnalyzerEngine()
-    
+
     # Extract text segments from document
     extractor = TextExtractor()
     text_segments = extractor.extract_text_segments(document)
-    
+
     # Detect entities in each text segment and adjust positions to global coordinates
     all_entities = []
     for segment in text_segments:
@@ -48,7 +47,7 @@ def mask_document_with_detection(
             text=segment.text,
             language="en"
         )
-        
+
         # Adjust entity positions from segment-relative to global coordinates
         for entity in segment_entities:
             # Entity positions from analyzer are relative to segment.text
@@ -56,12 +55,12 @@ def mask_document_with_detection(
             adjusted_entity = RecognizerResult(
                 entity_type=entity.entity_type,
                 start=entity.start + segment.start_offset,
-                end=entity.end + segment.start_offset, 
+                end=entity.end + segment.start_offset,
                 score=entity.score,
                 analysis_explanation=entity.analysis_explanation
             )
             all_entities.append(adjusted_entity)
-    
+
     # Apply masking with conflict resolution enabled
     engine = MaskingEngine(resolve_conflicts=resolve_conflicts)
     return engine.mask_document(
@@ -72,14 +71,14 @@ def mask_document_with_detection(
     )
 
 
-def create_text_segments_from_document(document: DoclingDocument) -> List[TextSegment]:
+def create_text_segments_from_document(document: DoclingDocument) -> list[TextSegment]:
     """
     Create text segments from a DoclingDocument.
-    
+
     This is a simplified version for testing purposes.
     """
     segments = []
-    
+
     for i, text_item in enumerate(document.texts):
         segment = TextSegment(
             node_id=text_item.self_ref or f"#/texts/{i}",
@@ -89,27 +88,27 @@ def create_text_segments_from_document(document: DoclingDocument) -> List[TextSe
             node_type="TextItem"
         )
         segments.append(segment)
-    
+
     return segments
 
 
 def detect_entities_in_text_segments(
-    text_segments: List[TextSegment],
+    text_segments: list[TextSegment],
     analyzer: AnalyzerEngine = None
-) -> List[RecognizerResult]:
+) -> list[RecognizerResult]:
     """
     Detect entities in text segments.
-    
+
     Args:
         text_segments: List of text segments to analyze
         analyzer: Optional Presidio AnalyzerEngine
-        
+
     Returns:
         List of detected entities across all segments
     """
     if analyzer is None:
         analyzer = AnalyzerEngine()
-    
+
     all_entities = []
     for segment in text_segments:
         segment_entities = analyzer.analyze(
@@ -117,17 +116,17 @@ def detect_entities_in_text_segments(
             language="en"
         )
         all_entities.extend(segment_entities)
-    
+
     return all_entities
 
 
 class FastRegexDetector:
     """Fast regex-based detector for predictable unit testing.
-    
+
     This detector uses simple regex patterns to identify PII in text
     for fast, deterministic testing without the overhead of full Presidio analysis.
     """
-    
+
     def __init__(self):
         """Initialize the fast regex detector with common PII patterns."""
         self.patterns = {
@@ -142,18 +141,18 @@ class FastRegexDetector:
                 re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),  # 123-45-6789
             ],
         }
-    
-    def analyze_text(self, text: str) -> List[RecognizerResult]:
+
+    def analyze_text(self, text: str) -> list[RecognizerResult]:
         """Analyze text and return detected PII entities.
-        
+
         Args:
             text: Text to analyze
-            
+
         Returns:
             List of RecognizerResult objects for detected entities
         """
         entities = []
-        
+
         for entity_type, patterns in self.patterns.items():
             for pattern in patterns:
                 for match in pattern.finditer(text):
@@ -164,21 +163,21 @@ class FastRegexDetector:
                         score=0.95  # High confidence for regex matches
                     )
                     entities.append(entity)
-        
+
         return entities
 
 
 def create_simple_document(text: str) -> DoclingDocument:
     """Create a simple DoclingDocument with a single text section.
-    
+
     Args:
         text: Text content for the document
-        
+
     Returns:
         DoclingDocument with single TextItem
     """
     doc = DoclingDocument(name="test_doc")
-    
+
     text_item = TextItem(
         text=text,
         self_ref="#/texts/0",
@@ -186,21 +185,21 @@ def create_simple_document(text: str) -> DoclingDocument:
         orig=text
     )
     doc.texts = [text_item]
-    
+
     return doc
 
 
-def create_multi_section_document(sections: List[str]) -> DoclingDocument:
+def create_multi_section_document(sections: list[str]) -> DoclingDocument:
     """Create a DoclingDocument with multiple text sections.
-    
+
     Args:
         sections: List of text strings, each becomes a separate TextItem
-        
+
     Returns:
         DoclingDocument with multiple TextItems
     """
     doc = DoclingDocument(name="multi_section_doc")
-    
+
     text_items = []
     for i, section_text in enumerate(sections):
         text_item = TextItem(
@@ -210,7 +209,7 @@ def create_multi_section_document(sections: List[str]) -> DoclingDocument:
             orig=section_text
         )
         text_items.append(text_item)
-    
+
     doc.texts = text_items
-    
+
     return doc

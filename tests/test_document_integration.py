@@ -238,7 +238,7 @@ class TestTextExtractor:
         result = extractor._normalize_whitespace("Hello    world")
         assert result == "Hello  world"
 
-        # Test line breaks (4 newlines -> 3 newlines, conservative normalization) 
+        # Test line breaks (4 newlines -> 3 newlines, conservative normalization)
         result = extractor._normalize_whitespace("Hello\n\n\n\nworld")
         assert result == "Hello\n\n\nworld"
 

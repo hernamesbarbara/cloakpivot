@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 
@@ -13,18 +13,18 @@ from ..core.policies import MaskingPolicy
 @click.group()
 def batch() -> None:
     """Batch processing operations for multiple documents.
-    
+
     Batch operations support processing multiple files with pattern matching,
     progress reporting, error isolation, and configurable resource management.
     """
     pass
 
 
-def _validate_patterns(patterns: List[str]) -> List[str]:
+def _validate_patterns(patterns: list[str]) -> list[str]:
     """Validate and normalize input patterns."""
     if not patterns:
         raise click.ClickException("At least one input pattern must be specified")
-    
+
     # Expand patterns to handle shell-style globbing
     validated_patterns = []
     for pattern in patterns:
@@ -33,7 +33,7 @@ def _validate_patterns(patterns: List[str]) -> List[str]:
         if not pattern_path.is_absolute():
             pattern = str(Path.cwd() / pattern)
         validated_patterns.append(pattern)
-    
+
     return validated_patterns
 
 
@@ -41,13 +41,17 @@ def _load_masking_policy(policy_file: Optional[Path], verbose: bool) -> Optional
     """Load masking policy from file if specified."""
     if not policy_file:
         return None
-    
+
     if verbose:
         click.echo(f"📋 Loading policy: {policy_file}")
-    
+
     try:
-        from ..core.policy_loader import PolicyLoader, PolicyValidationError, PolicyInheritanceError
-        
+        from ..core.policy_loader import (
+            PolicyInheritanceError,
+            PolicyLoader,
+            PolicyValidationError,
+        )
+
         # Try enhanced policy loader first
         try:
             loader = PolicyLoader()
@@ -59,17 +63,17 @@ def _load_masking_policy(policy_file: Optional[Path], verbose: bool) -> Optional
             if verbose:
                 click.echo(f"⚠️  Enhanced policy loading failed: {e}")
                 click.echo("   Falling back to basic policy loading")
-            
+
             # Fall back to basic loading
             import yaml
-            
+
             with open(policy_file, encoding="utf-8") as f:
                 policy_data = yaml.safe_load(f)
             masking_policy = MaskingPolicy.from_dict(policy_data)
             if verbose:
                 click.echo("✓ Basic policy loaded successfully")
             return masking_policy
-    
+
     except ImportError:
         click.echo("⚠️  PyYAML not installed, cannot load policy file")
         raise click.ClickException("Missing required dependency: PyYAML") from None
@@ -167,36 +171,36 @@ def mask(
     verbose: bool,
 ) -> None:
     """Batch mask PII in multiple documents.
-    
+
     Process multiple documents matching the specified PATTERNS and create
     masked versions with CloakMaps for later unmasking.
-    
+
     Examples:
         # Mask all PDFs in current directory
         cloakpivot batch mask "*.pdf" --out-dir ./masked
-        
+
         # Mask documents in specific directory with custom policy
         cloakpivot batch mask "data/**/*.json" --out-dir ./output --policy policy.yaml
-        
+
         # High-throughput batch with more workers
         cloakpivot batch mask "docs/**/*" --out-dir ./masked --max-workers 8
     """
     verbose = verbose or (ctx.obj and ctx.obj.get("verbose", False))
-    
+
     try:
         # Validate inputs
         pattern_list = _validate_patterns(list(patterns))
-        
+
         if not out_dir:
             raise click.ClickException("Output directory must be specified")
-        
+
         # Set default cloakmap directory
         if not cloakmap_dir:
             cloakmap_dir = out_dir
-        
+
         # Load policy if specified
         masking_policy = _load_masking_policy(policy, verbose)
-        
+
         # Create configuration
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
@@ -215,7 +219,7 @@ def mask(
             validate_outputs=validate,
             verbose_logging=verbose,
         )
-        
+
         if verbose:
             click.echo("🚀 Starting batch masking operation")
             click.echo(f"   Patterns: {pattern_list}")
@@ -225,29 +229,29 @@ def mask(
             click.echo(f"   Format: {output_format}")
             if max_files:
                 click.echo(f"   File limit: {max_files}")
-        
+
         # Create batch processor and run
         processor = BatchProcessor(config)
-        
+
         try:
             result = processor.process_batch()
-            
+
             # Report final results
             if result.failed_files > 0:
                 click.echo(f"⚠️  {result.failed_files} files failed processing:")
                 for file_result in result.file_results:
                     if file_result.error:
                         click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
-            
+
             if result.success_rate < 100.0:
                 raise click.ClickException("Batch processing completed with failures")
-            
+
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
             import sys
             sys.exit(130)  # SIGINT
-    
+
     except Exception as e:
         if verbose:
             import traceback
@@ -318,23 +322,23 @@ def unmask(
     verbose: bool,
 ) -> None:
     """Batch unmask previously masked documents.
-    
+
     Process multiple masked documents matching the specified PATTERNS and
     restore them using their corresponding CloakMaps.
-    
+
     Examples:
         # Unmask all masked files in directory
         cloakpivot batch unmask "masked/*.json" --cloakmap-dir ./cloakmaps --out-dir ./restored
-        
+
         # Unmask with integrity verification disabled (faster)
         cloakpivot batch unmask "masked/**/*.json" --cloakmap-dir ./maps --out-dir ./restored --no-verify
     """
     verbose = verbose or (ctx.obj and ctx.obj.get("verbose", False))
-    
+
     try:
         # Validate inputs
         pattern_list = _validate_patterns(list(patterns))
-        
+
         # Create configuration
         config = BatchConfig(
             operation_type=BatchOperationType.UNMASK,
@@ -349,7 +353,7 @@ def unmask(
             validate_outputs=verify_integrity,
             verbose_logging=verbose,
         )
-        
+
         if verbose:
             click.echo("🔓 Starting batch unmasking operation")
             click.echo(f"   Patterns: {pattern_list}")
@@ -358,29 +362,29 @@ def unmask(
             click.echo(f"   Workers: {max_workers}")
             if max_files:
                 click.echo(f"   File limit: {max_files}")
-        
+
         # Create batch processor and run
         processor = BatchProcessor(config)
-        
+
         try:
             result = processor.process_batch()
-            
+
             # Report final results
             if result.failed_files > 0:
                 click.echo(f"⚠️  {result.failed_files} files failed processing:")
                 for file_result in result.file_results:
                     if file_result.error:
                         click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
-            
+
             if result.success_rate < 100.0:
                 raise click.ClickException("Batch processing completed with failures")
-        
+
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
             import sys
             sys.exit(130)  # SIGINT
-    
+
     except Exception as e:
         if verbose:
             import traceback
@@ -429,29 +433,29 @@ def analyze(
     verbose: bool,
 ) -> None:
     """Batch analyze documents for PII without masking.
-    
+
     Process multiple documents matching the specified PATTERNS and analyze
     them for PII entities, generating statistics and reports.
-    
+
     Examples:
         # Analyze all documents and show summary
         cloakpivot batch analyze "docs/**/*.pdf" --summary-only
-        
+
         # Analyze and save detailed results
         cloakpivot batch analyze "data/*.json" --out-dir ./analysis
-        
+
         # Analyze with custom detection policy
         cloakpivot batch analyze "**/*.txt" --policy analysis-policy.yaml --out-dir ./results
     """
     verbose = verbose or (ctx.obj and ctx.obj.get("verbose", False))
-    
+
     try:
         # Validate inputs
         pattern_list = _validate_patterns(list(patterns))
-        
+
         # Load policy if specified
         masking_policy = _load_masking_policy(policy, verbose)
-        
+
         # Create configuration
         config = BatchConfig(
             operation_type=BatchOperationType.ANALYZE,
@@ -462,7 +466,7 @@ def analyze(
             masking_policy=masking_policy,
             verbose_logging=verbose,
         )
-        
+
         if verbose:
             click.echo("🔍 Starting batch analysis operation")
             click.echo(f"   Patterns: {pattern_list}")
@@ -471,13 +475,13 @@ def analyze(
             click.echo(f"   Workers: {max_workers}")
             if max_files:
                 click.echo(f"   File limit: {max_files}")
-        
+
         # Create batch processor and run
         processor = BatchProcessor(config)
-        
+
         try:
             result = processor.process_batch()
-            
+
             # Show analysis summary
             click.echo("\n📊 Batch Analysis Summary")
             click.echo("=" * 50)
@@ -488,10 +492,10 @@ def analyze(
             click.echo(f"Success rate: {result.success_rate:.1f}%")
             click.echo(f"Processing time: {result.duration_ms / 1000:.1f} seconds")
             click.echo(f"Throughput: {result.throughput_files_per_second:.1f} files/sec")
-            
+
             # Show entity breakdown if we have detailed results
             if result.file_results:
-                
+
                 if verbose:
                     click.echo("\n📋 Per-File Results:")
                     for file_result in result.file_results[:10]:  # Show first 10
@@ -502,22 +506,22 @@ def analyze(
                         )
                     if len(result.file_results) > 10:
                         click.echo(f"   ... and {len(result.file_results) - 10} more files")
-            
+
             # Report failures
             if result.failed_files > 0:
                 click.echo(f"\n⚠️  Failed Files ({result.failed_files}):")
                 for file_result in result.file_results:
                     if file_result.error:
                         click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
-                
+
                 raise click.ClickException("Batch processing completed with failures")
-        
+
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch analysis cancelled by user")
             processor.cancel()
             import sys
             sys.exit(130)  # SIGINT
-    
+
     except Exception as e:
         if verbose:
             import traceback
@@ -541,10 +545,10 @@ def analyze(
 )
 def config_sample(output_format: str, output) -> None:
     """Generate a sample batch processing configuration.
-    
+
     This command generates example configurations showing all available
     batch processing options and their default values.
-    
+
     Example:
         cloakpivot batch config-sample --format yaml > batch-config.yaml
     """
@@ -644,7 +648,7 @@ Example CLI Usage:
   # Analysis only (no masking)
   cloakpivot batch analyze "**/*.txt" --summary-only
 """
-    
+
     output.write(sample_config)
     if output != sys.stdout:
         click.echo(f"Sample configuration written to {output.name}")

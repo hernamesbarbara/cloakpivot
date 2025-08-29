@@ -1,21 +1,21 @@
 """Plugin system for CloakPivot custom masking strategies and recognizers."""
 
-from .registry import PluginRegistry, get_plugin_registry
 from .base import BasePlugin, PluginInfo, PluginStatus
-from .strategies import BaseStrategyPlugin
-from .recognizers import BaseRecognizerPlugin
 from .exceptions import (
     PluginError,
+    PluginExecutionError,
     PluginRegistrationError,
     PluginValidationError,
-    PluginExecutionError,
 )
+from .recognizers import BaseRecognizerPlugin
+from .registry import PluginRegistry, get_plugin_registry
+from .strategies import BaseStrategyPlugin
 
 __all__ = [
     "PluginRegistry",
     "get_plugin_registry",
     "BasePlugin",
-    "BaseStrategyPlugin", 
+    "BaseStrategyPlugin",
     "BaseRecognizerPlugin",
     "PluginInfo",
     "PluginStatus",

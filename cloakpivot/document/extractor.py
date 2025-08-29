@@ -409,7 +409,7 @@ class TextExtractor:
     def _normalize_whitespace(self, text: str) -> str:
         """
         Normalize whitespace in text while preserving essential formatting.
-        
+
         This is a conservative normalization that preserves round-trip fidelity
         while still handling some common whitespace issues.
 
@@ -420,16 +420,16 @@ class TextExtractor:
             str: Text with conservatively normalized whitespace
         """
         import re
-        
+
         # Only do minimal normalization to preserve round-trip fidelity
         # Convert Windows line endings to Unix, but preserve standalone \r
         text = re.sub(r"\r\n", "\n", text)
-        
+
         # Only collapse excessive consecutive spaces (3 or more), not all multiple spaces
         text = re.sub(r"   +", "  ", text)  # Reduce 3+ spaces to 2 spaces
-        
+
         # Only collapse excessive line breaks (4 or more), preserve structure
         text = re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
-        
+
         # Do NOT strip leading/trailing whitespace as it may be significant
         return text

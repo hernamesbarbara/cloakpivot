@@ -11,7 +11,7 @@ from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
 class PrivacyLevel(Enum):
     """Privacy level enumeration for policies."""
     LOW = "low"
-    MEDIUM = "medium" 
+    MEDIUM = "medium"
     HIGH = "high"
 
 

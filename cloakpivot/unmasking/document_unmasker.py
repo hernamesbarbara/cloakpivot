@@ -257,11 +257,11 @@ class DocumentUnmasker:
             # This is more robust than relying on pre-calculated positions
             masked_value = anchor.masked_value
             position = modified_text.rfind(masked_value)  # Search from end for reverse processing
-            
+
             if position == -1:
                 # Try a forward search as fallback
                 position = modified_text.find(masked_value)
-                
+
             if position == -1:
                 logger.warning(
                     f"Could not find masked value '{masked_value}' in text for anchor {anchor.replacement_id}"
@@ -277,7 +277,7 @@ class DocumentUnmasker:
 
             start_pos = position
             end_pos = position + len(masked_value)
-            
+
             if end_pos > len(modified_text):
                 logger.warning(
                     f"Anchor end position {end_pos} exceeds text length {len(modified_text)}"

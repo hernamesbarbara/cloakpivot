@@ -175,7 +175,7 @@ class MaskingEngine:
         metadata = {}
         if original_format:
             metadata["original_format"] = original_format
-            
+
         cloakmap = CloakMap.create(
             doc_id=document.name or "unnamed_document",
             doc_hash=doc_hash,
@@ -423,7 +423,7 @@ class MaskingEngine:
             "global_start": entity.start,
             "global_end": entity.end,
         }
-        
+
         if self.store_original_text:
             metadata["original_text"] = original_text
 
