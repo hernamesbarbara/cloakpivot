@@ -10,8 +10,7 @@ import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ...core.cloakmap import CloakMap
 
@@ -20,37 +19,37 @@ from ...core.cloakmap import CloakMap
 class StorageMetadata:
     """
     Metadata associated with stored CloakMaps.
-    
+
     This includes information about the storage operation, integrity checks,
     and backend-specific metadata for efficient retrieval and validation.
     """
-    
+
     # Core metadata
     key: str
     size_bytes: int
     content_hash: str
     created_at: datetime
     modified_at: datetime
-    
+
     # CloakMap specific metadata
     doc_id: str
     version: str
     anchor_count: int
     is_encrypted: bool
-    
+
     # Backend specific metadata
     backend_type: str
-    backend_metadata: Dict[str, Any] = field(default_factory=dict)
-    
+    backend_metadata: dict[str, Any] = field(default_factory=dict)
+
     # Storage integrity
-    checksum: Optional[str] = None
-    storage_version: Optional[str] = None
+    checksum: str | None = None
+    storage_version: str | None = None
     
     @classmethod
     def from_cloakmap(
-        cls, 
-        key: str, 
-        cloakmap: CloakMap, 
+        cls,
+        key: str,
+        cloakmap: CloakMap,
         backend_type: str,
         content_bytes: bytes,
         **backend_metadata: Any
@@ -58,7 +57,7 @@ class StorageMetadata:
         """Create metadata from a CloakMap and its serialized content."""
         content_hash = hashlib.sha256(content_bytes).hexdigest()
         now = datetime.utcnow()
-        
+
         return cls(
             key=key,
             size_bytes=len(content_bytes),
@@ -73,8 +72,8 @@ class StorageMetadata:
             backend_metadata=backend_metadata,
             checksum=content_hash,  # Use content hash as checksum
         )
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert metadata to dictionary for serialization."""
         return {
             "key": self.key,
@@ -93,7 +92,7 @@ class StorageMetadata:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StorageMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> "StorageMetadata":
         """Create metadata from dictionary representation."""
         return cls(
             key=data["key"],
@@ -115,11 +114,11 @@ class StorageMetadata:
 class StorageBackend(ABC):
     """
     Abstract base class for CloakMap storage backends.
-    
+
     This defines the interface that all storage implementations must provide,
     ensuring consistent behavior across different storage systems like local
     files, cloud storage, and databases.
-    
+
     Key Operations:
     - save: Store a CloakMap with a given key
     - load: Retrieve a CloakMap by key
@@ -127,7 +126,7 @@ class StorageBackend(ABC):
     - delete: Remove a CloakMap
     - list: List stored CloakMaps with optional filtering
     - get_metadata: Get metadata without loading full content
-    
+
     Implementations should handle:
     - Authentication and authorization
     - Network failures and retries (for cloud backends)
@@ -135,11 +134,11 @@ class StorageBackend(ABC):
     - Encryption at rest where supported
     - Connection pooling and resource management
     """
-    
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize storage backend with configuration.
-        
+
         Args:
             config: Backend-specific configuration parameters
         """
@@ -159,24 +158,24 @@ class StorageBackend(ABC):
     
     @abstractmethod
     def save(
-        self, 
-        key: str, 
+        self,
+        key: str,
         cloakmap: CloakMap,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
         **kwargs: Any
     ) -> StorageMetadata:
         """
         Save a CloakMap to storage.
-        
+
         Args:
             key: Unique identifier for the CloakMap
             cloakmap: CloakMap instance to save
             metadata: Optional additional metadata
             **kwargs: Backend-specific save options
-            
+
         Returns:
             StorageMetadata for the saved CloakMap
-            
+
         Raises:
             ValueError: If key is invalid or CloakMap validation fails
             ConnectionError: If storage system is unreachable
@@ -184,18 +183,18 @@ class StorageBackend(ABC):
         """
         pass
     
-    @abstractmethod  
+    @abstractmethod
     def load(self, key: str, **kwargs: Any) -> CloakMap:
         """
         Load a CloakMap from storage.
-        
+
         Args:
             key: Unique identifier for the CloakMap
             **kwargs: Backend-specific load options
-            
+
         Returns:
             Loaded CloakMap instance
-            
+
         Raises:
             KeyError: If CloakMap with key doesn't exist
             ValueError: If stored data is invalid or corrupted
@@ -241,22 +240,22 @@ class StorageBackend(ABC):
     
     @abstractmethod
     def list_keys(
-        self, 
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
+        self,
+        prefix: str | None = None,
+        limit: int | None = None,
         **kwargs: Any
-    ) -> List[str]:
+    ) -> list[str]:
         """
         List CloakMap keys in storage.
-        
+
         Args:
             prefix: Optional key prefix filter
             limit: Optional maximum number of keys to return
             **kwargs: Backend-specific list options
-            
+
         Returns:
             List of CloakMap keys
-            
+
         Raises:
             ConnectionError: If storage system is unreachable
             PermissionError: If list access is denied
@@ -283,27 +282,27 @@ class StorageBackend(ABC):
     
     def list_metadata(
         self,
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
+        prefix: str | None = None,
+        limit: int | None = None,
         **kwargs: Any
-    ) -> List[StorageMetadata]:
+    ) -> list[StorageMetadata]:
         """
         List metadata for all CloakMaps matching criteria.
-        
+
         Default implementation calls get_metadata for each key from list_keys.
         Backends may override for more efficient bulk operations.
-        
+
         Args:
             prefix: Optional key prefix filter
             limit: Optional maximum number of items to return
             **kwargs: Backend-specific options
-            
+
         Returns:
             List of StorageMetadata objects
         """
         keys = self.list_keys(prefix=prefix, limit=limit, **kwargs)
         metadata = []
-        
+
         for key in keys:
             try:
                 meta = self.get_metadata(key, **kwargs)
@@ -311,12 +310,12 @@ class StorageBackend(ABC):
             except KeyError:
                 # Key might have been deleted between list and get_metadata
                 continue
-                
+
         return metadata
     
     def copy(
-        self, 
-        source_key: str, 
+        self,
+        source_key: str,
         dest_key: str,
         **kwargs: Any
     ) -> StorageMetadata:
@@ -338,8 +337,8 @@ class StorageBackend(ABC):
         return self.save(dest_key, cloakmap, **kwargs)
     
     def move(
-        self, 
-        source_key: str, 
+        self,
+        source_key: str,
         dest_key: str,
         **kwargs: Any
     ) -> StorageMetadata:
@@ -382,7 +381,7 @@ class StorageBackend(ABC):
         if any(c in invalid_chars for c in key):
             raise ValueError("Key contains invalid characters")
     
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform a health check of the storage backend.
         

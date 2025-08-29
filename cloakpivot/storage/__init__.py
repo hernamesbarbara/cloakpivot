@@ -15,14 +15,14 @@ Key Components:
 Example:
     >>> from cloakpivot.storage import StorageRegistry, LocalStorage
     >>> from cloakpivot.core.cloakmap import CloakMap
-    >>> 
+    >>>
     >>> # Create storage backend
     >>> storage = LocalStorage("/path/to/storage")
-    >>> 
+    >>>
     >>> # Save CloakMap
     >>> cloakmap = CloakMap.create(...)
     >>> storage.save("my_document.cmap", cloakmap)
-    >>> 
+    >>>
     >>> # Load CloakMap
     >>> loaded_map = storage.load("my_document.cmap")
 """
@@ -39,7 +39,7 @@ from .registry import StorageRegistry
 
 __all__ = [
     "StorageBackend",
-    "LocalStorage", 
+    "LocalStorage",
     "S3Storage",
     "GCSStorage",
     "DatabaseStorage",
