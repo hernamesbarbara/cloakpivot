@@ -10,10 +10,10 @@ from typing import Any, Dict, List, Optional, Union
 
 class CloakPivotError(Exception):
     """Base exception for all CloakPivot-related errors.
-    
+
     Provides common functionality for error context, recovery guidance,
     and structured error information.
-    
+
     Attributes:
         message: Human-readable error description
         error_code: Machine-readable error identifier
@@ -21,7 +21,7 @@ class CloakPivotError(Exception):
         recovery_suggestions: List of suggested recovery actions
         component: Component where the error originated
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -36,11 +36,11 @@ class CloakPivotError(Exception):
         self.context = context or {}
         self.recovery_suggestions = recovery_suggestions or []
         self.component = component or self._infer_component()
-    
+
     def _default_error_code(self) -> str:
         """Generate default error code based on exception class name."""
         return self.__class__.__name__.upper().replace("ERROR", "_ERROR")
-    
+
     def _infer_component(self) -> str:
         """Infer component name from exception class."""
         name = self.__class__.__name__.lower()
@@ -56,16 +56,16 @@ class CloakPivotError(Exception):
             return "policy"
         else:
             return "core"
-    
+
     def add_context(self, key: str, value: Any) -> None:
         """Add additional context to the error."""
         self.context[key] = value
-    
+
     def add_recovery_suggestion(self, suggestion: str) -> None:
         """Add a recovery suggestion to help users resolve the error."""
         if suggestion not in self.recovery_suggestions:
             self.recovery_suggestions.append(suggestion)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to structured dictionary for logging/reporting."""
         return {
@@ -80,11 +80,11 @@ class CloakPivotError(Exception):
 
 class ValidationError(CloakPivotError):
     """Raised when input validation fails.
-    
+
     Used for configuration validation, document format validation,
     and other input validation scenarios.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -104,11 +104,11 @@ class ValidationError(CloakPivotError):
 
 class ProcessingError(CloakPivotError):
     """Raised when document processing fails.
-    
+
     Used for DocPivot integration errors, document parsing failures,
     and other processing-related issues.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -125,11 +125,11 @@ class ProcessingError(CloakPivotError):
 
 class DetectionError(CloakPivotError):
     """Raised when PII detection fails.
-    
+
     Used for Presidio analyzer errors, entity detection failures,
     and recognition pipeline issues.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -146,11 +146,11 @@ class DetectionError(CloakPivotError):
 
 class MaskingError(CloakPivotError):
     """Raised when masking operations fail.
-    
+
     Used for strategy application failures, anchor generation issues,
     and masking pipeline errors.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -167,11 +167,11 @@ class MaskingError(CloakPivotError):
 
 class UnmaskingError(CloakPivotError):
     """Raised when unmasking operations fail.
-    
+
     Used for CloakMap compatibility issues, anchor resolution failures,
     and unmasking pipeline errors.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -191,11 +191,11 @@ class UnmaskingError(CloakPivotError):
 
 class PolicyError(CloakPivotError):
     """Raised when policy-related operations fail.
-    
+
     Used for policy loading errors, inheritance failures,
     and policy validation issues.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -212,11 +212,11 @@ class PolicyError(CloakPivotError):
 
 class IntegrityError(CloakPivotError):
     """Raised when data integrity violations are detected.
-    
+
     Used for CloakMap corruption, document hash mismatches,
     and other integrity-related issues.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -236,12 +236,12 @@ class IntegrityError(CloakPivotError):
 
 class PartialProcessingError(CloakPivotError):
     """Raised when partial processing completes with some failures.
-    
+
     This is not a fatal error but indicates that some operations
     failed while others succeeded. Contains detailed information
     about both successful and failed operations.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -261,10 +261,10 @@ class PartialProcessingError(CloakPivotError):
 
 class ConfigurationError(ValidationError):
     """Raised when configuration is invalid or incomplete.
-    
+
     Specialized validation error for configuration-specific issues.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -281,11 +281,11 @@ class ConfigurationError(ValidationError):
 
 class DependencyError(CloakPivotError):
     """Raised when required dependencies are missing or incompatible.
-    
+
     Used for missing packages, version incompatibilities,
     and system requirement failures.
     """
-    
+
     def __init__(
         self,
         message: str,
@@ -313,14 +313,14 @@ def create_validation_error(
 ) -> ValidationError:
     """Create a validation error with standard context."""
     expected_str = expected.__name__ if isinstance(expected, type) else str(expected)
-    
+
     error = ValidationError(
         message=message,
         field_name=field_name,
         expected_type=expected_str,
         actual_value=actual,
     )
-    
+
     error.add_recovery_suggestion(f"Ensure {field_name} is of type {expected_str}")
     return error
 
@@ -337,14 +337,14 @@ def create_processing_error(
         document_path=document_path,
         processing_stage=stage,
     )
-    
+
     if original_error:
         error.add_context("original_error", str(original_error))
         error.add_context("original_error_type", type(original_error).__name__)
-    
+
     error.add_recovery_suggestion("Check document format and accessibility")
     error.add_recovery_suggestion("Verify document is not corrupted")
-    
+
     return error
 
 
@@ -355,22 +355,27 @@ def create_dependency_error(
 ) -> DependencyError:
     """Create a dependency error with installation guidance."""
     if required_version and installed_version:
-        message = f"Incompatible {dependency} version: required {required_version}, found {installed_version}"
+        message = (
+            f"Incompatible {dependency} version: "
+            f"required {required_version}, found {installed_version}"
+        )
     elif required_version:
         message = f"Missing required dependency: {dependency} >= {required_version}"
     else:
         message = f"Missing required dependency: {dependency}"
-    
+
     error = DependencyError(
         message=message,
         dependency_name=dependency,
         required_version=required_version,
         installed_version=installed_version,
     )
-    
+
     if required_version:
-        error.add_recovery_suggestion(f"Install with: pip install '{dependency}>={required_version}'")
+        error.add_recovery_suggestion(
+            f"Install with: pip install '{dependency}>={required_version}'"
+        )
     else:
         error.add_recovery_suggestion(f"Install with: pip install {dependency}")
-    
+
     return error
