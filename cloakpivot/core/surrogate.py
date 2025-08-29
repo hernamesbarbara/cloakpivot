@@ -21,7 +21,9 @@ class FormatPattern:
 
     original_text: str
     original_length: int
-    character_classes: str  # String like "DDDSDDDSDDD" where D=digit, L=letter, S=separator, P=punct
+    character_classes: (
+        str  # String like "DDDSDDDSDDD" where D=digit, L=letter, S=separator, P=punct
+    )
     digit_positions: list[int] = field(default_factory=list)
     letter_positions: list[int] = field(default_factory=list)
     separator_positions: dict[int, str] = field(default_factory=dict)
@@ -44,7 +46,7 @@ class FormatPattern:
                 original_text=text,
                 original_length=0,
                 character_classes="",
-                detected_format=None
+                detected_format=None,
             )
 
         digit_positions = []
@@ -60,7 +62,7 @@ class FormatPattern:
             elif char.isalpha():
                 letter_positions.append(i)
                 character_classes += "L"
-            elif char in ['-', '_', '.', ' ']:
+            elif char in ["-", "_", ".", " "]:
                 separator_positions[i] = char
                 character_classes += "S"
                 special_chars.add(char)
@@ -70,7 +72,9 @@ class FormatPattern:
                 character_classes += "P"
 
         # Detect common format types
-        detected_format = cls._detect_format_type(text, character_classes, special_chars)
+        detected_format = cls._detect_format_type(
+            text, character_classes, special_chars
+        )
 
         return cls(
             original_text=text,
@@ -80,32 +84,40 @@ class FormatPattern:
             letter_positions=letter_positions,
             separator_positions=separator_positions,
             special_chars=special_chars,
-            detected_format=detected_format
+            detected_format=detected_format,
         )
 
     @staticmethod
-    def _detect_format_type(text: str, character_classes: str, special_chars: set[str]) -> Optional[str]:
+    def _detect_format_type(
+        text: str, character_classes: str, special_chars: set[str]
+    ) -> Optional[str]:
         """Detect the likely format type of the text."""
         # Phone number patterns
-        if (len(text) in [10, 12, 14] and
-            character_classes.count('D') >= 10 and
-            '-' in special_chars):
+        if (
+            len(text) in [10, 12, 14]
+            and character_classes.count("D") >= 10
+            and "-" in special_chars
+        ):
             return "phone"
 
         # SSN pattern
-        if (len(text) == 11 and
-            character_classes == "DDDSDDSDDDD" and
-            '-' in special_chars):
+        if (
+            len(text) == 11
+            and character_classes == "DDDSDDSDDDD"
+            and "-" in special_chars
+        ):
             return "ssn"
 
         # Email pattern
-        if '@' in special_chars and '.' in special_chars:
+        if "@" in special_chars and "." in special_chars:
             return "email"
 
         # Credit card patterns
-        if (len(text) in [16, 19] and
-            character_classes.count('D') >= 13 and
-            ('-' in special_chars or ' ' in special_chars)):
+        if (
+            len(text) in [16, 19]
+            and character_classes.count("D") >= 13
+            and ("-" in special_chars or " " in special_chars)
+        ):
             return "credit_card"
 
         return None
@@ -155,7 +167,7 @@ class SurrogateQualityMetrics:
         surrogate: str,
         format_preserved: bool,
         is_unique: bool,
-        validation_passed: bool
+        validation_passed: bool,
     ) -> None:
         """Record a surrogate generation attempt."""
         self.total_generated += 1
@@ -251,9 +263,15 @@ class SurrogateGenerator:
             )
 
             # Validate and record metrics (check uniqueness before caching)
-            format_preserved = self._validate_format_preservation(original_text, surrogate)
-            is_unique = surrogate not in self._generated_values  # Check before adding to set
-            validation_passed = self._validate_surrogate_quality(original_text, surrogate, entity_type)
+            format_preserved = self._validate_format_preservation(
+                original_text, surrogate
+            )
+            is_unique = (
+                surrogate not in self._generated_values
+            )  # Check before adding to set
+            validation_passed = self._validate_surrogate_quality(
+                original_text, surrogate, entity_type
+            )
 
             # Cache the result after uniqueness check
             self._document_scope_cache[cache_key] = surrogate
@@ -279,7 +297,7 @@ class SurrogateGenerator:
             self.seed or "default_seed",
             original_text,
             entity_type,
-            str(len(original_text))  # Add length for additional entropy
+            str(len(original_text)),  # Add length for additional entropy
         ]
 
         combined = "|".join(seed_components)
@@ -297,7 +315,9 @@ class SurrogateGenerator:
             rng = random.Random(attempt_seed)
 
             # Generate surrogate
-            surrogate = self._generate_surrogate_internal(original_text, entity_type, rng)
+            surrogate = self._generate_surrogate_internal(
+                original_text, entity_type, rng
+            )
 
             # Check for collision
             if surrogate not in self._generated_values:
@@ -326,15 +346,19 @@ class SurrogateGenerator:
             try:
                 return self._entity_generators[entity_type](original_text, rng)
             except Exception as e:
-                logger.warning(f"Entity-specific generator failed for {entity_type}: {e}")
+                logger.warning(
+                    f"Entity-specific generator failed for {entity_type}: {e}"
+                )
 
         # Fall back to pattern-based generation
         return self._generate_pattern_based_surrogate(original_text, rng)
 
-    def _generate_pattern_based_surrogate(self, original_text: str, rng: random.Random) -> str:
+    def _generate_pattern_based_surrogate(
+        self, original_text: str, rng: random.Random
+    ) -> str:
         """Generate surrogate based on analyzed pattern."""
         pattern = FormatPattern.analyze(original_text)
-        result = [''] * pattern.original_length
+        result = [""] * pattern.original_length
 
         # First, place separators and special characters
         for pos, char in pattern.separator_positions.items():
@@ -357,14 +381,25 @@ class SurrogateGenerator:
             else:
                 result[pos] = rng.choice(string.ascii_lowercase)
 
-        return ''.join(result)
+        return "".join(result)
 
     def _generate_phone_surrogate(self, original_text: str, rng: random.Random) -> str:
         """Generate format-preserving phone number surrogate."""
         pattern = FormatPattern.analyze(original_text)
 
         # Generate realistic phone number components
-        area_codes = [200, 201, 202, 203, 205, 206, 207, 208, 209, 210]  # Sample valid area codes
+        area_codes = [
+            200,
+            201,
+            202,
+            203,
+            205,
+            206,
+            207,
+            208,
+            209,
+            210,
+        ]  # Sample valid area codes
         area_code = rng.choice(area_codes)
         exchange = rng.randint(200, 999)  # Exchange codes start from 200
         number = rng.randint(1000, 9999)  # Last 4 digits
@@ -424,13 +459,17 @@ class SurrogateGenerator:
                         surrogate_parts.append(rng.choice(safe_tlds))
                     else:
                         # Preserve pattern for longer TLDs
-                        surrogate_parts.append(self._generate_pattern_based_surrogate(part, rng))
+                        surrogate_parts.append(
+                            self._generate_pattern_based_surrogate(part, rng)
+                        )
                 else:  # Domain parts
                     if len(part) <= 8:
                         surrogate_parts.append(rng.choice(safe_domains))
                     else:
                         # Preserve pattern for longer domains
-                        surrogate_parts.append(self._generate_pattern_based_surrogate(part, rng))
+                        surrogate_parts.append(
+                            self._generate_pattern_based_surrogate(part, rng)
+                        )
 
             surrogate_domain = ".".join(surrogate_parts)
         else:
@@ -439,7 +478,9 @@ class SurrogateGenerator:
 
         return f"{surrogate_username}@{surrogate_domain}"
 
-    def _generate_credit_card_surrogate(self, original_text: str, rng: random.Random) -> str:
+    def _generate_credit_card_surrogate(
+        self, original_text: str, rng: random.Random
+    ) -> str:
         """Generate format-preserving credit card surrogate."""
         # Generate test credit card numbers (not real)
         test_prefixes = ["4000", "4111", "4444", "5000", "5555"]  # Test card prefixes
@@ -447,7 +488,7 @@ class SurrogateGenerator:
 
         # Generate remaining digits
         remaining_digits = 16 - len(prefix)
-        remaining = ''.join(str(rng.randint(0, 9)) for _ in range(remaining_digits))
+        remaining = "".join(str(rng.randint(0, 9)) for _ in range(remaining_digits))
 
         card_number = prefix + remaining
 
@@ -491,7 +532,9 @@ class SurrogateGenerator:
 
             return " ".join(result_parts)
 
-    def _generate_address_surrogate(self, original_text: str, rng: random.Random) -> str:
+    def _generate_address_surrogate(
+        self, original_text: str, rng: random.Random
+    ) -> str:
         """Generate format-preserving address surrogate."""
         # For now, use pattern-based generation
         # Could be enhanced with realistic address components

@@ -372,9 +372,7 @@ class DocumentUnmasker:
             if row_idx >= len(table_data.table_cells) or col_idx >= len(
                 table_data.table_cells[row_idx]
             ):
-                logger.warning(
-                    f"Cell coordinates ({row_idx}, {col_idx}) out of bounds"
-                )
+                logger.warning(f"Cell coordinates ({row_idx}, {col_idx}) out of bounds")
                 for resolved_anchor in cell_resolved_anchors:
                     results.append(
                         {
@@ -582,7 +580,9 @@ class DocumentUnmasker:
                     anchor.replacement_id, anchor.entity_type
                 )
             except Exception as e:
-                logger.warning(f"Content provider failed for {anchor.replacement_id}: {e}")
+                logger.warning(
+                    f"Content provider failed for {anchor.replacement_id}: {e}"
+                )
 
         # For now, return None to trigger placeholder generation
         return None
@@ -635,10 +635,14 @@ class DocumentUnmasker:
         This validates that the content we're restoring is authentic.
         """
         try:
-            computed_checksum = hashlib.sha256(original_content.encode("utf-8")).hexdigest()
+            computed_checksum = hashlib.sha256(
+                original_content.encode("utf-8")
+            ).hexdigest()
             return computed_checksum == anchor.original_checksum
         except Exception as e:
-            logger.warning(f"Content verification failed for {anchor.replacement_id}: {e}")
+            logger.warning(
+                f"Content verification failed for {anchor.replacement_id}: {e}"
+            )
             return False
 
     def _calculate_restoration_stats(
@@ -652,7 +656,9 @@ class DocumentUnmasker:
         failed_restorations = total_anchors - successful_restorations
 
         success_rate = (
-            (successful_restorations / total_anchors * 100) if total_anchors > 0 else 100.0
+            (successful_restorations / total_anchors * 100)
+            if total_anchors > 0
+            else 100.0
         )
 
         # Calculate content verification stats

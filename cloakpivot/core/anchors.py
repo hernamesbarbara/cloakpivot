@@ -83,11 +83,11 @@ class AnchorEntry:
 
         # Set default timestamp if not provided
         if self.timestamp is None:
-            object.__setattr__(self, 'timestamp', datetime.utcnow())
+            object.__setattr__(self, "timestamp", datetime.utcnow())
 
         # Initialize empty metadata if not provided
         if self.metadata is None:
-            object.__setattr__(self, 'metadata', {})
+            object.__setattr__(self, "metadata", {})
 
     def _validate_positions(self) -> None:
         """Validate start and end positions."""
@@ -106,7 +106,9 @@ class AnchorEntry:
             raise ValueError("confidence must be a number")
 
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(f"confidence must be between 0.0 and 1.0, got {self.confidence}")
+            raise ValueError(
+                f"confidence must be between 0.0 and 1.0, got {self.confidence}"
+            )
 
     def _validate_checksum(self) -> None:
         """Validate original checksum and salt format."""
@@ -115,12 +117,16 @@ class AnchorEntry:
 
         # Basic SHA-256 hex string validation (64 characters)
         if len(self.original_checksum) != 64:
-            raise ValueError("original_checksum should be a 64-character SHA-256 hex string")
+            raise ValueError(
+                "original_checksum should be a 64-character SHA-256 hex string"
+            )
 
         try:
             int(self.original_checksum, 16)
         except ValueError as e:
-            raise ValueError("original_checksum must contain only hexadecimal characters") from e
+            raise ValueError(
+                "original_checksum must contain only hexadecimal characters"
+            ) from e
 
         # Validate checksum salt
         if not isinstance(self.checksum_salt, str):
@@ -128,6 +134,7 @@ class AnchorEntry:
 
         try:
             import base64
+
             base64.b64decode(self.checksum_salt)
         except Exception as e:
             raise ValueError("checksum_salt must be valid base64") from e
@@ -161,8 +168,9 @@ class AnchorEntry:
         """Get the difference in length between original and replacement."""
         return self.replacement_length - self.span_length
 
-    def verify_original_text(self, original_text: str,
-                            config: Optional[SecurityConfig] = None) -> bool:
+    def verify_original_text(
+        self, original_text: str, config: Optional[SecurityConfig] = None
+    ) -> bool:
         """
         Verify that the provided original text matches the stored salted checksum.
 
@@ -177,6 +185,7 @@ class AnchorEntry:
             config = SecurityConfig()
 
         import base64
+
         salt = base64.b64decode(self.checksum_salt)
 
         return CryptoUtils.verify_salted_checksum(
@@ -235,7 +244,7 @@ class AnchorEntry:
             checksum_salt=self.checksum_salt,
             strategy_used=self.strategy_used,
             timestamp=self.timestamp,
-            metadata=merged_metadata
+            metadata=merged_metadata,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -252,7 +261,7 @@ class AnchorEntry:
             "checksum_salt": self.checksum_salt,
             "strategy_used": self.strategy_used,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     @classmethod
@@ -267,8 +276,11 @@ class AnchorEntry:
         if not checksum_salt:
             # For backward compatibility, generate a default salt if missing
             import base64
-            default_salt = CryptoUtils.generate_salt(16)  # Smaller salt for compatibility
-            checksum_salt = base64.b64encode(default_salt).decode('ascii')
+
+            default_salt = CryptoUtils.generate_salt(
+                16
+            )  # Smaller salt for compatibility
+            checksum_salt = base64.b64encode(default_salt).decode("ascii")
 
         return cls(
             node_id=data["node_id"],
@@ -282,12 +294,13 @@ class AnchorEntry:
             checksum_salt=checksum_salt,
             strategy_used=data["strategy_used"],
             timestamp=timestamp,
-            metadata=data.get("metadata")
+            metadata=data.get("metadata"),
         )
 
     @staticmethod
-    def _compute_salted_checksum(text: str, salt: bytes,
-                                config: Optional[SecurityConfig] = None) -> str:
+    def _compute_salted_checksum(
+        text: str, salt: bytes, config: Optional[SecurityConfig] = None
+    ) -> str:
         """Compute salted checksum of text using PBKDF2."""
         if config is None:
             config = SecurityConfig()
@@ -309,7 +322,7 @@ class AnchorEntry:
         """
         # Create a deterministic ID based on entity context
         base_string = f"{entity_type}:{node_id}:{start}"
-        hash_obj = hashlib.md5(base_string.encode('utf-8'))
+        hash_obj = hashlib.md5(base_string.encode("utf-8"))
         return f"repl_{hash_obj.hexdigest()[:8]}"
 
     @classmethod
@@ -325,7 +338,7 @@ class AnchorEntry:
         strategy_used: str,
         replacement_id: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
-        config: Optional[SecurityConfig] = None
+        config: Optional[SecurityConfig] = None,
     ) -> "AnchorEntry":
         """
         Create an anchor entry from PII detection results using salted checksums.
@@ -354,9 +367,10 @@ class AnchorEntry:
 
         # Generate salt and compute salted checksum
         import base64
+
         salt = CryptoUtils.generate_salt(config.salt_length)
         original_checksum = cls._compute_salted_checksum(original_text, salt, config)
-        checksum_salt = base64.b64encode(salt).decode('ascii')
+        checksum_salt = base64.b64encode(salt).decode("ascii")
 
         return cls(
             node_id=node_id,
@@ -369,7 +383,7 @@ class AnchorEntry:
             original_checksum=original_checksum,
             checksum_salt=checksum_salt,
             strategy_used=strategy_used,
-            metadata=metadata
+            metadata=metadata,
         )
 
 
@@ -433,13 +447,12 @@ class AnchorIndex:
         node_anchors = self.get_by_node_id(anchor.node_id)
         return [a for a in node_anchors if a != anchor and a.overlaps_with(anchor)]
 
-    def get_anchors_in_range(self, node_id: str, start: int, end: int) -> list[AnchorEntry]:
+    def get_anchors_in_range(
+        self, node_id: str, start: int, end: int
+    ) -> list[AnchorEntry]:
         """Get all anchors that intersect with the given position range."""
         node_anchors = self.get_by_node_id(node_id)
-        return [
-            a for a in node_anchors
-            if not (a.end <= start or a.start >= end)
-        ]
+        return [a for a in node_anchors if not (a.end <= start or a.start >= end)]
 
     def get_all_anchors(self) -> list[AnchorEntry]:
         """Get all anchors in the index."""
@@ -453,20 +466,26 @@ class AnchorIndex:
 
         for anchor in self._anchors:
             # Count by entity type
-            entity_counts[anchor.entity_type] = entity_counts.get(anchor.entity_type, 0) + 1
+            entity_counts[anchor.entity_type] = (
+                entity_counts.get(anchor.entity_type, 0) + 1
+            )
 
             # Count by strategy
-            strategy_counts[anchor.strategy_used] = strategy_counts.get(anchor.strategy_used, 0) + 1
+            strategy_counts[anchor.strategy_used] = (
+                strategy_counts.get(anchor.strategy_used, 0) + 1
+            )
 
             # Accumulate confidence
             total_confidence += anchor.confidence
 
-        avg_confidence = round(total_confidence / len(self._anchors), 10) if self._anchors else 0.0
+        avg_confidence = (
+            round(total_confidence / len(self._anchors), 10) if self._anchors else 0.0
+        )
 
         return {
             "total_anchors": len(self._anchors),
             "unique_nodes": len(self._by_node_id),
             "entity_type_counts": entity_counts,
             "strategy_counts": strategy_counts,
-            "average_confidence": avg_confidence
+            "average_confidence": avg_confidence,
         }

@@ -14,17 +14,20 @@ from .strategies import Strategy, StrategyKind
 
 class PolicyValidationError(Exception):
     """Raised when policy validation fails."""
+
     pass
 
 
 class PolicyInheritanceError(Exception):
     """Raised when policy inheritance cannot be resolved."""
+
     pass
 
 
 @dataclass
 class PolicyLoadContext:
     """Context for loading policies, tracks inheritance chain."""
+
     current_file: Path
     base_path: Path
     inheritance_chain: list[Path]
@@ -38,10 +41,13 @@ class PolicyLoadContext:
 
 class StrategyConfig(BaseModel):
     """Pydantic model for strategy configuration validation."""
-    kind: str = Field(..., description="Strategy type")
-    parameters: dict[str, Any] = Field(default_factory=dict, description="Strategy parameters")
 
-    @field_validator('kind')
+    kind: str = Field(..., description="Strategy type")
+    parameters: dict[str, Any] = Field(
+        default_factory=dict, description="Strategy parameters"
+    )
+
+    @field_validator("kind")
     @classmethod
     def validate_kind(cls, v):
         """Validate strategy kind is supported."""
@@ -49,18 +55,27 @@ class StrategyConfig(BaseModel):
             StrategyKind(v)
         except ValueError as e:
             valid_kinds = [k.value for k in StrategyKind]
-            raise ValueError(f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}") from e
+            raise ValueError(
+                f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}"
+            ) from e
         return v
 
 
 class EntityConfig(BaseModel):
     """Pydantic model for per-entity configuration."""
-    kind: Optional[str] = Field(None, description="Strategy type override")
-    parameters: Optional[dict[str, Any]] = Field(None, description="Strategy parameters override")
-    threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Confidence threshold")
-    enabled: Optional[bool] = Field(None, description="Whether entity recognition is enabled")
 
-    @field_validator('kind')
+    kind: Optional[str] = Field(None, description="Strategy type override")
+    parameters: Optional[dict[str, Any]] = Field(
+        None, description="Strategy parameters override"
+    )
+    threshold: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Confidence threshold"
+    )
+    enabled: Optional[bool] = Field(
+        None, description="Whether entity recognition is enabled"
+    )
+
+    @field_validator("kind")
     @classmethod
     def validate_kind(cls, v):
         """Validate strategy kind if provided."""
@@ -69,29 +84,44 @@ class EntityConfig(BaseModel):
                 StrategyKind(v)
             except ValueError as e:
                 valid_kinds = [k.value for k in StrategyKind]
-                raise ValueError(f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}") from e
+                raise ValueError(
+                    f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}"
+                ) from e
         return v
 
 
 class LocaleConfig(BaseModel):
     """Pydantic model for locale-specific configuration."""
-    recognizers: Optional[list[str]] = Field(None, description="Custom recognizers for locale")
-    entity_overrides: Optional[dict[str, EntityConfig]] = Field(None, description="Entity overrides for locale")
+
+    recognizers: Optional[list[str]] = Field(
+        None, description="Custom recognizers for locale"
+    )
+    entity_overrides: Optional[dict[str, EntityConfig]] = Field(
+        None, description="Entity overrides for locale"
+    )
 
 
 class ContextRuleConfig(BaseModel):
     """Pydantic model for context-specific rules."""
-    enabled: Optional[bool] = Field(None, description="Whether context is enabled for masking")
-    strategy_overrides: Optional[dict[str, EntityConfig]] = Field(None, description="Strategy overrides for context")
-    threshold_overrides: Optional[dict[str, float]] = Field(None, description="Threshold overrides for context")
+
+    enabled: Optional[bool] = Field(
+        None, description="Whether context is enabled for masking"
+    )
+    strategy_overrides: Optional[dict[str, EntityConfig]] = Field(
+        None, description="Strategy overrides for context"
+    )
+    threshold_overrides: Optional[dict[str, float]] = Field(
+        None, description="Threshold overrides for context"
+    )
 
 
 class AllowListItem(BaseModel):
     """Pydantic model for allow list items."""
+
     pattern: Optional[str] = Field(None, description="Regex pattern for matching")
     value: Optional[str] = Field(None, description="Exact value to match")
 
-    @field_validator('pattern')
+    @field_validator("pattern")
     @classmethod
     def validate_pattern(cls, v):
         """Validate regex pattern if provided."""
@@ -105,76 +135,106 @@ class AllowListItem(BaseModel):
 
 class PolicyCompositionConfig(BaseModel):
     """Pydantic model for policy composition settings."""
-    merge_strategy: str = Field("override", description="How to merge inherited policies")
+
+    merge_strategy: str = Field(
+        "override", description="How to merge inherited policies"
+    )
     validation_level: str = Field("strict", description="Validation strictness level")
 
-    @field_validator('merge_strategy')
+    @field_validator("merge_strategy")
     @classmethod
     def validate_merge_strategy(cls, v):
         """Validate merge strategy."""
         valid_strategies = ["override", "merge", "strict"]
         if v not in valid_strategies:
-            raise ValueError(f"Invalid merge strategy '{v}'. Valid strategies: {valid_strategies}")
+            raise ValueError(
+                f"Invalid merge strategy '{v}'. Valid strategies: {valid_strategies}"
+            )
         return v
 
-    @field_validator('validation_level')
+    @field_validator("validation_level")
     @classmethod
     def validate_validation_level(cls, v):
         """Validate validation level."""
         valid_levels = ["strict", "warn", "permissive"]
         if v not in valid_levels:
-            raise ValueError(f"Invalid validation level '{v}'. Valid levels: {valid_levels}")
+            raise ValueError(
+                f"Invalid validation level '{v}'. Valid levels: {valid_levels}"
+            )
         return v
 
 
 class PolicyFileSchema(BaseModel):
     """Pydantic model for policy file schema validation."""
+
     version: Optional[str] = Field("1.0", description="Policy schema version")
     name: Optional[str] = Field(None, description="Policy name")
     description: Optional[str] = Field(None, description="Policy description")
-    extends: Optional[Union[str, list[str]]] = Field(None, description="Base policy files to inherit from")
+    extends: Optional[Union[str, list[str]]] = Field(
+        None, description="Base policy files to inherit from"
+    )
 
     # Core configuration
     locale: Optional[str] = Field("en", description="Default locale")
     seed: Optional[str] = Field(None, description="Seed for deterministic operations")
 
     # Strategy configuration
-    default_strategy: Optional[StrategyConfig] = Field(None, description="Default masking strategy")
-    per_entity: Optional[dict[str, EntityConfig]] = Field(None, description="Per-entity configurations")
+    default_strategy: Optional[StrategyConfig] = Field(
+        None, description="Default masking strategy"
+    )
+    per_entity: Optional[dict[str, EntityConfig]] = Field(
+        None, description="Per-entity configurations"
+    )
 
     # Thresholds and filtering
-    thresholds: Optional[dict[str, float]] = Field(None, description="Per-entity confidence thresholds")
-    allow_list: Optional[list[Union[str, AllowListItem]]] = Field(None, description="Values to never mask")
+    thresholds: Optional[dict[str, float]] = Field(
+        None, description="Per-entity confidence thresholds"
+    )
+    allow_list: Optional[list[Union[str, AllowListItem]]] = Field(
+        None, description="Values to never mask"
+    )
     deny_list: Optional[list[str]] = Field(None, description="Values to always mask")
-    min_entity_length: Optional[int] = Field(1, ge=0, description="Minimum entity length to consider")
+    min_entity_length: Optional[int] = Field(
+        1, ge=0, description="Minimum entity length to consider"
+    )
 
     # Locale support
-    locales: Optional[dict[str, LocaleConfig]] = Field(None, description="Locale-specific configurations")
+    locales: Optional[dict[str, LocaleConfig]] = Field(
+        None, description="Locale-specific configurations"
+    )
 
     # Context rules
-    context_rules: Optional[dict[str, ContextRuleConfig]] = Field(None, description="Context-specific rules")
+    context_rules: Optional[dict[str, ContextRuleConfig]] = Field(
+        None, description="Context-specific rules"
+    )
 
     # Policy composition
-    policy_composition: Optional[PolicyCompositionConfig] = Field(None, description="Policy composition settings")
+    policy_composition: Optional[PolicyCompositionConfig] = Field(
+        None, description="Policy composition settings"
+    )
 
-    @field_validator('locale')
+    @field_validator("locale")
     @classmethod
     def validate_locale(cls, v):
         """Validate locale format."""
         if v is not None:
-            locale_pattern = r'^[a-z]{2}(-[A-Z]{2})?$'
+            locale_pattern = r"^[a-z]{2}(-[A-Z]{2})?$"
             if not re.match(locale_pattern, v):
-                raise ValueError(f"Locale must follow format 'xx' or 'xx-YY', got '{v}'")
+                raise ValueError(
+                    f"Locale must follow format 'xx' or 'xx-YY', got '{v}'"
+                )
         return v
 
-    @field_validator('version')
+    @field_validator("version")
     @classmethod
     def validate_version(cls, v):
         """Validate version format."""
         if v is not None:
-            version_pattern = r'^\d+\.\d+(\.\d+)?$'
+            version_pattern = r"^\d+\.\d+(\.\d+)?$"
             if not re.match(version_pattern, v):
-                raise ValueError(f"Version must follow format 'x.y' or 'x.y.z', got '{v}'")
+                raise ValueError(
+                    f"Version must follow format 'x.y' or 'x.y.z', got '{v}'"
+                )
         return v
 
 
@@ -221,23 +281,27 @@ class PolicyLoader:
             policy_path = self.base_path / policy_path
 
         context = PolicyLoadContext(
-            current_file=policy_path,
-            base_path=self.base_path,
-            inheritance_chain=[]
+            current_file=policy_path, base_path=self.base_path, inheritance_chain=[]
         )
 
         try:
             policy_schema = self._load_policy_file(policy_path, context)
             return self._schema_to_masking_policy(policy_schema)
         except ValidationError as e:
-            raise PolicyValidationError(f"Policy validation failed for {policy_path}: {e}") from e
+            raise PolicyValidationError(
+                f"Policy validation failed for {policy_path}: {e}"
+            ) from e
         except (PolicyValidationError, PolicyInheritanceError, FileNotFoundError):
             # Re-raise these exceptions without wrapping
             raise
         except Exception as e:
-            raise PolicyValidationError(f"Failed to load policy {policy_path}: {e}") from e
+            raise PolicyValidationError(
+                f"Failed to load policy {policy_path}: {e}"
+            ) from e
 
-    def _load_policy_file(self, policy_path: Path, context: PolicyLoadContext) -> PolicyFileSchema:
+    def _load_policy_file(
+        self, policy_path: Path, context: PolicyLoadContext
+    ) -> PolicyFileSchema:
         """
         Load and resolve a single policy file with full inheritance support.
 
@@ -265,7 +329,9 @@ class PolicyLoader:
         resolved_chain = [p.resolve() for p in context.inheritance_chain]
 
         if resolved_policy_path in resolved_chain:
-            chain_str = " -> ".join(str(p) for p in context.inheritance_chain + [policy_path])
+            chain_str = " -> ".join(
+                str(p) for p in context.inheritance_chain + [policy_path]
+            )
             raise PolicyInheritanceError(f"Circular inheritance detected: {chain_str}")
 
         if policy_path in self._policy_cache:
@@ -275,7 +341,7 @@ class PolicyLoader:
             raise FileNotFoundError(f"Policy file not found: {policy_path}")
 
         try:
-            with open(policy_path, encoding='utf-8') as f:
+            with open(policy_path, encoding="utf-8") as f:
                 policy_data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
             raise PolicyValidationError(f"Invalid YAML in {policy_path}: {e}") from e
@@ -284,18 +350,24 @@ class PolicyLoader:
         try:
             policy_schema = PolicyFileSchema(**policy_data)
         except ValidationError as e:
-            raise PolicyValidationError(f"Schema validation failed for {policy_path}: {e}") from e
+            raise PolicyValidationError(
+                f"Schema validation failed for {policy_path}: {e}"
+            ) from e
 
         # Handle inheritance
         if policy_schema.extends:
             new_context = PolicyLoadContext(
                 current_file=policy_path,
                 base_path=context.base_path,
-                inheritance_chain=context.inheritance_chain + [policy_path]
+                inheritance_chain=context.inheritance_chain + [policy_path],
             )
 
             base_policies = []
-            extends_list = policy_schema.extends if isinstance(policy_schema.extends, list) else [policy_schema.extends]
+            extends_list = (
+                policy_schema.extends
+                if isinstance(policy_schema.extends, list)
+                else [policy_schema.extends]
+            )
 
             for base_path_str in extends_list:
                 base_path = new_context.derive_path(base_path_str)
@@ -347,7 +419,9 @@ class PolicyLoader:
 
         return result
 
-    def _merge_two_policies(self, base: PolicyFileSchema, override: PolicyFileSchema) -> PolicyFileSchema:
+    def _merge_two_policies(
+        self, base: PolicyFileSchema, override: PolicyFileSchema
+    ) -> PolicyFileSchema:
         """Merge two policy schemas."""
         # Get composition settings from override policy
         composition_config = override.policy_composition or PolicyCompositionConfig()
@@ -383,7 +457,11 @@ class PolicyLoader:
                                 merged_entities[entity_type] = entity_config
 
                         merged_data[key] = merged_entities
-                    elif key in ["thresholds", "locales", "context_rules"] and isinstance(value, dict):
+                    elif key in [
+                        "thresholds",
+                        "locales",
+                        "context_rules",
+                    ] and isinstance(value, dict):
                         # For other dict fields, merge keys
                         base_value = merged_data.get(key, {}) or {}
                         merged_data[key] = {**base_value, **value}
@@ -396,7 +474,14 @@ class PolicyLoader:
 
         elif composition_config.merge_strategy == "strict":
             # Only allow overriding specific fields
-            allowed_override_fields = {"name", "description", "per_entity", "thresholds", "allow_list", "deny_list"}
+            allowed_override_fields = {
+                "name",
+                "description",
+                "per_entity",
+                "thresholds",
+                "allow_list",
+                "deny_list",
+            }
             for key, value in override_data.items():
                 if value is not None and key in allowed_override_fields:
                     merged_data[key] = value
@@ -412,7 +497,7 @@ class PolicyLoader:
         if schema.default_strategy:
             default_strategy = Strategy(
                 kind=StrategyKind(schema.default_strategy.kind),
-                parameters=schema.default_strategy.parameters
+                parameters=schema.default_strategy.parameters,
             )
 
         # Convert per-entity strategies
@@ -422,7 +507,7 @@ class PolicyLoader:
                 if config.kind:
                     per_entity[entity_type] = Strategy(
                         kind=StrategyKind(config.kind),
-                        parameters=config.parameters or {}
+                        parameters=config.parameters or {},
                     )
                 # Note: Entities with only threshold/enabled overrides will not have strategies
                 # in per_entity dict, but their thresholds will be handled separately
@@ -464,13 +549,15 @@ class PolicyLoader:
                         if config.kind:
                             strategy_overrides[entity_type] = Strategy(
                                 kind=StrategyKind(config.kind),
-                                parameters=config.parameters or {}
+                                parameters=config.parameters or {},
                             )
                     if strategy_overrides:
                         context_rule["strategy_overrides"] = strategy_overrides
 
                 if rule_config.threshold_overrides:
-                    context_rule["threshold_overrides"] = rule_config.threshold_overrides
+                    context_rule["threshold_overrides"] = (
+                        rule_config.threshold_overrides
+                    )
 
                 context_rules[context] = context_rule
 
@@ -483,7 +570,7 @@ class PolicyLoader:
             allow_list=allow_list,
             deny_list=deny_list,
             context_rules=context_rules,
-            min_entity_length=schema.min_entity_length or 1
+            min_entity_length=schema.min_entity_length or 1,
         )
 
     def validate_policy_file(self, policy_path: Union[str, Path]) -> list[str]:

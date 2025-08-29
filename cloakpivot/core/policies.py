@@ -51,7 +51,9 @@ class MaskingPolicy:
     thresholds: dict[str, float] = field(default_factory=dict)
     locale: str = field(default="en")
     seed: Optional[str] = field(default=None)
-    custom_callbacks: Optional[dict[str, Callable[[str, str, float], str]]] = field(default=None)
+    custom_callbacks: Optional[dict[str, Callable[[str, str, float], str]]] = field(
+        default=None
+    )
     allow_list: set[str] = field(default_factory=set)
     deny_list: set[str] = field(default_factory=set)
     context_rules: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -73,7 +75,9 @@ class MaskingPolicy:
                 raise ValueError(f"Threshold for {entity_type} must be a number")
 
             if not 0.0 <= threshold <= 1.0:
-                raise ValueError(f"Threshold for {entity_type} must be between 0.0 and 1.0, got {threshold}")
+                raise ValueError(
+                    f"Threshold for {entity_type} must be between 0.0 and 1.0, got {threshold}"
+                )
 
     def _validate_locale(self) -> None:
         """Validate locale format."""
@@ -81,9 +85,11 @@ class MaskingPolicy:
             raise ValueError("Locale must be a string")
 
         # Basic locale format validation (language or language-country)
-        locale_pattern = r'^[a-z]{2}(-[A-Z]{2})?$'
+        locale_pattern = r"^[a-z]{2}(-[A-Z]{2})?$"
         if not re.match(locale_pattern, self.locale):
-            raise ValueError(f"Locale must follow format 'xx' or 'xx-YY', got '{self.locale}'")
+            raise ValueError(
+                f"Locale must follow format 'xx' or 'xx-YY', got '{self.locale}'"
+            )
 
     def _validate_seed(self) -> None:
         """Validate seed configuration."""
@@ -101,16 +107,26 @@ class MaskingPolicy:
 
         for context, rules in self.context_rules.items():
             if context not in valid_contexts:
-                raise ValueError(f"Unknown context type '{context}', valid contexts: {valid_contexts}")
+                raise ValueError(
+                    f"Unknown context type '{context}', valid contexts: {valid_contexts}"
+                )
 
             if not isinstance(rules, dict):
                 raise ValueError(f"Context rules for '{context}' must be a dictionary")
 
             # Validate rule keys
-            valid_rule_keys = {"strategy", "threshold", "enabled", "strategy_overrides", "threshold_overrides"}
+            valid_rule_keys = {
+                "strategy",
+                "threshold",
+                "enabled",
+                "strategy_overrides",
+                "threshold_overrides",
+            }
             for rule_key in rules.keys():
                 if rule_key not in valid_rule_keys:
-                    raise ValueError(f"Unknown rule key '{rule_key}', valid keys: {valid_rule_keys}")
+                    raise ValueError(
+                        f"Unknown rule key '{rule_key}', valid keys: {valid_rule_keys}"
+                    )
 
     def _validate_callbacks(self) -> None:
         """Validate custom callback functions."""
@@ -126,15 +142,20 @@ class MaskingPolicy:
 
             # Check callback signature
             import inspect
+
             sig = inspect.signature(callback)
             expected_params = {"original_text", "entity_type", "confidence"}
             actual_params = set(sig.parameters.keys())
 
             if not expected_params.issubset(actual_params):
                 missing = expected_params - actual_params
-                raise ValueError(f"Callback for '{entity_type}' missing parameters: {missing}")
+                raise ValueError(
+                    f"Callback for '{entity_type}' missing parameters: {missing}"
+                )
 
-    def get_strategy_for_entity(self, entity_type: str, context: Optional[str] = None) -> Strategy:
+    def get_strategy_for_entity(
+        self, entity_type: str, context: Optional[str] = None
+    ) -> Strategy:
         """
         Get the appropriate strategy for a given entity type and context.
 
@@ -150,7 +171,9 @@ class MaskingPolicy:
             context_rule = self.context_rules[context]
             if not context_rule.get("enabled", True):
                 # Context disabled - return a no-op strategy that preserves original text
-                return Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False})
+                return Strategy(
+                    StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False}
+                )
 
             if "strategy" in context_rule:
                 strategy = context_rule["strategy"]
@@ -164,7 +187,9 @@ class MaskingPolicy:
         # Fall back to default strategy
         return self.default_strategy
 
-    def get_threshold_for_entity(self, entity_type: str, context: Optional[str] = None) -> float:
+    def get_threshold_for_entity(
+        self, entity_type: str, context: Optional[str] = None
+    ) -> float:
         """
         Get the confidence threshold for a given entity type and context.
 
@@ -190,8 +215,13 @@ class MaskingPolicy:
         # Default threshold
         return 0.5
 
-    def should_mask_entity(self, original_text: str, entity_type: str, confidence: float,
-                          context: Optional[str] = None) -> bool:
+    def should_mask_entity(
+        self,
+        original_text: str,
+        entity_type: str,
+        confidence: float,
+        context: Optional[str] = None,
+    ) -> bool:
         """
         Determine if an entity should be masked based on policy rules.
 
@@ -229,13 +259,17 @@ class MaskingPolicy:
 
         return True
 
-    def get_custom_callback(self, entity_type: str) -> Optional[Callable[[str, str, float], str]]:
+    def get_custom_callback(
+        self, entity_type: str
+    ) -> Optional[Callable[[str, str, float], str]]:
         """Get custom callback function for an entity type if available."""
         if self.custom_callbacks is None:
             return None
         return self.custom_callbacks.get(entity_type)
 
-    def with_entity_strategy(self, entity_type: str, strategy: Strategy) -> "MaskingPolicy":
+    def with_entity_strategy(
+        self, entity_type: str, strategy: Strategy
+    ) -> "MaskingPolicy":
         """Create a new policy with an additional entity strategy."""
         new_per_entity = {**self.per_entity, entity_type: strategy}
         return MaskingPolicy(
@@ -248,7 +282,7 @@ class MaskingPolicy:
             allow_list=self.allow_list,
             deny_list=self.deny_list,
             context_rules=self.context_rules,
-            min_entity_length=self.min_entity_length
+            min_entity_length=self.min_entity_length,
         )
 
     def with_threshold(self, entity_type: str, threshold: float) -> "MaskingPolicy":
@@ -264,7 +298,7 @@ class MaskingPolicy:
             allow_list=self.allow_list,
             deny_list=self.deny_list,
             context_rules=self.context_rules,
-            min_entity_length=self.min_entity_length
+            min_entity_length=self.min_entity_length,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -272,12 +306,12 @@ class MaskingPolicy:
         return {
             "default_strategy": {
                 "kind": self.default_strategy.kind.value,
-                "parameters": self.default_strategy.parameters
+                "parameters": self.default_strategy.parameters,
             },
             "per_entity": {
                 entity_type: {
                     "kind": strategy.kind.value,
-                    "parameters": strategy.parameters
+                    "parameters": strategy.parameters,
                 }
                 for entity_type, strategy in self.per_entity.items()
             },
@@ -287,17 +321,19 @@ class MaskingPolicy:
             "allow_list": list(self.allow_list),
             "deny_list": list(self.deny_list),
             "context_rules": dict(self.context_rules),
-            "min_entity_length": self.min_entity_length
+            "min_entity_length": self.min_entity_length,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MaskingPolicy":
         """Create policy from dictionary representation."""
         # Convert default strategy
-        default_strategy_data = data.get("default_strategy", {"kind": "redact", "parameters": {}})
+        default_strategy_data = data.get(
+            "default_strategy", {"kind": "redact", "parameters": {}}
+        )
         default_strategy = Strategy(
             kind=StrategyKind(default_strategy_data["kind"]),
-            parameters=default_strategy_data.get("parameters", {})
+            parameters=default_strategy_data.get("parameters", {}),
         )
 
         # Convert per-entity strategies
@@ -305,7 +341,7 @@ class MaskingPolicy:
         for entity_type, strategy_data in data.get("per_entity", {}).items():
             per_entity[entity_type] = Strategy(
                 kind=StrategyKind(strategy_data["kind"]),
-                parameters=strategy_data.get("parameters", {})
+                parameters=strategy_data.get("parameters", {}),
             )
 
         return cls(
@@ -317,7 +353,7 @@ class MaskingPolicy:
             allow_list=set(data.get("allow_list", [])),
             deny_list=set(data.get("deny_list", [])),
             context_rules=data.get("context_rules", {}),
-            min_entity_length=data.get("min_entity_length", 1)
+            min_entity_length=data.get("min_entity_length", 1),
         )
 
 
@@ -329,8 +365,8 @@ CONSERVATIVE_POLICY = MaskingPolicy(
         "EMAIL_ADDRESS": 0.9,
         "CREDIT_CARD": 0.8,
         "US_SSN": 0.9,
-        "PERSON": 0.8
-    }
+        "PERSON": 0.8,
+    },
 )
 
 TEMPLATE_POLICY = MaskingPolicy(
@@ -339,125 +375,151 @@ TEMPLATE_POLICY = MaskingPolicy(
         "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"}),
         "CREDIT_CARD": Strategy(StrategyKind.TEMPLATE, {"template": "[CREDIT_CARD]"}),
         "US_SSN": Strategy(StrategyKind.TEMPLATE, {"template": "[SSN]"}),
-        "PERSON": Strategy(StrategyKind.TEMPLATE, {"template": "[NAME]"})
+        "PERSON": Strategy(StrategyKind.TEMPLATE, {"template": "[NAME]"}),
     }
 )
 
 PARTIAL_POLICY = MaskingPolicy(
     per_entity={
-        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
-        "EMAIL_ADDRESS": Strategy(StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}),
-        "CREDIT_CARD": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
-        "US_SSN": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"})
+        "PHONE_NUMBER": Strategy(
+            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
+        ),
+        "EMAIL_ADDRESS": Strategy(
+            StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}
+        ),
+        "CREDIT_CARD": Strategy(
+            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
+        ),
+        "US_SSN": Strategy(
+            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
+        ),
     }
 )
 
 # Enhanced policies for new features
 FORMAT_AWARE_TEMPLATE_POLICY = MaskingPolicy(
     per_entity={
-        "PHONE_NUMBER": Strategy(StrategyKind.TEMPLATE, {
-            "auto_generate": True,
-            "preserve_format": True
-        }),
-        "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {
-            "auto_generate": True,
-            "preserve_format": True
-        }),
-        "US_SSN": Strategy(StrategyKind.TEMPLATE, {
-            "template": "XXX-XX-XXXX",
-            "preserve_format": True
-        }),
-        "CREDIT_CARD": Strategy(StrategyKind.TEMPLATE, {
-            "template": "XXXX-XXXX-XXXX-XXXX",
-            "preserve_format": True
-        })
+        "PHONE_NUMBER": Strategy(
+            StrategyKind.TEMPLATE, {"auto_generate": True, "preserve_format": True}
+        ),
+        "EMAIL_ADDRESS": Strategy(
+            StrategyKind.TEMPLATE, {"auto_generate": True, "preserve_format": True}
+        ),
+        "US_SSN": Strategy(
+            StrategyKind.TEMPLATE, {"template": "XXX-XX-XXXX", "preserve_format": True}
+        ),
+        "CREDIT_CARD": Strategy(
+            StrategyKind.TEMPLATE,
+            {"template": "XXXX-XXXX-XXXX-XXXX", "preserve_format": True},
+        ),
     }
 )
 
 FORMAT_AWARE_PARTIAL_POLICY = MaskingPolicy(
     per_entity={
-        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "end",
-            "format_aware": True,
-            "preserve_delimiters": True,
-            "deterministic": True
-        }),
-        "EMAIL_ADDRESS": Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 3,
-            "position": "start",
-            "format_aware": True,
-            "preserve_delimiters": True,
-            "deterministic": True
-        }),
-        "CREDIT_CARD": Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "end",
-            "format_aware": True,
-            "preserve_delimiters": True,
-            "deterministic": True
-        }),
-        "US_SSN": Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "end",
-            "format_aware": True,
-            "preserve_delimiters": True,
-            "deterministic": True
-        })
+        "PHONE_NUMBER": Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 4,
+                "position": "end",
+                "format_aware": True,
+                "preserve_delimiters": True,
+                "deterministic": True,
+            },
+        ),
+        "EMAIL_ADDRESS": Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 3,
+                "position": "start",
+                "format_aware": True,
+                "preserve_delimiters": True,
+                "deterministic": True,
+            },
+        ),
+        "CREDIT_CARD": Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 4,
+                "position": "end",
+                "format_aware": True,
+                "preserve_delimiters": True,
+                "deterministic": True,
+            },
+        ),
+        "US_SSN": Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 4,
+                "position": "end",
+                "format_aware": True,
+                "preserve_delimiters": True,
+                "deterministic": True,
+            },
+        ),
     }
 )
 
 DETERMINISTIC_HASH_POLICY = MaskingPolicy(
-    default_strategy=Strategy(StrategyKind.HASH, {
-        "algorithm": "sha256",
-        "truncate": 8,
-        "format_output": "hex",
-        "consistent_length": True,
-        "per_entity_salt": {
-            "PHONE_NUMBER": "phone_salt_v1",
-            "EMAIL_ADDRESS": "email_salt_v1",
-            "CREDIT_CARD": "cc_salt_v1",
-            "US_SSN": "ssn_salt_v1",
-            "PERSON": "name_salt_v1",
-            "default": "default_salt_v1"
-        }
-    }),
-    seed="deterministic-hash-policy-v1"
+    default_strategy=Strategy(
+        StrategyKind.HASH,
+        {
+            "algorithm": "sha256",
+            "truncate": 8,
+            "format_output": "hex",
+            "consistent_length": True,
+            "per_entity_salt": {
+                "PHONE_NUMBER": "phone_salt_v1",
+                "EMAIL_ADDRESS": "email_salt_v1",
+                "CREDIT_CARD": "cc_salt_v1",
+                "US_SSN": "ssn_salt_v1",
+                "PERSON": "name_salt_v1",
+                "default": "default_salt_v1",
+            },
+        },
+    ),
+    seed="deterministic-hash-policy-v1",
 )
 
 MIXED_STRATEGY_POLICY = MaskingPolicy(
     per_entity={
-        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "end",
-            "format_aware": True,
-            "preserve_delimiters": True
-        }),
-        "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {
-            "auto_generate": True,
-            "preserve_format": True
-        }),
-        "CREDIT_CARD": Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "truncate": 12,
-            "prefix": "CC_",
-            "per_entity_salt": {"CREDIT_CARD": "cc_secure_v1"}
-        }),
-        "US_SSN": Strategy(StrategyKind.TEMPLATE, {
-            "template": "XXX-XX-XXXX"
-        }),
-        "PERSON": Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "truncate": 8,
-            "prefix": "NAME_",
-            "per_entity_salt": {"PERSON": "name_secure_v1"}
-        })
+        "PHONE_NUMBER": Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 4,
+                "position": "end",
+                "format_aware": True,
+                "preserve_delimiters": True,
+            },
+        ),
+        "EMAIL_ADDRESS": Strategy(
+            StrategyKind.TEMPLATE, {"auto_generate": True, "preserve_format": True}
+        ),
+        "CREDIT_CARD": Strategy(
+            StrategyKind.HASH,
+            {
+                "algorithm": "sha256",
+                "truncate": 12,
+                "prefix": "CC_",
+                "per_entity_salt": {"CREDIT_CARD": "cc_secure_v1"},
+            },
+        ),
+        "US_SSN": Strategy(StrategyKind.TEMPLATE, {"template": "XXX-XX-XXXX"}),
+        "PERSON": Strategy(
+            StrategyKind.HASH,
+            {
+                "algorithm": "sha256",
+                "truncate": 8,
+                "prefix": "NAME_",
+                "per_entity_salt": {"PERSON": "name_secure_v1"},
+            },
+        ),
     },
     thresholds={
         "PHONE_NUMBER": 0.8,
         "EMAIL_ADDRESS": 0.7,
         "CREDIT_CARD": 0.9,
         "US_SSN": 0.9,
-        "PERSON": 0.75
-    }
+        "PERSON": 0.75,
+    },
 )

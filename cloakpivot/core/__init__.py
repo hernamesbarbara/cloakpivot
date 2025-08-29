@@ -70,22 +70,18 @@ __all__ = [
     "EMAIL_TEMPLATE",
     "SSN_PARTIAL",
     "HASH_SHA256",
-
     # Policy exports
     "MaskingPolicy",
     "CONSERVATIVE_POLICY",
     "TEMPLATE_POLICY",
     "PARTIAL_POLICY",
-
     # Anchor exports
     "AnchorEntry",
     "AnchorIndex",
-
     # CloakMap exports
     "CloakMap",
     "merge_cloakmaps",
     "validate_cloakmap_integrity",
-
     # Result exports
     "OperationStatus",
     "ProcessingStats",
@@ -97,18 +93,15 @@ __all__ = [
     "create_performance_metrics",
     "create_processing_stats",
     "create_diagnostics",
-
     # Presidio integration exports
     "AnalyzerEngineWrapper",
     "AnalyzerConfig",
     "RecognizerRegistry",
     "EntityDetectionResult",
-
     # Detection pipeline exports
     "EntityDetectionPipeline",
     "DocumentAnalysisResult",
     "SegmentAnalysisResult",
-
     # Normalization exports
     "EntityNormalizer",
     "ConflictResolutionStrategy",

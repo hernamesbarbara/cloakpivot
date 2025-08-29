@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MemoryStats:
     """Memory usage statistics."""
+
     total_mb: float
     available_mb: float
     used_mb: float
@@ -94,7 +95,7 @@ class MemoryOptimizedDocumentProcessor:
     ) -> None:
         """
         Initialize memory-optimized document processor.
-        
+
         Args:
             use_memory_mapping: Use memory-mapped files for large documents
             enable_gc_tuning: Enable garbage collection tuning for better performance
@@ -120,7 +121,9 @@ class MemoryOptimizedDocumentProcessor:
         # This reduces GC overhead when processing large amounts of data
         gc.set_threshold(2000, 15, 15)  # Default is (700, 10, 10)
 
-        logger.debug("Configured garbage collection thresholds for large document processing")
+        logger.debug(
+            "Configured garbage collection thresholds for large document processing"
+        )
 
     @contextmanager
     def memory_optimized_processing(
@@ -128,7 +131,7 @@ class MemoryOptimizedDocumentProcessor:
     ) -> Generator[None, None, None]:
         """
         Context manager for memory-optimized processing.
-        
+
         This context manager:
         - Sets memory baseline
         - Monitors memory usage
@@ -165,10 +168,10 @@ class MemoryOptimizedDocumentProcessor:
     ) -> Generator[Optional[mmap.mmap], None, None]:
         """
         Context manager for memory-mapped file access.
-        
+
         Args:
             file_path: Path to file to memory-map
-            
+
         Yields:
             Memory-mapped file object or None if mapping fails
         """
@@ -177,7 +180,7 @@ class MemoryOptimizedDocumentProcessor:
             return
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
                     logger.debug(f"Memory-mapped file: {file_path} ({len(mm)} bytes)")
                     yield mm
@@ -188,7 +191,7 @@ class MemoryOptimizedDocumentProcessor:
     def optimize_document_copy(self, document: DoclingDocument) -> DoclingDocument:
         """
         Create an optimized copy of a document, minimizing memory usage.
-        
+
         This method implements selective deep copying, only copying the parts
         that need to be modified during processing.
         """
@@ -203,13 +206,13 @@ class MemoryOptimizedDocumentProcessor:
             optimized_doc = copy.copy(document)
 
             # Deep copy only the text-bearing content that might be modified
-            if hasattr(document, 'texts') and document.texts:
+            if hasattr(document, "texts") and document.texts:
                 optimized_doc.texts = copy.deepcopy(document.texts)
 
-            if hasattr(document, 'tables') and document.tables:
+            if hasattr(document, "tables") and document.tables:
                 optimized_doc.tables = copy.deepcopy(document.tables)
 
-            if hasattr(document, 'key_value_items') and document.key_value_items:
+            if hasattr(document, "key_value_items") and document.key_value_items:
                 optimized_doc.key_value_items = copy.deepcopy(document.key_value_items)
 
             # Keep references to immutable content
@@ -256,11 +259,11 @@ class StreamingTextExtractor:
     def __init__(
         self,
         buffer_size: int = 1024 * 1024,  # 1MB buffer
-        yield_threshold: int = 10240,     # Yield every 10KB
+        yield_threshold: int = 10240,  # Yield every 10KB
     ) -> None:
         """
         Initialize streaming text extractor.
-        
+
         Args:
             buffer_size: Size of internal buffer for text processing
             yield_threshold: Minimum text size before yielding a segment
@@ -278,10 +281,10 @@ class StreamingTextExtractor:
     ) -> Generator[str, None, None]:
         """
         Extract text from document in streaming fashion.
-        
+
         Args:
             document: DoclingDocument to extract text from
-            
+
         Yields:
             Text segments as they are processed
         """
@@ -289,7 +292,7 @@ class StreamingTextExtractor:
 
         # Process text items
         for text_item in document.texts:
-            if hasattr(text_item, 'text') and text_item.text:
+            if hasattr(text_item, "text") and text_item.text:
                 current_text += text_item.text + "\n\n"
 
                 # Yield when we have enough text
@@ -299,7 +302,7 @@ class StreamingTextExtractor:
 
         # Process tables
         for table_item in document.tables:
-            if hasattr(table_item, 'data') and table_item.data:
+            if hasattr(table_item, "data") and table_item.data:
                 table_text = self._extract_table_text_streaming(table_item)
                 current_text += table_text + "\n\n"
 
@@ -325,10 +328,10 @@ class StreamingTextExtractor:
         """Extract text from table in memory-efficient way."""
         table_text = ""
 
-        if hasattr(table_item, 'data') and hasattr(table_item.data, 'table_cells'):
+        if hasattr(table_item, "data") and hasattr(table_item.data, "table_cells"):
             for row in table_item.data.table_cells:
                 for cell in row:
-                    if hasattr(cell, 'text') and cell.text:
+                    if hasattr(cell, "text") and cell.text:
                         table_text += cell.text + " "
                 table_text += "\n"
 
@@ -338,10 +341,14 @@ class StreamingTextExtractor:
         """Extract text from key-value item in memory-efficient way."""
         kv_text = ""
 
-        if hasattr(kv_item, 'key') and kv_item.key and hasattr(kv_item.key, 'text'):
+        if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
             kv_text += kv_item.key.text
 
-        if hasattr(kv_item, 'value') and kv_item.value and hasattr(kv_item.value, 'text'):
+        if (
+            hasattr(kv_item, "value")
+            and kv_item.value
+            and hasattr(kv_item.value, "text")
+        ):
             kv_text += ": " + kv_item.value.text
 
         return kv_text

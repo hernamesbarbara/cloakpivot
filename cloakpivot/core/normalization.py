@@ -142,7 +142,11 @@ class EntityGroup:
         """Check if group overlaps with an entity."""
         return not (self.end_pos <= entity.start or entity.end <= self.start_pos)
 
-    def is_adjacent_to(self, entity: EntityDetectionResult, threshold: int = DEFAULT_MERGE_THRESHOLD_CHARS) -> bool:
+    def is_adjacent_to(
+        self,
+        entity: EntityDetectionResult,
+        threshold: int = DEFAULT_MERGE_THRESHOLD_CHARS,
+    ) -> bool:
         """Check if this entity group is adjacent to another entity within threshold distance.
 
         Adjacency is determined by calculating the minimum gap between the group's

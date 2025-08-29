@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ..core.detection import DocumentAnalysisResult
     from ..core.policies import MaskingPolicy
     from ..masking.engine import MaskingResult
+
     try:
         from docling_core.types import DoclingDocument
     except ImportError:
@@ -34,7 +35,9 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     ctx.obj["verbose"] = verbose
 
 
-def _validate_mask_arguments(output_path: Optional[Path], cloakmap: Optional[Path]) -> None:
+def _validate_mask_arguments(
+    output_path: Optional[Path], cloakmap: Optional[Path]
+) -> None:
     """Validate mask command arguments."""
     if not output_path and not cloakmap:
         raise click.ClickException(
@@ -42,8 +45,12 @@ def _validate_mask_arguments(output_path: Optional[Path], cloakmap: Optional[Pat
         )
 
 
-def _set_default_paths(input_path: Path, output_path: Optional[Path],
-                       cloakmap: Optional[Path], output_format: str) -> tuple[Path, Path]:
+def _set_default_paths(
+    input_path: Path,
+    output_path: Optional[Path],
+    cloakmap: Optional[Path],
+    output_format: str,
+) -> tuple[Path, Path]:
     """Set default output paths if not specified."""
     if not output_path:
         output_path = input_path.with_suffix(f".masked.{output_format}.json")
@@ -52,7 +59,7 @@ def _set_default_paths(input_path: Path, output_path: Optional[Path],
     return output_path, cloakmap
 
 
-def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolicy':
+def _load_masking_policy(policy: Optional[Path], verbose: bool) -> "MaskingPolicy":
     """Load masking policy from file or use default with enhanced inheritance support."""
     from ..core.policies import MaskingPolicy
     from ..core.policy_loader import (
@@ -71,7 +78,9 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolic
             masking_policy = loader.load_policy(policy)
             if verbose:
                 click.echo("✓ Enhanced policy loaded successfully")
-                if hasattr(masking_policy, 'name') or policy.name.endswith(('.yaml', '.yml')):
+                if hasattr(masking_policy, "name") or policy.name.endswith(
+                    (".yaml", ".yml")
+                ):
                     click.echo("   (with inheritance and validation support)")
         except (PolicyValidationError, PolicyInheritanceError) as e:
             click.echo(f"⚠️  Enhanced policy loading failed: {e}")
@@ -79,7 +88,8 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolic
             # Fall back to basic loading
             try:
                 import yaml
-                with open(policy, encoding='utf-8') as f:
+
+                with open(policy, encoding="utf-8") as f:
                     policy_data = yaml.safe_load(f)
                 masking_policy = MaskingPolicy.from_dict(policy_data)
                 if verbose:
@@ -96,7 +106,8 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolic
             # Fall back to basic loading
             try:
                 import yaml
-                with open(policy, encoding='utf-8') as f:
+
+                with open(policy, encoding="utf-8") as f:
                     policy_data = yaml.safe_load(f)
                 masking_policy = MaskingPolicy.from_dict(policy_data)
                 if verbose:
@@ -117,7 +128,9 @@ def _load_masking_policy(policy: Optional[Path], verbose: bool) -> 'MaskingPolic
     return masking_policy
 
 
-def _perform_entity_detection(document: 'DoclingDocument', masking_policy: 'MaskingPolicy', verbose: bool) -> 'DocumentAnalysisResult':
+def _perform_entity_detection(
+    document: "DoclingDocument", masking_policy: "MaskingPolicy", verbose: bool
+) -> "DocumentAnalysisResult":
     """Perform PII entity detection on document."""
     from ..core.detection import EntityDetectionPipeline
 
@@ -143,7 +156,9 @@ def _perform_entity_detection(document: 'DoclingDocument', masking_policy: 'Mask
     return detection_result
 
 
-def _prepare_entities_for_masking(detection_result: 'DocumentAnalysisResult') -> list['RecognizerResult']:
+def _prepare_entities_for_masking(
+    detection_result: "DocumentAnalysisResult",
+) -> list["RecognizerResult"]:
     """Convert detection results to format expected by masking engine."""
     from presidio_analyzer import RecognizerResult
 
@@ -154,13 +169,18 @@ def _prepare_entities_for_masking(detection_result: 'DocumentAnalysisResult') ->
                 entity_type=entity.entity_type,
                 start=entity.start + segment_result.segment.start_offset,
                 end=entity.end + segment_result.segment.start_offset,
-                score=entity.confidence
+                score=entity.confidence,
             )
             entities.append(recognizer_result)
     return entities
 
 
-def _perform_masking(document: 'DoclingDocument', entities: list['RecognizerResult'], masking_policy: 'MaskingPolicy', verbose: bool) -> 'MaskingResult':
+def _perform_masking(
+    document: "DoclingDocument",
+    entities: list["RecognizerResult"],
+    masking_policy: "MaskingPolicy",
+    verbose: bool,
+) -> "MaskingResult":
     """Perform the actual masking operation."""
     from ..document.extractor import TextExtractor
     from ..masking.engine import MaskingEngine
@@ -177,7 +197,7 @@ def _perform_masking(document: 'DoclingDocument', entities: list['RecognizerResu
             document=document,
             entities=entities,
             policy=masking_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
         progress.update(1)
 
@@ -187,22 +207,27 @@ def _perform_masking(document: 'DoclingDocument', entities: list['RecognizerResu
     return masking_result
 
 
-def _save_masked_document(masking_result: 'MaskingResult', output_path: Path, verbose: bool) -> None:
+def _save_masked_document(
+    masking_result: "MaskingResult", output_path: Path, verbose: bool
+) -> None:
     """Save the masked document to file."""
     if verbose:
         click.echo(f"💾 Saving masked document: {output_path}")
 
     with click.progressbar(length=1, label="Saving masked document") as progress:
         from docpivot import LexicalDocSerializer
+
         serializer = LexicalDocSerializer()
         serialized_content = serializer.serialize(masking_result.masked_document)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(serialized_content)
         progress.update(1)
 
 
-def _save_cloakmap(masking_result: 'MaskingResult', cloakmap: Path, verbose: bool) -> None:
+def _save_cloakmap(
+    masking_result: "MaskingResult", cloakmap: Path, verbose: bool
+) -> None:
     """Save the CloakMap to file."""
     import json
 
@@ -210,7 +235,7 @@ def _save_cloakmap(masking_result: 'MaskingResult', cloakmap: Path, verbose: boo
         click.echo(f"🗺️  Saving CloakMap: {cloakmap}")
 
     with click.progressbar(length=1, label="Saving CloakMap") as progress:
-        with open(cloakmap, 'w', encoding='utf-8') as f:
+        with open(cloakmap, "w", encoding="utf-8") as f:
             json.dump(masking_result.cloakmap.to_dict(), f, indent=2, default=str)
         progress.update(1)
 
@@ -312,7 +337,8 @@ def mask(
                 click.echo(f"📋 Loading policy: {policy}")
             try:
                 import yaml
-                with open(policy, encoding='utf-8') as f:
+
+                with open(policy, encoding="utf-8") as f:
                     policy_data = yaml.safe_load(f)
                 masking_policy = MaskingPolicy.from_dict(policy_data)
                 if verbose:
@@ -329,13 +355,19 @@ def mask(
 
         # Initialize detection pipeline
         if verbose:
-            click.echo(f"🔍 Detecting PII entities (min_score: {min_score}, lang: {lang})")
+            click.echo(
+                f"🔍 Detecting PII entities (min_score: {min_score}, lang: {lang})"
+            )
 
         detection_pipeline = EntityDetectionPipeline()
 
         # Detect entities with progress
-        with click.progressbar(length=1, label="Analyzing document for PII") as progress:
-            detection_result = detection_pipeline.analyze_document(document, masking_policy)
+        with click.progressbar(
+            length=1, label="Analyzing document for PII"
+        ) as progress:
+            detection_result = detection_pipeline.analyze_document(
+                document, masking_policy
+            )
             progress.update(1)
 
         if verbose:
@@ -353,6 +385,7 @@ def mask(
 
         # Extract text segments (needed for masking engine)
         from ..document.extractor import TextExtractor
+
         text_extractor = TextExtractor()
         text_segments = text_extractor.extract_text_segments(document)
 
@@ -361,15 +394,17 @@ def mask(
 
         # Convert detection results to RecognizerResult format expected by masking engine
         from presidio_analyzer import RecognizerResult
+
         entities = []
         for segment_result in detection_result.segment_results:
             for entity in segment_result.entities:
                 # Convert to RecognizerResult
                 recognizer_result = RecognizerResult(
                     entity_type=entity.entity_type,
-                    start=entity.start + segment_result.segment.start_offset,  # Convert to global offset
+                    start=entity.start
+                    + segment_result.segment.start_offset,  # Convert to global offset
                     end=entity.end + segment_result.segment.start_offset,
-                    score=entity.confidence
+                    score=entity.confidence,
                 )
                 entities.append(recognizer_result)
 
@@ -379,7 +414,7 @@ def mask(
                 document=document,
                 entities=entities,
                 policy=masking_policy,
-                text_segments=text_segments
+                text_segments=text_segments,
             )
             progress.update(1)
 
@@ -393,11 +428,12 @@ def mask(
         with click.progressbar(length=1, label="Saving masked document") as progress:
             # Use docpivot serializer to save the document
             from docpivot import LexicalDocSerializer
+
             serializer = LexicalDocSerializer(masking_result.masked_document)
             result = serializer.serialize()
             serialized_content = result.text
 
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(serialized_content)
             progress.update(1)
 
@@ -406,7 +442,7 @@ def mask(
             click.echo(f"🗺️  Saving CloakMap: {cloakmap}")
 
         with click.progressbar(length=1, label="Saving CloakMap") as progress:
-            with open(cloakmap, 'w', encoding='utf-8') as f:
+            with open(cloakmap, "w", encoding="utf-8") as f:
                 json.dump(masking_result.cloakmap.to_dict(), f, indent=2, default=str)
             progress.update(1)
 
@@ -415,7 +451,9 @@ def mask(
         click.echo(f"   Masked document: {output_path}")
         click.echo(f"   CloakMap: {cloakmap}")
         if masking_result.stats:
-            click.echo(f"   Entities processed: {masking_result.stats['total_entities_masked']}")
+            click.echo(
+                f"   Entities processed: {masking_result.stats['total_entities_masked']}"
+            )
 
     except ImportError as e:
         raise click.ClickException(f"Missing required dependency: {e}") from e
@@ -424,6 +462,7 @@ def mask(
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Masking failed: {e}") from e
 
@@ -483,7 +522,7 @@ def unmask(
 
         # Load CloakMap first for validation
         with click.progressbar(length=1, label="Loading CloakMap") as progress:
-            with open(cloakmap, encoding='utf-8') as f:
+            with open(cloakmap, encoding="utf-8") as f:
                 cloakmap_data = json.load(f)
             cloakmap_obj = CloakMap.from_dict(cloakmap_data)
             progress.update(1)
@@ -515,7 +554,7 @@ def unmask(
                 unmasking_result = unmasking_engine.unmask_document(
                     masked_document=masked_document,
                     cloakmap=cloakmap_obj,
-                    verify_integrity=True
+                    verify_integrity=True,
                 )
                 progress.update(1)
 
@@ -530,17 +569,20 @@ def unmask(
             # Check integrity
             if unmasking_result.integrity_report:
                 integrity = unmasking_result.integrity_report
-                if integrity.get('valid', False):
+                if integrity.get("valid", False):
                     if verbose:
                         click.echo("✅ Integrity verification passed")
                 else:
                     click.echo("⚠️  Integrity verification failed:")
-                    for issue in integrity.get('issues', []):
+                    for issue in integrity.get("issues", []):
                         click.echo(f"   - {issue}")
 
             if verify_only:
                 # Verification mode - just report results
-                if unmasking_result.integrity_report and unmasking_result.integrity_report.get('valid', False):
+                if (
+                    unmasking_result.integrity_report
+                    and unmasking_result.integrity_report.get("valid", False)
+                ):
                     click.echo("✅ CloakMap verification successful")
                     click.echo(f"   Document: {masked_path}")
                     click.echo(f"   CloakMap: {cloakmap}")
@@ -551,19 +593,26 @@ def unmask(
             else:
                 # Save restored document
                 if output_path is None:
-                    raise click.ClickException("Output path is required for unmasking (use --out option)")
+                    raise click.ClickException(
+                        "Output path is required for unmasking (use --out option)"
+                    )
 
                 if verbose:
                     click.echo(f"💾 Saving restored document: {output_path}")
 
-                with click.progressbar(length=1, label="Saving restored document") as progress:
+                with click.progressbar(
+                    length=1, label="Saving restored document"
+                ) as progress:
                     # Use docpivot serializer to save the restored document
                     from docpivot import LexicalDocSerializer
-                    serializer = LexicalDocSerializer(unmasking_result.restored_document)
+
+                    serializer = LexicalDocSerializer(
+                        unmasking_result.restored_document
+                    )
                     result = serializer.serialize()
                     serialized_content = result.text
 
-                    with open(output_path, 'w', encoding='utf-8') as f:
+                    with open(output_path, "w", encoding="utf-8") as f:
                         f.write(serialized_content)
                     progress.update(1)
 
@@ -573,7 +622,9 @@ def unmask(
                 click.echo(f"   CloakMap: {cloakmap}")
                 click.echo(f"   Restored document: {output_path}")
                 if unmasking_result.stats:
-                    click.echo(f"   Entities restored: {unmasking_result.stats.get('resolved_anchors', 0)}")
+                    click.echo(
+                        f"   Entities restored: {unmasking_result.stats.get('resolved_anchors', 0)}"
+                    )
 
         except Exception as unmasking_error:
             # Handle unmasking-specific errors
@@ -583,15 +634,20 @@ def unmask(
                 click.echo("   The CloakMap may not match the provided masked document")
             elif "anchor" in error_msg.lower():
                 click.echo("❌ Anchor resolution failed")
-                click.echo("   Some replacement tokens could not be located in the document")
+                click.echo(
+                    "   Some replacement tokens could not be located in the document"
+                )
             else:
                 click.echo(f"❌ Unmasking failed: {error_msg}")
 
             if verbose:
                 import traceback
+
                 click.echo(f"\nError details:\n{traceback.format_exc()}")
 
-            raise click.ClickException(f"Unmasking operation failed: {error_msg}") from None
+            raise click.ClickException(
+                f"Unmasking operation failed: {error_msg}"
+            ) from None
 
     except ImportError as e:
         raise click.ClickException(f"Missing required dependency: {e}") from e
@@ -602,6 +658,7 @@ def unmask(
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Unmasking failed: {e}") from e
 
@@ -760,7 +817,9 @@ policy_composition:
 
 @policy.command("validate")
 @click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
-@click.option("--verbose", "-v", is_flag=True, help="Show detailed validation information")
+@click.option(
+    "--verbose", "-v", is_flag=True, help="Show detailed validation information"
+)
 def policy_validate(policy_file: Path, verbose: bool) -> None:
     """Validate a policy file for errors and compatibility.
 
@@ -799,13 +858,15 @@ def policy_validate(policy_file: Path, verbose: bool) -> None:
 
 
 @policy.command("template")
-@click.argument("template_name", type=click.Choice(["conservative", "balanced", "permissive"]))
+@click.argument(
+    "template_name", type=click.Choice(["conservative", "balanced", "permissive"])
+)
 @click.option(
     "--output",
     "-o",
     type=click.File("w"),
     default="-",
-    help="Output file (default: stdout)"
+    help="Output file (default: stdout)",
 )
 def policy_template(template_name: str, output: TextIO) -> None:
     """Generate a policy file from a built-in template.
@@ -822,7 +883,9 @@ def policy_template(template_name: str, output: TextIO) -> None:
 
     try:
         template_path = f"policies/templates/{template_name}.yaml"
-        template_content = pkg_resources.resource_string('cloakpivot', template_path).decode('utf-8')
+        template_content = pkg_resources.resource_string(
+            "cloakpivot", template_path
+        ).decode("utf-8")
         output.write(template_content)
 
         if output != sys.stdout:
@@ -831,17 +894,27 @@ def policy_template(template_name: str, output: TextIO) -> None:
     except FileNotFoundError:
         # Fall back to reading from file system if package resource doesn't work
         from pathlib import Path
-        template_file = Path(__file__).parent.parent / "policies" / "templates" / f"{template_name}.yaml"
+
+        template_file = (
+            Path(__file__).parent.parent
+            / "policies"
+            / "templates"
+            / f"{template_name}.yaml"
+        )
 
         if template_file.exists():
-            with open(template_file, encoding='utf-8') as f:
+            with open(template_file, encoding="utf-8") as f:
                 template_content = f.read()
             output.write(template_content)
 
             if output != sys.stdout:
-                click.echo(f"✅ {template_name.title()} template written to {output.name}")
+                click.echo(
+                    f"✅ {template_name.title()} template written to {output.name}"
+                )
         else:
-            raise click.ClickException(f"Template '{template_name}' not found") from None
+            raise click.ClickException(
+                f"Template '{template_name}' not found"
+            ) from None
     except Exception as e:
         raise click.ClickException(f"Failed to load template: {e}") from e
 
@@ -891,7 +964,9 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
             click.echo("📊 Configured entity strategies:")
             for entity_type, strategy in policy.per_entity.items():
                 threshold = policy.thresholds.get(entity_type, 0.5)
-                click.echo(f"   • {entity_type}: {strategy.kind.value} (threshold: {threshold})")
+                click.echo(
+                    f"   • {entity_type}: {strategy.kind.value} (threshold: {threshold})"
+                )
 
         click.echo("ℹ️  Full masking test requires document input")
         click.echo("   Use: cloakpivot mask <document> --policy <policy> --verbose")
@@ -899,6 +974,7 @@ def policy_test(policy_file: Path, text: Optional[str], verbose: bool) -> None:
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Policy test failed: {e}") from e
 
@@ -937,7 +1013,9 @@ def policy_info(policy_file: Path) -> None:
             click.echo(f"\nPer-Entity Strategies ({len(policy.per_entity)}):")
             for entity_type, strategy in policy.per_entity.items():
                 threshold = policy.thresholds.get(entity_type, "default")
-                click.echo(f"  • {entity_type}: {strategy.kind.value} (threshold: {threshold})")
+                click.echo(
+                    f"  • {entity_type}: {strategy.kind.value} (threshold: {threshold})"
+                )
                 if strategy.parameters:
                     for key, value in strategy.parameters.items():
                         click.echo(f"    {key}: {value}")
@@ -967,6 +1045,335 @@ def policy_info(policy_file: Path) -> None:
 
     except Exception as e:
         raise click.ClickException(f"Failed to read policy info: {e}") from e
+
+
+@cli.group()
+def diagnostics() -> None:
+    """Generate diagnostic reports from masking operations."""
+    pass
+
+
+@diagnostics.command("analyze")
+@click.argument("masked_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output path for diagnostic report",
+)
+@click.option(
+    "--format",
+    "report_format",
+    type=click.Choice(["json", "html", "markdown"]),
+    default="html",
+    help="Report format (default: html)",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.pass_context
+def diagnostics_analyze(
+    ctx: click.Context,
+    masked_file: Path,
+    cloakmap_file: Path,
+    output: Optional[Path],
+    report_format: str,
+    verbose: bool,
+) -> None:
+    """Analyze masking results and generate diagnostic reports.
+
+    Analyzes a masked document and its CloakMap to generate comprehensive
+    diagnostic reports with statistics, coverage analysis, and recommendations.
+
+    Example:
+        cloakpivot diagnostics analyze masked.json map.json -o report.html
+    """
+    try:
+        import json
+
+        from ..core.cloakmap import CloakMap
+        from ..diagnostics import (
+            CoverageAnalyzer,
+            DiagnosticReporter,
+            DiagnosticsCollector,
+            ReportData,
+            ReportFormat,
+        )
+        from ..document.extractor import TextExtractor
+        from ..document.processor import DocumentProcessor
+
+        verbose = verbose or ctx.obj.get("verbose", False)
+
+        if verbose:
+            click.echo("📊 Analyzing masking results")
+            click.echo(f"   Masked file: {masked_file}")
+            click.echo(f"   CloakMap: {cloakmap_file}")
+
+        # Validate file existence and readability
+        if not masked_file.exists():
+            raise click.ClickException(f"Masked file does not exist: {masked_file}")
+        if not cloakmap_file.exists():
+            raise click.ClickException(f"CloakMap file does not exist: {cloakmap_file}")
+
+        # Load CloakMap with comprehensive error handling
+        try:
+            with click.progressbar(length=1, label="Loading CloakMap") as progress:
+                with open(cloakmap_file, encoding="utf-8") as f:
+                    cloakmap_data = json.load(f)
+                
+                # Validate CloakMap structure
+                if not isinstance(cloakmap_data, dict):
+                    raise click.ClickException(f"Invalid CloakMap format: expected JSON object, got {type(cloakmap_data).__name__}")
+                
+                if "anchors" not in cloakmap_data:
+                    raise click.ClickException("Invalid CloakMap: missing 'anchors' field")
+                
+                cloakmap = CloakMap.from_dict(cloakmap_data)
+                progress.update(1)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"Invalid JSON in CloakMap file: {e}") from e
+        except (KeyError, ValueError, TypeError) as e:
+            raise click.ClickException(f"Corrupted CloakMap structure: {e}") from e
+
+        if verbose:
+            click.echo(f"✓ Loaded CloakMap with {len(cloakmap.anchors)} anchors")
+
+        # Load masked document with error handling
+        try:
+            with click.progressbar(length=1, label="Loading masked document") as progress:
+                processor = DocumentProcessor()
+                masked_document = processor.load_document(masked_file, validate=True)
+                progress.update(1)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"Invalid JSON in masked document: {e}") from e
+        except (ValueError, TypeError) as e:
+            raise click.ClickException(f"Invalid document format: {e}") from e
+
+        # Extract text segments for coverage analysis
+        try:
+            text_extractor = TextExtractor()
+            text_segments = text_extractor.extract_text_segments(masked_document)
+        except (AttributeError, KeyError) as e:
+            raise click.ClickException(f"Failed to extract text segments: {e}") from e
+
+        if verbose:
+            click.echo(f"✓ Extracted {len(text_segments)} text segments")
+
+        # Create mock MaskResult for statistics collection
+        from ..core.results import (
+            MaskResult,
+            OperationStatus,
+            PerformanceMetrics,
+            ProcessingStats,
+        )
+
+        mock_result = MaskResult(
+            status=OperationStatus.SUCCESS,
+            masked_document=masked_document,
+            cloakmap=cloakmap,
+            stats=ProcessingStats(
+                total_entities_found=len(cloakmap.anchors),
+                entities_masked=len(cloakmap.anchors),
+                entities_skipped=0,
+                entities_failed=0,
+            ),
+            performance=PerformanceMetrics(),
+        )
+
+        # Collect diagnostics with error handling
+        try:
+            with click.progressbar(
+                length=1, label="Analyzing coverage and statistics"
+            ) as progress:
+                collector = DiagnosticsCollector()
+                coverage_analyzer = CoverageAnalyzer()
+
+                # Generate statistics and coverage
+                statistics = collector.collect_masking_statistics(mock_result)
+                coverage = coverage_analyzer.analyze_document_coverage(
+                    text_segments, cloakmap.anchors
+                )
+                performance = collector.collect_performance_metrics(mock_result)
+                diagnostics_info = collector.collect_processing_diagnostics(mock_result)
+
+                # Generate recommendations
+                recommendations = coverage_analyzer.generate_recommendations(coverage)
+
+                progress.update(1)
+        except (AttributeError, KeyError, ValueError) as e:
+            raise click.ClickException(f"Failed to analyze diagnostics: {e}") from e
+
+        # Create report data
+        report_data = ReportData(
+            statistics=statistics,
+            coverage=coverage,
+            performance=performance,
+            diagnostics=diagnostics_info,
+            document_metadata={
+                "name": masked_file.name,
+                "size_bytes": masked_file.stat().st_size,
+                "cloakmap_file": cloakmap_file.name,
+            },
+            recommendations=recommendations,
+        )
+
+        # Generate report with error handling
+        try:
+            reporter = DiagnosticReporter()
+            format_enum = {
+                "json": ReportFormat.JSON,
+                "html": ReportFormat.HTML,
+                "markdown": ReportFormat.MARKDOWN,
+            }[report_format]
+
+            # Set default output path
+            if not output:
+                output = masked_file.with_suffix(f".diagnostics.{report_format}")
+
+            # Validate output directory
+            output_dir = output.parent
+            if not output_dir.exists():
+                try:
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                except OSError as e:
+                    raise click.ClickException(f"Cannot create output directory {output_dir}: {e}") from e
+
+            with click.progressbar(
+                length=1, label=f"Generating {report_format.upper()} report"
+            ) as progress:
+                reporter.save_report(report_data, output, format_enum)
+                progress.update(1)
+
+            # Show summary
+            summary = reporter.generate_summary(report_data)
+        except PermissionError as e:
+            raise click.ClickException(f"Permission denied writing to {output}: {e}") from e
+        except OSError as e:
+            raise click.ClickException(f"Failed to write report file: {e}") from e
+        except (KeyError, AttributeError, ValueError) as e:
+            raise click.ClickException(f"Failed to generate report: {e}") from e
+
+        click.echo("✅ Diagnostic analysis completed!")
+        click.echo(f"   Report saved: {output}")
+        click.echo(f"   Entities processed: {summary['entities']['detected']}")
+        click.echo(f"   Coverage rate: {summary['coverage']['rate']:.1%}")
+        click.echo(f"   Issues found: {summary['issues']['total_issues']}")
+
+        if verbose and recommendations:
+            click.echo("\n💡 Recommendations:")
+            for rec in recommendations[:3]:  # Show first 3 recommendations
+                click.echo(f"   • {rec}")
+            if len(recommendations) > 3:
+                click.echo(
+                    f"   ... and {len(recommendations) - 3} more (see full report)"
+                )
+
+    except ImportError as e:
+        raise click.ClickException(f"Missing required dependency: {e}") from e
+    except FileNotFoundError as e:
+        raise click.ClickException(f"File not found: {e}") from e
+    except Exception as e:
+        if verbose:
+            import traceback
+
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Diagnostic analysis failed: {e}") from e
+
+
+@diagnostics.command("summary")
+@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.pass_context
+def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) -> None:
+    """Show a quick summary of masking results from a CloakMap.
+
+    Provides a concise overview of masking statistics without generating
+    a full diagnostic report.
+
+    Example:
+        cloakpivot diagnostics summary map.json
+    """
+    try:
+        import json
+
+        from ..core.cloakmap import CloakMap
+
+        verbose = verbose or ctx.obj.get("verbose", False)
+
+        # Validate file existence and readability
+        if not cloakmap_file.exists():
+            raise click.ClickException(f"CloakMap file does not exist: {cloakmap_file}")
+
+        # Load CloakMap with comprehensive error handling
+        try:
+            with open(cloakmap_file, encoding="utf-8") as f:
+                cloakmap_data = json.load(f)
+            
+            # Validate CloakMap structure
+            if not isinstance(cloakmap_data, dict):
+                raise click.ClickException(f"Invalid CloakMap format: expected JSON object, got {type(cloakmap_data).__name__}")
+            
+            if "anchors" not in cloakmap_data:
+                raise click.ClickException("Invalid CloakMap: missing 'anchors' field")
+            
+            cloakmap = CloakMap.from_dict(cloakmap_data)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"Invalid JSON in CloakMap file: {e}") from e
+        except (KeyError, ValueError, TypeError) as e:
+            raise click.ClickException(f"Corrupted CloakMap structure: {e}") from e
+
+        # Display summary
+        click.echo(f"📊 CloakMap Summary: {cloakmap_file.name}")
+        click.echo("=" * 50)
+
+        click.echo(f"Document ID: {cloakmap.doc_id}")
+        click.echo(f"Total Anchors: {cloakmap.anchor_count}")
+        click.echo(f"CloakMap Version: {cloakmap.version}")
+        click.echo(f"Created: {cloakmap.created_at}")
+
+        # Entity breakdown
+        entity_counts = cloakmap.entity_count_by_type
+        if entity_counts:
+            click.echo("\nEntity Breakdown:")
+            for entity_type, count in sorted(entity_counts.items()):
+                click.echo(f"  • {entity_type}: {count}")
+
+        # Strategy breakdown
+        strategy_counts = {}
+        for anchor in cloakmap.anchors:
+            strategy = anchor.strategy_used
+            strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
+
+        if strategy_counts:
+            click.echo("\nStrategy Usage:")
+            for strategy, count in sorted(strategy_counts.items()):
+                click.echo(f"  • {strategy}: {count}")
+
+        if verbose:
+            # Show additional details
+            click.echo("\nAdditional Details:")
+            click.echo(f"  Document Hash: {cloakmap.doc_hash}")
+            if hasattr(cloakmap, "policy_snapshot") and cloakmap.policy_snapshot:
+                click.echo("  Policy Snapshot: Available")
+
+            # Show sample anchors
+            if cloakmap.anchors:
+                click.echo("\nSample Anchors (first 3):")
+                for i, anchor in enumerate(cloakmap.anchors[:3]):
+                    click.echo(
+                        f"  {i + 1}. {anchor.entity_type} at {anchor.node_id}:{anchor.start}-{anchor.end}"
+                    )
+
+    except ImportError as e:
+        raise click.ClickException(f"Missing required dependency: {e}") from e
+    except FileNotFoundError as e:
+        raise click.ClickException(f"File not found: {e}") from e
+    except PermissionError as e:
+        raise click.ClickException(f"Permission denied reading file: {e}") from e
+    except Exception as e:
+        if verbose:
+            import traceback
+            click.echo(f"Error details:\n{traceback.format_exc()}")
+        raise click.ClickException(f"Failed to read CloakMap summary: {e}") from e
 
 
 def main() -> None:

@@ -88,9 +88,7 @@ class StrategyApplicator:
             ValueError: If strategy parameters are invalid
             NotImplementedError: If strategy type is not supported
         """
-        logger.debug(
-            f"Applying {strategy.kind.value} strategy to {entity_type}"
-        )
+        logger.debug(f"Applying {strategy.kind.value} strategy to {entity_type}")
 
         try:
             # Try the primary strategy
@@ -118,9 +116,7 @@ class StrategyApplicator:
         if strategy.kind == StrategyKind.REDACT:
             return self._apply_redact_strategy(original_text, strategy)
         elif strategy.kind == StrategyKind.TEMPLATE:
-            return self._apply_template_strategy(
-                original_text, entity_type, strategy
-            )
+            return self._apply_template_strategy(original_text, entity_type, strategy)
         elif strategy.kind == StrategyKind.HASH:
             # Pass entity_type to hash strategy for per-entity salting
             hash_strategy = strategy.with_parameters(entity_type=entity_type)
@@ -128,17 +124,13 @@ class StrategyApplicator:
         elif strategy.kind == StrategyKind.PARTIAL:
             return self._apply_partial_strategy(original_text, strategy)
         elif strategy.kind == StrategyKind.SURROGATE:
-            return self._apply_surrogate_strategy(
-                original_text, entity_type, strategy
-            )
+            return self._apply_surrogate_strategy(original_text, entity_type, strategy)
         elif strategy.kind == StrategyKind.CUSTOM:
             return self._apply_custom_strategy(
                 original_text, entity_type, confidence, strategy
             )
         else:
-            raise NotImplementedError(
-                f"Strategy {strategy.kind.value} not implemented"
-            )
+            raise NotImplementedError(f"Strategy {strategy.kind.value} not implemented")
 
     def _apply_fallback_strategy(
         self,
@@ -152,8 +144,12 @@ class StrategyApplicator:
         # Define fallback chain
         fallback_strategies = [
             Strategy(StrategyKind.TEMPLATE, {"template": f"[{entity_type}]"}),
-            Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": True}),
-            Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False})
+            Strategy(
+                StrategyKind.REDACT, {"redact_char": "*", "preserve_length": True}
+            ),
+            Strategy(
+                StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False}
+            ),
         ]
 
         for fallback_strategy in fallback_strategies:
@@ -199,7 +195,9 @@ class StrategyApplicator:
             raise ValueError("At least one strategy must be provided")
 
         if len(strategies) == 1:
-            return self.apply_strategy(original_text, entity_type, strategies[0], confidence)
+            return self.apply_strategy(
+                original_text, entity_type, strategies[0], confidence
+            )
 
         # For now, implement sequential composition
         # Could be extended to support parallel composition with voting
@@ -209,16 +207,14 @@ class StrategyApplicator:
                 result = self.apply_strategy(result, entity_type, strategy, confidence)
             except Exception as e:
                 logger.warning(
-                    f"Strategy {i+1}/{len(strategies)} ({strategy.kind.value}) failed: {e}"
+                    f"Strategy {i + 1}/{len(strategies)} ({strategy.kind.value}) failed: {e}"
                 )
                 # Continue with current result
                 continue
 
         return result
 
-    def _apply_redact_strategy(
-        self, original_text: str, strategy: Strategy
-    ) -> str:
+    def _apply_redact_strategy(self, original_text: str, strategy: Strategy) -> str:
         """Apply redaction strategy - replace with redaction characters."""
         redact_char = str(strategy.get_parameter("redact_char", "*"))
         preserve_length = bool(strategy.get_parameter("preserve_length", True))
@@ -239,7 +235,9 @@ class StrategyApplicator:
         auto_generate = bool(strategy.get_parameter("auto_generate", False))
 
         if not template and not auto_generate:
-            raise ValueError("Template strategy requires 'template' parameter or auto_generate=True")
+            raise ValueError(
+                "Template strategy requires 'template' parameter or auto_generate=True"
+            )
 
         # Auto-generate template based on format if requested
         if auto_generate or (preserve_format and template):
@@ -248,7 +246,9 @@ class StrategyApplicator:
                 template = format_template
             elif preserve_format:
                 # Merge user template with format preservation
-                template = self._merge_template_with_format(template, format_template, original_text)
+                template = self._merge_template_with_format(
+                    template, format_template, original_text
+                )
 
         # Support placeholder substitution
         placeholders = {
@@ -288,20 +288,34 @@ class StrategyApplicator:
         # Common phone patterns
         if len(original_text) == 10 and original_text.isdigit():
             return "XXX-XXX-XXXX"
-        elif len(original_text) == 12 and original_text[3] == '-' and original_text[7] == '-':
+        elif (
+            len(original_text) == 12
+            and original_text[3] == "-"
+            and original_text[7] == "-"
+        ):
             return "XXX-XXX-XXXX"
-        elif len(original_text) == 14 and original_text.startswith('(') and ')' in original_text:
+        elif (
+            len(original_text) == 14
+            and original_text.startswith("(")
+            and ")" in original_text
+        ):
             return "(XXX) XXX-XXXX"
-        elif '+' in original_text:
+        elif "+" in original_text:
             # International format
             return "+X " + "X" * (len(original_text) - 3)
         else:
             # Generic phone template
-            return "X" * len([c for c in original_text if c.isdigit()]) + "".join(c for c in original_text if not c.isdigit())
+            return "X" * len([c for c in original_text if c.isdigit()]) + "".join(
+                c for c in original_text if not c.isdigit()
+            )
 
     def _generate_ssn_template(self, original_text: str) -> str:
         """Generate format-preserving template for SSN."""
-        if len(original_text) == 11 and original_text[3] == '-' and original_text[6] == '-':
+        if (
+            len(original_text) == 11
+            and original_text[3] == "-"
+            and original_text[6] == "-"
+        ):
             return "XXX-XX-XXXX"
         elif len(original_text) == 9 and original_text.isdigit():
             return "XXXXXXXXX"
@@ -319,9 +333,9 @@ class StrategyApplicator:
         """Generate format-preserving template for credit cards."""
         if len(original_text) == 16 and original_text.isdigit():
             return "XXXX-XXXX-XXXX-XXXX"
-        elif len(original_text) == 19 and original_text.count('-') == 3:
+        elif len(original_text) == 19 and original_text.count("-") == 3:
             return "XXXX-XXXX-XXXX-XXXX"
-        elif len(original_text) == 19 and original_text.count(' ') == 3:
+        elif len(original_text) == 19 and original_text.count(" ") == 3:
             return "XXXX XXXX XXXX XXXX"
         else:
             # Preserve structure but mask digits
@@ -335,17 +349,17 @@ class StrategyApplicator:
 
     def _generate_email_template(self, original_text: str) -> str:
         """Generate format-preserving template for email addresses."""
-        if '@' not in original_text:
+        if "@" not in original_text:
             return "[EMAIL]"
 
-        username, domain = original_text.split('@', 1)
+        username, domain = original_text.split("@", 1)
 
         # Preserve username length and domain structure
         username_template = "x" * len(username)
 
         # Preserve domain structure
-        if '.' in domain:
-            domain_parts = domain.split('.')
+        if "." in domain:
+            domain_parts = domain.split(".")
             domain_template = ".".join("x" * len(part) for part in domain_parts)
         else:
             domain_template = "x" * len(domain)
@@ -378,7 +392,9 @@ class StrategyApplicator:
                 pattern += "P"  # Punctuation/Special
         return pattern
 
-    def _merge_template_with_format(self, user_template: str, format_template: str, original_text: str) -> str:
+    def _merge_template_with_format(
+        self, user_template: str, format_template: str, original_text: str
+    ) -> str:
         """Merge user-provided template with format preservation."""
         # If user template contains format placeholders, replace them
         if "{format}" in user_template:
@@ -392,9 +408,7 @@ class StrategyApplicator:
         # Otherwise return user template as-is
         return user_template
 
-    def _apply_hash_strategy(
-        self, original_text: str, strategy: Strategy
-    ) -> str:
+    def _apply_hash_strategy(self, original_text: str, strategy: Strategy) -> str:
         """Apply hash strategy - replace with deterministic hashed values."""
         algorithm = str(strategy.get_parameter("algorithm", "sha256"))
         salt = str(strategy.get_parameter("salt", ""))
@@ -404,14 +418,16 @@ class StrategyApplicator:
         prefix = str(strategy.get_parameter("prefix", ""))
         format_output = str(strategy.get_parameter("format_output", "hex"))
         consistent_length = bool(strategy.get_parameter("consistent_length", True))
-        preserve_format_structure = bool(strategy.get_parameter("preserve_format_structure", False))
+        preserve_format_structure = bool(
+            strategy.get_parameter("preserve_format_structure", False)
+        )
 
         # Build deterministic salt
         effective_salt = self._build_deterministic_salt(
             base_salt=salt,
             per_entity_salt=per_entity_salt,
             entity_type=entity_type,
-            original_text=original_text
+            original_text=original_text,
         )
 
         # Combine text with salt for hashing
@@ -426,10 +442,12 @@ class StrategyApplicator:
             hash_result = hash_obj.hexdigest()
         elif format_output == "base64":
             import base64
-            hash_result = base64.b64encode(hash_obj.digest()).decode('ascii')
+
+            hash_result = base64.b64encode(hash_obj.digest()).decode("ascii")
         elif format_output == "base32":
             import base64
-            hash_result = base64.b32encode(hash_obj.digest()).decode('ascii')
+
+            hash_result = base64.b32encode(hash_obj.digest()).decode("ascii")
         else:
             hash_result = hash_obj.hexdigest()
 
@@ -450,14 +468,20 @@ class StrategyApplicator:
         return str(prefix) + str(hash_result)
 
     def _build_deterministic_salt(
-        self, base_salt: str, per_entity_salt: dict, entity_type: str, original_text: str
+        self,
+        base_salt: str,
+        per_entity_salt: dict,
+        entity_type: str,
+        original_text: str,
     ) -> str:
         """Build a deterministic salt combining base, per-entity, and content-based salts."""
         salt_components = [base_salt or ""]
 
         # Add per-entity-type salt for security isolation
         if per_entity_salt and isinstance(per_entity_salt, dict):
-            entity_salt = per_entity_salt.get(entity_type, per_entity_salt.get("default", ""))
+            entity_salt = per_entity_salt.get(
+                entity_type, per_entity_salt.get("default", "")
+            )
             salt_components.append(str(entity_salt))
 
         # Add content-length-based component for additional entropy
@@ -493,16 +517,18 @@ class StrategyApplicator:
         # Use original text characteristics to determine truncation offset
         # This ensures similar inputs get similar hash patterns
         offset = hash(original_text + algorithm) % max(1, len(hash_result) - truncate)
-        return hash_result[offset:offset + truncate]
+        return hash_result[offset : offset + truncate]
 
-    def _preserve_format_in_hash(self, original_text: str, hash_result: str, prefix: str) -> str:
+    def _preserve_format_in_hash(
+        self, original_text: str, hash_result: str, prefix: str
+    ) -> str:
         """Preserve format structure in hash output."""
         # Detect structural elements in original text
         delimiters = []
         delimiter_positions = []
 
         for i, char in enumerate(original_text):
-            if char in ['-', '_', '.', '@', ' ', '(', ')', '+']:
+            if char in ["-", "_", ".", "@", " ", "(", ")", "+"]:
                 delimiters.append(char)
                 delimiter_positions.append(i)
 
@@ -516,7 +542,9 @@ class StrategyApplicator:
         hash_len = len(hash_result)
         orig_len = len(original_text)
 
-        for _i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions)):
+        for _i, (delimiter, orig_pos) in enumerate(
+            zip(delimiters, delimiter_positions)
+        ):
             # Calculate proportional position in hash
             if orig_len > 0:
                 hash_pos = int((orig_pos / orig_len) * hash_len)
@@ -526,11 +554,9 @@ class StrategyApplicator:
                 if hash_pos < len(result) and result[hash_pos].isalnum():
                     result[hash_pos] = delimiter
 
-        return ''.join(result)
+        return "".join(result)
 
-    def _apply_partial_strategy(
-        self, original_text: str, strategy: Strategy
-    ) -> str:
+    def _apply_partial_strategy(self, original_text: str, strategy: Strategy) -> str:
         """Apply partial strategy - show some chars, mask others with format awareness."""
         visible_chars = int(strategy.get_parameter("visible_chars", 4))
         position = str(strategy.get_parameter("position", "end"))
@@ -547,8 +573,12 @@ class StrategyApplicator:
         # Apply format-aware partial masking if enabled
         if format_aware:
             return self._apply_format_aware_partial_masking(
-                original_text, visible_chars, position, mask_char,
-                preserve_delimiters, deterministic
+                original_text,
+                visible_chars,
+                position,
+                mask_char,
+                preserve_delimiters,
+                deterministic,
             )
 
         # Original basic partial masking logic
@@ -593,17 +623,20 @@ class StrategyApplicator:
 
             return start_part + masked_part + end_part
         else:
-            raise ValueError(
-                f"Invalid position for partial strategy: {position}"
-            )
+            raise ValueError(f"Invalid position for partial strategy: {position}")
 
     def _apply_format_aware_partial_masking(
-        self, original_text: str, visible_chars: int, position: str,
-        mask_char: str, preserve_delimiters: bool, deterministic: bool
+        self,
+        original_text: str,
+        visible_chars: int,
+        position: str,
+        mask_char: str,
+        preserve_delimiters: bool,
+        deterministic: bool,
     ) -> str:
         """Apply format-aware partial masking that preserves delimiters and structure."""
         # Detect common delimiters and structural elements
-        delimiters = {'-', '_', '.', '@', ' ', '(', ')', '+'}
+        delimiters = {"-", "_", ".", "@", " ", "(", ")", "+"}
 
         # Find delimiter positions
         delimiter_positions = []
@@ -638,11 +671,15 @@ class StrategyApplicator:
             if i not in visible_indices:
                 result[pos] = mask_char
 
-        return ''.join(result)
+        return "".join(result)
 
     def _select_visible_characters(
-        self, total_chars: int, visible_chars: int, position: str,
-        deterministic: bool, original_text: str
+        self,
+        total_chars: int,
+        visible_chars: int,
+        position: str,
+        deterministic: bool,
+        original_text: str,
     ) -> set:
         """Select which character indices should remain visible."""
         if visible_chars >= total_chars:
@@ -678,7 +715,11 @@ class StrategyApplicator:
             raise ValueError(f"Invalid position for partial strategy: {position}")
 
     def _select_alternating_characters(
-        self, total_chars: int, visible_chars: int, deterministic: bool, original_text: str
+        self,
+        total_chars: int,
+        visible_chars: int,
+        deterministic: bool,
+        original_text: str,
     ) -> set:
         """Select alternating characters for visibility."""
         if not deterministic:
@@ -698,7 +739,11 @@ class StrategyApplicator:
         return visible_indices
 
     def _select_random_characters(
-        self, total_chars: int, visible_chars: int, deterministic: bool, original_text: str
+        self,
+        total_chars: int,
+        visible_chars: int,
+        deterministic: bool,
+        original_text: str,
     ) -> set:
         """Select random characters for visibility."""
         if deterministic:
@@ -724,20 +769,24 @@ class StrategyApplicator:
 
         # Use the enhanced surrogate generator for format-preserving generation
         try:
-            return self._surrogate_generator.generate_surrogate(original_text, entity_type)
+            return self._surrogate_generator.generate_surrogate(
+                original_text, entity_type
+            )
         except Exception as e:
-            logger.warning(f"Enhanced surrogate generation failed for {entity_type}: {e}")
+            logger.warning(
+                f"Enhanced surrogate generation failed for {entity_type}: {e}"
+            )
 
             # Fallback to legacy generation methods for backward compatibility
-            return self._apply_legacy_surrogate_strategy(original_text, entity_type, strategy)
+            return self._apply_legacy_surrogate_strategy(
+                original_text, entity_type, strategy
+            )
 
     def _apply_legacy_surrogate_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
     ) -> str:
         """Legacy surrogate strategy implementation for backward compatibility."""
-        format_type = strategy.get_parameter(
-            "format_type", entity_type.lower()
-        )
+        format_type = strategy.get_parameter("format_type", entity_type.lower())
         seed = strategy.get_parameter("seed", self.seed)
 
         # Use seed for deterministic generation
@@ -760,9 +809,7 @@ class StrategyApplicator:
 
         # Fallback: generate alphanumeric string of same length
         chars = string.ascii_letters + string.digits
-        return "".join(
-            local_random.choice(chars) for _ in range(len(original_text))
-        )
+        return "".join(local_random.choice(chars) for _ in range(len(original_text)))
 
     def _apply_custom_strategy(
         self,
@@ -774,9 +821,7 @@ class StrategyApplicator:
         """Apply custom strategy - use callback function."""
         callback = strategy.get_parameter("callback")
         if not callback or not callable(callback):
-            raise ValueError(
-                "Custom strategy requires a callable 'callback' parameter"
-            )
+            raise ValueError("Custom strategy requires a callable 'callback' parameter")
 
         try:
             result = callback(

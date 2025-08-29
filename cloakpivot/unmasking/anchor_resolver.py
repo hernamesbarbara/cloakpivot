@@ -120,7 +120,8 @@ class AnchorResolver:
                         FailedAnchor(
                             anchor=anchor,
                             failure_reason="Could not locate replacement token",
-                            node_found=self._find_node_by_id(document, anchor.node_id) is not None,
+                            node_found=self._find_node_by_id(document, anchor.node_id)
+                            is not None,
                             attempted_positions=[],
                         )
                     )
@@ -137,9 +138,7 @@ class AnchorResolver:
                     )
                 )
 
-        success_rate = (
-            len(resolved_anchors) / len(anchors) * 100 if anchors else 100
-        )
+        success_rate = len(resolved_anchors) / len(anchors) * 100 if anchors else 100
 
         logger.info(
             f"Anchor resolution completed: {len(resolved_anchors)} resolved, "
@@ -199,7 +198,10 @@ class AnchorResolver:
 
         # Try content-based search as last resort
         content_match = self._try_content_based_search(anchor, node_text)
-        if content_match and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD:
+        if (
+            content_match
+            and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD
+        ):
             return ResolvedAnchor(
                 anchor=anchor,
                 node_item=node_item,
@@ -290,7 +292,8 @@ class AnchorResolver:
                 best_match = {
                     "position": (start_pos, end_pos),
                     "text": masked_value,
-                    "confidence": confidence * 0.8,  # Reduce confidence for content search
+                    "confidence": confidence
+                    * 0.8,  # Reduce confidence for content search
                     "delta": distance,
                 }
                 best_distance = distance
@@ -337,9 +340,7 @@ class AnchorResolver:
 
         return f"#{node_type.lower()}_{id(node_item)}"
 
-    def _extract_node_text(
-        self, node_item: NodeItem, node_id: str
-    ) -> Optional[str]:
+    def _extract_node_text(self, node_item: NodeItem, node_id: str) -> Optional[str]:
         """Extract text content from a node item."""
         # Handle text-bearing nodes
         if isinstance(
@@ -365,9 +366,7 @@ class AnchorResolver:
 
         return None
 
-    def _extract_table_text(
-        self, table_item: TableItem, node_id: str
-    ) -> Optional[str]:
+    def _extract_table_text(self, table_item: TableItem, node_id: str) -> Optional[str]:
         """Extract text from a table node or specific cell."""
         if not hasattr(table_item, "data") or not table_item.data:
             return None
@@ -383,9 +382,8 @@ class AnchorResolver:
             cell_suffix = node_id[len(base_node_id + "/cell_") :]
             try:
                 row_idx, col_idx = map(int, cell_suffix.split("_"))
-                if (
-                    row_idx < len(table_data.table_cells)
-                    and col_idx < len(table_data.table_cells[row_idx])
+                if row_idx < len(table_data.table_cells) and col_idx < len(
+                    table_data.table_cells[row_idx]
                 ):
                     cell = table_data.table_cells[row_idx][col_idx]
                     return getattr(cell, "text", None)
@@ -416,7 +414,11 @@ class AnchorResolver:
 
         # Check for value-specific node ID
         elif node_id == f"{base_node_id}/value":
-            if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
+            if (
+                hasattr(kv_item, "value")
+                and kv_item.value
+                and hasattr(kv_item.value, "text")
+            ):
                 return kv_item.value.text
 
         # Return concatenated key-value text if node_id matches the item
@@ -424,7 +426,11 @@ class AnchorResolver:
             texts = []
             if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
                 texts.append(kv_item.key.text)
-            if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
+            if (
+                hasattr(kv_item, "value")
+                and kv_item.value
+                and hasattr(kv_item.value, "text")
+            ):
                 texts.append(kv_item.value.text)
             return " ".join(texts) if texts else None
 

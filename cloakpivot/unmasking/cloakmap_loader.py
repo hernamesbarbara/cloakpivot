@@ -246,7 +246,7 @@ class CloakMapLoader:
 
         try:
             # Test if file is readable by attempting to open it
-            with open(path, encoding='utf-8'):
+            with open(path, encoding="utf-8"):
                 pass
         except PermissionError as e:
             raise CloakMapLoadError(f"Cannot read CloakMap file: {path}") from e
@@ -277,14 +277,10 @@ class CloakMapLoader:
 
         # Validate required top-level fields
         required_fields = ["version", "doc_id", "doc_hash", "anchors"]
-        missing_fields = [
-            field for field in required_fields if field not in data
-        ]
+        missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
-            raise CloakMapLoadError(
-                f"Missing required fields: {missing_fields}"
-            )
+            raise CloakMapLoadError(f"Missing required fields: {missing_fields}")
 
         return data
 

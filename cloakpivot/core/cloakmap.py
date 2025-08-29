@@ -84,7 +84,7 @@ class CloakMap:
 
         # Set default timestamp if not provided
         if self.created_at is None:
-            object.__setattr__(self, 'created_at', datetime.utcnow())
+            object.__setattr__(self, "created_at", datetime.utcnow())
 
     def _validate_version(self) -> None:
         """Validate version string format."""
@@ -92,7 +92,7 @@ class CloakMap:
             raise ValueError("Version cannot be empty")
 
         # Basic semantic version validation (major.minor format)
-        parts = self.version.split('.')
+        parts = self.version.split(".")
         if len(parts) < 2:
             raise ValueError("version must follow 'major.minor' format at minimum")
 
@@ -100,7 +100,9 @@ class CloakMap:
             for part in parts[:2]:  # At least major.minor must be numeric
                 int(part)
         except ValueError as e:
-            raise ValueError("version major and minor components must be numeric") from e
+            raise ValueError(
+                "version major and minor components must be numeric"
+            ) from e
 
     def _validate_doc_fields(self) -> None:
         """Validate document identification fields."""
@@ -168,7 +170,9 @@ class CloakMap:
         """Get an indexed view of the anchors for efficient lookups."""
         return AnchorIndex(self.anchors)
 
-    def get_anchor_by_replacement_id(self, replacement_id: str) -> Optional[AnchorEntry]:
+    def get_anchor_by_replacement_id(
+        self, replacement_id: str
+    ) -> Optional[AnchorEntry]:
         """Get a specific anchor by its replacement ID."""
         for anchor in self.anchors:
             if anchor.replacement_id == replacement_id:
@@ -198,16 +202,19 @@ class CloakMap:
             return False
 
         if isinstance(document_content, str):
-            content_bytes = document_content.encode('utf-8')
+            content_bytes = document_content.encode("utf-8")
         else:
             content_bytes = document_content
 
         computed_hash = hashlib.sha256(content_bytes).hexdigest()
         return computed_hash == self.doc_hash
 
-    def verify_signature(self, key_manager: Optional[KeyManager] = None,
-                        secret_key: Optional[str] = None,
-                        config: Optional[SecurityConfig] = None) -> bool:
+    def verify_signature(
+        self,
+        key_manager: Optional[KeyManager] = None,
+        secret_key: Optional[str] = None,
+        config: Optional[SecurityConfig] = None,
+    ) -> bool:
         """
         Verify the HMAC signature of the CloakMap.
 
@@ -226,7 +233,7 @@ class CloakMap:
             config = SecurityConfig()
 
         # Get signing key using the key_id from crypto metadata
-        key_id = self.crypto.get('key_id', 'default') if self.crypto else 'default'
+        key_id = self.crypto.get("key_id", "default") if self.crypto else "default"
         signing_key = self._get_signing_key(key_manager, secret_key, key_id)
         if not signing_key:
             return False
@@ -242,25 +249,35 @@ class CloakMap:
             crypto=None,  # Must be None to match signing content
             signature=None,
             created_at=self.created_at,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         # Compute expected signature
-        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode('utf-8')
+        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
 
         # Use enhanced crypto utilities
-        algorithm = self.crypto.get('signature_algorithm', config.hmac_algorithm) if self.crypto else config.hmac_algorithm
+        algorithm = (
+            self.crypto.get("signature_algorithm", config.hmac_algorithm)
+            if self.crypto
+            else config.hmac_algorithm
+        )
         CryptoUtils.compute_hmac(content, signing_key, algorithm)
 
         return CryptoUtils.verify_hmac(
-            content, signing_key, self.signature, algorithm,
-            config.constant_time_verification
+            content,
+            signing_key,
+            self.signature,
+            algorithm,
+            config.constant_time_verification,
         )
 
-    def with_signature(self, key_manager: Optional[KeyManager] = None,
-                      secret_key: Optional[str] = None,
-                      key_id: str = "default",
-                      config: Optional[SecurityConfig] = None) -> "CloakMap":
+    def with_signature(
+        self,
+        key_manager: Optional[KeyManager] = None,
+        secret_key: Optional[str] = None,
+        key_id: str = "default",
+        config: Optional[SecurityConfig] = None,
+    ) -> "CloakMap":
         """
         Create a new CloakMap with an HMAC signature.
 
@@ -291,20 +308,24 @@ class CloakMap:
             crypto=self.crypto,
             signature=None,
             created_at=self.created_at,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         # Generate signature with enhanced crypto
-        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode('utf-8')
-        signature = CryptoUtils.compute_hmac(content, signing_key, config.hmac_algorithm)
+        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
+        signature = CryptoUtils.compute_hmac(
+            content, signing_key, config.hmac_algorithm
+        )
 
         # Update crypto metadata with signing information
         crypto_data = self.crypto.copy() if self.crypto else {}
-        crypto_data.update({
-            'signature_algorithm': config.hmac_algorithm,
-            'key_id': key_id,
-            'signed_at': datetime.utcnow().isoformat()
-        })
+        crypto_data.update(
+            {
+                "signature_algorithm": config.hmac_algorithm,
+                "key_id": key_id,
+                "signed_at": datetime.utcnow().isoformat(),
+            }
+        )
 
         return CloakMap(
             version=self.version,
@@ -315,13 +336,16 @@ class CloakMap:
             crypto=crypto_data,
             signature=signature,
             created_at=self.created_at,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
-    def sign(self, key_manager: Optional[KeyManager] = None,
-            secret_key: Optional[str] = None,
-            key_id: str = "default",
-            config: Optional[SecurityConfig] = None) -> "CloakMap":
+    def sign(
+        self,
+        key_manager: Optional[KeyManager] = None,
+        secret_key: Optional[str] = None,
+        key_id: str = "default",
+        config: Optional[SecurityConfig] = None,
+    ) -> "CloakMap":
         """
         Sign the CloakMap with a secret key (alias for with_signature).
 
@@ -336,9 +360,12 @@ class CloakMap:
         """
         return self.with_signature(key_manager, secret_key, key_id, config)
 
-    def _get_signing_key(self, key_manager: Optional[KeyManager],
-                        secret_key: Optional[str],
-                        key_id: str = "default") -> Optional[bytes]:
+    def _get_signing_key(
+        self,
+        key_manager: Optional[KeyManager],
+        secret_key: Optional[str],
+        key_id: str = "default",
+    ) -> Optional[bytes]:
         """
         Get signing key from manager or direct string.
 
@@ -357,7 +384,7 @@ class CloakMap:
                 pass
 
         if secret_key:
-            return secret_key.encode('utf-8')
+            return secret_key.encode("utf-8")
 
         # Try default key manager as fallback
         try:
@@ -368,8 +395,12 @@ class CloakMap:
 
         return None
 
-    def with_encryption_metadata(self, algorithm: str, key_id: str,
-                               additional_params: Optional[dict[str, Any]] = None) -> "CloakMap":
+    def with_encryption_metadata(
+        self,
+        algorithm: str,
+        key_id: str,
+        additional_params: Optional[dict[str, Any]] = None,
+    ) -> "CloakMap":
         """
         Create a new CloakMap with encryption metadata.
 
@@ -384,7 +415,7 @@ class CloakMap:
         crypto_data = {
             "algorithm": algorithm,
             "key_id": key_id,
-            **(additional_params or {})
+            **(additional_params or {}),
         }
 
         return CloakMap(
@@ -396,12 +427,16 @@ class CloakMap:
             crypto=crypto_data,
             signature=self.signature,
             created_at=self.created_at,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
-    def encrypt(self, key_manager: Optional[KeyManager] = None,
-                key_id: str = "default", key_version: Optional[str] = None,
-                config: Optional[SecurityConfig] = None) -> "EncryptedCloakMap":
+    def encrypt(
+        self,
+        key_manager: Optional[KeyManager] = None,
+        key_id: str = "default",
+        key_version: Optional[str] = None,
+        config: Optional[SecurityConfig] = None,
+    ) -> "EncryptedCloakMap":
         """
         Encrypt this CloakMap using AES-GCM encryption.
 
@@ -429,11 +464,15 @@ class CloakMap:
         encryption = CloakMapEncryption(key_manager, config)
         return encryption.encrypt_cloakmap(self, key_id, key_version)
 
-    def save_encrypted(self, file_path: Union[str, Path],
-                      key_manager: Optional[KeyManager] = None,
-                      key_id: str = "default", key_version: Optional[str] = None,
-                      config: Optional[SecurityConfig] = None,
-                      indent: int = 2) -> None:
+    def save_encrypted(
+        self,
+        file_path: Union[str, Path],
+        key_manager: Optional[KeyManager] = None,
+        key_id: str = "default",
+        key_version: Optional[str] = None,
+        config: Optional[SecurityConfig] = None,
+        indent: int = 2,
+    ) -> None:
         """
         Encrypt and save CloakMap to JSON file.
 
@@ -455,15 +494,20 @@ class CloakMap:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write(encrypted_map.to_json(indent=indent))
         except Exception as e:
-            raise ValueError(f"Failed to save encrypted CloakMap to {file_path}: {e}") from e
+            raise ValueError(
+                f"Failed to save encrypted CloakMap to {file_path}: {e}"
+            ) from e
 
     @classmethod
-    def load_encrypted(cls, file_path: Union[str, Path],
-                      key_manager: Optional[KeyManager] = None,
-                      config: Optional[SecurityConfig] = None) -> "CloakMap":
+    def load_encrypted(
+        cls,
+        file_path: Union[str, Path],
+        key_manager: Optional[KeyManager] = None,
+        config: Optional[SecurityConfig] = None,
+    ) -> "CloakMap":
         """
         Load and decrypt an EncryptedCloakMap from JSON file.
 
@@ -480,7 +524,11 @@ class CloakMap:
             KeyError: If decryption key is not found
             ValueError: If decryption fails
         """
-        from .security import CloakMapEncryption, EncryptedCloakMap, create_default_key_manager
+        from .security import (
+            CloakMapEncryption,
+            EncryptedCloakMap,
+            create_default_key_manager,
+        )
 
         path = Path(file_path)
         if not path.exists():
@@ -493,19 +541,24 @@ class CloakMap:
             config = SecurityConfig()
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 encrypted_map = EncryptedCloakMap.from_json(f.read())
 
             encryption = CloakMapEncryption(key_manager, config)
             return encryption.decrypt_cloakmap(encrypted_map)
 
         except Exception as e:
-            raise ValueError(f"Failed to load encrypted CloakMap from {file_path}: {e}") from e
+            raise ValueError(
+                f"Failed to load encrypted CloakMap from {file_path}: {e}"
+            ) from e
 
     @classmethod
-    def load_from_file(cls, file_path: Union[str, Path],
-                      key_manager: Optional[KeyManager] = None,
-                      config: Optional[SecurityConfig] = None) -> "CloakMap":
+    def load_from_file(
+        cls,
+        file_path: Union[str, Path],
+        key_manager: Optional[KeyManager] = None,
+        config: Optional[SecurityConfig] = None,
+    ) -> "CloakMap":
         """
         Load CloakMap from JSON file, auto-detecting encrypted vs unencrypted format.
 
@@ -526,7 +579,7 @@ class CloakMap:
             raise FileNotFoundError(f"CloakMap file not found: {file_path}")
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 content = f.read()
                 data = json.loads(content)
 
@@ -544,7 +597,9 @@ class CloakMap:
     def get_stats(self) -> dict[str, Any]:
         """Get comprehensive statistics about the CloakMap."""
         total_confidence = sum(a.confidence for a in self.anchors)
-        avg_confidence = round(total_confidence / len(self.anchors), 10) if self.anchors else 0.0
+        avg_confidence = (
+            round(total_confidence / len(self.anchors), 10) if self.anchors else 0.0
+        )
 
         strategy_counts: dict[str, int] = {}
         for anchor in self.anchors:
@@ -569,13 +624,15 @@ class CloakMap:
             "text_stats": {
                 "total_original_chars": total_original_length,
                 "total_masked_chars": total_masked_length,
-                "length_delta": total_masked_length - total_original_length
+                "length_delta": total_masked_length - total_original_length,
             },
             "security": {
                 "is_encrypted": self.is_encrypted,
                 "is_signed": self.is_signed,
-                "encryption_algorithm": self.crypto.get("algorithm") if self.crypto else None
-            }
+                "encryption_algorithm": self.crypto.get("algorithm")
+                if self.crypto
+                else None,
+            },
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -589,7 +646,7 @@ class CloakMap:
             "crypto": self.crypto,
             "signature": self.signature,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def to_json(self, indent: Optional[int] = None) -> str:
@@ -618,7 +675,7 @@ class CloakMap:
             crypto=data.get("crypto"),
             signature=data.get("signature"),
             created_at=created_at,
-            metadata=data.get("metadata", {})
+            metadata=data.get("metadata", {}),
         )
 
     @classmethod
@@ -630,15 +687,13 @@ class CloakMap:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {e}") from e
 
-
-
     def save_to_file(self, file_path: Union[str, Path], indent: int = 2) -> None:
         """Save CloakMap to JSON file."""
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write(self.to_json(indent=indent))
         except Exception as e:
             raise ValueError(f"Failed to save CloakMap to {file_path}: {e}") from e
@@ -650,7 +705,7 @@ class CloakMap:
         doc_hash: str,
         anchors: list[AnchorEntry],
         policy: Optional[Any] = None,
-        metadata: Optional[dict[str, Any]] = None
+        metadata: Optional[dict[str, Any]] = None,
     ) -> "CloakMap":
         """
         Create a new CloakMap with the provided data.
@@ -667,7 +722,7 @@ class CloakMap:
         """
         # Serialize policy if provided
         policy_snapshot = {}
-        if policy is not None and hasattr(policy, 'to_dict'):
+        if policy is not None and hasattr(policy, "to_dict"):
             policy_snapshot = policy.to_dict()
 
         return cls(
@@ -675,13 +730,16 @@ class CloakMap:
             doc_hash=doc_hash,
             anchors=anchors,
             policy_snapshot=policy_snapshot,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
 
 # Utility functions for CloakMap operations
 
-def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = None) -> CloakMap:
+
+def merge_cloakmaps(
+    cloakmaps: list[CloakMap], target_doc_id: Optional[str] = None
+) -> CloakMap:
     """
     Merge multiple CloakMaps into a single consolidated map.
 
@@ -713,7 +771,9 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
         # Check that all have the same doc_id
         for cm in cloakmaps[1:]:
             if cm.doc_id != target_doc_id:
-                raise ValueError("Cannot merge CloakMaps from different documents without explicit target_doc_id")
+                raise ValueError(
+                    "Cannot merge CloakMaps from different documents without explicit target_doc_id"
+                )
 
     # Collect all anchors and check for conflicts
     all_anchors = []
@@ -729,7 +789,7 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
 
     # Check for anchor overlaps within the same node
     for i, anchor1 in enumerate(all_anchors):
-        for anchor2 in all_anchors[i+1:]:
+        for anchor2 in all_anchors[i + 1 :]:
             if anchor1.overlaps_with(anchor2):
                 raise ValueError("Anchor overlap detected")
 
@@ -750,7 +810,9 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
     latest_created_at = None
 
     for cm in cloakmaps:
-        if cm.created_at and (latest_created_at is None or cm.created_at > latest_created_at):
+        if cm.created_at and (
+            latest_created_at is None or cm.created_at > latest_created_at
+        ):
             latest_created_at = cm.created_at
             policy_snapshot = cm.policy_snapshot
 
@@ -760,14 +822,16 @@ def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: Optional[str] = No
         doc_hash=doc_hash,
         anchors=all_anchors,
         policy_snapshot=policy_snapshot,
-        metadata=merged_metadata
+        metadata=merged_metadata,
     )
 
 
-def validate_cloakmap_integrity(cloakmap: CloakMap,
-                               key_manager: Optional[KeyManager] = None,
-                               secret_key: Optional[str] = None,
-                               config: Optional[SecurityConfig] = None) -> dict[str, Any]:
+def validate_cloakmap_integrity(
+    cloakmap: CloakMap,
+    key_manager: Optional[KeyManager] = None,
+    secret_key: Optional[str] = None,
+    config: Optional[SecurityConfig] = None,
+) -> dict[str, Any]:
     """
     Perform comprehensive integrity validation of a CloakMap using enhanced security.
 
@@ -788,7 +852,8 @@ def validate_cloakmap_integrity(cloakmap: CloakMap,
         import os
 
         from .security import EnvironmentKeyManager
-        os.environ['CLOAKPIVOT_KEY_DEFAULT'] = secret_key
+
+        os.environ["CLOAKPIVOT_KEY_DEFAULT"] = secret_key
         key_manager = EnvironmentKeyManager()
 
     validator = SecurityValidator(config=config, key_manager=key_manager)
