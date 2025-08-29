@@ -491,11 +491,6 @@ def analyze(
             
             # Show entity breakdown if we have detailed results
             if result.file_results:
-                entity_totals = {}
-                for file_result in result.file_results:
-                    # This would need to be enhanced to track entity types per file
-                    # For now, show total entities per file
-                    pass
                 
                 if verbose:
                     click.echo("\n📋 Per-File Results:")
