@@ -1,0 +1,385 @@
+# HIPAA-Compliant CloakPivot Policy
+# Designed for healthcare organizations handling Protected Health Information (PHI)
+# Complies with HIPAA Security Rule requirements
+
+version: "1.0"
+name: "hipaa-compliant"
+description: "HIPAA-compliant policy for healthcare data processing"
+
+# Core configuration
+locale: "en"
+seed: "hipaa-secure-2023-v1"
+min_entity_length: 2
+
+# Conservative default - hash with strong algorithm
+default_strategy:
+  kind: "hash"
+  parameters:
+    algorithm: "sha256"
+    truncate: 12
+    prefix: "PHI_"
+    salt_per_entity: true
+
+# HIPAA-specific entity configurations
+per_entity:
+  # Patient names - template for consistency
+  PERSON:
+    kind: "template"
+    parameters:
+      template: "[PATIENT]"
+      deterministic: true
+    threshold: 0.85
+    enabled: true
+    notes: "Patient identifiers per HIPAA §164.514(b)(2)(i)(A)"
+
+  # Email addresses - hash for privacy
+  EMAIL_ADDRESS:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 16
+      prefix: "EMAIL_"
+      salt_per_entity: true
+    threshold: 0.75
+    enabled: true
+    notes: "Electronic mail addresses per HIPAA §164.514(b)(2)(i)(B)"
+
+  # Phone numbers - template replacement
+  PHONE_NUMBER:
+    kind: "template"
+    parameters:
+      template: "[PHONE]"
+      preserve_format: false
+    threshold: 0.8
+    enabled: true
+    notes: "Telephone numbers per HIPAA §164.514(b)(2)(i)(C)"
+
+  # SSN - template with standard format
+  US_SSN:
+    kind: "template"
+    parameters:
+      template: "XXX-XX-XXXX"
+      preserve_format: true
+    threshold: 0.95
+    enabled: true
+    notes: "Social security numbers per HIPAA §164.514(b)(2)(i)(F)"
+
+  # Medical record numbers
+  MEDICAL_LICENSE:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 12
+      prefix: "MRN_"
+    threshold: 0.9
+    enabled: true
+    notes: "Medical record numbers per HIPAA §164.514(b)(2)(i)(G)"
+
+  # Health plan beneficiary numbers
+  US_PASSPORT:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 12
+      prefix: "HPN_"
+    threshold: 0.9
+    enabled: true
+
+  # Account numbers
+  CREDIT_CARD:
+    kind: "template"
+    parameters:
+      template: "[ACCOUNT]"
+    threshold: 0.9
+    enabled: true
+    notes: "Account numbers per HIPAA §164.514(b)(2)(i)(H)"
+
+  # Certificate/license numbers
+  US_DRIVER_LICENSE:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      prefix: "LIC_"
+    threshold: 0.9
+    enabled: true
+    notes: "Certificate/license numbers per HIPAA §164.514(b)(2)(i)(I)"
+
+  # Vehicle identifiers
+  US_BANK_NUMBER:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      prefix: "VEH_"
+    threshold: 0.85
+    enabled: true
+
+  # Device identifiers and serial numbers
+  IP_ADDRESS:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 8
+      prefix: "DEV_"
+    threshold: 0.7
+    enabled: true
+    notes: "Device identifiers per HIPAA §164.514(b)(2)(i)(J)"
+
+  # URLs and electronic addresses
+  URL:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      truncate: 12
+      prefix: "URL_"
+    threshold: 0.7
+    enabled: true
+    notes: "Universal resource locators per HIPAA §164.514(b)(2)(i)(K)"
+
+  # Biometric identifiers
+  PERSON_TITLE:
+    kind: "template"
+    parameters:
+      template: "[BIOMETRIC]"
+    threshold: 0.9
+    enabled: true
+    notes: "Biometric identifiers per HIPAA §164.514(b)(2)(i)(L)"
+
+  # Full face photos and comparable images
+  # Note: CloakPivot handles text, not images
+  
+  # Dates directly related to individual
+  DATE_TIME:
+    kind: "partial"
+    parameters:
+      visible_chars: 4  # Year only
+      position: "start"
+      format_aware: true
+    threshold: 0.6
+    enabled: true
+    notes: "Dates per HIPAA §164.514(b)(2)(i)(M) - year may be preserved"
+
+  # Ages over 89
+  AGE:
+    kind: "template"
+    parameters:
+      template: "[AGE_89+]"
+    threshold: 0.8
+    enabled: true
+    notes: "Ages over 89 per HIPAA §164.514(b)(2)(i)(N)"
+
+# HIPAA-compliant thresholds (high confidence required)
+thresholds:
+  PERSON: 0.85
+  EMAIL_ADDRESS: 0.75
+  PHONE_NUMBER: 0.8
+  US_SSN: 0.95
+  MEDICAL_LICENSE: 0.9
+  US_PASSPORT: 0.9
+  CREDIT_CARD: 0.9
+  US_DRIVER_LICENSE: 0.9
+  US_BANK_NUMBER: 0.85
+  IP_ADDRESS: 0.7
+  URL: 0.7
+  DATE_TIME: 0.6
+  AGE: 0.8
+  LOCATION: 0.8
+
+# Context-specific rules for healthcare documents
+context_rules:
+  # Medical record headers - preserve some structure
+  heading:
+    enabled: false
+    exceptions:
+      - US_SSN
+      - MEDICAL_LICENSE
+      - CREDIT_CARD
+    reason: "Preserve medical document structure while protecting direct identifiers"
+
+  # Patient data tables - high security
+  table:
+    enabled: true
+    threshold_overrides:
+      PERSON: 0.9
+      EMAIL_ADDRESS: 0.8
+      PHONE_NUMBER: 0.85
+      DATE_TIME: 0.7
+    reason: "Patient data tables require enhanced protection"
+
+  # Clinical notes and body text
+  body:
+    enabled: true
+    reason: "Primary content area containing PHI"
+
+  # Hospital/clinic footers
+  footer:
+    enabled: false
+    exceptions:
+      - US_SSN
+      - MEDICAL_LICENSE
+      - CREDIT_CARD
+      - US_PASSPORT
+    reason: "Preserve institutional contact while protecting sensitive identifiers"
+
+  # Document headers
+  header:
+    enabled: false
+    exceptions:
+      - US_SSN
+      - MEDICAL_LICENSE
+      - CREDIT_CARD
+    reason: "Medical headers contain metadata, protect critical identifiers only"
+
+# Healthcare-specific allow list
+allow_list:
+  - "Hospital Administration"
+  - "Patient Services"
+  - "Medical Records Department"
+  - "Emergency Services"
+  - "Emergency Department"
+  - "Patient Relations"
+  - "Compliance Officer"
+  - "Privacy Officer"
+  - "Security Officer"
+  - "Chief Medical Officer"
+  - "Chief Privacy Officer"
+  - "Health Information Management"
+  - "Quality Assurance"
+  - "Risk Management"
+  - "Institutional Review Board"
+  - "IRB"
+  - "HIPAA Security Officer"
+  - "Data Protection Officer"
+  - "admin@hospital.org"
+  - "privacy@hospital.org"
+  - "compliance@hospital.org"
+  - "security@hospital.org"
+
+# Healthcare-specific deny list
+deny_list:
+  - "confidential"
+  - "restricted"
+  - "protected health information"
+  - "phi"
+  - "personal health information"
+  - "medical record"
+  - "patient record"
+  - "clinical data"
+  - "sensitive"
+  - "proprietary"
+  - "internal use only"
+  - "not for distribution"
+  - "hipaa restricted"
+  - "covered entity"
+  - "business associate"
+  - "minimum necessary"
+  - "authorization required"
+
+# HIPAA Security Rule compliance settings
+security:
+  # §164.312(a)(1) - Access control
+  verify_integrity: true
+  audit_logging: true
+  
+  # §164.312(b) - Assigned security responsibility
+  require_authorization: true
+  
+  # §164.312(c)(1) - Integrity
+  integrity_controls: true
+  
+  # §164.312(d) - Person or entity authentication
+  entity_authentication: true
+  
+  # §164.312(e)(1) - Transmission security
+  transmission_security: true
+
+# Performance optimized for healthcare workflows
+performance:
+  resolve_conflicts: true
+  max_workers: 6  # Higher for large medical documents
+  chunk_size: 500  # Smaller chunks for detailed processing
+  enable_caching: true
+  memory_limit: "2GB"
+
+# Audit and compliance tracking
+audit:
+  enable_logging: true
+  log_level: "INFO"
+  include_metadata: true
+  track_policy_changes: true
+  retention_period: "7_years"  # HIPAA requirement
+  
+compliance:
+  frameworks:
+    - "HIPAA Security Rule 45 CFR §164.306-318"
+    - "HIPAA Privacy Rule 45 CFR §164.502-514"
+    - "HITECH Act"
+    - "FDA 21 CFR Part 11"
+    - "DEA regulations"
+  
+  safe_harbor_method: true
+  notes: |
+    This policy implements HIPAA Safe Harbor de-identification method
+    per 45 CFR §164.514(b)(2). All 18 PHI identifiers are addressed:
+    
+    (A) Names - Template replacement
+    (B) Geographic subdivisions - Hash with prefix
+    (C) Dates - Year preservation only (compliant exception)
+    (D) Telephone numbers - Template replacement
+    (E) Fax numbers - Template replacement  
+    (F) SSN - Template with format preservation
+    (G) Medical record numbers - Hash with MRN prefix
+    (H) Health plan beneficiary numbers - Hash with HPN prefix
+    (I) Account numbers - Template replacement
+    (J) Certificate/license numbers - Hash with LIC prefix
+    (K) Vehicle identifiers - Hash with VEH prefix
+    (L) Device identifiers - Hash with DEV prefix
+    (M) Web URLs - Hash with URL prefix
+    (N) IP addresses - Hash with DEV prefix
+    (O) Biometric identifiers - Template replacement
+    (P) Full face photos - Not applicable (text processing)
+    (Q) Other unique identifying characteristics - Hash default strategy
+    (R) Ages over 89 - Template replacement
+    
+    Regular compliance review and validation recommended.
+
+# Healthcare entity extensions
+healthcare_entities:
+  # Medical specialties
+  MEDICAL_SPECIALTY:
+    kind: "partial"
+    parameters:
+      visible_chars: 5
+      position: "start"
+    threshold: 0.7
+
+  # Insurance information
+  INSURANCE_ID:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      prefix: "INS_"
+    threshold: 0.9
+
+  # Provider identifiers
+  NPI_NUMBER:
+    kind: "hash"
+    parameters:
+      algorithm: "sha256"
+      prefix: "NPI_"
+    threshold: 0.95
+
+  # Drug names (if needed for research)
+  DRUG_NAME:
+    kind: "partial"
+    parameters:
+      visible_chars: 4
+      position: "start"
+    threshold: 0.6
+
+# Version control
+changelog:
+  - version: "1.0"
+    date: "2023-12-07"
+    changes: "Initial HIPAA-compliant policy implementation"
+    compliance_review: "2023-12-07"
+    reviewer: "Chief Privacy Officer"

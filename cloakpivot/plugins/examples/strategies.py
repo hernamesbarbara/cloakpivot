@@ -43,7 +43,7 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
             # ROT13 transformation
             result_text = original_text.translate(str.maketrans(
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijkl"
+                "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm"
             ))
 
             return StrategyPluginResult(
@@ -76,7 +76,7 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
     # Character mapping for upside down text
     UPSIDE_DOWN_MAP = str.maketrans(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎz0ㄥәろϛ9ㄥ86"
+        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzAQƆDEℲƃHIſʞ˥WNOԀQᴿSʇNΛMXʎZ0ㄥәろϛ9ㄥ86Ϭ"
     )
 
     @property

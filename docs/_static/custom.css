@@ -1,0 +1,249 @@
+/* Custom CSS for CloakPivot documentation */
+
+/* Brand colors */
+:root {
+    --cp-primary: #2980B9;
+    --cp-secondary: #3498DB;
+    --cp-accent: #E74C3C;
+    --cp-success: #27AE60;
+    --cp-warning: #F39C12;
+    --cp-light: #ECF0F1;
+    --cp-dark: #2C3E50;
+}
+
+/* Header styling */
+.wy-nav-top {
+    background-color: var(--cp-primary) !important;
+}
+
+/* Sidebar styling */
+.wy-side-nav-search {
+    background-color: var(--cp-primary) !important;
+}
+
+.wy-side-nav-search > a {
+    color: #fff !important;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+/* Navigation menu */
+.wy-menu-vertical a {
+    color: #404040;
+}
+
+.wy-menu-vertical li.current > a {
+    background-color: var(--cp-light);
+    border-right: 3px solid var(--cp-primary);
+}
+
+.wy-menu-vertical li.toctree-l1.current > a {
+    background-color: var(--cp-primary);
+    color: white;
+}
+
+/* Code blocks */
+.highlight {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.highlight pre {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Inline code */
+code.literal {
+    background-color: #f1f2f3;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 90%;
+    color: var(--cp-dark);
+}
+
+/* Admonitions */
+.admonition.note {
+    border-left: 4px solid var(--cp-secondary);
+    background-color: #f8f9fa;
+}
+
+.admonition.warning {
+    border-left: 4px solid var(--cp-warning);
+    background-color: #fdf6e3;
+}
+
+.admonition.important {
+    border-left: 4px solid var(--cp-accent);
+    background-color: #fdf2f2;
+}
+
+.admonition.tip {
+    border-left: 4px solid var(--cp-success);
+    background-color: #f0f9f0;
+}
+
+/* Tables */
+table.docutils {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+table.docutils th {
+    background-color: var(--cp-light);
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    font-weight: bold;
+}
+
+table.docutils td {
+    border: 1px solid #ddd;
+    padding: 12px;
+}
+
+table.docutils tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* API documentation styling */
+.py.class, .py.function, .py.method {
+    border-left: 3px solid var(--cp-secondary);
+    padding-left: 12px;
+    margin-bottom: 24px;
+}
+
+.py.class > dt {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--cp-primary);
+}
+
+.py.function > dt, .py.method > dt {
+    font-size: 1.05em;
+    color: var(--cp-dark);
+}
+
+/* Parameter lists */
+.field-list {
+    margin: 16px 0;
+}
+
+.field-list .field-name {
+    font-weight: bold;
+    min-width: 120px;
+    color: var(--cp-primary);
+}
+
+/* Source code links */
+.viewcode-link {
+    float: right;
+    font-size: 0.8em;
+    color: var(--cp-secondary);
+    text-decoration: none;
+}
+
+.viewcode-link:hover {
+    text-decoration: underline;
+}
+
+/* Notebook styling */
+.nbinput, .nboutput {
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.nbinput .highlight {
+    border-left: 4px solid var(--cp-primary);
+}
+
+.nboutput .highlight {
+    border-left: 4px solid var(--cp-success);
+}
+
+/* CLI command styling */
+.cli-command {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 16px 0;
+}
+
+.cli-command .prompt {
+    color: #68d391;
+    font-weight: bold;
+}
+
+.cli-command .command {
+    color: #90cdf4;
+}
+
+.cli-command .option {
+    color: #fbb6ce;
+}
+
+.cli-command .argument {
+    color: #f6e05e;
+}
+
+/* Policy examples styling */
+.policy-example {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    margin: 16px 0;
+    overflow: hidden;
+}
+
+.policy-example .title {
+    background-color: var(--cp-light);
+    padding: 12px 16px;
+    font-weight: bold;
+    color: var(--cp-dark);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.policy-example .content {
+    padding: 16px;
+}
+
+/* Version info */
+.version-info {
+    font-size: 0.9em;
+    color: #6a737d;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background-color: #f6f8fa;
+    border-radius: 4px;
+    border-left: 3px solid var(--cp-secondary);
+}
+
+/* Search results highlighting */
+.highlighted {
+    background-color: #fff3cd;
+    padding: 2px;
+    border-radius: 2px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .wy-nav-content {
+        margin-left: 0;
+    }
+    
+    .wy-nav-side {
+        left: -300px;
+    }
+    
+    .cli-command {
+        font-size: 12px;
+        padding: 12px;
+    }
+}

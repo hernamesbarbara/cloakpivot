@@ -1,0 +1,40 @@
+# Documentation dependencies for CloakPivot
+# Install with: pip install -r requirements-docs.txt
+
+# Core Sphinx and extensions
+sphinx>=5.0.0,<8.0.0
+sphinx-rtd-theme>=1.2.0,<3.0.0
+sphinx-click>=4.0.0,<6.0.0
+sphinx-autobuild>=2021.3.14
+
+# Markdown and notebook support
+myst-parser>=0.18.0,<3.0.0
+nbsphinx>=0.8.0,<1.0.0
+jupyterlab>=3.0.0
+
+# Additional extensions
+sphinxcontrib-spelling>=7.0.0
+sphinx-copybutton>=0.5.0
+sphinx-tabs>=3.0.0
+sphinx-togglebutton>=0.3.0
+
+# API documentation generation
+sphinx-autodoc-typehints>=1.19.0
+
+# For building different output formats
+sphinx[docs]
+
+# Development and testing
+pytest>=7.0.0
+coverage>=6.0.0
+
+# For policy validation in docs
+pyyaml>=6.0.0
+pydantic>=1.10.0
+
+# For notebook execution
+nbconvert>=7.0.0
+ipykernel>=6.0.0
+
+# Optional: for better performance
+orjson>=3.8.0
