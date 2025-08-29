@@ -14,6 +14,9 @@ from docpivot.io.readers.exceptions import (
     ValidationError,
 )
 
+from ..core.chunking import ChunkedDocumentProcessor
+from ..core.performance import profile_method
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,10 +50,17 @@ class DocumentProcessor:
         >>> doc = processor.load_document("sample.docling.json", validate=True)
     """
 
-    def __init__(self) -> None:
+    def __init__(self, enable_chunked_processing: bool = True) -> None:
         """Initialize the document processor."""
         self._stats = DocumentProcessingStats()
-        logger.debug("DocumentProcessor initialized")
+        self._enable_chunked_processing = enable_chunked_processing
+        
+        if enable_chunked_processing:
+            self._chunked_processor = ChunkedDocumentProcessor()
+        else:
+            self._chunked_processor = None
+            
+        logger.debug(f"DocumentProcessor initialized (chunked_processing={enable_chunked_processing})")
 
     def load_document(
         self, file_path: Union[str, Path], validate: bool = True, **kwargs: Any
