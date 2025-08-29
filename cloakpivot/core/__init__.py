@@ -30,6 +30,45 @@ from .normalization import (
     NormalizationResult,
 )
 
+# Error handling system
+from .exceptions import (
+    CloakPivotError,
+    ConfigurationError,
+    DependencyError,
+    DetectionError,
+    IntegrityError,
+    MaskingError,
+    PartialProcessingError,
+    PolicyError,
+    ProcessingError,
+    UnmaskingError,
+    ValidationError,
+    create_dependency_error,
+    create_processing_error,
+    create_validation_error,
+)
+from .error_handling import (
+    CircuitBreaker,
+    ErrorCollector,
+    FailureToleranceConfig,
+    FailureToleranceLevel,
+    PartialFailureManager,
+    RetryManager,
+    create_partial_failure_manager,
+    with_circuit_breaker,
+    with_error_isolation,
+    with_retry,
+)
+from .validation import (
+    CloakMapValidator,
+    DocumentValidator,
+    InputValidator,
+    PolicyValidator,
+    SystemValidator,
+    validate_for_masking,
+    validate_for_unmasking,
+)
+
 # Policy system
 from .policies import (
     CONSERVATIVE_POLICY,
@@ -107,4 +146,36 @@ __all__ = [
     "ConflictResolutionStrategy",
     "ConflictResolutionConfig",
     "NormalizationResult",
+    # Error handling exports
+    "CloakPivotError",
+    "ValidationError",
+    "ProcessingError",
+    "DetectionError",
+    "MaskingError",
+    "UnmaskingError",
+    "PolicyError",
+    "IntegrityError",
+    "PartialProcessingError",
+    "ConfigurationError",
+    "DependencyError",
+    "create_validation_error",
+    "create_processing_error",
+    "create_dependency_error",
+    "PartialFailureManager",
+    "ErrorCollector",
+    "FailureToleranceConfig",
+    "FailureToleranceLevel",
+    "CircuitBreaker",
+    "RetryManager",
+    "create_partial_failure_manager",
+    "with_error_isolation",
+    "with_circuit_breaker",
+    "with_retry",
+    "InputValidator",
+    "SystemValidator",
+    "DocumentValidator",
+    "PolicyValidator",
+    "CloakMapValidator",
+    "validate_for_masking",
+    "validate_for_unmasking",
 ]
