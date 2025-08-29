@@ -2,12 +2,12 @@
 
 from .collector import DiagnosticsCollector, MaskingStatistics
 from .coverage import CoverageAnalyzer, CoverageMetrics, DocumentSection
-from .reporting import DiagnosticReporter, ReportFormat, ReportData
+from .reporting import DiagnosticReporter, ReportData, ReportFormat
 
 __all__ = [
     "DiagnosticsCollector",
     "MaskingStatistics",
-    "CoverageAnalyzer", 
+    "CoverageAnalyzer",
     "CoverageMetrics",
     "DocumentSection",
     "DiagnosticReporter",

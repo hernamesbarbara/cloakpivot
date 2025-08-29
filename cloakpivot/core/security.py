@@ -17,14 +17,14 @@ if TYPE_CHECKING:
     from .cloakmap import CloakMap
 
 # Constants for cryptographic operations
-DEFAULT_HMAC_ALGORITHM = 'sha256'
+DEFAULT_HMAC_ALGORITHM = "sha256"
 DEFAULT_PBKDF2_ITERATIONS = 100000
 DEFAULT_SALT_LENGTH = 32
-DEFAULT_ENCRYPTION_ALGORITHM = 'AES-GCM-256'
+DEFAULT_ENCRYPTION_ALGORITHM = "AES-GCM-256"
 DEFAULT_NONCE_LENGTH = 12  # 96 bits for AES-GCM
-DEFAULT_KEY_LENGTH = 32    # 256 bits for AES-256
-SUPPORTED_HMAC_ALGORITHMS = {'sha256', 'sha512', 'sha384'}
-SUPPORTED_ENCRYPTION_ALGORITHMS = {'AES-GCM-256', 'AES-GCM-192', 'AES-GCM-128'}
+DEFAULT_KEY_LENGTH = 32  # 256 bits for AES-256
+SUPPORTED_HMAC_ALGORITHMS = {"sha256", "sha512", "sha384"}
+SUPPORTED_ENCRYPTION_ALGORITHMS = {"AES-GCM-256", "AES-GCM-192", "AES-GCM-128"}
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,9 @@ class SecurityConfig:
             raise ValueError(f"Unsupported HMAC algorithm: {self.hmac_algorithm}")
 
         if self.encryption_algorithm not in SUPPORTED_ENCRYPTION_ALGORITHMS:
-            raise ValueError(f"Unsupported encryption algorithm: {self.encryption_algorithm}")
+            raise ValueError(
+                f"Unsupported encryption algorithm: {self.encryption_algorithm}"
+            )
 
         if self.pbkdf2_iterations < 10000:
             raise ValueError("PBKDF2 iterations must be at least 10,000 for security")
@@ -112,8 +114,9 @@ class KeyManager(ABC):
         """
         return self.get_key(key_id, version)
 
-    def derive_key(self, base_key: bytes, salt: bytes, info: str,
-                   config: SecurityConfig) -> bytes:
+    def derive_key(
+        self, base_key: bytes, salt: bytes, info: str, config: SecurityConfig
+    ) -> bytes:
         """
         Derive a key using PBKDF2.
 
@@ -132,10 +135,10 @@ class KeyManager(ABC):
         # Use PBKDF2 for key derivation
         derived_key = hashlib.pbkdf2_hmac(
             config.hmac_algorithm,
-            base_key + info.encode('utf-8'),
+            base_key + info.encode("utf-8"),
             salt,
             config.pbkdf2_iterations,
-            dklen=32  # 256-bit key
+            dklen=32,  # 256-bit key
         )
 
         return derived_key
@@ -165,13 +168,13 @@ class EnvironmentKeyManager(KeyManager):
 
         try:
             # Support both hex and base64 encoded keys
-            if key_value.startswith('hex:'):
+            if key_value.startswith("hex:"):
                 return bytes.fromhex(key_value[4:])
-            elif key_value.startswith('b64:'):
+            elif key_value.startswith("b64:"):
                 return base64.b64decode(key_value[4:])
             else:
                 # Default to UTF-8 encoding
-                return key_value.encode('utf-8')
+                return key_value.encode("utf-8")
         except Exception as e:
             raise ValueError(f"Invalid key format in {env_name}: {e}") from e
 
@@ -181,10 +184,10 @@ class EnvironmentKeyManager(KeyManager):
         for env_name in os.environ:
             if env_name.startswith(self.prefix):
                 # Extract key_id from environment name
-                key_part = env_name[len(self.prefix):]
+                key_part = env_name[len(self.prefix) :]
                 # Remove version suffix if present
-                if '_V' in key_part:
-                    key_part = key_part.split('_V')[0]
+                if "_V" in key_part:
+                    key_part = key_part.split("_V")[0]
                 keys.append(key_part.lower())
 
         return sorted(set(keys))
@@ -219,12 +222,12 @@ class FileKeyManager(KeyManager):
             key_content = key_path.read_text().strip()
 
             # Support various key formats
-            if key_content.startswith('hex:'):
+            if key_content.startswith("hex:"):
                 return bytes.fromhex(key_content[4:])
-            elif key_content.startswith('b64:'):
+            elif key_content.startswith("b64:"):
                 return base64.b64decode(key_content[4:])
             else:
-                return key_content.encode('utf-8')
+                return key_content.encode("utf-8")
         except Exception as e:
             raise ValueError(f"Failed to read key from {key_path}: {e}") from e
 
@@ -234,8 +237,8 @@ class FileKeyManager(KeyManager):
         for key_file in self.key_directory.glob("*.key"):
             key_name = key_file.stem
             # Remove version suffix if present
-            if '.v' in key_name:
-                key_name = key_name.split('.v')[0]
+            if ".v" in key_name:
+                key_name = key_name.split(".v")[0]
             keys.append(key_name)
 
         return sorted(set(keys))
@@ -290,8 +293,7 @@ class CryptoUtils:
         return secrets.token_bytes(length)
 
     @staticmethod
-    def compute_salted_checksum(data: str, salt: bytes,
-                              config: SecurityConfig) -> str:
+    def compute_salted_checksum(data: str, salt: bytes, config: SecurityConfig) -> str:
         """
         Compute a salted checksum using PBKDF2.
 
@@ -303,21 +305,18 @@ class CryptoUtils:
         Returns:
             Hex-encoded checksum
         """
-        data_bytes = data.encode('utf-8')
+        data_bytes = data.encode("utf-8")
 
         checksum = hashlib.pbkdf2_hmac(
-            config.hmac_algorithm,
-            data_bytes,
-            salt,
-            config.pbkdf2_iterations,
-            dklen=32
+            config.hmac_algorithm, data_bytes, salt, config.pbkdf2_iterations, dklen=32
         )
 
         return checksum.hex()
 
     @staticmethod
-    def verify_salted_checksum(data: str, salt: bytes, expected_checksum: str,
-                             config: SecurityConfig) -> bool:
+    def verify_salted_checksum(
+        data: str, salt: bytes, expected_checksum: str, config: SecurityConfig
+    ) -> bool:
         """
         Verify a salted checksum.
 
@@ -338,7 +337,9 @@ class CryptoUtils:
             return computed_checksum == expected_checksum
 
     @staticmethod
-    def compute_hmac(data: bytes, key: bytes, algorithm: str = DEFAULT_HMAC_ALGORITHM) -> str:
+    def compute_hmac(
+        data: bytes, key: bytes, algorithm: str = DEFAULT_HMAC_ALGORITHM
+    ) -> str:
         """
         Compute HMAC for data.
 
@@ -358,9 +359,13 @@ class CryptoUtils:
         return mac.hexdigest()
 
     @staticmethod
-    def verify_hmac(data: bytes, key: bytes, expected_mac: str,
-                   algorithm: str = DEFAULT_HMAC_ALGORITHM,
-                   constant_time: bool = True) -> bool:
+    def verify_hmac(
+        data: bytes,
+        key: bytes,
+        expected_mac: str,
+        algorithm: str = DEFAULT_HMAC_ALGORITHM,
+        constant_time: bool = True,
+    ) -> bool:
         """
         Verify HMAC signature.
 
@@ -395,9 +400,12 @@ class CryptoUtils:
         return secrets.token_bytes(length)
 
     @staticmethod
-    def derive_encryption_key(base_key: bytes, salt: bytes,
-                            key_length: int = DEFAULT_KEY_LENGTH,
-                            config: Optional[SecurityConfig] = None) -> bytes:
+    def derive_encryption_key(
+        base_key: bytes,
+        salt: bytes,
+        key_length: int = DEFAULT_KEY_LENGTH,
+        config: Optional[SecurityConfig] = None,
+    ) -> bytes:
         """
         Derive an encryption key from base key material using PBKDF2.
 
@@ -418,12 +426,16 @@ class CryptoUtils:
             base_key,
             salt,
             config.pbkdf2_iterations,
-            dklen=key_length
+            dklen=key_length,
         )
 
     @staticmethod
-    def encrypt_data(data: bytes, key: bytes, nonce: Optional[bytes] = None,
-                    associated_data: Optional[bytes] = None) -> tuple[bytes, bytes]:
+    def encrypt_data(
+        data: bytes,
+        key: bytes,
+        nonce: Optional[bytes] = None,
+        associated_data: Optional[bytes] = None,
+    ) -> tuple[bytes, bytes]:
         """
         Encrypt data using AES-GCM.
 
@@ -453,8 +465,12 @@ class CryptoUtils:
         return ciphertext, nonce
 
     @staticmethod
-    def decrypt_data(ciphertext: bytes, key: bytes, nonce: bytes,
-                    associated_data: Optional[bytes] = None) -> bytes:
+    def decrypt_data(
+        ciphertext: bytes,
+        key: bytes,
+        nonce: bytes,
+        associated_data: Optional[bytes] = None,
+    ) -> bytes:
         """
         Decrypt data using AES-GCM.
 
@@ -502,7 +518,7 @@ class SecurityMetadata:
             result["key_version"] = self.key_version
 
         if self.salt:
-            result["salt"] = base64.b64encode(self.salt).decode('ascii')
+            result["salt"] = base64.b64encode(self.salt).decode("ascii")
 
         if self.iterations:
             result["iterations"] = self.iterations
@@ -521,7 +537,7 @@ class SecurityMetadata:
             key_id=data["key_id"],
             key_version=data.get("key_version"),
             salt=salt,
-            iterations=data.get("iterations")
+            iterations=data.get("iterations"),
         )
 
 
@@ -613,7 +629,9 @@ class EncryptedCloakMap:
 class CloakMapEncryption:
     """Utility class for CloakMap encryption and decryption operations."""
 
-    def __init__(self, key_manager: KeyManager, config: Optional[SecurityConfig] = None):
+    def __init__(
+        self, key_manager: KeyManager, config: Optional[SecurityConfig] = None
+    ):
         """
         Initialize encryption utility.
 
@@ -624,8 +642,12 @@ class CloakMapEncryption:
         self.key_manager = key_manager
         self.config = config or SecurityConfig()
 
-    def encrypt_cloakmap(self, cloakmap: "CloakMap", key_id: str = "default",
-                        key_version: Optional[str] = None) -> EncryptedCloakMap:
+    def encrypt_cloakmap(
+        self,
+        cloakmap: "CloakMap",
+        key_id: str = "default",
+        key_version: Optional[str] = None,
+    ) -> EncryptedCloakMap:
         """
         Encrypt a CloakMap, keeping metadata in cleartext for indexing.
 
@@ -655,23 +677,23 @@ class CloakMapEncryption:
             nonce = CryptoUtils.generate_nonce(self.config.nonce_length)
 
             # Use doc_id as associated data for authentication
-            associated_data = cloakmap.doc_id.encode('utf-8')
+            associated_data = cloakmap.doc_id.encode("utf-8")
 
             # Encrypt sensitive data sections
             anchors_json = json.dumps([anchor.to_dict() for anchor in cloakmap.anchors])
-            anchors_data = anchors_json.encode('utf-8')
+            anchors_data = anchors_json.encode("utf-8")
             encrypted_anchors, _ = CryptoUtils.encrypt_data(
                 anchors_data, encryption_key, nonce, associated_data
             )
 
             policy_json = json.dumps(cloakmap.policy_snapshot)
-            policy_data = policy_json.encode('utf-8')
+            policy_data = policy_json.encode("utf-8")
             encrypted_policy, _ = CryptoUtils.encrypt_data(
                 policy_data, encryption_key, nonce, associated_data
             )
 
             metadata_json = json.dumps(cloakmap.metadata)
-            metadata_data = metadata_json.encode('utf-8')
+            metadata_data = metadata_json.encode("utf-8")
             encrypted_metadata, _ = CryptoUtils.encrypt_data(
                 metadata_data, encryption_key, nonce, associated_data
             )
@@ -681,14 +703,16 @@ class CloakMapEncryption:
                 version=cloakmap.version,
                 doc_id=cloakmap.doc_id,
                 doc_hash=cloakmap.doc_hash,
-                created_at=cloakmap.created_at.isoformat() if cloakmap.created_at else None,
+                created_at=cloakmap.created_at.isoformat()
+                if cloakmap.created_at
+                else None,
                 algorithm=self.config.encryption_algorithm,
                 key_id=key_id,
                 key_version=key_version,
-                nonce=base64.b64encode(nonce).decode('ascii'),
-                encrypted_anchors=base64.b64encode(encrypted_anchors).decode('ascii'),
-                encrypted_policy=base64.b64encode(encrypted_policy).decode('ascii'),
-                encrypted_metadata=base64.b64encode(encrypted_metadata).decode('ascii'),
+                nonce=base64.b64encode(nonce).decode("ascii"),
+                encrypted_anchors=base64.b64encode(encrypted_anchors).decode("ascii"),
+                encrypted_policy=base64.b64encode(encrypted_policy).decode("ascii"),
+                encrypted_metadata=base64.b64encode(encrypted_metadata).decode("ascii"),
                 signature=cloakmap.signature,
             )
 
@@ -726,37 +750,47 @@ class CloakMapEncryption:
             nonce = base64.b64decode(encrypted_cloakmap.nonce)
 
             # Use doc_id as associated data for authentication
-            associated_data = encrypted_cloakmap.doc_id.encode('utf-8')
+            associated_data = encrypted_cloakmap.doc_id.encode("utf-8")
 
             # Decrypt sections
-            encrypted_anchors_data = base64.b64decode(encrypted_cloakmap.encrypted_anchors)
+            encrypted_anchors_data = base64.b64decode(
+                encrypted_cloakmap.encrypted_anchors
+            )
             anchors_data = CryptoUtils.decrypt_data(
                 encrypted_anchors_data, decryption_key, nonce, associated_data
             )
 
-            encrypted_policy_data = base64.b64decode(encrypted_cloakmap.encrypted_policy)
+            encrypted_policy_data = base64.b64decode(
+                encrypted_cloakmap.encrypted_policy
+            )
             policy_data = CryptoUtils.decrypt_data(
                 encrypted_policy_data, decryption_key, nonce, associated_data
             )
 
-            encrypted_metadata_data = base64.b64decode(encrypted_cloakmap.encrypted_metadata)
+            encrypted_metadata_data = base64.b64decode(
+                encrypted_cloakmap.encrypted_metadata
+            )
             metadata_data = CryptoUtils.decrypt_data(
                 encrypted_metadata_data, decryption_key, nonce, associated_data
             )
 
             # Parse decrypted JSON data
-            anchors_dict = json.loads(anchors_data.decode('utf-8'))
-            policy_snapshot = json.loads(policy_data.decode('utf-8'))
-            metadata = json.loads(metadata_data.decode('utf-8'))
+            anchors_dict = json.loads(anchors_data.decode("utf-8"))
+            policy_snapshot = json.loads(policy_data.decode("utf-8"))
+            metadata = json.loads(metadata_data.decode("utf-8"))
 
             # Reconstruct anchors
             from .anchors import AnchorEntry
-            anchors = [AnchorEntry.from_dict(anchor_data) for anchor_data in anchors_dict]
+
+            anchors = [
+                AnchorEntry.from_dict(anchor_data) for anchor_data in anchors_dict
+            ]
 
             # Parse timestamp
             created_at = None
             if encrypted_cloakmap.created_at:
                 from datetime import datetime
+
                 created_at = datetime.fromisoformat(encrypted_cloakmap.created_at)
 
             # Import CloakMap class
@@ -781,8 +815,12 @@ class CloakMapEncryption:
         except Exception as e:
             raise ValueError(f"Failed to decrypt CloakMap: {e}") from e
 
-    def rotate_encryption_key(self, encrypted_cloakmap: EncryptedCloakMap,
-                             new_key_id: str, new_key_version: Optional[str] = None) -> EncryptedCloakMap:
+    def rotate_encryption_key(
+        self,
+        encrypted_cloakmap: EncryptedCloakMap,
+        new_key_id: str,
+        new_key_version: Optional[str] = None,
+    ) -> EncryptedCloakMap:
         """
         Rotate encryption key by decrypting with old key and re-encrypting with new key.
 
@@ -812,7 +850,9 @@ class CloakMapEncryption:
 class KeyRotationManager:
     """Utility for bulk key rotation operations."""
 
-    def __init__(self, key_manager: KeyManager, config: Optional[SecurityConfig] = None):
+    def __init__(
+        self, key_manager: KeyManager, config: Optional[SecurityConfig] = None
+    ):
         """
         Initialize key rotation manager.
 
@@ -824,12 +864,16 @@ class KeyRotationManager:
         self.config = config or SecurityConfig()
         self.encryption = CloakMapEncryption(key_manager, config)
 
-    def rotate_directory(self, directory_path: Union[str, Path],
-                        old_key_id: str, new_key_id: str,
-                        old_key_version: Optional[str] = None,
-                        new_key_version: Optional[str] = None,
-                        pattern: str = "*.json",
-                        backup: bool = True) -> dict[str, Any]:
+    def rotate_directory(
+        self,
+        directory_path: Union[str, Path],
+        old_key_id: str,
+        new_key_id: str,
+        old_key_version: Optional[str] = None,
+        new_key_version: Optional[str] = None,
+        pattern: str = "*.json",
+        backup: bool = True,
+    ) -> dict[str, Any]:
         """
         Rotate encryption keys for all CloakMap files in a directory.
 
@@ -864,7 +908,7 @@ class KeyRotationManager:
             "succeeded": 0,
             "failed": 0,
             "errors": [],
-            "backup_created": backup
+            "backup_created": backup,
         }
 
         for file_path in files:
@@ -872,7 +916,7 @@ class KeyRotationManager:
                 results["processed"] += 1
 
                 # Check if file is encrypted CloakMap
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = json.loads(f.read())
 
                 if "encrypted_content" not in data:
@@ -883,14 +927,17 @@ class KeyRotationManager:
                 encrypted_map = EncryptedCloakMap.from_dict(data)
 
                 # Skip if already using new key
-                if (encrypted_map.key_id == new_key_id and
-                    encrypted_map.key_version == new_key_version):
+                if (
+                    encrypted_map.key_id == new_key_id
+                    and encrypted_map.key_version == new_key_version
+                ):
                     continue
 
                 # Create backup if requested
                 if backup:
-                    backup_path = Path(file_path).with_suffix('.bak')
+                    backup_path = Path(file_path).with_suffix(".bak")
                     import shutil
+
                     shutil.copy2(file_path, backup_path)
 
                 # Rotate key
@@ -899,7 +946,7 @@ class KeyRotationManager:
                 )
 
                 # Save rotated file
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(rotated_map.to_json(indent=2))
 
                 results["succeeded"] += 1
@@ -910,8 +957,9 @@ class KeyRotationManager:
 
         return results
 
-    def verify_key_availability(self, key_ids: list[str],
-                              versions: Optional[list[Optional[str]]] = None) -> dict[str, bool]:
+    def verify_key_availability(
+        self, key_ids: list[str], versions: Optional[list[Optional[str]]] = None
+    ) -> dict[str, bool]:
         """
         Verify that required keys are available in the key manager.
 
@@ -940,8 +988,11 @@ class KeyRotationManager:
 class SecurityValidator:
     """Comprehensive security validator for CloakMaps."""
 
-    def __init__(self, config: Optional[SecurityConfig] = None,
-                 key_manager: Optional[KeyManager] = None):
+    def __init__(
+        self,
+        config: Optional[SecurityConfig] = None,
+        key_manager: Optional[KeyManager] = None,
+    ):
         """
         Initialize security validator.
 
@@ -974,13 +1025,13 @@ class SecurityValidator:
                 "signature": False,
                 "encryption": False,
                 "tampering": False,
-                "key_availability": False
+                "key_availability": False,
             },
             "performance": {
                 "validation_time_ms": 0,
                 "anchor_count": len(cloakmap.anchors),
-                "crypto_operations": 0
-            }
+                "crypto_operations": 0,
+            },
         }
 
         start_time = self._get_time_ms()
@@ -1011,7 +1062,9 @@ class SecurityValidator:
             results["valid"] = False
             results["errors"].append(f"Validation failed: {e}")
 
-        results["performance"]["validation_time_ms"] = max(1, int(self._get_time_ms() - start_time))
+        results["performance"]["validation_time_ms"] = max(
+            1, int(self._get_time_ms() - start_time)
+        )
 
         return results
 
@@ -1019,7 +1072,7 @@ class SecurityValidator:
         """Validate CloakMap structure."""
         try:
             # Check version compatibility
-            version_parts = cloakmap.version.split('.')
+            version_parts = cloakmap.version.split(".")
             if len(version_parts) < 2:
                 results["errors"].append("Invalid version format")
                 return
@@ -1057,7 +1110,7 @@ class SecurityValidator:
             # Check checksum salt presence (for new format)
             missing_salts = 0
             for anchor in cloakmap.anchors:
-                if not hasattr(anchor, 'checksum_salt') or not anchor.checksum_salt:
+                if not hasattr(anchor, "checksum_salt") or not anchor.checksum_salt:
                     missing_salts += 1
 
             if missing_salts > 0:
@@ -1080,11 +1133,17 @@ class SecurityValidator:
 
         try:
             # Try to verify signature with available keys
-            key_id = cloakmap.crypto.get('key_id', 'default') if cloakmap.crypto else 'default'
+            key_id = (
+                cloakmap.crypto.get("key_id", "default")
+                if cloakmap.crypto
+                else "default"
+            )
 
             try:
                 self.key_manager.get_key(key_id)
-                is_valid = cloakmap.verify_signature(self.key_manager, config=self.config)
+                is_valid = cloakmap.verify_signature(
+                    self.key_manager, config=self.config
+                )
 
                 if is_valid:
                     results["checks"]["signature"] = True
@@ -1127,6 +1186,7 @@ class SecurityValidator:
             # Check for timestamp anomalies
             if cloakmap.created_at:
                 from datetime import datetime, timezone
+
                 now = datetime.now(timezone.utc).replace(tzinfo=None)
 
                 # Check for future timestamps (suspicious)
@@ -1159,12 +1219,12 @@ class SecurityValidator:
 
             # Check signature key
             if cloakmap.is_signed and cloakmap.crypto:
-                key_id = cloakmap.crypto.get('key_id', 'default')
+                key_id = cloakmap.crypto.get("key_id", "default")
                 required_keys.add(key_id)
 
             # Check encryption key
             if cloakmap.is_encrypted and cloakmap.crypto:
-                key_id = cloakmap.crypto.get('encryption_key_id')
+                key_id = cloakmap.crypto.get("encryption_key_id")
                 if key_id:
                     required_keys.add(key_id)
 
@@ -1194,6 +1254,7 @@ class SecurityValidator:
     def _get_time_ms(self) -> float:
         """Get current time in milliseconds using high precision counter."""
         import time
+
         return time.perf_counter() * 1000
 
 
@@ -1210,7 +1271,7 @@ def create_default_key_manager() -> KeyManager:
     possible_key_dirs = [
         Path.home() / ".cloakpivot" / "keys",
         Path("/etc/cloakpivot/keys"),
-        Path("./keys")
+        Path("./keys"),
     ]
 
     for key_dir in possible_key_dirs:

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChunkAnalysisResult:
     """Result of analyzing a single document chunk."""
+
     chunk_id: str
     entities: list[RecognizerResult]
     processing_time_ms: float
@@ -29,6 +30,7 @@ class ChunkAnalysisResult:
 @dataclass
 class ParallelAnalysisResult:
     """Result of parallel analysis across all chunks."""
+
     entities: list[RecognizerResult]
     chunk_results: list[ChunkAnalysisResult]
     total_processing_time_ms: float
@@ -41,7 +43,7 @@ class ParallelAnalysisResult:
 class ParallelAnalysisEngine:
     """
     Parallel analysis engine that processes document chunks concurrently.
-    
+
     This engine manages thread pools, coordinates parallel PII analysis,
     and aggregates results while maintaining proper entity ordering.
     """
@@ -54,7 +56,7 @@ class ParallelAnalysisEngine:
     ) -> None:
         """
         Initialize parallel analysis engine.
-        
+
         Args:
             analyzer_config: Configuration for underlying analyzer
             max_workers: Maximum number of worker threads (None for auto-detect)
@@ -93,23 +95,32 @@ class ParallelAnalysisEngine:
                 env_workers_int = int(env_workers)
                 if env_workers_int > 0:
                     optimal_workers = env_workers_int
-                    logger.info(f"Using environment-specified max workers: {optimal_workers}")
+                    logger.info(
+                        f"Using environment-specified max workers: {optimal_workers}"
+                    )
                 else:
-                    logger.warning(f"Invalid CLOAKPIVOT_MAX_WORKERS: {env_workers}, using calculated value")
+                    logger.warning(
+                        f"Invalid CLOAKPIVOT_MAX_WORKERS: {env_workers}, using calculated value"
+                    )
             except ValueError:
-                logger.warning(f"Invalid CLOAKPIVOT_MAX_WORKERS format: {env_workers}, using calculated value")
+                logger.warning(
+                    f"Invalid CLOAKPIVOT_MAX_WORKERS format: {env_workers}, using calculated value"
+                )
 
         return optimal_workers
 
     def _get_thread_analyzer(self) -> AnalyzerEngineWrapper:
         """Get thread-local analyzer instance."""
         import threading
+
         thread_id = threading.get_ident()
 
         with self._cache_lock:
             if thread_id not in self._analyzer_cache:
                 # Create new analyzer instance for this thread
-                self._analyzer_cache[thread_id] = AnalyzerEngineWrapper(self.analyzer_config)
+                self._analyzer_cache[thread_id] = AnalyzerEngineWrapper(
+                    self.analyzer_config
+                )
                 logger.debug(f"Created analyzer instance for thread {thread_id}")
 
             return self._analyzer_cache[thread_id]
@@ -122,16 +133,17 @@ class ParallelAnalysisEngine:
     ) -> ParallelAnalysisResult:
         """
         Analyze document for PII entities using parallel processing.
-        
+
         Args:
             document: DoclingDocument to analyze
             policy: MaskingPolicy defining detection parameters
             chunk_size: Override default chunk size for this analysis
-            
+
         Returns:
             ParallelAnalysisResult with aggregated entities and performance metrics
         """
         import time
+
         start_time = time.perf_counter()
 
         logger.info(f"Starting parallel analysis of document {document.name}")
@@ -244,6 +256,7 @@ class ParallelAnalysisEngine:
     ) -> ChunkAnalysisResult:
         """Analyze a single chunk for PII entities."""
         import time
+
         start_time = time.perf_counter()
 
         try:
@@ -320,7 +333,8 @@ class ParallelAnalysisEngine:
             stats = {
                 "successful_chunks": len(successful_results),
                 "failed_chunks": len(error_results),
-                "average_chunk_processing_time_ms": sum(processing_times) / len(processing_times),
+                "average_chunk_processing_time_ms": sum(processing_times)
+                / len(processing_times),
                 "min_chunk_processing_time_ms": min(processing_times),
                 "max_chunk_processing_time_ms": max(processing_times),
                 "average_chunk_size": sum(chunk_sizes) / len(chunk_sizes),
@@ -355,14 +369,18 @@ class ParallelAnalysisEngine:
         recommendations = []
 
         if not self.enable_performance_monitoring:
-            recommendations.append("Enable performance monitoring for detailed recommendations")
+            recommendations.append(
+                "Enable performance monitoring for detailed recommendations"
+            )
             return recommendations
 
         stats = analysis_result.performance_stats
 
         # Check processing rate
         if stats.get("processing_rate_chars_per_second", 0) < 10000:
-            recommendations.append("Consider increasing chunk size or thread count for better throughput")
+            recommendations.append(
+                "Consider increasing chunk size or thread count for better throughput"
+            )
 
         # Check for failed chunks
         if stats.get("failed_chunks", 0) > 0:

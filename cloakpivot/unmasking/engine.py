@@ -131,9 +131,7 @@ class UnmaskingEngine:
             )
 
         # Generate statistics
-        stats = self._generate_stats(
-            cloakmap_obj, resolved_anchors, restoration_stats
-        )
+        stats = self._generate_stats(cloakmap_obj, resolved_anchors, restoration_stats)
 
         logger.info("Unmasking completed successfully")
 
@@ -185,9 +183,7 @@ class UnmaskingEngine:
             verify_integrity=verify_integrity,
         )
 
-    def _validate_inputs(
-        self, document: DoclingDocument, cloakmap: CloakMap
-    ) -> None:
+    def _validate_inputs(self, document: DoclingDocument, cloakmap: CloakMap) -> None:
         """Validate input parameters."""
         if not isinstance(document, DoclingDocument):
             raise ValueError("document must be a DoclingDocument")
@@ -273,9 +269,7 @@ class UnmaskingEngine:
             "entity_type_counts": cloakmap.entity_count_by_type,
             "restoration_stats": restoration_stats,
             "success_rate": (
-                len(resolved_anchors.get("resolved", []))
-                / len(cloakmap.anchors)
-                * 100
+                len(resolved_anchors.get("resolved", [])) / len(cloakmap.anchors) * 100
                 if cloakmap.anchors
                 else 100
             ),

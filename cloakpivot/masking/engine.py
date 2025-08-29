@@ -61,7 +61,11 @@ class MaskingEngine:
         >>> print(f"Masked {len(result.cloakmap.anchors)} entities")
     """
 
-    def __init__(self, resolve_conflicts: bool = False, conflict_resolution_config: Optional[ConflictResolutionConfig] = None) -> None:
+    def __init__(
+        self,
+        resolve_conflicts: bool = False,
+        conflict_resolution_config: Optional[ConflictResolutionConfig] = None,
+    ) -> None:
         """Initialize the masking engine.
 
         Args:
@@ -71,8 +75,14 @@ class MaskingEngine:
         self.strategy_applicator = StrategyApplicator()
         self.document_masker = DocumentMasker()
         self.resolve_conflicts = resolve_conflicts
-        self.entity_normalizer = EntityNormalizer(conflict_resolution_config or ConflictResolutionConfig()) if resolve_conflicts else None
-        logger.debug(f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}")
+        self.entity_normalizer = (
+            EntityNormalizer(conflict_resolution_config or ConflictResolutionConfig())
+            if resolve_conflicts
+            else None
+        )
+        logger.debug(
+            f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}"
+        )
 
     def mask_document(
         self,
@@ -96,9 +106,7 @@ class MaskingEngine:
         Raises:
             ValueError: If entities overlap or input validation fails
         """
-        logger.info(
-            f"Masking document {document.name} with {len(entities)} entities"
-        )
+        logger.info(f"Masking document {document.name} with {len(entities)} entities")
 
         # Validate inputs
         self._validate_inputs(document, entities, policy, text_segments)
@@ -169,9 +177,7 @@ class MaskingEngine:
         # Generate statistics
         stats = self._generate_stats(entities, anchor_entries, policy)
 
-        logger.info(
-            f"Masking completed: {len(anchor_entries)} entities masked"
-        )
+        logger.info(f"Masking completed: {len(anchor_entries)} entities masked")
 
         return MaskingResult(
             masked_document=masked_document, cloakmap=cloakmap, stats=stats
@@ -193,9 +199,7 @@ class MaskingEngine:
 
         for entity in entities:
             if not isinstance(entity, RecognizerResult):
-                raise ValueError(
-                    "all entities must be RecognizerResult instances"
-                )
+                raise ValueError("all entities must be RecognizerResult instances")
 
         if not isinstance(policy, MaskingPolicy):
             raise ValueError("policy must be a MaskingPolicy")
@@ -205,9 +209,7 @@ class MaskingEngine:
 
         for segment in text_segments:
             if not isinstance(segment, TextSegment):
-                raise ValueError(
-                    "all text_segments must be TextSegment instances"
-                )
+                raise ValueError("all text_segments must be TextSegment instances")
 
     def _resolve_entity_conflicts(
         self,
@@ -311,7 +313,9 @@ class MaskingEngine:
 
             # Create detection result with error handling
             try:
-                detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
+                detection_result = EntityDetectionResult.from_presidio_result(
+                    entity, entity_text
+                )
                 entity_detection_results.append(detection_result)
             except (ValueError, TypeError) as e:
                 logger.warning(
@@ -320,7 +324,9 @@ class MaskingEngine:
                 continue
 
         # Use EntityNormalizer to resolve conflicts
-        normalization_result = self.entity_normalizer.normalize_entities(entity_detection_results)
+        normalization_result = self.entity_normalizer.normalize_entities(
+            entity_detection_results
+        )
 
         logger.info(
             f"Entity conflict resolution: {len(entities)} -> {len(normalization_result.normalized_entities)} entities, "
@@ -373,18 +379,16 @@ class MaskingEngine:
         self, entity1: RecognizerResult, entity2: RecognizerResult
     ) -> bool:
         """Check if two entities overlap."""
-        return not (
-            entity1.end <= entity2.start or entity2.end <= entity1.start
-        )
+        return not (entity1.end <= entity2.start or entity2.end <= entity1.start)
 
     def _find_segment_for_entity(
         self, entity: RecognizerResult, text_segments: list[TextSegment]
     ) -> Optional[TextSegment]:
         """Find the text segment that contains the given entity."""
         for segment in text_segments:
-            if segment.contains_offset(
-                entity.start
-            ) and segment.contains_offset(entity.end - 1):
+            if segment.contains_offset(entity.start) and segment.contains_offset(
+                entity.end - 1
+            ):
                 return segment
         return None
 

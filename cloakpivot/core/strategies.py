@@ -55,7 +55,7 @@ class Strategy:
     def __post_init__(self) -> None:
         """Validate strategy parameters after initialization."""
         if self.parameters is None:
-            object.__setattr__(self, 'parameters', {})
+            object.__setattr__(self, "parameters", {})
 
         # Validate parameters based on strategy kind
         self._validate_parameters()
@@ -81,11 +81,16 @@ class Strategy:
         """Validate parameters for redact strategy."""
         # Default redaction character is '*'
         if "redact_char" in params:
-            if not isinstance(params["redact_char"], str) or len(params["redact_char"]) != 1:
+            if (
+                not isinstance(params["redact_char"], str)
+                or len(params["redact_char"]) != 1
+            ):
                 raise ValueError("redact_char must be a single character string")
 
         # Optional: maintain original length
-        if "preserve_length" in params and not isinstance(params["preserve_length"], bool):
+        if "preserve_length" in params and not isinstance(
+            params["preserve_length"], bool
+        ):
             raise ValueError("preserve_length must be a boolean")
 
     def _validate_template_params(self, params: dict[str, Any]) -> None:
@@ -94,7 +99,9 @@ class Strategy:
 
         # Either template or auto_generate must be provided
         if "template" not in params and not auto_generate:
-            raise ValueError("Template strategy requires 'template' parameter or auto_generate=True")
+            raise ValueError(
+                "Template strategy requires 'template' parameter or auto_generate=True"
+            )
 
         if "template" in params:
             template = params["template"]
@@ -106,7 +113,9 @@ class Strategy:
             raise ValueError("auto_generate must be a boolean")
 
         # Validate preserve_format parameter
-        if "preserve_format" in params and not isinstance(params["preserve_format"], bool):
+        if "preserve_format" in params and not isinstance(
+            params["preserve_format"], bool
+        ):
             raise ValueError("preserve_format must be a boolean")
 
         # Optional: template validation (check for placeholders)
@@ -116,7 +125,9 @@ class Strategy:
                 # Check for common placeholder patterns like {entity_type}, {index}, etc.
                 placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
                 if not re.search(placeholder_pattern, template):
-                    raise ValueError("Template should contain placeholders like {entity_type}")
+                    raise ValueError(
+                        "Template should contain placeholders like {entity_type}"
+                    )
 
     def _validate_hash_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for hash strategy."""
@@ -147,23 +158,37 @@ class Strategy:
             if format_output not in {"hex", "base64", "base32"}:
                 raise ValueError("format_output must be 'hex', 'base64', or 'base32'")
 
-        if "consistent_length" in params and not isinstance(params["consistent_length"], bool):
+        if "consistent_length" in params and not isinstance(
+            params["consistent_length"], bool
+        ):
             raise ValueError("consistent_length must be a boolean")
 
-        if "preserve_format_structure" in params and not isinstance(params["preserve_format_structure"], bool):
+        if "preserve_format_structure" in params and not isinstance(
+            params["preserve_format_structure"], bool
+        ):
             raise ValueError("preserve_format_structure must be a boolean")
 
     def _validate_surrogate_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for surrogate strategy."""
         if "format_type" in params:
-            valid_formats = {"phone", "ssn", "credit_card", "email", "name", "address", "custom"}
+            valid_formats = {
+                "phone",
+                "ssn",
+                "credit_card",
+                "email",
+                "name",
+                "address",
+                "custom",
+            }
             if params["format_type"] not in valid_formats:
                 raise ValueError(f"Format type must be one of: {valid_formats}")
 
         if "seed" in params and not isinstance(params["seed"], str):
             raise ValueError("Seed must be a string")
 
-        if "dictionary" in params and not isinstance(params["dictionary"], (list, tuple)):
+        if "dictionary" in params and not isinstance(
+            params["dictionary"], (list, tuple)
+        ):
             raise ValueError("Dictionary must be a list or tuple")
 
         # Custom format pattern validation
@@ -197,7 +222,9 @@ class Strategy:
         if "format_aware" in params and not isinstance(params["format_aware"], bool):
             raise ValueError("format_aware must be a boolean")
 
-        if "preserve_delimiters" in params and not isinstance(params["preserve_delimiters"], bool):
+        if "preserve_delimiters" in params and not isinstance(
+            params["preserve_delimiters"], bool
+        ):
             raise ValueError("preserve_delimiters must be a boolean")
 
         if "deterministic" in params and not isinstance(params["deterministic"], bool):
@@ -215,6 +242,7 @@ class Strategy:
         # Optional: validate callback signature
         if "validate_signature" in params and params["validate_signature"]:
             import inspect
+
             sig = inspect.signature(callback)
             expected_params = {"original_text", "entity_type", "confidence"}
             actual_params = set(sig.parameters.keys())

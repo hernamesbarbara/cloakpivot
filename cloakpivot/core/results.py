@@ -46,7 +46,7 @@ class ProcessingStats:
             "failed": self.entities_failed,
             "threshold_rejected": self.confidence_threshold_rejections,
             "allow_list_skipped": self.allow_list_skips,
-            "deny_list_forced": self.deny_list_forced
+            "deny_list_forced": self.deny_list_forced,
         }
 
 
@@ -59,9 +59,15 @@ class PerformanceMetrics:
     total_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
     document_load_time: Optional[timedelta] = None
     entity_detection_time: Optional[timedelta] = None
-    detection_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
-    masking_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
-    serialization_time: Optional[timedelta] = field(default_factory=lambda: timedelta(seconds=0))
+    detection_time: Optional[timedelta] = field(
+        default_factory=lambda: timedelta(seconds=0)
+    )
+    masking_time: Optional[timedelta] = field(
+        default_factory=lambda: timedelta(seconds=0)
+    )
+    serialization_time: Optional[timedelta] = field(
+        default_factory=lambda: timedelta(seconds=0)
+    )
     cloakmap_creation_time: Optional[timedelta] = None
     memory_peak_mb: float = 0.0
     throughput_mb_per_sec: float = 0.0
@@ -110,11 +116,21 @@ class PerformanceMetrics:
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "total_duration_seconds": self.duration_seconds,
-            "document_load_seconds": self.document_load_time.total_seconds() if self.document_load_time else None,
-            "entity_detection_seconds": self.entity_detection_time.total_seconds() if self.entity_detection_time else None,
-            "masking_seconds": self.masking_time.total_seconds() if self.masking_time else None,
-            "serialization_seconds": self.serialization_time.total_seconds() if self.serialization_time else None,
-            "cloakmap_creation_seconds": self.cloakmap_creation_time.total_seconds() if self.cloakmap_creation_time else None
+            "document_load_seconds": self.document_load_time.total_seconds()
+            if self.document_load_time
+            else None,
+            "entity_detection_seconds": self.entity_detection_time.total_seconds()
+            if self.entity_detection_time
+            else None,
+            "masking_seconds": self.masking_time.total_seconds()
+            if self.masking_time
+            else None,
+            "serialization_seconds": self.serialization_time.total_seconds()
+            if self.serialization_time
+            else None,
+            "cloakmap_creation_seconds": self.cloakmap_creation_time.total_seconds()
+            if self.cloakmap_creation_time
+            else None,
         }
 
 
@@ -142,9 +158,13 @@ class DiagnosticInfo:
     @property
     def total_issues(self) -> int:
         """Get total count of all issues."""
-        return (len(self.warnings) + len(self.errors) +
-                len(self.entity_conflicts) + len(self.policy_violations) +
-                len(self.anchor_issues))
+        return (
+            len(self.warnings)
+            + len(self.errors)
+            + len(self.entity_conflicts)
+            + len(self.policy_violations)
+            + len(self.anchor_issues)
+        )
 
     @property
     def has_issues(self) -> bool:
@@ -167,8 +187,8 @@ class DiagnosticInfo:
             "summary": {
                 "has_warnings": self.has_warnings,
                 "has_errors": self.has_errors,
-                "total_issues": self.total_issues
-            }
+                "total_issues": self.total_issues,
+            },
         }
 
 
@@ -242,8 +262,12 @@ class MaskResult:
         return {
             "status": self.status.value,
             "input_file": str(self.input_file_path) if self.input_file_path else None,
-            "output_file": str(self.output_file_path) if self.output_file_path else None,
-            "cloakmap_file": str(self.cloakmap_file_path) if self.cloakmap_file_path else None,
+            "output_file": str(self.output_file_path)
+            if self.output_file_path
+            else None,
+            "cloakmap_file": str(self.cloakmap_file_path)
+            if self.cloakmap_file_path
+            else None,
             "entities_found": self.stats.total_entities_found,
             "entities_masked": self.stats.entities_masked,
             "success_rate": f"{self.stats.success_rate:.2%}",
@@ -251,28 +275,34 @@ class MaskResult:
             "entities_by_type": self.entities_by_type,
             "has_warnings": self.diagnostics.has_warnings,
             "has_errors": self.diagnostics.has_errors,
-            "cloakmap_stats": self.cloakmap.get_stats()
+            "cloakmap_stats": self.cloakmap.get_stats(),
         }
 
     def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "input_file_path": str(self.input_file_path) if self.input_file_path else None,
-            "output_file_path": str(self.output_file_path) if self.output_file_path else None,
-            "cloakmap_file_path": str(self.cloakmap_file_path) if self.cloakmap_file_path else None,
+            "input_file_path": str(self.input_file_path)
+            if self.input_file_path
+            else None,
+            "output_file_path": str(self.output_file_path)
+            if self.output_file_path
+            else None,
+            "cloakmap_file_path": str(self.cloakmap_file_path)
+            if self.cloakmap_file_path
+            else None,
             "stats": {
                 "total_entities_found": self.stats.total_entities_found,
                 "entities_masked": self.stats.entities_masked,
                 "entities_skipped": self.stats.entities_skipped,
                 "entities_failed": self.stats.entities_failed,
                 "success_rate": self.stats.success_rate,
-                "entities_by_outcome": self.stats.entities_by_outcome
+                "entities_by_outcome": self.stats.entities_by_outcome,
             },
             "performance": self.performance.to_dict(),
             "diagnostics": self.diagnostics.to_dict(),
             "cloakmap_stats": self.cloakmap.get_stats(),
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -342,7 +372,9 @@ class UnmaskResult:
     @property
     def entities_restored(self) -> int:
         """Get the number of entities successfully restored."""
-        return self.restored_stats.entities_masked  # In unmasking, this represents restored entities
+        return (
+            self.restored_stats.entities_masked
+        )  # In unmasking, this represents restored entities
 
     @property
     def restoration_rate(self) -> float:
@@ -356,9 +388,15 @@ class UnmaskResult:
         """Get a summary of the unmasking operation."""
         return {
             "status": self.status.value,
-            "masked_file": str(self.masked_file_path) if self.masked_file_path else None,
-            "output_file": str(self.output_file_path) if self.output_file_path else None,
-            "cloakmap_file": str(self.cloakmap_file_path) if self.cloakmap_file_path else None,
+            "masked_file": str(self.masked_file_path)
+            if self.masked_file_path
+            else None,
+            "output_file": str(self.output_file_path)
+            if self.output_file_path
+            else None,
+            "cloakmap_file": str(self.cloakmap_file_path)
+            if self.cloakmap_file_path
+            else None,
             "entities_restored": self.entities_restored,
             "total_anchors": self.cloakmap.anchor_count,
             "restoration_rate": f"{self.restoration_rate:.2%}",
@@ -366,26 +404,32 @@ class UnmaskResult:
             "duration_seconds": self.performance.duration_seconds,
             "has_warnings": self.diagnostics.has_warnings,
             "has_errors": self.diagnostics.has_errors,
-            "cloakmap_integrity": self.validation_results
+            "cloakmap_integrity": self.validation_results,
         }
 
     def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "masked_file_path": str(self.masked_file_path) if self.masked_file_path else None,
-            "output_file_path": str(self.output_file_path) if self.output_file_path else None,
-            "cloakmap_file_path": str(self.cloakmap_file_path) if self.cloakmap_file_path else None,
+            "masked_file_path": str(self.masked_file_path)
+            if self.masked_file_path
+            else None,
+            "output_file_path": str(self.output_file_path)
+            if self.output_file_path
+            else None,
+            "cloakmap_file_path": str(self.cloakmap_file_path)
+            if self.cloakmap_file_path
+            else None,
             "restored_stats": {
                 "entities_restored": self.entities_restored,
                 "total_anchors": self.cloakmap.anchor_count,
-                "restoration_rate": self.restoration_rate
+                "restoration_rate": self.restoration_rate,
             },
             "validation_results": self.validation_results,
             "performance": self.performance.to_dict(),
             "diagnostics": self.diagnostics.to_dict(),
             "cloakmap_stats": self.cloakmap.get_stats(),
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -399,9 +443,13 @@ class BatchResult:
 
     operation_type: str  # "mask" or "unmask"
     status: OperationStatus = OperationStatus.SUCCESS
-    individual_results: list[Union[MaskResult, UnmaskResult]] = field(default_factory=list)
+    individual_results: list[Union[MaskResult, UnmaskResult]] = field(
+        default_factory=list
+    )
     failed_files: list[str] = field(default_factory=list)
-    total_processing_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
+    total_processing_time: timedelta = field(
+        default_factory=lambda: timedelta(seconds=0)
+    )
     batch_stats: dict[str, Any] = field(default_factory=dict)
     overall_performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -456,16 +504,15 @@ class BatchResult:
             "total_entities": total_entities,
             "entities_processed": total_processed,
             "overall_duration_seconds": self.overall_performance.duration_seconds,
-            "failed_file_list": self.failed_files
+            "failed_file_list": self.failed_files,
         }
 
 
 # Utility functions for result operations
 
+
 def create_performance_metrics(
-    start_time: datetime,
-    end_time: datetime,
-    **durations: timedelta
+    start_time: datetime, end_time: datetime, **durations: timedelta
 ) -> PerformanceMetrics:
     """
     Create performance metrics with timing information.
@@ -483,12 +530,12 @@ def create_performance_metrics(
         start_time=start_time,
         end_time=end_time,
         total_time=total_time,
-        document_load_time=durations.get('document_load'),
-        entity_detection_time=durations.get('entity_detection'),
-        detection_time=durations.get('entity_detection', timedelta(seconds=0)),
-        masking_time=durations.get('masking', timedelta(seconds=0)),
-        serialization_time=durations.get('serialization', timedelta(seconds=0)),
-        cloakmap_creation_time=durations.get('cloakmap_creation')
+        document_load_time=durations.get("document_load"),
+        entity_detection_time=durations.get("entity_detection"),
+        detection_time=durations.get("entity_detection", timedelta(seconds=0)),
+        masking_time=durations.get("masking", timedelta(seconds=0)),
+        serialization_time=durations.get("serialization", timedelta(seconds=0)),
+        cloakmap_creation_time=durations.get("cloakmap_creation"),
     )
 
 
@@ -496,7 +543,7 @@ def create_processing_stats(
     entities_found: int = 0,
     entities_masked: int = 0,
     entities_skipped: int = 0,
-    **kwargs
+    **kwargs,
 ) -> ProcessingStats:
     """
     Create processing statistics with entity counts.
@@ -514,17 +561,17 @@ def create_processing_stats(
         total_entities_found=entities_found,
         entities_masked=entities_masked,
         entities_skipped=entities_skipped,
-        entities_failed=kwargs.get('entities_failed', 0),
-        confidence_threshold_rejections=kwargs.get('threshold_rejected', 0),
-        allow_list_skips=kwargs.get('allow_list_skipped', 0),
-        deny_list_forced=kwargs.get('deny_list_forced', 0)
+        entities_failed=kwargs.get("entities_failed", 0),
+        confidence_threshold_rejections=kwargs.get("threshold_rejected", 0),
+        allow_list_skips=kwargs.get("allow_list_skipped", 0),
+        deny_list_forced=kwargs.get("deny_list_forced", 0),
     )
 
 
 def create_diagnostics(
     warnings: Optional[list[str]] = None,
     errors: Optional[list[str]] = None,
-    **issue_lists: list[Any]
+    **issue_lists: list[Any],
 ) -> DiagnosticInfo:
     """
     Create diagnostic information with issue lists.
@@ -540,7 +587,7 @@ def create_diagnostics(
     return DiagnosticInfo(
         warnings=warnings or [],
         errors=errors or [],
-        entity_conflicts=issue_lists.get('entity_conflicts', []),
-        policy_violations=issue_lists.get('policy_violations', []),
-        anchor_issues=issue_lists.get('anchor_issues', [])
+        entity_conflicts=issue_lists.get("entity_conflicts", []),
+        policy_violations=issue_lists.get("policy_violations", []),
+        anchor_issues=issue_lists.get("anchor_issues", []),
     )

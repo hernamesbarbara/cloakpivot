@@ -76,9 +76,7 @@ class DocumentMasker:
             logger.debug("No anchor entries provided, no masking applied")
             return
 
-        logger.info(
-            f"Applying masking to {len(anchor_entries)} locations in document"
-        )
+        logger.info(f"Applying masking to {len(anchor_entries)} locations in document")
 
         # Group anchor entries by node ID for efficient processing
         anchors_by_node = self._group_anchors_by_node(anchor_entries)
@@ -128,9 +126,7 @@ class DocumentMasker:
         elif isinstance(node_item, KeyValueItem):
             self._mask_key_value_node(node_item, node_id, anchors)
         else:
-            logger.warning(
-                f"Unsupported node type for masking: {type(node_item)}"
-            )
+            logger.warning(f"Unsupported node type for masking: {type(node_item)}")
 
     def _find_node_by_id(
         self, document: DoclingDocument, node_id: str
@@ -240,10 +236,7 @@ class DocumentMasker:
             return
 
         table_data = table_item.data
-        if (
-            not hasattr(table_data, "table_cells")
-            or not table_data.table_cells
-        ):
+        if not hasattr(table_data, "table_cells") or not table_data.table_cells:
             logger.warning("Table data has no cells to mask")
             return
 
@@ -327,9 +320,7 @@ class DocumentMasker:
             original_text = kv_item.key.text
             modified_text = original_text
 
-            for anchor in sorted(
-                key_anchors, key=lambda a: a.start, reverse=True
-            ):
+            for anchor in sorted(key_anchors, key=lambda a: a.start, reverse=True):
                 if anchor.end <= len(modified_text):
                     modified_text = (
                         modified_text[: anchor.start]
@@ -350,9 +341,7 @@ class DocumentMasker:
             original_text = kv_item.value.text
             modified_text = original_text
 
-            for anchor in sorted(
-                value_anchors, key=lambda a: a.start, reverse=True
-            ):
+            for anchor in sorted(value_anchors, key=lambda a: a.start, reverse=True):
                 if anchor.end <= len(modified_text):
                     modified_text = (
                         modified_text[: anchor.start]

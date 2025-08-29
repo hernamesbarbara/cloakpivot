@@ -396,7 +396,7 @@ class AnchorMapper:
             if node_ref.start_pos < len(original_text) and node_ref.end_pos <= len(
                 original_text
             ):
-                return original_text[node_ref.start_pos:node_ref.end_pos]
+                return original_text[node_ref.start_pos : node_ref.end_pos]
 
         # Fall back to segment text
         if 0 <= node_ref.segment_index < len(segments):
@@ -406,7 +406,7 @@ class AnchorMapper:
                 if node_ref.start_pos < len(segment_text) and node_ref.end_pos <= len(
                     segment_text
                 ):
-                    return segment_text[node_ref.start_pos:node_ref.end_pos]
+                    return segment_text[node_ref.start_pos : node_ref.end_pos]
 
         logger.error(f"Could not extract original text for {node_ref}")
         return None

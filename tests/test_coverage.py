@@ -148,6 +148,97 @@ class TestCoverageAnalyzer:
         assert paragraph_coverage.segments_with_entities == 1
         assert paragraph_coverage.coverage_rate == 0.5
 
+    def test_analyze_coverage_with_invalid_anchor_entries(self, sample_text_segments):
+        """Test coverage analysis with invalid anchor entries."""
+        analyzer = CoverageAnalyzer()
+        
+        # Test with anchor entry missing required attributes
+        invalid_anchor = MagicMock()
+        invalid_anchor.node_id = None  # Invalid node_id
+        
+        with pytest.raises(ValueError, match="references invalid node_id 'None'"):
+            analyzer.analyze_document_coverage(
+                text_segments=sample_text_segments,
+                anchor_entries=[invalid_anchor]
+            )
+
+    def test_analyze_coverage_with_invalid_node_id(self, sample_text_segments):
+        """Test coverage analysis with anchor referencing non-existent node_id."""
+        analyzer = CoverageAnalyzer()
+        
+        # Create anchor entry with invalid node_id
+        invalid_anchor = AnchorEntry.create_from_detection(
+            node_id="non_existent_node",  # This node_id doesn't exist in text_segments
+            start=0,
+            end=5,
+            entity_type="PERSON", 
+            confidence=0.95,
+            original_text="Test",
+            masked_value="[PERSON]",
+            strategy_used="template",
+            replacement_id="repl_1"
+        )
+        
+        with pytest.raises(ValueError, match="references invalid node_id 'non_existent_node'"):
+            analyzer.analyze_document_coverage(
+                text_segments=sample_text_segments,
+                anchor_entries=[invalid_anchor]
+            )
+
+    def test_analyze_coverage_with_invalid_positions(self, sample_text_segments):
+        """Test coverage analysis with invalid start/end positions."""
+        analyzer = CoverageAnalyzer()
+        
+        # Test that creating anchor entry with negative positions raises error
+        with pytest.raises(ValueError, match="start position must be a non-negative integer"):
+            AnchorEntry.create_from_detection(
+                node_id="paragraph_1",
+                start=-1,  # Invalid negative position
+                end=5,
+                entity_type="PERSON", 
+                confidence=0.95,
+                original_text="Test",
+                masked_value="[PERSON]",
+                strategy_used="template",
+                replacement_id="repl_1"
+            )
+
+    def test_analyze_coverage_with_invalid_range(self, sample_text_segments):
+        """Test coverage analysis with invalid start >= end range."""
+        analyzer = CoverageAnalyzer()
+        
+        # Test that creating anchor entry with start >= end raises error
+        with pytest.raises(ValueError, match="end position must be greater than start position"):
+            AnchorEntry.create_from_detection(
+                node_id="paragraph_1",
+                start=10,
+                end=5,  # end < start is invalid
+                entity_type="PERSON", 
+                confidence=0.95,
+                original_text="Test",
+                masked_value="[PERSON]",
+                strategy_used="template",
+                replacement_id="repl_1"
+            )
+
+    def test_analyze_coverage_with_empty_entity_type(self, sample_text_segments):
+        """Test coverage analysis with empty entity_type."""
+        analyzer = CoverageAnalyzer()
+        
+        # Test that creating anchor entry with empty entity_type raises error
+        with pytest.raises(ValueError, match="entity_type must be a non-empty string"):
+            AnchorEntry.create_from_detection(
+                node_id="paragraph_1",
+                start=0,
+                end=5,
+                entity_type="",  # Empty entity_type is invalid
+                confidence=0.95,
+                original_text="Test",
+                masked_value="[PERSON]",
+                strategy_used="template",
+                replacement_id="repl_1"
+            )
+
     def test_analyze_entity_distribution(self, sample_text_segments, sample_anchor_entries):
         """Test entity type distribution analysis."""
         analyzer = CoverageAnalyzer()

@@ -25,6 +25,7 @@ class ChunkedTextSegment(TextSegment):
         is_chunk_boundary: True if this segment spans across chunk boundaries
         original_segment_id: Reference to the original segment before chunking
     """
+
     chunk_id: str = ""
     chunk_start: int = 0
     chunk_end: int = 0
@@ -59,6 +60,7 @@ class ChunkedTextSegment(TextSegment):
 @dataclass
 class ChunkBoundary:
     """Information about chunk boundaries and cross-chunk references."""
+
     chunk_id: str
     start_offset: int
     end_offset: int
@@ -74,7 +76,7 @@ class ChunkBoundary:
 class ChunkedDocumentProcessor:
     """
     Processor for breaking large documents into manageable chunks.
-    
+
     This processor segments documents into configurable chunks while maintaining
     structural boundaries and cross-chunk reference tracking for anchor mapping.
     """
@@ -89,7 +91,7 @@ class ChunkedDocumentProcessor:
     ) -> None:
         """
         Initialize chunked document processor.
-        
+
         Args:
             chunk_size: Target size per chunk in characters (None for env default)
             overlap_size: Overlap between chunks to handle boundary cases
@@ -112,25 +114,31 @@ class ChunkedDocumentProcessor:
             try:
                 chunk_size = int(env_chunk_size)
                 if chunk_size <= 0:
-                    logger.warning(f"Invalid CLOAKPIVOT_CHUNK_SIZE: {chunk_size}, using default")
+                    logger.warning(
+                        f"Invalid CLOAKPIVOT_CHUNK_SIZE: {chunk_size}, using default"
+                    )
                     return self.DEFAULT_CHUNK_SIZE
                 return chunk_size
             except ValueError:
-                logger.warning(f"Invalid CLOAKPIVOT_CHUNK_SIZE format: {env_chunk_size}, using default")
+                logger.warning(
+                    f"Invalid CLOAKPIVOT_CHUNK_SIZE format: {env_chunk_size}, using default"
+                )
 
         return self.DEFAULT_CHUNK_SIZE
 
     def chunk_document(self, document: DoclingDocument) -> list[ChunkBoundary]:
         """
         Break document into chunks with boundary tracking.
-        
+
         Args:
             document: DoclingDocument to chunk
-            
+
         Returns:
             List of ChunkBoundary objects representing the chunks
         """
-        logger.info(f"Chunking document {document.name} with chunk size {self.chunk_size}")
+        logger.info(
+            f"Chunking document {document.name} with chunk size {self.chunk_size}"
+        )
 
         # Extract all text segments first
         segments = self.text_extractor.extract_text_segments(document)
@@ -179,8 +187,10 @@ class ChunkedDocumentProcessor:
             cross_chunk_segments = []
 
             for segment in chunk_segments:
-                is_boundary = (segment.start_offset < current_offset or
-                              segment.end_offset > chunk_end)
+                is_boundary = (
+                    segment.start_offset < current_offset
+                    or segment.end_offset > chunk_end
+                )
 
                 if is_boundary:
                     cross_chunk_segments.append(segment.node_id)
@@ -236,7 +246,7 @@ class ChunkedDocumentProcessor:
         result = []
         for segment in segments:
             # Check if segment intersects with chunk range
-            if (segment.start_offset < end and segment.end_offset > start):
+            if segment.start_offset < end and segment.end_offset > start:
                 result.append(segment)
         return result
 
@@ -282,24 +292,23 @@ class ChunkedDocumentProcessor:
     def iterate_chunks(self, document: DoclingDocument) -> Iterator[ChunkBoundary]:
         """
         Iterate through document chunks for streaming processing.
-        
+
         Args:
             document: DoclingDocument to process
-            
+
         Yields:
             ChunkBoundary: Each chunk in sequence
         """
         chunks = self.chunk_document(document)
-        for chunk in chunks:
-            yield chunk
+        yield from chunks
 
     def extract_chunk_text(self, chunk: ChunkBoundary) -> str:
         """
         Extract the full text content for a chunk.
-        
+
         Args:
             chunk: ChunkBoundary to extract text from
-            
+
         Returns:
             Combined text content of all segments in the chunk
         """
