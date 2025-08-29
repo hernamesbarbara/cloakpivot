@@ -146,3 +146,6 @@ Thumbs.db
 mcp.log
 semantic.db
 .swissarmyhammer/
+
+# Scratch files
+TEST_FAILURES.md

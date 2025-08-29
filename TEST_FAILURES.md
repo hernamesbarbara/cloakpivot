@@ -1,16 +1,21 @@
 # Test Failures
 
-## Failed Tests:
-- tests/test_coverage.py::TestCoverageAnalyzer::test_analyze_coverage_with_invalid_anchor_entries
-- tests/test_coverage.py::TestCoverageAnalyzer::test_analyze_coverage_with_invalid_positions
-- tests/test_coverage.py::TestCoverageAnalyzer::test_analyze_coverage_with_invalid_range
-- tests/test_coverage.py::TestCoverageAnalyzer::test_analyze_coverage_with_empty_entity_type
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_masking_statistics_with_null_stats
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_performance_metrics_with_missing_fields
+The following tests are currently failing:
 
-## Error Tests:
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_masking_statistics_basic
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_masking_statistics_with_confidence_distribution
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_masking_statistics_strategy_breakdown
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_collect_performance_metrics
-- tests/test_diagnostics.py::TestDiagnosticsCollector::test_generate_comprehensive_report
+## tests/test_batch_cli.py::TestBatchCLI
+- test_batch_mask_basic
+- test_batch_mask_with_failures
+- test_batch_unmask_basic
+- test_batch_analyze_basic
+- test_batch_keyboard_interrupt
+- test_load_masking_policy_yaml
+- test_load_masking_policy_enhanced_loader
+
+## tests/test_batch_processing.py::TestBatchProcessor
+- test_batch_processor_creation
+- test_calculate_cloakmap_path_mask
+- test_filter_existing_files
+
+## tests/test_batch_processing.py::TestBatchProcessorIntegration
+- test_process_batch_mock_operations
+- test_process_batch_with_failures

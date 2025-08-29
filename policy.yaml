@@ -1,0 +1,9 @@
+locale: "en"
+default_strategy:
+  kind: "redact"
+  parameters:
+    redact_char: "*"
+per_entity:
+  PERSON:
+    kind: "hash"
+    threshold: 0.8
