@@ -1,0 +1,10 @@
+{
+  "test_case": "nested_structure",
+  "line_count_preserved": true,
+  "entity_mappings": 7,
+  "structure_markers": {
+    "has_table_separators": false,
+    "has_section_headers": true,
+    "has_indentation": true
+  }
+}

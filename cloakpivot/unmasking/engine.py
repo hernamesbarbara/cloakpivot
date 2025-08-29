@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -31,6 +32,11 @@ class UnmaskingResult:
     cloakmap: CloakMap
     stats: Optional[dict[str, Any]] = None
     integrity_report: Optional[dict[str, Any]] = None
+
+    @property
+    def unmasked_document(self) -> DoclingDocument:
+        """Alias for restored_document for backward compatibility."""
+        return self.restored_document
 
 
 class UnmaskingEngine:
@@ -94,6 +100,20 @@ class UnmaskingEngine:
             cloakmap_obj = self.cloakmap_loader.load(cloakmap)
         else:
             raise ValueError("cloakmap must be a CloakMap")
+
+        # Handle empty CloakMap case - if no anchors exist, return document unchanged
+        if not cloakmap_obj.anchors:
+            logger.warning("CloakMap contains no anchors - returning document unchanged")
+            return UnmaskingResult(
+                restored_document=self._copy_document(masked_document),
+                cloakmap=cloakmap_obj,
+                stats={
+                    "total_anchors_processed": 0,
+                    "successful_restorations": 0,
+                    "failed_restorations": 0,
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
 
         # Validate remaining inputs
         self._validate_inputs(masked_document, cloakmap_obj)

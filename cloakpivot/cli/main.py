@@ -396,10 +396,19 @@ def mask(
         if not cloakmap:
             cloakmap = input_path.with_suffix(".cloakmap.json")
 
-        # Load document
+        # Load document and detect input format
         with click.progressbar(length=1, label="Loading document") as progress:
             processor = DocumentProcessor()
             document = processor.load_document(input_path, validate=True)
+            
+            # Detect input document format for round-trip preservation
+            from cloakpivot.formats.serialization import CloakPivotSerializer
+            format_serializer = CloakPivotSerializer()
+            detected_input_format = format_serializer.detect_format(input_path)
+            
+            if verbose:
+                click.echo(f"📋 Detected input format: {detected_input_format or 'unknown'}")
+            
             progress.update(1)
 
         if verbose:
@@ -456,8 +465,8 @@ def mask(
             if not click.confirm("Continue with masking anyway?"):
                 raise click.Abort()
 
-        # Initialize masking engine
-        masking_engine = MaskingEngine()
+        # Initialize masking engine with conflict resolution enabled
+        masking_engine = MaskingEngine(resolve_conflicts=True)
 
         # Extract text segments (needed for masking engine)
         from cloakpivot.document.extractor import TextExtractor
@@ -491,6 +500,7 @@ def mask(
                 entities=entities,
                 policy=masking_policy,
                 text_segments=text_segments,
+                original_format=detected_input_format,
             )
             progress.update(1)
 
@@ -506,8 +516,13 @@ def mask(
             from cloakpivot.formats.serialization import CloakPivotSerializer
 
             serializer = CloakPivotSerializer()
+            
+            # For round-trip fidelity, preserve the original format when detected
+            # Only use the explicit output_format if it differs from detected format
+            preserve_format = detected_input_format or output_format
+            
             result = serializer.serialize_document(
-                masking_result.masked_document, output_format
+                masking_result.masked_document, preserve_format
             )
 
             with open(output_path, "w", encoding="utf-8") as f:
@@ -684,8 +699,18 @@ def unmask(
                     from cloakpivot.formats.serialization import CloakPivotSerializer
 
                     serializer = CloakPivotSerializer()
-                    # Detect output format from file extension or default to lexical
-                    output_format = serializer.detect_format(output_path) or "lexical"
+                    
+                    # Try to restore to original format from CloakMap metadata
+                    original_format = cloakmap_obj.metadata.get("original_format")
+                    if original_format:
+                        output_format = original_format
+                        if verbose:
+                            click.echo(f"🔄 Restoring to original format: {original_format}")
+                    else:
+                        # Fallback to detecting from file extension or default to lexical
+                        output_format = serializer.detect_format(output_path) or "lexical"
+                        if verbose:
+                            click.echo(f"⚠️  No original format found, using: {output_format}")
 
                     result = serializer.serialize_document(
                         unmasking_result.restored_document, output_format

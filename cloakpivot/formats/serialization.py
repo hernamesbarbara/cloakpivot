@@ -105,7 +105,7 @@ class CloakPivotSerializer:
             
             # Perform serialization
             logger.debug(f"Serializing document to {format_name} format")
-            serialized_content = serializer.serialize(document)
+            serialized_content = serializer.serialize()
             
             # Handle different return types from docpivot serializers
             if hasattr(serialized_content, 'text'):
@@ -332,8 +332,23 @@ class CloakPivotSerializer:
         Returns:
             Detected format name or None
         """
-        detected = self._registry.detect_format_from_path(file_path)
-        return detected.value if detected else None
+        path = Path(file_path)
+        
+        # For ambiguous extensions like .json, prioritize content-based detection
+        try:
+            content = path.read_text(encoding='utf-8')
+            detected = self._registry.detect_format_from_content(content, path)
+            if detected:
+                return detected.value
+        except Exception:
+            pass
+            
+        # Fallback to path-based detection
+        detected = self._registry.detect_format_from_path(path)
+        if detected:
+            return detected.value
+            
+        return None
     
     def get_format_info(self, format_name: str) -> Dict[str, Any]:
         """Get information about a format.

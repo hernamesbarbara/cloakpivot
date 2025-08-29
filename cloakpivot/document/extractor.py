@@ -101,12 +101,13 @@ class TextExtractor:
         >>> print(f"Extracted {len(segments)} segments, {len(full_text)} characters")
     """
 
-    def __init__(self, normalize_whitespace: bool = True) -> None:
+    def __init__(self, normalize_whitespace: bool = False) -> None:
         """
         Initialize the text extractor.
 
         Args:
             normalize_whitespace: Whether to normalize whitespace in extracted text
+                                 Default is False to preserve round-trip fidelity
         """
         self.normalize_whitespace = normalize_whitespace
         self._segment_separator = "\n\n"  # Separator between text segments
@@ -407,25 +408,28 @@ class TextExtractor:
 
     def _normalize_whitespace(self, text: str) -> str:
         """
-        Normalize whitespace in text while preserving readability.
+        Normalize whitespace in text while preserving essential formatting.
+        
+        This is a conservative normalization that preserves round-trip fidelity
+        while still handling some common whitespace issues.
 
         Args:
             text: Input text to normalize
 
         Returns:
-            str: Text with normalized whitespace
+            str: Text with conservatively normalized whitespace
         """
-        # Replace multiple whitespace with single spaces, but preserve line breaks
         import re
-
-        # First, normalize line endings
-        text = re.sub(r"\r\n|\r", "\n", text)
-
-        # Replace multiple spaces with single space
-        text = re.sub(r"[ \t]+", " ", text)
-
-        # Replace multiple line breaks with double line break
-        text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
-
-        # Strip leading/trailing whitespace
-        return text.strip()
+        
+        # Only do minimal normalization to preserve round-trip fidelity
+        # Convert Windows line endings to Unix, but preserve standalone \r
+        text = re.sub(r"\r\n", "\n", text)
+        
+        # Only collapse excessive consecutive spaces (3 or more), not all multiple spaces
+        text = re.sub(r"   +", "  ", text)  # Reduce 3+ spaces to 2 spaces
+        
+        # Only collapse excessive line breaks (4 or more), preserve structure
+        text = re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
+        
+        # Do NOT strip leading/trailing whitespace as it may be significant
+        return text

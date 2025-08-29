@@ -153,7 +153,11 @@ class FormatRegistry:
                 
                 # Check for docling-specific fields
                 if isinstance(data, dict):
-                    if "texts" in data and "tables" in data:
+                    # DoclingDocument format has schema_name field and other specific structure
+                    if "schema_name" in data and data.get("schema_name") == "DoclingDocument":
+                        return SupportedFormat.DOCLING
+                    elif "texts" in data and "tables" in data and "schema_name" not in data:
+                        # Legacy or variant DoclingDocument format
                         return SupportedFormat.DOCLING
                     elif "root" in data and "children" in data:
                         return SupportedFormat.LEXICAL
@@ -205,15 +209,19 @@ class FormatRegistry:
         if format_name == "docling":
             # For docling format, we use the DoclingDocument's native export_to_dict method
             class DoclingSerializer:
-                def serialize(self, document):
+                def __init__(self, document):
+                    self.document = document
+                
+                def serialize(self):
                     import json
-                    result_dict = document.export_to_dict()
+                    # Use model_dump() instead of export_to_dict() for complete serialization
+                    result_dict = self.document.model_dump()
                     return json.dumps(result_dict, indent=2)
             
             if document is None:
-                return lambda doc: DoclingSerializer()
+                return lambda doc: DoclingSerializer(doc)
             else:
-                return DoclingSerializer()
+                return DoclingSerializer(document)
         
         # Check if format is supported by docpivot
         if not self._provider.is_format_supported(format_name):

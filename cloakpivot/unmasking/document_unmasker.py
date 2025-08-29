@@ -566,12 +566,16 @@ class DocumentUnmasker:
         """
         Get the original content for an anchor.
 
-        This is a placeholder implementation. In a full system, this would:
-        1. Use the original_content_provider to lookup secure content
-        2. Decrypt content using keys managed by a key management system
-        3. Fetch content from a secure vault or escrow system
-        4. Use deterministic regeneration for certain content types
+        First tries to retrieve from anchor metadata, then falls back to content provider,
+        and finally to placeholder generation.
         """
+        # First, try to get original text from anchor metadata
+        if anchor.metadata and "original_text" in anchor.metadata:
+            original_text = anchor.metadata["original_text"]
+            logger.debug(f"Retrieved original text from metadata for {anchor.replacement_id}: '{original_text}'")
+            return original_text
+
+        # Fallback to content provider if available
         if original_content_provider and hasattr(
             original_content_provider, "get_content"
         ):
@@ -584,7 +588,8 @@ class DocumentUnmasker:
                     f"Content provider failed for {anchor.replacement_id}: {e}"
                 )
 
-        # For now, return None to trigger placeholder generation
+        # Return None to trigger placeholder generation as last resort
+        logger.debug(f"No original content found for {anchor.replacement_id}, will use placeholder")
         return None
 
     def _generate_placeholder_content(self, anchor) -> str:

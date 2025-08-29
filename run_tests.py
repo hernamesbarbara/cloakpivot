@@ -1,222 +1,385 @@
 #!/usr/bin/env python3
-"""Test runner script for CloakPivot with performance management.
+"""Comprehensive test runner for CloakPivot testing suite.
 
-This script provides different test execution modes with proper marker handling
-for performance optimization of property-based tests.
+This script provides different test execution modes and reporting options
+for the comprehensive testing infrastructure.
 """
 
 import argparse
-import os
 import subprocess
 import sys
+from pathlib import Path
+from typing import List, Optional
 
 
-def run_command(cmd: list[str], description: str) -> int:
-    """Run a shell command and return the exit code."""
+def run_command(cmd: List[str], description: str) -> int:
+    """Run a command and return exit code."""
+    print(f"\n{'=' * 60}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
-    print("-" * 60)
-
-    result = subprocess.run(cmd, capture_output=False)
-    print("-" * 60)
-    print(f"Exit code: {result.returncode}")
-    print()
-
+    print('=' * 60)
+    
+    result = subprocess.run(cmd, cwd=Path(__file__).parent)
+    if result.returncode != 0:
+        print(f"❌ {description} failed with exit code {result.returncode}")
+    else:
+        print(f"✅ {description} completed successfully")
+    
     return result.returncode
 
 
-def main() -> int:
-    """Main entry point for the test runner."""
+def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
+    """Run unit tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/",
+        "-m", "unit or not (integration or e2e or golden or performance or slow)"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    if coverage:
+        cmd.extend([
+            "--cov=cloakpivot",
+            "--cov-report=term-missing",
+            "--cov-report=html:htmlcov",
+            "--cov-fail-under=80"
+        ])
+    
+    # Parallel execution
+    cmd.extend(["-n", "auto"])
+    
+    return run_command(cmd, "Unit Tests")
+
+
+def run_integration_tests(verbose: bool = False) -> int:
+    """Run integration tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/integration/",
+        "-m", "integration"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    # Longer timeout for integration tests
+    cmd.extend(["--timeout=300"])
+    
+    return run_command(cmd, "Integration Tests")
+
+
+def run_golden_file_tests(verbose: bool = False) -> int:
+    """Run golden file regression tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/integration/test_golden_files.py",
+        "-m", "golden"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    return run_command(cmd, "Golden File Regression Tests")
+
+
+def run_round_trip_tests(verbose: bool = False) -> int:
+    """Run round-trip fidelity tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/integration/test_round_trip.py"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    return run_command(cmd, "Round-Trip Fidelity Tests")
+
+
+def run_property_based_tests(verbose: bool = False) -> int:
+    """Run property-based tests with Hypothesis."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/integration/test_property_based.py"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    # Hypothesis settings
+    cmd.extend(["--hypothesis-show-statistics"])
+    
+    return run_command(cmd, "Property-Based Tests (Hypothesis)")
+
+
+def run_e2e_tests(verbose: bool = False) -> int:
+    """Run end-to-end CLI tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/e2e/",
+        "-m", "e2e"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    # Longer timeout for E2E tests
+    cmd.extend(["--timeout=600"])
+    
+    return run_command(cmd, "End-to-End Tests")
+
+
+def run_performance_tests(verbose: bool = False) -> int:
+    """Run performance benchmark tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/performance/",
+        "-m", "performance"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    # Performance-specific options
+    cmd.extend([
+        "--benchmark-only",
+        "--benchmark-sort=mean"
+    ])
+    
+    return run_command(cmd, "Performance Tests")
+
+
+def run_slow_tests(verbose: bool = False) -> int:
+    """Run slow/stress tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection
+    cmd.extend([
+        "tests/",
+        "-m", "slow"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    # Very long timeout for slow tests
+    cmd.extend(["--timeout=1800"])  # 30 minutes
+    
+    return run_command(cmd, "Slow/Stress Tests")
+
+
+def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
+    """Run all fast tests (unit + integration, excluding slow/performance)."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection - exclude slow and performance tests
+    cmd.extend([
+        "tests/",
+        "-m", "not (slow or performance)"
+    ])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    if coverage:
+        cmd.extend([
+            "--cov=cloakpivot",
+            "--cov-report=term-missing",
+            "--cov-report=html:htmlcov",
+            "--cov-fail-under=75"  # Slightly lower for comprehensive suite
+        ])
+    
+    # Parallel execution
+    cmd.extend(["-n", "auto"])
+    
+    return run_command(cmd, "All Fast Tests")
+
+
+def run_comprehensive_tests(verbose: bool = False, coverage: bool = True) -> int:
+    """Run comprehensive test suite including slow tests."""
+    cmd = ["python", "-m", "pytest"]
+    
+    # Test selection - all tests
+    cmd.extend(["tests/"])
+    
+    # Options
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.extend(["-q", "--tb=short"])
+    
+    if coverage:
+        cmd.extend([
+            "--cov=cloakpivot",
+            "--cov-report=term-missing",
+            "--cov-report=html:htmlcov",
+            "--cov-report=xml:coverage.xml",  # For CI systems
+            "--cov-fail-under=70"  # Lower threshold for full suite
+        ])
+    
+    # Long timeout for comprehensive suite
+    cmd.extend(["--timeout=1800"])
+    
+    return run_command(cmd, "Comprehensive Test Suite")
+
+
+def lint_and_format() -> int:
+    """Run linting and formatting checks."""
+    print("\n" + "=" * 60)
+    print("Running Code Quality Checks")
+    print("=" * 60)
+    
+    exit_codes = []
+    
+    # Black formatting check
+    result = subprocess.run(["black", "--check", "--diff", "cloakpivot", "tests"])
+    if result.returncode != 0:
+        print("❌ Black formatting issues found")
+        exit_codes.append(result.returncode)
+    else:
+        print("✅ Black formatting looks good")
+    
+    # Ruff linting
+    result = subprocess.run(["ruff", "check", "cloakpivot", "tests"])
+    if result.returncode != 0:
+        print("❌ Ruff linting issues found")
+        exit_codes.append(result.returncode)
+    else:
+        print("✅ Ruff linting passed")
+    
+    # MyPy type checking
+    result = subprocess.run(["mypy", "cloakpivot"])
+    if result.returncode != 0:
+        print("❌ MyPy type checking issues found")
+        exit_codes.append(result.returncode)
+    else:
+        print("✅ MyPy type checking passed")
+    
+    return max(exit_codes) if exit_codes else 0
+
+
+def main():
+    """Main test runner entry point."""
     parser = argparse.ArgumentParser(
-        description="Test runner for CloakPivot with performance management",
+        description="CloakPivot Comprehensive Test Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Test Categories:
+  unit          - Fast unit tests for individual components
+  integration   - Integration tests with golden files and round-trip testing
+  e2e           - End-to-end CLI workflow tests
+  performance   - Performance benchmarks and regression tests
+  property      - Property-based tests using Hypothesis
+  slow          - Slow/stress tests and comprehensive scenarios
+  fast          - All tests except slow and performance tests
+  all           - Complete test suite including slow tests
+  
 Examples:
-  python run_tests.py unit                    # Run unit tests only
-  python run_tests.py property --fast         # Run property tests with fast profile
-  python run_tests.py property --ci           # Run property tests with CI profile
-  python run_tests.py slow                    # Run slow and performance tests
-  python run_tests.py all --skip-slow         # Run all tests except slow ones
+  python run_tests.py unit --coverage
+  python run_tests.py integration --verbose
+  python run_tests.py fast
+  python run_tests.py all --verbose --coverage
         """
     )
-
-    subparsers = parser.add_subparsers(dest='command', help='Test execution mode')
-
-    # Unit tests subcommand
-    unit_parser = subparsers.add_parser(
-        'unit',
-        help='Run unit tests only (excludes property-based tests)'
+    
+    parser.add_argument(
+        "test_type",
+        choices=[
+            "unit", "integration", "golden", "round-trip", "property", 
+            "e2e", "performance", "slow", "fast", "all", "lint"
+        ],
+        help="Type of tests to run"
     )
-    unit_parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
+    
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Verbose output"
     )
-
-    # Property tests subcommand
-    property_parser = subparsers.add_parser(
-        'property',
-        help='Run property-based tests with performance optimization'
+    
+    parser.add_argument(
+        "--coverage", "-c",
+        action="store_true",
+        default=True,
+        help="Include coverage reporting (default: True)"
     )
-    property_parser.add_argument(
-        '--fast',
-        action='store_true',
-        help='Use fast profile (10 examples, no shrinking)'
+    
+    parser.add_argument(
+        "--no-coverage",
+        action="store_false",
+        dest="coverage",
+        help="Disable coverage reporting"
     )
-    property_parser.add_argument(
-        '--ci',
-        action='store_true',
-        help='Use CI profile (12 examples, limited shrinking)'
-    )
-    property_parser.add_argument(
-        '--thorough',
-        action='store_true',
-        help='Use thorough profile (100 examples, full shrinking)'
-    )
-    property_parser.add_argument(
-        '--show-stats',
-        action='store_true',
-        help='Show Hypothesis statistics'
-    )
-
-    # Slow tests subcommand
-    slow_parser = subparsers.add_parser(
-        'slow',
-        help='Run slow and performance tests only'
-    )
-    slow_parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
-    )
-
-    # All tests subcommand
-    all_parser = subparsers.add_parser(
-        'all',
-        help='Run all tests'
-    )
-    all_parser.add_argument(
-        '--skip-slow',
-        action='store_true',
-        help='Skip slow and performance tests'
-    )
-    all_parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
-    )
-
+    
     args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        return 1
-
-    # Base pytest command
-    base_cmd = ['python', '-m', 'pytest']
-
-    if args.command == 'unit':
-        # Run unit tests only, excluding property-based tests
-        cmd = base_cmd + [
-            '-m', 'not property',
-            'tests/',
-        ]
-        if args.verbose:
-            cmd.append('-v')
-
-        return run_command(cmd, "Unit tests (excluding property-based tests)")
-
-    elif args.command == 'property':
-        # Set up environment for Hypothesis profile
-        env = os.environ.copy()
-
-        if args.fast:
-            env['HYPOTHESIS_PROFILE'] = 'fast'
-            profile_desc = 'fast profile (10 examples)'
-        elif args.ci:
-            env['HYPOTHESIS_PROFILE'] = 'ci'
-            profile_desc = 'CI profile (12 examples)'
-        elif args.thorough:
-            env['HYPOTHESIS_PROFILE'] = 'thorough'
-            profile_desc = 'thorough profile (100 examples)'
-        else:
-            # Default to fast for property tests
-            env['HYPOTHESIS_PROFILE'] = 'fast'
-            profile_desc = 'default fast profile (10 examples)'
-
-        # Run property tests, excluding slow/performance tests
-        cmd = base_cmd + [
-            '-m', 'property and not slow and not performance',
-            'tests/',
-        ]
-
-        if args.show_stats:
-            cmd.append('--hypothesis-show-statistics')
-
-        print(f"Using Hypothesis {profile_desc}")
-        result = subprocess.run(cmd, env=env, capture_output=False)
-        print("-" * 60)
-        print(f"Exit code: {result.returncode}")
-
-        return result.returncode
-
-    elif args.command == 'slow':
-        # Run slow and performance tests only
-        cmd = base_cmd + [
-            '-m', 'slow or performance',
-            'tests/',
-            '--hypothesis-show-statistics',  # Always show stats for slow tests
-        ]
-        if args.verbose:
-            cmd.append('-v')
-
-        # Use thorough profile for slow tests
-        env = os.environ.copy()
-        env['HYPOTHESIS_PROFILE'] = 'thorough'
-
-        print("Using Hypothesis thorough profile for slow/performance tests")
-        result = subprocess.run(cmd, env=env, capture_output=False)
-        print("-" * 60)
-        print(f"Exit code: {result.returncode}")
-
-        return result.returncode
-
-    elif args.command == 'all':
-        # Run all tests
-        if args.skip_slow:
-            cmd = base_cmd + [
-                '-m', 'not slow and not performance',
-                'tests/',
-            ]
-            description = "All tests (excluding slow and performance tests)"
-        else:
-            cmd = base_cmd + [
-                'tests/',
-                '--hypothesis-show-statistics',
-            ]
-            description = "All tests (including slow and performance tests)"
-
-            # Use thorough profile when including slow tests
-            env = os.environ.copy()
-            env['HYPOTHESIS_PROFILE'] = 'thorough'
-
-            if args.verbose:
-                cmd.append('-v')
-
-            print("Using Hypothesis thorough profile for comprehensive testing")
-            result = subprocess.run(cmd, env=env, capture_output=False)
-            print("-" * 60)
-            print(f"Exit code: {result.returncode}")
-
-            return result.returncode
-
-        if args.verbose:
-            cmd.append('-v')
-
-        return run_command(cmd, description)
-
-    return 0
+    
+    # Test type routing
+    test_runners = {
+        "unit": lambda: run_unit_tests(args.verbose, args.coverage),
+        "integration": lambda: run_integration_tests(args.verbose),
+        "golden": lambda: run_golden_file_tests(args.verbose),
+        "round-trip": lambda: run_round_trip_tests(args.verbose),
+        "property": lambda: run_property_based_tests(args.verbose),
+        "e2e": lambda: run_e2e_tests(args.verbose),
+        "performance": lambda: run_performance_tests(args.verbose),
+        "slow": lambda: run_slow_tests(args.verbose),
+        "fast": lambda: run_all_fast_tests(args.verbose, args.coverage),
+        "all": lambda: run_comprehensive_tests(args.verbose, args.coverage),
+        "lint": lambda: lint_and_format(),
+    }
+    
+    runner = test_runners[args.test_type]
+    exit_code = runner()
+    
+    if exit_code == 0:
+        print(f"\n🎉 {args.test_type.title()} tests completed successfully!")
+    else:
+        print(f"\n💥 {args.test_type.title()} tests failed with exit code {exit_code}")
+    
+    sys.exit(exit_code)
 
 
-if __name__ == '__main__':
-    sys.exit(main())
+if __name__ == "__main__":
+    main()

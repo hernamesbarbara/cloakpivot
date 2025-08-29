@@ -1,0 +1,23 @@
+🔍 Debugging SPECIFIC test failure
+==================================================
+📝 Document name: '0'
+📝 Text: '0000000000 Contact: 555-123-4567 Email: alice.smith@company.org SSN: 987-65-4321'
+📋 Policy: StrategyKind.REDACT
+
+🎭 MASKING (using test helper)
+----------------------------------------
+✅ Masked: '********** Contact: ************ Email: *********************** SSN: ***********'
+📍 Anchors: 4
+  Anchor 0: UK_NHS '**********' at 0-10
+  Anchor 1: PHONE_NUMBER '************' at 20-32
+  Anchor 2: EMAIL_ADDRESS '***********************' at 40-63
+  Anchor 3: US_ITIN '***********' at 69-80
+
+🔓 UNMASKING
+----------------------------------------
+🔄 Unmasked: '0000000000 Contact: 555-123-4567 Email: alice.smith@company.org SSN: 987-65-4321'
+📊 Resolution: 4 resolved, 0 failed
+
+✅ ASSERTION TEST
+----------------------------------------
+🎉 Round-trip assertion PASSED!

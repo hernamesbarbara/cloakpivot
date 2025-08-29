@@ -1,0 +1,8 @@
+{
+  "document_name": "medical_report",
+  "original_char_count": 1656,
+  "masked_char_count": 1658,
+  "unmasked_char_count": 1656,
+  "entity_mappings_count": 37,
+  "round_trip_success": true
+}

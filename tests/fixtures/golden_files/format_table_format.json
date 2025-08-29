@@ -1,0 +1,10 @@
+{
+  "test_case": "table_format",
+  "line_count_preserved": true,
+  "entity_mappings": 6,
+  "structure_markers": {
+    "has_table_separators": true,
+    "has_section_headers": false,
+    "has_indentation": false
+  }
+}
