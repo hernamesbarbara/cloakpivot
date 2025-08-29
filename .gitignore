@@ -150,3 +150,5 @@ semantic.db
 # Scratch files
 TEST_FAILURES.md
 CODE_REVIEW.md
+diff_report.txt
+*_report.txt
