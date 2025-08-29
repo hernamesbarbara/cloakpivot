@@ -32,16 +32,22 @@ class TestAnalyzerEngineWrapper:
         assert analyzer.is_initialized is False
 
         # First call should initialize
-        with patch('presidio_analyzer.AnalyzerEngine') as mock_engine:
-            mock_instance = Mock()
-            mock_instance.analyze.return_value = []  # Return empty list for analysis
-            mock_engine.return_value = mock_instance
+        with patch('cloakpivot.core.analyzer.AnalyzerEngine') as mock_engine:
+            with patch('cloakpivot.core.analyzer.NlpEngineProvider') as mock_nlp_provider:
+                # Mock the NLP engine provider and engine
+                mock_nlp_engine = Mock()
+                mock_nlp_provider.return_value.create_engine.return_value = mock_nlp_engine
+                
+                # Mock the analyzer engine
+                mock_instance = Mock()
+                mock_instance.analyze.return_value = []  # Return empty list for analysis
+                mock_engine.return_value = mock_instance
 
-            result = analyzer.analyze_text("test text")
+                result = analyzer.analyze_text("test text")
 
-            assert analyzer.is_initialized is True
-            mock_engine.assert_called_once()
-            assert result == []  # Should return empty list from mock
+                assert analyzer.is_initialized is True
+                mock_engine.assert_called_once()
+                assert result == []  # Should return empty list from mock
 
     def test_configuration_from_policy(self):
         """Test analyzer configuration from MaskingPolicy."""

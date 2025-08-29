@@ -324,6 +324,18 @@ def benchmark_policy() -> MaskingPolicy:
     )
 
 
+@pytest.fixture(scope="session")
+def shared_analyzer():
+    """Shared AnalyzerEngine instance for performance testing.
+    
+    This fixture creates a single AnalyzerEngine instance that can be reused
+    across multiple tests to avoid the overhead of repeatedly initializing
+    the engine and loading language models.
+    """
+    from presidio_analyzer import AnalyzerEngine
+    return AnalyzerEngine()
+
+
 # Test markers for categorizing tests
 def pytest_configure(config):
     """Configure pytest with custom markers."""
