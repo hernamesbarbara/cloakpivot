@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -52,7 +51,7 @@ class LoggingConfig(BaseModel):
         default=True, description="Enable correlation IDs"
     )
     output: str = Field(default="stdout", description="Log output (stdout or file)")
-    file_path: Optional[str] = Field(default=None, description="Log file path")
+    file_path: str | None = Field(default=None, description="Log file path")
 
 
 class HealthConfig(BaseModel):
@@ -98,7 +97,7 @@ class ObservabilityConfig(BaseModel):
         if not config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config_data = yaml.safe_load(f)
 
         observability_data = config_data.get("observability", {})
@@ -148,7 +147,7 @@ class ObservabilityConfig(BaseModel):
 
 
 # Global configuration instance
-_config: Optional[ObservabilityConfig] = None
+_config: ObservabilityConfig | None = None
 
 
 def get_config() -> ObservabilityConfig:
@@ -165,7 +164,7 @@ def set_config(config: ObservabilityConfig) -> None:
     _config = config
 
 
-def load_config(config_path: Optional[Path | str] = None) -> ObservabilityConfig:
+def load_config(config_path: Path | str | None = None) -> ObservabilityConfig:
     """Load and set the global configuration."""
     if config_path:
         config = ObservabilityConfig.from_file(config_path)

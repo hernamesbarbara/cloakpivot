@@ -6,13 +6,14 @@ import contextvars
 import logging
 import sys
 import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Generator, Optional
+from typing import Any
 
 try:
     import structlog
-    from structlog import processors
+    from structlog import processors  # noqa: F401
     from structlog.typing import FilteringBoundLogger
 
     HAS_STRUCTLOG = True
@@ -55,7 +56,7 @@ def add_level(
     return event_dict
 
 
-def configure_logging(config: Optional[Any] = None) -> None:
+def configure_logging(config: Any | None = None) -> None:
     """Configure structured logging."""
     if config is None:
         config = get_config().logging
@@ -89,7 +90,7 @@ def configure_logging(config: Optional[Any] = None) -> None:
         )
 
     structlog.configure(
-        processors=processors_list,
+        processors=processors_list,  # type: ignore
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
@@ -188,7 +189,7 @@ def get_logger(name: str) -> Any:
 
 
 @contextmanager
-def correlation_context(corr_id: Optional[str] = None) -> Generator[str, None, None]:
+def correlation_context(corr_id: str | None = None) -> Generator[str, None, None]:
     """Context manager for correlation ID."""
     if corr_id is None:
         corr_id = str(uuid.uuid4())
@@ -255,8 +256,8 @@ class TraceContext:
     def __init__(
         self,
         operation: str,
-        trace_id: Optional[str] = None,
-        logger: Optional[Any] = None,
+        trace_id: str | None = None,
+        logger: Any | None = None,
         **kwargs: Any,
     ):
         self.operation = operation
@@ -278,7 +279,7 @@ class TraceContext:
             **kwargs,
         )
 
-    def log_error(self, message: str, error: Optional[Exception] = None, **kwargs: Any) -> None:
+    def log_error(self, message: str, error: Exception | None = None, **kwargs: Any) -> None:
         """Log error message with trace context."""
         log_data = {
             "operation": self.operation,
@@ -286,11 +287,11 @@ class TraceContext:
             **self.attributes,
             **kwargs,
         }
-        
+
         if error:
             log_data["error"] = str(error)
             log_data["error_type"] = type(error).__name__
-            
+
         self.logger.error(message, **log_data)
 
     def log_warning(self, message: str, **kwargs: Any) -> None:

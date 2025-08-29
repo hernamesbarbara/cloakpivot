@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 from .config import get_config
 from .logging import get_logger
@@ -66,7 +66,7 @@ class MetricStore:
         self._labels: dict[str, dict[str, str]] = {}
 
     def record_counter(
-        self, name: str, value: float = 1.0, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float = 1.0, labels: dict[str, str] | None = None
     ) -> None:
         """Record a counter metric."""
         labels = labels or {}
@@ -85,7 +85,7 @@ class MetricStore:
             )
 
     def record_gauge(
-        self, name: str, value: float, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Record a gauge metric."""
         labels = labels or {}
@@ -101,7 +101,7 @@ class MetricStore:
             )
 
     def record_histogram(
-        self, name: str, value: float, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Record a histogram metric."""
         labels = labels or {}
@@ -147,7 +147,7 @@ class MetricStore:
                 for key, values in self._histograms.items()
             }
 
-    def get_recent_events(self, count: Optional[int] = None) -> list[MetricEvent]:
+    def get_recent_events(self, count: int | None = None) -> list[MetricEvent]:
         """Get recent metric events."""
         with self._lock:
             events = list(self._events)
@@ -191,12 +191,12 @@ class MetricExporter(ABC):
 class MetricsCollector:
     """Main metrics collector."""
 
-    def __init__(self, config: Optional[Any] = None):
+    def __init__(self, config: Any | None = None):
         self._config = config or get_config().metrics
         self._store = MetricStore(buffer_size=self._config.buffer_size)
         self._exporters: list[MetricExporter] = []
         self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._logger = get_logger(__name__)
 
     def add_exporter(self, exporter: MetricExporter) -> None:
@@ -231,28 +231,28 @@ class MetricsCollector:
         self._logger.info("Metrics collector stopped")
 
     def counter(
-        self, name: str, value: float = 1.0, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float = 1.0, labels: dict[str, str] | None = None
     ) -> None:
         """Record a counter metric."""
         if self._config.enabled:
             self._store.record_counter(name, value, labels)
 
     def gauge(
-        self, name: str, value: float, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Record a gauge metric."""
         if self._config.enabled:
             self._store.record_gauge(name, value, labels)
 
     def histogram(
-        self, name: str, value: float, labels: Optional[dict[str, str]] = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Record a histogram metric."""
         if self._config.enabled:
             self._store.record_histogram(name, value, labels)
 
     def timing(
-        self, name: str, duration: float, labels: Optional[dict[str, str]] = None
+        self, name: str, duration: float, labels: dict[str, str] | None = None
     ) -> None:
         """Record a timing metric (histogram)."""
         self.histogram(f"{name}_duration_seconds", duration, labels)
@@ -278,7 +278,7 @@ class MetricsCollector:
 
 
 # Global metrics collector
-_collector: Optional[MetricsCollector] = None
+_collector: MetricsCollector | None = None
 _collector_lock = threading.Lock()
 
 
@@ -302,7 +302,7 @@ def set_metrics_collector(collector: MetricsCollector) -> None:
 
 def collect_metrics(
     metric_name: str,
-    labels: Optional[dict[str, str]] = None,
+    labels: dict[str, str] | None = None,
     count_calls: bool = True,
     measure_time: bool = True,
 ) -> Callable[[F], F]:

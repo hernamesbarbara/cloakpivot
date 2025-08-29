@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import socket
-from typing import Optional
 
 from ..config import StatsDConfig
 from ..logging import get_logger
@@ -16,8 +15,8 @@ class StatsDExporter(MetricExporter):
     def __init__(self, config: StatsDConfig):
         self.config = config
         self.logger = get_logger(__name__)
-        self.socket: Optional[socket.socket] = None
-        
+        self.socket: socket.socket | None = None
+
         if self.config.enabled:
             self._setup_socket()
 
@@ -29,7 +28,7 @@ class StatsDExporter(MetricExporter):
                 self.socket.connect((self.config.host, self.config.port))
             else:  # UDP
                 self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            
+
             self.logger.info(
                 f"StatsD exporter connected to {self.config.host}:{self.config.port} "
                 f"via {self.config.protocol.upper()}"
@@ -74,9 +73,9 @@ class StatsDExporter(MetricExporter):
         for key, (values, labels) in histograms.items():
             if not values:
                 continue
-                
+
             metric_name = self._format_metric_name(key, labels)
-            
+
             # Send individual timing values
             for value in values:
                 message = f"{metric_name}:{value}|ms"
@@ -86,12 +85,12 @@ class StatsDExporter(MetricExporter):
         """Format metric name with prefix and labels."""
         base_name = key.split("{")[0] if "{" in key else key
         metric_name = f"{self.config.prefix}.{base_name}"
-        
+
         # Add labels as tags (if supported by StatsD implementation)
         if labels:
             tags = ",".join(f"{k}:{v}" for k, v in sorted(labels.items()))
             metric_name = f"{metric_name}|#{tags}"
-        
+
         return metric_name
 
     def _send_metric(self, message: str) -> None:
@@ -117,5 +116,5 @@ class StatsDExporter(MetricExporter):
                 self.logger.error(f"Error closing StatsD socket: {e}")
             finally:
                 self.socket = None
-        
+
         self.logger.info("StatsD exporter closed")

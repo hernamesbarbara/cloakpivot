@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import os
 import platform
-import psutil
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Any, Optional, Dict, List
-import json
+from http.server import BaseHTTPRequestHandler
+from typing import Any
 
-from .config import get_config, HealthConfig
+import psutil
+
+from .config import HealthConfig, get_config
 from .logging import get_logger
 
 
@@ -74,7 +75,7 @@ class SystemStatus:
 class HealthCheck(ABC):
     """Abstract base class for health checks."""
 
-    def __init__(self, name: str, timeout: float = 30.0):
+    def __init__(self, name: str, timeout: float = 30.0) -> None:
         self.name = name
         self.timeout = timeout
 
@@ -87,8 +88,8 @@ class HealthCheck(ABC):
 class SystemResourcesCheck(HealthCheck):
     """Check system resource usage."""
 
-    def __init__(self, 
-                 memory_threshold: float = 0.9, 
+    def __init__(self,
+                 memory_threshold: float = 0.9,
                  disk_threshold: float = 0.9,
                  cpu_threshold: float = 0.95):
         super().__init__("system_resources")
@@ -99,19 +100,19 @@ class SystemResourcesCheck(HealthCheck):
     def check(self) -> HealthCheckResult:
         """Check system resources."""
         start_time = time.time()
-        
+
         try:
             # Memory usage
             memory = psutil.virtual_memory()
             memory_usage = memory.percent / 100.0
-            
+
             # Disk usage for current directory
             disk = psutil.disk_usage(os.getcwd())
             disk_usage = disk.used / disk.total
-            
+
             # CPU usage (average over 1 second)
             cpu_usage = psutil.cpu_percent(interval=1.0) / 100.0
-            
+
             details = {
                 "memory": {
                     "usage_percent": memory_usage * 100,
@@ -127,22 +128,22 @@ class SystemResourcesCheck(HealthCheck):
                     "usage_percent": cpu_usage * 100,
                 },
             }
-            
+
             # Determine status
-            if (memory_usage > self.memory_threshold or 
-                disk_usage > self.disk_threshold or 
+            if (memory_usage > self.memory_threshold or
+                disk_usage > self.disk_threshold or
                 cpu_usage > self.cpu_threshold):
                 status = HealthStatus.UNHEALTHY
                 message = "System resources exceeded thresholds"
-            elif (memory_usage > self.memory_threshold * 0.8 or 
-                  disk_usage > self.disk_threshold * 0.8 or 
+            elif (memory_usage > self.memory_threshold * 0.8 or
+                  disk_usage > self.disk_threshold * 0.8 or
                   cpu_usage > self.cpu_threshold * 0.8):
                 status = HealthStatus.DEGRADED
                 message = "System resources approaching limits"
             else:
                 status = HealthStatus.HEALTHY
                 message = "System resources within normal limits"
-            
+
             return HealthCheckResult(
                 name=self.name,
                 status=status,
@@ -150,7 +151,7 @@ class SystemResourcesCheck(HealthCheck):
                 details=details,
                 duration_ms=(time.time() - start_time) * 1000,
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name=self.name,
@@ -163,16 +164,16 @@ class SystemResourcesCheck(HealthCheck):
 class DependenciesCheck(HealthCheck):
     """Check external dependencies."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("dependencies")
 
     def check(self) -> HealthCheckResult:
         """Check dependencies."""
         start_time = time.time()
-        
+
         try:
             dependencies = {}
-            
+
             # Check Presidio
             try:
                 import presidio_analyzer
@@ -185,7 +186,7 @@ class DependenciesCheck(HealthCheck):
                     "available": False,
                     "error": "Not installed",
                 }
-            
+
             # Check DocPivot
             try:
                 import docpivot
@@ -198,7 +199,7 @@ class DependenciesCheck(HealthCheck):
                     "available": False,
                     "error": "Not installed",
                 }
-            
+
             # Check structlog
             try:
                 import structlog
@@ -211,11 +212,11 @@ class DependenciesCheck(HealthCheck):
                     "available": False,
                     "error": "Not installed",
                 }
-            
+
             # Determine status
-            unavailable = [name for name, info in dependencies.items() 
+            unavailable = [name for name, info in dependencies.items()
                           if not info["available"]]
-            
+
             if unavailable:
                 if "presidio_analyzer" in unavailable or "docpivot" in unavailable:
                     status = HealthStatus.UNHEALTHY
@@ -226,7 +227,7 @@ class DependenciesCheck(HealthCheck):
             else:
                 status = HealthStatus.HEALTHY
                 message = "All dependencies available"
-            
+
             return HealthCheckResult(
                 name=self.name,
                 status=status,
@@ -234,7 +235,7 @@ class DependenciesCheck(HealthCheck):
                 details={"dependencies": dependencies},
                 duration_ms=(time.time() - start_time) * 1000,
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name=self.name,
@@ -247,34 +248,34 @@ class DependenciesCheck(HealthCheck):
 class ConfigurationCheck(HealthCheck):
     """Check configuration validity."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("configuration")
 
     def check(self) -> HealthCheckResult:
         """Check configuration."""
         start_time = time.time()
-        
+
         try:
             config = get_config()
-            
+
             issues = []
-            
+
             # Check logging configuration
             if config.logging.level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
                 issues.append(f"Invalid log level: {config.logging.level}")
-            
+
             # Check Prometheus configuration
             if config.exporters.prometheus.enabled:
                 if not (1 <= config.exporters.prometheus.port <= 65535):
                     issues.append(f"Invalid Prometheus port: {config.exporters.prometheus.port}")
-            
+
             # Check StatsD configuration
             if config.exporters.statsd.enabled:
                 if not (1 <= config.exporters.statsd.port <= 65535):
                     issues.append(f"Invalid StatsD port: {config.exporters.statsd.port}")
                 if config.exporters.statsd.protocol not in ["udp", "tcp"]:
                     issues.append(f"Invalid StatsD protocol: {config.exporters.statsd.protocol}")
-            
+
             # Determine status
             if issues:
                 status = HealthStatus.UNHEALTHY
@@ -282,7 +283,7 @@ class ConfigurationCheck(HealthCheck):
             else:
                 status = HealthStatus.HEALTHY
                 message = "Configuration is valid"
-            
+
             return HealthCheckResult(
                 name=self.name,
                 status=status,
@@ -290,7 +291,7 @@ class ConfigurationCheck(HealthCheck):
                 details={"config_summary": config.to_dict(), "issues": issues},
                 duration_ms=(time.time() - start_time) * 1000,
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name=self.name,
@@ -303,14 +304,14 @@ class ConfigurationCheck(HealthCheck):
 class HealthMonitor:
     """Health monitoring service."""
 
-    def __init__(self, config: Optional[HealthConfig] = None):
+    def __init__(self, config: HealthConfig | None = None) -> None:
         self.config = config or get_config().health
         self.logger = get_logger(__name__)
         self.checks: list[HealthCheck] = []
         self.start_time = datetime.utcnow()
-        self.last_status: Optional[SystemStatus] = None
+        self.last_status: SystemStatus | None = None
         self._lock = threading.RLock()
-        
+
         # Add default checks
         self.add_check(SystemResourcesCheck())
         self.add_check(DependenciesCheck())
@@ -330,7 +331,7 @@ class HealthMonitor:
         """Get current system status."""
         with self._lock:
             check_results = []
-            
+
             for check in self.checks:
                 try:
                     result = check.check()
@@ -342,7 +343,7 @@ class HealthMonitor:
                         status=HealthStatus.UNHEALTHY,
                         message=f"Check failed: {e}",
                     ))
-            
+
             # Determine overall status
             if any(result.status == HealthStatus.UNHEALTHY for result in check_results):
                 overall_status = HealthStatus.UNHEALTHY
@@ -350,10 +351,10 @@ class HealthMonitor:
                 overall_status = HealthStatus.DEGRADED
             else:
                 overall_status = HealthStatus.HEALTHY
-            
+
             # Calculate uptime
             uptime = (datetime.utcnow() - self.start_time).total_seconds()
-            
+
             # Get system info
             system_info = {
                 "platform": platform.platform(),
@@ -361,14 +362,14 @@ class HealthMonitor:
                 "process_id": os.getpid(),
                 "working_directory": os.getcwd(),
             }
-            
+
             status = SystemStatus(
                 status=overall_status,
                 checks=check_results,
                 uptime_seconds=uptime,
                 system_info=system_info,
             )
-            
+
             self.last_status = status
             return status
 
@@ -376,7 +377,7 @@ class HealthMonitor:
 class HealthHandler(BaseHTTPRequestHandler):
     """HTTP handler for health endpoints."""
 
-    def __init__(self, health_monitor: HealthMonitor, *args: Any, **kwargs: Any):
+    def __init__(self, health_monitor: HealthMonitor, *args: Any, **kwargs: Any) -> None:
         self.health_monitor = health_monitor
         super().__init__(*args, **kwargs)
 
@@ -396,7 +397,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         try:
             status = self.health_monitor.get_status()
             response_data = status.to_dict()
-            
+
             # Set HTTP status based on health
             if status.status == HealthStatus.HEALTHY:
                 http_status = 200
@@ -404,9 +405,9 @@ class HealthHandler(BaseHTTPRequestHandler):
                 http_status = 200  # Still operational
             else:
                 http_status = 503  # Service unavailable
-            
+
             self._send_json_response(http_status, response_data)
-            
+
         except Exception as e:
             self._send_json_response(500, {"error": str(e)})
 
@@ -440,7 +441,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
 
 # Global health monitor
-_health_monitor: Optional[HealthMonitor] = None
+_health_monitor: HealthMonitor | None = None
 _monitor_lock = threading.Lock()
 
 
