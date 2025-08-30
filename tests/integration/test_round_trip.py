@@ -143,9 +143,9 @@ class TestRoundTripFidelity:
 
     @pytest.mark.integration
     @pytest.mark.parametrize("strategy_kind", [
-        StrategyKind.SURROGATE,
-        StrategyKind.SURROGATE,
-        StrategyKind.SURROGATE,
+        StrategyKind.TEMPLATE,
+        StrategyKind.REDACT,
+        StrategyKind.HASH,
         StrategyKind.SURROGATE,
     ])
     def test_strategy_specific_round_trip(
@@ -158,7 +158,7 @@ class TestRoundTripFidelity:
         # Create document with specific entity type
         entity_map = {
             StrategyKind.TEMPLATE: "PHONE_NUMBER",
-            StrategyKind.TEMPLATE: "PERSON",
+            StrategyKind.REDACT: "PERSON",
             StrategyKind.HASH: "EMAIL_ADDRESS",
             StrategyKind.SURROGATE: "US_SSN"
         }
@@ -301,9 +301,6 @@ class TestRoundTripFidelity:
         ]
 
         for edge_case in edge_cases:
-            if not edge_case["text"]:  # Skip empty document test for now
-                continue
-
             document = DocumentGenerator.generate_simple_document(
                 edge_case["text"],
                 edge_case["name"]
