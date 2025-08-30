@@ -180,7 +180,6 @@ class TestPerformanceBenchmarks:
         """Benchmark performance with single scaled document size for fast runs."""
         word_count = 2500  # Single representative size for fast testing
         expected_time = LARGE_DOC_TIMEOUT_SMALL
-        """Benchmark performance with scaled document sizes for faster testing."""
         # Generate document of specified size
         text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
         document = DocumentGenerator.generate_simple_document(text, f"large_doc_{word_count}")
@@ -357,7 +356,6 @@ class TestPerformanceBenchmarks:
     ):
         """Test for memory leaks with small iteration count for fast runs."""
         iterations = 8  # Smaller iteration count for fast testing
-        """Test for memory leaks during repeated operations with smaller batches."""
         text = TextGenerator.generate_text_with_pii_density(150, 0.2)  # Slightly smaller text
         document = DocumentGenerator.generate_simple_document(text, f"memory_leak_test_{iterations}")
 
@@ -721,7 +719,7 @@ class TestPerformanceBenchmarksComprehensive:
         docs_per_sec = len(documents) / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
 
         assert docs_per_sec > 0.2, f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
-        
+
         # Scale memory expectations with batch size
         memory_limit = BATCH_MEMORY_LIMIT + (batch_size - 5) * 1000  # Additional memory for larger batches
         assert_memory_usage_reasonable(metrics['peak_memory_mb'], memory_limit, total_length)

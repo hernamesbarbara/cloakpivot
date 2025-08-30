@@ -115,7 +115,6 @@ class TestRoundTripFidelity:
     ):
         """Test round-trip fidelity with single representative privacy level for fast runs."""
         privacy_level = "medium"  # Representative level for fast testing
-        """Test round-trip fidelity across different privacy levels."""
         # Generate test document with PII
         document, pii_locations = DocumentGenerator.generate_document_with_pii(
             ["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"],
@@ -145,7 +144,6 @@ class TestRoundTripFidelity:
     ):
         """Test round-trip fidelity with single representative strategy for fast runs."""
         strategy_kind = StrategyKind.TEMPLATE  # Representative strategy for fast testing
-        """Test round-trip fidelity for specific masking strategies."""
         # Create document with specific entity type
         entity_map = {
             StrategyKind.TEMPLATE: "PHONE_NUMBER",
@@ -343,7 +341,6 @@ class TestRoundTripFidelity:
     ):
         """Test round-trip fidelity with small batch for fast runs."""
         batch_size = 3  # Small batch size for fast testing
-        """Test round-trip fidelity with smaller batches for faster execution."""
         # Generate smaller test data batches
         test_data = generate_test_suite_data(num_documents=batch_size)
 
@@ -381,7 +378,7 @@ class TestRoundTripFidelity:
         test_cases = [
             # Simple document
             generate_test_suite_data(num_documents=1)[0],
-            # Structured document  
+            # Structured document
             generate_test_suite_data(num_documents=2)[1],
             # Multi-section document
             generate_test_suite_data(num_documents=3)[2]
@@ -394,7 +391,7 @@ class TestRoundTripFidelity:
                 )
 
                 assert_round_trip_fidelity(document, masked_doc, unmasked_doc, None)
-                
+
                 # Each individual test should be fast
                 assert processing_time < 3.0, f"Document {i} processing time {processing_time:.2f}s too slow"
 
@@ -443,7 +440,7 @@ class TestRoundTripFidelityComprehensive:
     @pytest.mark.integration
     @pytest.mark.parametrize("privacy_level", [
         "low",
-        "medium", 
+        "medium",
         "high"
     ])
     def test_privacy_level_round_trip_comprehensive(

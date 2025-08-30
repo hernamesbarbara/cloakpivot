@@ -1,7 +1,7 @@
 """Simple tests for plugin-aware strategy applicator to achieve basic coverage."""
 
-from cloakpivot.plugins.strategy_applicator import PluginAwareStrategyApplicator
 from cloakpivot.plugins.strategies.registry import StrategyPluginRegistry
+from cloakpivot.plugins.strategy_applicator import PluginAwareStrategyApplicator
 
 
 class TestPluginAwareStrategyApplicator:
@@ -42,7 +42,7 @@ class TestPluginAwareStrategyApplicator:
 
         # Should have the apply_strategy method from base class
         assert hasattr(applicator, 'apply_strategy')
-        assert callable(getattr(applicator, 'apply_strategy'))
+        assert callable(applicator.apply_strategy)
 
     def test_registry_integration(self):
         """Test basic registry integration."""
@@ -51,4 +51,4 @@ class TestPluginAwareStrategyApplicator:
 
         # Should be able to access registry methods
         assert hasattr(applicator.strategy_registry, 'register_strategy_plugin')
-        assert callable(getattr(applicator.strategy_registry, 'register_strategy_plugin'))
+        assert callable(applicator.strategy_registry.register_strategy_plugin)
