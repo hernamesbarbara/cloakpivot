@@ -178,7 +178,7 @@ class TestPropertyBased:
     @pytest.mark.property
     @given(st.text(min_size=1, max_size=1000))
     @settings(max_examples=10, deadline=3000)
-    def test_text_processing_robustness(self, text: str):
+    def test_text_processing_robustness(self, text: str) -> None:
         """Property: Text processing should handle arbitrary strings without crashing."""
         # Skip text that is just whitespace
         assume(text.strip())
@@ -221,7 +221,7 @@ class TestPropertyBased:
         policy_strategy()
     )
     @settings(max_examples=5, deadline=8000)
-    def test_multi_section_document_property(self, text_sections: list[str], policy: MaskingPolicy):
+    def test_multi_section_document_property(self, text_sections: list[str], policy: MaskingPolicy) -> None:
         """Property: Multi-section documents should preserve section count and structure."""
         # Filter out empty sections
         text_sections = [section.strip() for section in text_sections if section.strip()]
@@ -263,7 +263,7 @@ class TestPropertyBased:
         st.sampled_from(["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"])
     )
     @settings(max_examples=10, deadline=timedelta(seconds=2))
-    def test_threshold_property(self, threshold: float, entity_type: str):
+    def test_threshold_property(self, threshold: float, entity_type: str) -> None:
         """Property: Threshold values should control entity detection sensitivity."""
         # Create test text with known PII
         test_patterns = {
