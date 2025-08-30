@@ -268,7 +268,7 @@ class DocumentUnmasker:
                     import re
                     asterisk_pattern = r'\*+'
                     matches = list(re.finditer(asterisk_pattern, modified_text))
-                    
+
                     # Find the best match (prefer longer sequences, but accept shorter ones too)
                     best_match = None
                     for match in reversed(matches):  # Process in reverse order
@@ -277,7 +277,7 @@ class DocumentUnmasker:
                         if len(match_text) >= min(3, len(masked_value) // 2):
                             best_match = match
                             break
-                    
+
                     if best_match:
                         position = best_match.start()
                         logger.debug(
@@ -299,7 +299,7 @@ class DocumentUnmasker:
                 continue
 
             start_pos = position
-            
+
             # Determine end position based on what we actually found
             if masked_value in modified_text[position:]:
                 # Found exact match
@@ -309,7 +309,7 @@ class DocumentUnmasker:
                 end_pos = position
                 while end_pos < len(modified_text) and modified_text[end_pos] == '*':
                     end_pos += 1
-                
+
                 logger.debug(
                     f"Using partial asterisk match from {start_pos} to {end_pos} "
                     f"for anchor {anchor.replacement_id}"
