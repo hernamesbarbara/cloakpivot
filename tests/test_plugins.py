@@ -18,10 +18,7 @@ from cloakpivot.plugins.recognizers.base import (
     BaseRecognizerPlugin,
     RecognizerPluginResult,
 )
-from cloakpivot.plugins.registry import (
-    get_plugin_registry,
-    reset_plugin_registry,
-)
+from cloakpivot.plugins.registry import get_plugin_registry
 from cloakpivot.plugins.strategies.base import BaseStrategyPlugin, StrategyPluginResult
 
 

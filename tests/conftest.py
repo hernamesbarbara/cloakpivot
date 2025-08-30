@@ -238,13 +238,13 @@ def reset_registries():
     """Reset plugin and storage registries before and after test to ensure isolation."""
     from cloakpivot.plugins.registry import reset_plugin_registry
     from cloakpivot.storage.registry import reset_storage_registry
-    
+
     # Reset before test
     reset_plugin_registry()
     reset_storage_registry()
-    
+
     yield
-    
+
     # Reset after test
     reset_plugin_registry()
     reset_storage_registry()
