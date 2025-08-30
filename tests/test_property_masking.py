@@ -68,6 +68,7 @@ def light_policy_strategy() -> st.SearchStrategy[MaskingPolicy]:
 class TestPropertyBasedMaskingFast:
     """Fast property-based tests using optimized generators and shared analyzer."""
 
+    @pytest.mark.property
     @given(
         text=constrained_text_strategy(max_size=100),
         policy=light_policy_strategy()
@@ -89,6 +90,7 @@ class TestPropertyBasedMaskingFast:
         assert len(result.masked_document.texts) == original_text_count
         assert result.cloakmap is not None
 
+    @pytest.mark.property
     @given(
         sections=st.lists(constrained_text_strategy(max_size=50), min_size=1, max_size=3),
         policy=light_policy_strategy()
@@ -117,6 +119,7 @@ class TestPropertyBasedMaskingFast:
             assert masked_section.self_ref == original_section.self_ref
             assert len(masked_section.text) > 0  # Should not be empty after masking
 
+    @pytest.mark.property
     @given(
         pii_text=pii_text_strategy(),
         policy=light_policy_strategy()
@@ -163,6 +166,7 @@ class TestPropertyBasedMaskingFast:
             if "john.doe@example.com" in pii_text:
                 assert "john.doe@example.com" not in cloakmap_json
 
+    @pytest.mark.property
     @given(text=constrained_text_strategy(max_size=50))
     def test_masking_with_no_entities_is_identity(
         self, text: str, shared_analyzer: AnalyzerEngine
@@ -183,6 +187,7 @@ class TestPropertyBasedMaskingFast:
         if len(result.cloakmap.anchors) == 0:
             assert result.masked_document.texts[0].text == document.texts[0].text
 
+    @pytest.mark.property
     @given(
         text=constrained_text_strategy(max_size=80),
         policy=light_policy_strategy()
@@ -220,6 +225,7 @@ class TestPropertyBasedMaskingFast:
 class TestPropertyBasedMaskingSlow:
     """Comprehensive property-based tests with broader generators and full Presidio."""
 
+    @pytest.mark.property
     @given(
         text=st.text(max_size=500),  # Larger, less constrained text
         policy=st.one_of([
@@ -252,6 +258,7 @@ class TestPropertyBasedMaskingSlow:
         assert result.cloakmap is not None
         assert len(result.masked_document.texts) == len(document.texts)
 
+    @pytest.mark.property
     @given(
         sections=st.lists(st.text(max_size=200), min_size=2, max_size=8),
         policy=light_policy_strategy()

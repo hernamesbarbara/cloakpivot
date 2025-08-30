@@ -116,6 +116,7 @@ def policy_strategy(draw):
 class TestPropertyBased:
     """Property-based tests using Hypothesis."""
 
+    @pytest.mark.property
     @given(document_strategy(), policy_strategy())
     @settings(max_examples=5, deadline=5000)  # Reduced examples and deadline for CI performance
     @example(
@@ -142,6 +143,7 @@ class TestPropertyBased:
             # Log the inputs that caused the failure for debugging
             pytest.fail(f"Masking failed with document '{document.name}' and policy privacy level '{policy.privacy_level}': {str(e)}")
 
+    @pytest.mark.property
     @given(document_strategy(), policy_strategy())
     @settings(max_examples=5, deadline=10000)
     def test_round_trip_property(self, document: DoclingDocument, policy: MaskingPolicy):
@@ -173,6 +175,7 @@ class TestPropertyBased:
         except Exception as e:
             pytest.fail(f"Round-trip failed: {str(e)}")
 
+    @pytest.mark.property
     @given(st.text(min_size=1, max_size=1000))
     @settings(max_examples=10, deadline=3000)
     def test_text_processing_robustness(self, text: str):
@@ -212,6 +215,7 @@ class TestPropertyBased:
             if "critical" in str(e).lower() or "fatal" in str(e).lower():
                 pytest.fail(f"Critical failure with text processing: {str(e)}")
 
+    @pytest.mark.property
     @given(
         st.lists(st.text(min_size=5, max_size=200), min_size=1, max_size=10),
         policy_strategy()
@@ -253,6 +257,7 @@ class TestPropertyBased:
         except Exception as e:
             pytest.fail(f"Multi-section processing failed: {str(e)}")
 
+    @pytest.mark.property
     @given(
         st.floats(min_value=0.0, max_value=1.0),
         st.sampled_from(["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"])
@@ -374,6 +379,7 @@ class MaskingStateMachine(RuleBasedStateMachine):
 class TestPropertyBasedSlow:
     """Slower, more comprehensive property-based tests."""
 
+    @pytest.mark.property
     @pytest.mark.slow
     @pytest.mark.skip("Temporarily disabled due to complex entity overlap resolution issue")
     @given(document_strategy(), policy_strategy())
