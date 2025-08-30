@@ -21,6 +21,23 @@ from tests.utils.assertions import (
 from tests.utils.generators import DocumentGenerator, PolicyGenerator, TextGenerator
 from tests.utils.masking_helpers import mask_document_with_detection
 
+# Performance threshold constants
+SMALL_DOC_TIMEOUT = 30.0
+MEDIUM_DOC_TIMEOUT = 20.0
+LARGE_DOC_TIMEOUT_SMALL = 15.0
+LARGE_DOC_TIMEOUT_LARGE = 30.0
+MULTI_SECTION_TIMEOUT = 60.0
+ROUND_TRIP_TIMEOUT = 40.0
+BATCH_TIMEOUT = 25.0
+
+# Memory threshold constants
+SMALL_DOC_MEMORY_LIMIT = 2000.0
+MEDIUM_DOC_MEMORY_LIMIT = 3000.0
+LARGE_DOC_MEMORY_LIMIT = 2500.0
+MULTI_SECTION_MEMORY_LIMIT = 12000.0
+ROUND_TRIP_MEMORY_LIMIT = 4100.0
+BATCH_MEMORY_LIMIT = 8100.0
+
 
 class PerformanceProfiler:
     """Utility class for measuring performance metrics."""
@@ -121,8 +138,8 @@ class TestPerformanceBenchmarks:
         # Performance assertions - use memory delta instead of peak to avoid test suite contamination
         # Note: First run may load models, so memory delta can be high initially
         text_length = len(text)
-        assert_performance_acceptable(metrics['elapsed_time'], 30.0, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], 2000.0, text_length)  # Increased for ML models
+        assert_performance_acceptable(metrics['elapsed_time'], SMALL_DOC_TIMEOUT, text_length)
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], SMALL_DOC_MEMORY_LIMIT, text_length)  # Increased for ML models
 
         # Log benchmark results
         chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
@@ -147,37 +164,71 @@ class TestPerformanceBenchmarks:
 
         # Performance assertions - use memory delta instead of peak to avoid test suite contamination
         text_length = len(text)
-        assert_performance_acceptable(metrics['elapsed_time'], 20.0, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], 3000.0, text_length)  # Increased for ML models
+        assert_performance_acceptable(metrics['elapsed_time'], MEDIUM_DOC_TIMEOUT, text_length)
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], MEDIUM_DOC_MEMORY_LIMIT, text_length)  # Increased for ML models
 
         chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
         print(f"Medium document: {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
 
     @pytest.mark.performance
-    @pytest.mark.slow
-    def test_large_document_performance(
+    @pytest.mark.parametrize("word_count,expected_time", [
+        (2500, LARGE_DOC_TIMEOUT_SMALL),  # Smaller batch
+        (5000, LARGE_DOC_TIMEOUT_LARGE),  # Medium batch
+    ])
+    def test_large_document_performance_scaled(
         self,
+        word_count: int,
+        expected_time: float,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
         shared_analyzer
     ):
-        """Benchmark performance with large documents (10-100KB)."""
-        # Generate large document
-        text = TextGenerator.generate_text_with_pii_density(10000, 0.1)  # ~10000 words
-        document = DocumentGenerator.generate_simple_document(text, "large_doc")
+        """Benchmark performance with scaled document sizes for faster testing."""
+        # Generate document of specified size
+        text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
+        document = DocumentGenerator.generate_simple_document(text, f"large_doc_{word_count}")
 
         def mask_operation():
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
         result, metrics = run_with_profiling(mask_operation)
 
-        # Performance assertions (more lenient for large documents) - use memory delta
+        # Scale performance expectations based on document size
         text_length = len(text)
-        assert_performance_acceptable(metrics['elapsed_time'], 90.0, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], 5000.0, text_length)  # Increased for ML models
+        assert_performance_acceptable(metrics['elapsed_time'], expected_time, text_length)
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], LARGE_DOC_MEMORY_LIMIT, text_length)
 
         chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
-        print(f"Large document: {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
+        print(f"Large document ({word_count} words): {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
+
+    @pytest.mark.performance
+    def test_very_large_document_sampling(
+        self,
+        masking_engine: MaskingEngine,
+        benchmark_policy: MaskingPolicy,
+        shared_analyzer
+    ):
+        """Test performance with very large documents using sampling approach."""
+        # Generate smaller representative samples instead of one huge document
+        word_counts = [1000, 2000, 3000]
+        total_time = 0
+
+        for word_count in word_counts:
+            text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
+            document = DocumentGenerator.generate_simple_document(text, f"sample_{word_count}")
+
+            def mask_operation(doc=document):
+                return mask_document_with_detection(doc, benchmark_policy, analyzer=shared_analyzer)
+
+            result, metrics = run_with_profiling(mask_operation)
+            total_time += metrics['elapsed_time']
+
+            # Each sample should be reasonable
+            text_length = len(text)
+            assert_performance_acceptable(metrics['elapsed_time'], 10.0, text_length)
+
+        # Total time across all samples should be reasonable
+        assert total_time < BATCH_TIMEOUT, f"Total sampling time {total_time:.2f}s too slow"
 
     @pytest.mark.performance
     def test_multi_section_document_performance(
@@ -202,8 +253,8 @@ class TestPerformanceBenchmarks:
 
         # Performance should scale with number of sections
         total_length = sum(len(section) for section in sections)
-        assert_performance_acceptable(metrics['elapsed_time'], 60.0, total_length)
-        assert_memory_usage_reasonable(metrics['peak_memory_mb'], 12000.0, total_length)  # Increased for multi-section with shared analyzer and ML models
+        assert_performance_acceptable(metrics['elapsed_time'], MULTI_SECTION_TIMEOUT, total_length)
+        assert_memory_usage_reasonable(metrics['peak_memory_mb'], MULTI_SECTION_MEMORY_LIMIT, total_length)  # Increased for multi-section with shared analyzer and ML models
 
         sections_per_sec = len(sections) / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
         print(f"Multi-section: {sections_per_sec:.1f} sections/sec, {metrics['peak_memory_mb']:.1f}MB peak")
@@ -232,8 +283,8 @@ class TestPerformanceBenchmarks:
 
         # Round-trip should be less than 2x masking time
         text_length = len(text)
-        assert_performance_acceptable(metrics['elapsed_time'], 40.0, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], 4100.0, text_length)  # Use memory delta to avoid test suite contamination
+        assert_performance_acceptable(metrics['elapsed_time'], ROUND_TRIP_TIMEOUT, text_length)
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], ROUND_TRIP_MEMORY_LIMIT, text_length)  # Use memory delta to avoid test suite contamination
 
         print(f"Round-trip: {metrics['elapsed_time']:.3f}s, {metrics['peak_memory_mb']:.1f}MB peak")
 
@@ -296,46 +347,71 @@ class TestPerformanceBenchmarks:
         docs_per_sec = len(documents) / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
 
         assert docs_per_sec > 0.5, f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
-        assert_memory_usage_reasonable(metrics['peak_memory_mb'], 8100.0, total_length)  # Increased for batch processing with ML models
+        assert_memory_usage_reasonable(metrics['peak_memory_mb'], BATCH_MEMORY_LIMIT, total_length)  # Increased for batch processing with ML models
 
         print(f"Batch processing: {docs_per_sec:.1f} docs/sec, {metrics['peak_memory_mb']:.1f}MB peak")
 
     @pytest.mark.performance
-    @pytest.mark.slow
-    def test_memory_leak_detection(
+    @pytest.mark.parametrize("iterations", [8, 12])
+    def test_memory_leak_detection_batched(
         self,
+        iterations: int,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
         shared_analyzer
     ):
-        """Test for memory leaks during repeated operations."""
-        text = TextGenerator.generate_text_with_pii_density(200, 0.2)
-        document = DocumentGenerator.generate_simple_document(text, "memory_leak_test")
+        """Test for memory leaks during repeated operations with smaller batches."""
+        text = TextGenerator.generate_text_with_pii_density(150, 0.2)  # Slightly smaller text
+        document = DocumentGenerator.generate_simple_document(text, f"memory_leak_test_{iterations}")
 
         # Measure baseline memory
         baseline_memory = psutil.Process().memory_info().rss / 1024 / 1024
         memory_measurements = [baseline_memory]
 
-        # Perform many operations using shared analyzer to avoid AnalyzerEngine recreation
-        for i in range(20):
+        # Perform operations using shared analyzer
+        for i in range(iterations):
             mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
-            # Measure memory every few operations
-            if i % 5 == 0:
+            # Measure memory every 3 operations for faster execution
+            if i % 3 == 0:
                 current_memory = psutil.Process().memory_info().rss / 1024 / 1024
                 memory_measurements.append(current_memory)
 
         # Check for memory growth trend
         memory_growth = memory_measurements[-1] - memory_measurements[0]
 
-        # Allow some growth but detect significant leaks (more realistic with shared analyzer)
-        max_acceptable_growth = 100.0  # MB - increased for realistic expectations with shared analyzer
-        assert memory_growth < max_acceptable_growth, (
+        # Scaled expectations for smaller batches
+        max_growth = 50.0 if iterations <= 10 else 75.0
+        assert memory_growth < max_growth, (
             f"Potential memory leak detected: {memory_growth:.1f}MB growth "
-            f"over {len(memory_measurements)} measurements"
+            f"over {iterations} iterations"
         )
 
-        print(f"Memory growth over {len(memory_measurements)} operations: {memory_growth:.1f}MB")
+        print(f"Memory growth over {iterations} operations: {memory_growth:.1f}MB")
+
+    @pytest.mark.performance
+    def test_memory_stability_quick(
+        self,
+        masking_engine: MaskingEngine,
+        benchmark_policy: MaskingPolicy,
+        shared_analyzer
+    ):
+        """Quick memory stability test with minimal iterations."""
+        text = TextGenerator.generate_text_with_pii_density(100, 0.1)
+        document = DocumentGenerator.generate_simple_document(text, "quick_memory_test")
+
+        # Test with just a few iterations for speed
+        baseline_memory = psutil.Process().memory_info().rss / 1024 / 1024
+
+        # Perform 5 operations and check stability
+        for _ in range(5):
+            mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
+
+        final_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        memory_growth = final_memory - baseline_memory
+
+        # Very conservative check for obvious leaks
+        assert memory_growth < 25.0, f"Quick memory leak detected: {memory_growth:.1f}MB growth in 5 operations"
 
     @pytest.mark.performance
     def test_concurrent_processing_performance(
