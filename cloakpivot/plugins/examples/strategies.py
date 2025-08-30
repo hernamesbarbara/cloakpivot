@@ -43,7 +43,7 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
             # ROT13 transformation
             result_text = original_text.translate(str.maketrans(
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijkl"
+                "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm"
             ))
 
             return StrategyPluginResult(
@@ -76,7 +76,7 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
     # Character mapping for upside down text
     UPSIDE_DOWN_MAP = str.maketrans(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎz0ㄥәろϛ9ㄥ86"
+        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzAQƆDEℲƃHIſʞ˥WNOԀQᴿSʇNΛMXʎZ0ㄥәろϛ9ㄥ86Ϭ"
     )
 
     @property
@@ -185,8 +185,8 @@ class ColorCodeStrategyPlugin(BaseStrategyPlugin):
                 # Convert to HSL approximation
                 h = int(text_hash[:3], 16) % 360
                 s = (int(text_hash[3:5], 16) % 50) + 50  # 50-100%
-                l = (int(text_hash[5:7], 16) % 40) + 30  # 30-70%
-                color_code = f"hsl({h},{s}%,{l}%)"
+                lightness = (int(text_hash[5:7], 16) % 40) + 30  # 30-70%
+                color_code = f"hsl({h},{s}%,{lightness}%)"
 
             return StrategyPluginResult(
                 masked_text=color_code,
