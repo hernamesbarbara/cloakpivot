@@ -1,7 +1,6 @@
 """Tests for observability and monitoring features."""
 
 import threading
-import time
 from unittest.mock import patch
 
 import pytest
@@ -270,7 +269,7 @@ class TestMetrics:
         set_metrics_collector(collector)
 
         @collect_metrics("failing_function")
-        def failing_func() -> None:
+        def failing_func():
             raise ValueError("test error")
 
         with pytest.raises(ValueError):
@@ -437,7 +436,7 @@ class TestIntegration:
                 health_status = monitor.get_status()
 
                 trace.log_info("Integration test completed",
-                             health_status=health_status.status.value)
+                               health_status=health_status.status.value)
 
         # Verify everything worked
         assert corr_id is not None
@@ -454,7 +453,7 @@ class TestIntegration:
         collector = MetricsCollector()
         set_metrics_collector(collector)
 
-        def worker(worker_id: int) -> None:
+        def worker(worker_id: int):
             """Worker function for concurrent testing."""
             with correlation_context(f"worker-{worker_id}"):
                 with trace_operation(f"worker_{worker_id}_operation"):
@@ -485,5 +484,5 @@ class TestIntegration:
 
         # Total counter value should be 50 (5 workers * 10 increments)
         total_counter_value = sum(value for value, labels in counters.values()
-                                if "concurrent_counter" in list(counters.keys())[0])
+                                  if "concurrent_counter" in list(counters.keys())[0])
         assert total_counter_value >= 50
