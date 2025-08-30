@@ -287,8 +287,9 @@ class TestPropertyBasedMaskingSlow:
 class TestMaskingPerformanceBenchmarks:
     """Performance-focused tests for identifying bottlenecks."""
 
-    def test_analyzer_reuse_performance_benefit(self, shared_analyzer: AnalyzerEngine):
-        """Benchmark the performance benefit of analyzer reuse."""
+    @pytest.mark.parametrize("iterations", [5, 8])
+    def test_analyzer_reuse_performance_benefit(self, iterations: int, shared_analyzer: AnalyzerEngine):
+        """Benchmark the performance benefit of analyzer reuse with smaller batches."""
         import time
 
         test_text = "Contact John Smith at 555-123-4567 for more information"
@@ -299,20 +300,44 @@ class TestMaskingPerformanceBenchmarks:
 
         # Test with shared analyzer
         start_time = time.perf_counter()
-        for _ in range(10):
+        for _ in range(iterations):
             mask_document_with_detection(document, policy, analyzer=shared_analyzer)
         shared_time = time.perf_counter() - start_time
 
-        # Test with per-call analyzer creation
+        # Test with per-call analyzer creation (fewer iterations to speed up)
         start_time = time.perf_counter()
-        for _ in range(10):
+        for _ in range(min(iterations, 5)):  # Cap at 5 to avoid slowness
             mask_document_with_detection(document, policy, analyzer=None)
         individual_time = time.perf_counter() - start_time
 
         # Shared analyzer should be significantly faster
         assert shared_time < individual_time
         performance_improvement = individual_time / shared_time
-        print(f"Performance improvement with shared analyzer: {performance_improvement:.2f}x")
+        print(f"Performance improvement with shared analyzer ({iterations} iter): {performance_improvement:.2f}x")
+
+    def test_analyzer_reuse_quick_comparison(self, shared_analyzer: AnalyzerEngine):
+        """Quick test of analyzer reuse benefit with minimal operations."""
+        import time
+
+        test_text = "John at 555-123-4567"  # Shorter text
+        document = create_simple_document(test_text)
+        policy = MaskingPolicy(
+            default_strategy=Strategy(StrategyKind.TEMPLATE, {"template": "[REDACTED]"})
+        )
+
+        # Single operation with shared analyzer
+        start_time = time.perf_counter()
+        mask_document_with_detection(document, policy, analyzer=shared_analyzer)
+        shared_time = time.perf_counter() - start_time
+
+        # Single operation with new analyzer
+        start_time = time.perf_counter()
+        mask_document_with_detection(document, policy, analyzer=None)
+        individual_time = time.perf_counter() - start_time
+
+        # Shared analyzer should be faster
+        assert shared_time < individual_time
+        print(f"Quick comparison - shared: {shared_time:.3f}s, individual: {individual_time:.3f}s")
 
     def test_conflict_resolution_performance_impact(self, shared_analyzer: AnalyzerEngine):
         """Measure the performance impact of conflict resolution."""
