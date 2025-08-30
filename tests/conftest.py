@@ -233,13 +233,21 @@ def sample_policies_dir() -> Path:
     return Path(__file__).parent / "fixtures" / "policies"
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def reset_registries():
-    """Reset plugin registries before each test to ensure isolation."""
-    # This fixture ensures test isolation by resetting global state
+    """Reset plugin and storage registries before and after test to ensure isolation."""
+    from cloakpivot.plugins.registry import reset_plugin_registry
+    from cloakpivot.storage.registry import reset_storage_registry
+    
+    # Reset before test
+    reset_plugin_registry()
+    reset_storage_registry()
+    
     yield
-    # Reset any global registries or caches if needed
-    # This prevents tests from affecting each other
+    
+    # Reset after test
+    reset_plugin_registry()
+    reset_storage_registry()
 
 
 @pytest.fixture
