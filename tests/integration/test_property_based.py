@@ -74,8 +74,8 @@ def policy_strategy(draw: st.DrawFn) -> MaskingPolicy:
 
     strategy_kinds = [StrategyKind.TEMPLATE, StrategyKind.HASH, StrategyKind.SURROGATE, StrategyKind.PARTIAL]
 
-    entities = {}
-    thresholds = {}
+    entities: dict[str, Strategy] = {}
+    thresholds: dict[str, float] = {}
 
     for entity_type in selected_entities:
         strategy_kind = draw(st.sampled_from(strategy_kinds))
@@ -87,7 +87,7 @@ def policy_strategy(draw: st.DrawFn) -> MaskingPolicy:
             strategy_kind = StrategyKind.TEMPLATE
 
         # Generate appropriate parameters for each strategy kind
-        parameters = {}
+        parameters: dict[str, str | int] = {}
         if strategy_kind == StrategyKind.TEMPLATE:
             parameters = {"template": f"[{entity_type}]"}
         elif strategy_kind == StrategyKind.PARTIAL:
