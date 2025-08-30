@@ -1,4 +1,24 @@
-"""Global pytest configuration and shared fixtures for CloakPivot tests."""
+"""Global pytest configuration and shared fixtures for CloakPivot tests.
+
+Fast/Slow Mode Configuration:
+The test suite supports two execution modes to balance speed and coverage:
+
+1. Fast Mode (default): Uses minimal parametrization for quick CI runs
+   - Single privacy level ("medium")
+   - Single strategy kind (TEMPLATE)
+   - Reduced iteration counts and batch sizes
+   - Usage: pytest (default) or PYTEST_FAST_MODE=1 pytest
+
+2. Slow Mode: Full parametrization for comprehensive testing  
+   - All privacy levels ("low", "medium", "high")
+   - All strategy kinds (TEMPLATE, REDACT, HASH, SURROGATE, PARTIAL)
+   - Full iteration counts and batch sizes
+   - Usage: PYTEST_FAST_MODE=0 pytest or pytest -m "slow"
+
+Additional markers:
+- @pytest.mark.slow: Tests that only run in comprehensive mode
+- Fast tests run in both modes, slow tests only in comprehensive mode
+"""
 
 import tempfile
 from pathlib import Path
@@ -270,14 +290,52 @@ def large_document(sample_text_with_pii: str) -> DoclingDocument:
     return doc
 
 
-# Parametrized fixtures for comprehensive testing
-@pytest.fixture(params=[
-    "low",
-    "medium",
-    "high"
-])
+# Parametrized fixtures with fast/slow mode support
+def _get_privacy_levels():
+    """Get privacy levels based on test execution mode."""
+    # Check if we're running in fast mode (default) or slow mode
+    import os
+    fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
+    
+    if fast_mode:
+        return ["medium"]  # Single representative value for fast runs
+    else:
+        return ["low", "medium", "high"]  # Full coverage for slow runs
+
+
+def _get_strategy_kinds():
+    """Get strategy kinds based on test execution mode."""
+    import os
+    fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
+    
+    if fast_mode:
+        return [StrategyKind.TEMPLATE]  # Single representative strategy for fast runs
+    else:
+        return [
+            StrategyKind.TEMPLATE,
+            StrategyKind.REDACT,
+            StrategyKind.HASH,
+            StrategyKind.SURROGATE,
+            StrategyKind.PARTIAL,
+        ]  # Full coverage for slow runs
+
+
+@pytest.fixture(params=_get_privacy_levels())
 def privacy_level(request) -> str:
-    """Parametrized privacy level for testing different configurations."""
+    """Parametrized privacy level with fast/slow mode support."""
+    return request.param
+
+
+@pytest.fixture(params=_get_strategy_kinds())
+def strategy_kind(request) -> StrategyKind:
+    """Parametrized strategy kind with fast/slow mode support."""
+    return request.param
+
+
+# Slow-only fixtures for comprehensive testing
+@pytest.fixture(params=["low", "medium", "high"])
+def privacy_level_slow(request) -> str:
+    """Parametrized privacy level for slow comprehensive testing."""
     return request.param
 
 
@@ -288,8 +346,8 @@ def privacy_level(request) -> str:
     StrategyKind.SURROGATE,
     StrategyKind.PARTIAL,
 ])
-def strategy_kind(request) -> StrategyKind:
-    """Parametrized strategy kind for comprehensive strategy testing."""
+def strategy_kind_slow(request) -> StrategyKind:
+    """Parametrized strategy kind for slow comprehensive strategy testing."""
     return request.param
 
 

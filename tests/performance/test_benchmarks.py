@@ -171,18 +171,15 @@ class TestPerformanceBenchmarks:
         print(f"Medium document: {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
 
     @pytest.mark.performance
-    @pytest.mark.parametrize("word_count,expected_time", [
-        (2500, LARGE_DOC_TIMEOUT_SMALL),  # Smaller batch
-        (5000, LARGE_DOC_TIMEOUT_LARGE),  # Medium batch
-    ])
-    def test_large_document_performance_scaled(
+    def test_large_document_performance_scaled_fast(
         self,
-        word_count: int,
-        expected_time: float,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
         shared_analyzer
     ):
+        """Benchmark performance with single scaled document size for fast runs."""
+        word_count = 2500  # Single representative size for fast testing
+        expected_time = LARGE_DOC_TIMEOUT_SMALL
         """Benchmark performance with scaled document sizes for faster testing."""
         # Generate document of specified size
         text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
@@ -352,14 +349,14 @@ class TestPerformanceBenchmarks:
         print(f"Batch processing: {docs_per_sec:.1f} docs/sec, {metrics['peak_memory_mb']:.1f}MB peak")
 
     @pytest.mark.performance
-    @pytest.mark.parametrize("iterations", [8, 12])
-    def test_memory_leak_detection_batched(
+    def test_memory_leak_detection_batched_fast(
         self,
-        iterations: int,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
         shared_analyzer
     ):
+        """Test for memory leaks with small iteration count for fast runs."""
+        iterations = 8  # Smaller iteration count for fast testing
         """Test for memory leaks during repeated operations with smaller batches."""
         text = TextGenerator.generate_text_with_pii_density(150, 0.2)  # Slightly smaller text
         document = DocumentGenerator.generate_simple_document(text, f"memory_leak_test_{iterations}")
@@ -577,3 +574,156 @@ class TestPerformanceRegression:
         }
 
         return regression_data
+
+
+@pytest.mark.slow
+class TestPerformanceBenchmarksComprehensive:
+    """Comprehensive performance benchmarks with full parametrization for slow runs."""
+
+    @pytest.fixture
+    def masking_engine(self) -> MaskingEngine:
+        """Create masking engine for benchmarking."""
+        return MaskingEngine()
+
+    @pytest.fixture
+    def unmasking_engine(self) -> UnmaskingEngine:
+        """Create unmasking engine for benchmarking."""
+        return UnmaskingEngine()
+
+    @pytest.fixture
+    def benchmark_policy(self) -> MaskingPolicy:
+        """Standard policy for benchmarking."""
+        return PolicyGenerator.generate_comprehensive_policy("medium")
+
+    @pytest.mark.performance
+    @pytest.mark.parametrize("word_count,expected_time", [
+        (2500, LARGE_DOC_TIMEOUT_SMALL),  # Smaller batch
+        (5000, LARGE_DOC_TIMEOUT_LARGE),  # Medium batch
+        (7500, LARGE_DOC_TIMEOUT_LARGE * 1.5),  # Larger batch for comprehensive testing
+    ])
+    def test_large_document_performance_scaled_comprehensive(
+        self,
+        word_count: int,
+        expected_time: float,
+        masking_engine: MaskingEngine,
+        benchmark_policy: MaskingPolicy,
+        shared_analyzer
+    ):
+        """Benchmark performance with all document sizes - comprehensive slow version."""
+        # Generate document of specified size
+        text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
+        document = DocumentGenerator.generate_simple_document(text, f"large_doc_{word_count}")
+
+        def mask_operation():
+            return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
+
+        result, metrics = run_with_profiling(mask_operation)
+
+        # Scale performance expectations based on document size
+        text_length = len(text)
+        assert_performance_acceptable(metrics['elapsed_time'], expected_time, text_length)
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], LARGE_DOC_MEMORY_LIMIT, text_length)
+
+        chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
+        print(f"Large document ({word_count} words): {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
+
+    @pytest.mark.performance
+    @pytest.mark.parametrize("iterations", [8, 12, 16])
+    def test_memory_leak_detection_batched_comprehensive(
+        self,
+        iterations: int,
+        masking_engine: MaskingEngine,
+        benchmark_policy: MaskingPolicy,
+        shared_analyzer
+    ):
+        """Test for memory leaks with various iteration counts - comprehensive slow version."""
+        text = TextGenerator.generate_text_with_pii_density(150, 0.2)
+        document = DocumentGenerator.generate_simple_document(text, f"memory_leak_test_{iterations}")
+
+        # Measure baseline memory
+        baseline_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        memory_measurements = [baseline_memory]
+
+        # Perform operations using shared analyzer
+        for i in range(iterations):
+            mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
+
+            # Measure memory every few operations
+            if i % 3 == 0:
+                current_memory = psutil.Process().memory_info().rss / 1024 / 1024
+                memory_measurements.append(current_memory)
+
+        # Check for memory growth trend
+        memory_growth = memory_measurements[-1] - memory_measurements[0]
+
+        # Scaled expectations based on iteration count
+        max_growth = 50.0 + (iterations - 8) * 5.0  # Allow more growth for more iterations
+        assert memory_growth < max_growth, (
+            f"Potential memory leak detected: {memory_growth:.1f}MB growth "
+            f"over {iterations} iterations"
+        )
+
+        print(f"Memory growth over {iterations} operations: {memory_growth:.1f}MB")
+
+    @pytest.mark.performance
+    @pytest.mark.parametrize("privacy_level", ["low", "medium", "high"])
+    def test_privacy_level_performance_comparison_comprehensive(
+        self,
+        privacy_level: str,
+        masking_engine: MaskingEngine,
+        shared_analyzer
+    ):
+        """Compare performance across all privacy levels - comprehensive slow version."""
+        text = TextGenerator.generate_text_with_pii_density(500, 0.2)
+        document = DocumentGenerator.generate_simple_document(text, f"privacy_comparison_doc_{privacy_level}")
+
+        policy = PolicyGenerator.generate_comprehensive_policy(privacy_level)
+
+        def mask_operation():
+            return mask_document_with_detection(document, policy, analyzer=shared_analyzer)
+
+        result, metrics = run_with_profiling(mask_operation)
+
+        print(f"Privacy {privacy_level}: {metrics['elapsed_time']:.3f}s, {metrics['peak_memory_mb']:.1f}MB")
+
+        # Performance should be reasonable for all privacy levels
+        text_length = len(text)
+        assert_performance_acceptable(metrics['elapsed_time'], 15.0, text_length)
+
+    @pytest.mark.performance
+    @pytest.mark.parametrize("batch_size", [5, 8, 12])
+    def test_batch_processing_performance_comprehensive(
+        self,
+        batch_size: int,
+        masking_engine: MaskingEngine,
+        benchmark_policy: MaskingPolicy,
+        shared_analyzer
+    ):
+        """Benchmark batch processing with various sizes - comprehensive slow version."""
+        # Create multiple documents
+        documents = []
+        for i in range(batch_size):
+            text = TextGenerator.generate_text_with_pii_density(300, 0.15)
+            doc = DocumentGenerator.generate_simple_document(text, f"batch_doc_{i}")
+            documents.append(doc)
+
+        def batch_mask_operation():
+            results = []
+            for doc in documents:
+                result = mask_document_with_detection(doc, benchmark_policy, analyzer=shared_analyzer)
+                results.append(result)
+            return results
+
+        results, metrics = run_with_profiling(batch_mask_operation)
+
+        # Batch processing should be efficient
+        total_length = sum(len(doc.texts[0].text) for doc in documents)
+        docs_per_sec = len(documents) / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
+
+        assert docs_per_sec > 0.2, f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
+        
+        # Scale memory expectations with batch size
+        memory_limit = BATCH_MEMORY_LIMIT + (batch_size - 5) * 1000  # Additional memory for larger batches
+        assert_memory_usage_reasonable(metrics['peak_memory_mb'], memory_limit, total_length)
+
+        print(f"Batch processing ({batch_size} docs): {docs_per_sec:.1f} docs/sec, {metrics['peak_memory_mb']:.1f}MB peak")

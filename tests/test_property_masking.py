@@ -228,6 +228,9 @@ class TestPropertyBasedMaskingSlow:
             st.just(MaskingPolicy(
                 default_strategy=Strategy(StrategyKind.SURROGATE, {})
             )),
+            st.just(MaskingPolicy(
+                default_strategy=Strategy(StrategyKind.HASH, {"algorithm": "sha256", "truncate": 8})
+            )),
         ])
     )
     def test_comprehensive_masking_with_full_presidio(
