@@ -5,7 +5,7 @@ This script provides different test execution modes and reporting options
 for the comprehensive testing infrastructure.
 
 Parallel Test Execution:
-This runner leverages pytest-xdist for parallel test execution to reduce 
+This runner leverages pytest-xdist for parallel test execution to reduce
 wall-clock time on multi-core systems. Tests are parallelized using "-n auto"
 which automatically detects the number of CPU cores.
 
@@ -36,7 +36,7 @@ def run_command(cmd: list[str], description: str) -> int:
     print(f"\n{'=' * 60}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
-    print('=' * 60)
+    print("=" * 60)
 
     result = subprocess.run(cmd, cwd=Path(__file__).parent)
     if result.returncode != 0:
@@ -52,10 +52,13 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/",
-        "-m", "unit or not (integration or e2e or golden or performance or slow)"
-    ])
+    cmd.extend(
+        [
+            "tests/",
+            "-m",
+            "unit or not (integration or e2e or golden or performance or slow)",
+        ]
+    )
 
     # Options
     if verbose:
@@ -64,12 +67,14 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
         cmd.extend(["-q", "--tb=short"])
 
     if coverage:
-        cmd.extend([
-            "--cov=cloakpivot",
-            "--cov-report=term-missing",
-            "--cov-report=html:htmlcov",
-            "--cov-fail-under=80"
-        ])
+        cmd.extend(
+            [
+                "--cov=cloakpivot",
+                "--cov-report=term-missing",
+                "--cov-report=html:htmlcov",
+                "--cov-fail-under=80",
+            ]
+        )
 
     # Parallel execution with xdist - unit tests are isolated and safe for parallelization
     cmd.extend(["-n", "auto"])
@@ -78,14 +83,17 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
 
 
 def run_integration_tests(verbose: bool = False) -> int:
-    """Run integration tests."""
+    """Run integration tests.
+
+    Integration tests are safe for parallel execution because they:
+    - Use isolated temporary directories via pytest fixtures
+    - Have no shared state or external service dependencies
+    - Use golden file comparisons that don't interfere with each other
+    """
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/integration/",
-        "-m", "integration"
-    ])
+    cmd.extend(["tests/integration/", "-m", "integration"])
 
     # Options
     if verbose:
@@ -107,10 +115,7 @@ def run_golden_file_tests(verbose: bool = False) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/integration/test_golden_files.py",
-        "-m", "golden"
-    ])
+    cmd.extend(["tests/integration/test_golden_files.py", "-m", "golden"])
 
     # Options
     if verbose:
@@ -126,9 +131,7 @@ def run_round_trip_tests(verbose: bool = False) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/integration/test_round_trip.py"
-    ])
+    cmd.extend(["tests/integration/test_round_trip.py"])
 
     # Options
     if verbose:
@@ -144,9 +147,7 @@ def run_property_based_tests(verbose: bool = False) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/integration/test_property_based.py"
-    ])
+    cmd.extend(["tests/integration/test_property_based.py"])
 
     # Options
     if verbose:
@@ -161,14 +162,18 @@ def run_property_based_tests(verbose: bool = False) -> int:
 
 
 def run_e2e_tests(verbose: bool = False) -> int:
-    """Run end-to-end CLI tests."""
+    """Run end-to-end CLI tests.
+
+    End-to-end tests are safe for parallel execution because they:
+    - Use isolated temporary workspace directories (temp_workspace fixture)
+    - Run CLI commands in separate ClickRunner instances
+    - Have no shared state or database connections
+    - Use independent file system operations with no conflicts
+    """
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/e2e/",
-        "-m", "e2e"
-    ])
+    cmd.extend(["tests/e2e/", "-m", "e2e"])
 
     # Options
     if verbose:
@@ -190,10 +195,7 @@ def run_performance_tests(verbose: bool = False) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/performance/",
-        "-m", "performance"
-    ])
+    cmd.extend(["tests/performance/", "-m", "performance"])
 
     # Options
     if verbose:
@@ -202,10 +204,7 @@ def run_performance_tests(verbose: bool = False) -> int:
         cmd.extend(["-q", "--tb=short"])
 
     # Performance-specific options
-    cmd.extend([
-        "--benchmark-only",
-        "--benchmark-sort=mean"
-    ])
+    cmd.extend(["--benchmark-only", "--benchmark-sort=mean"])
 
     return run_command(cmd, "Performance Tests")
 
@@ -215,10 +214,7 @@ def run_slow_tests(verbose: bool = False) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection
-    cmd.extend([
-        "tests/",
-        "-m", "slow"
-    ])
+    cmd.extend(["tests/", "-m", "slow"])
 
     # Options
     if verbose:
@@ -237,10 +233,7 @@ def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
     cmd = ["python", "-m", "pytest"]
 
     # Test selection - exclude slow and performance tests
-    cmd.extend([
-        "tests/",
-        "-m", "not (slow or performance)"
-    ])
+    cmd.extend(["tests/", "-m", "not (slow or performance)"])
 
     # Options
     if verbose:
@@ -249,12 +242,14 @@ def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
         cmd.extend(["-q", "--tb=short"])
 
     if coverage:
-        cmd.extend([
-            "--cov=cloakpivot",
-            "--cov-report=term-missing",
-            "--cov-report=html:htmlcov",
-            "--cov-fail-under=75"  # Slightly lower for comprehensive suite
-        ])
+        cmd.extend(
+            [
+                "--cov=cloakpivot",
+                "--cov-report=term-missing",
+                "--cov-report=html:htmlcov",
+                "--cov-fail-under=75",  # Slightly lower for comprehensive suite
+            ]
+        )
 
     # Parallel execution with xdist - fast tests combine unit+integration, both safely parallelized
     cmd.extend(["-n", "auto"])
@@ -276,13 +271,15 @@ def run_comprehensive_tests(verbose: bool = False, coverage: bool = True) -> int
         cmd.extend(["-q", "--tb=short"])
 
     if coverage:
-        cmd.extend([
-            "--cov=cloakpivot",
-            "--cov-report=term-missing",
-            "--cov-report=html:htmlcov",
-            "--cov-report=xml:coverage.xml",  # For CI systems
-            "--cov-fail-under=70"  # Lower threshold for full suite
-        ])
+        cmd.extend(
+            [
+                "--cov=cloakpivot",
+                "--cov-report=term-missing",
+                "--cov-report=html:htmlcov",
+                "--cov-report=xml:coverage.xml",  # For CI systems
+                "--cov-fail-under=70",  # Lower threshold for full suite
+            ]
+        )
 
     # Long timeout for comprehensive suite
     cmd.extend(["--timeout=1800"])
@@ -325,7 +322,7 @@ def lint_and_format() -> int:
     return max(exit_codes) if exit_codes else 0
 
 
-def main():
+def main() -> None:
     """Main test runner entry point."""
     parser = argparse.ArgumentParser(
         description="CloakPivot Comprehensive Test Runner",
@@ -346,36 +343,42 @@ Examples:
   python run_tests.py integration --verbose
   python run_tests.py fast
   python run_tests.py all --verbose --coverage
-        """
+        """,
     )
 
     parser.add_argument(
         "test_type",
         choices=[
-            "unit", "integration", "golden", "round-trip", "property",
-            "e2e", "performance", "slow", "fast", "all", "lint"
+            "unit",
+            "integration",
+            "golden",
+            "round-trip",
+            "property",
+            "e2e",
+            "performance",
+            "slow",
+            "fast",
+            "all",
+            "lint",
         ],
-        help="Type of tests to run"
+        help="Type of tests to run",
     )
 
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Verbose output"
-    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     parser.add_argument(
-        "--coverage", "-c",
+        "--coverage",
+        "-c",
         action="store_true",
         default=True,
-        help="Include coverage reporting (default: True)"
+        help="Include coverage reporting (default: True)",
     )
 
     parser.add_argument(
         "--no-coverage",
         action="store_false",
         dest="coverage",
-        help="Disable coverage reporting"
+        help="Disable coverage reporting",
     )
 
     args = parser.parse_args()
