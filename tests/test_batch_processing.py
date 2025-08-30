@@ -22,7 +22,7 @@ from cloakpivot.core.policies import MaskingPolicy
 class TestBatchConfig:
     """Tests for BatchConfig configuration class."""
 
-    def test_batch_config_creation(self):
+    def test_batch_config_creation(self) -> None:
         """Test creating a basic batch configuration."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
@@ -426,7 +426,7 @@ class TestBatchProcessor:
             assert len(filtered_files) == 1
             assert filtered_files[0] == file2
             assert file1.status == BatchStatus.FAILED
-            assert "already exists" in file1.error
+            assert file1.error is not None and "already exists" in file1.error
 
     def test_cancellation(self):
         """Test batch processing cancellation."""
@@ -506,7 +506,7 @@ class TestBatchProcessorIntegration:
         # Mock the mask operation to succeed
         def mock_mask_operation(file_item):
             file_item.entities_processed = 5
-            time.sleep(0.01)  # Simulate processing time
+            # No sleep needed - testing logic, not timing
 
         mock_mask_op.side_effect = mock_mask_operation
 
@@ -558,7 +558,7 @@ class TestBatchProcessorIntegration:
         # Check that failed file has error information
         failed_files = [f for f in result.file_results if f.status == BatchStatus.FAILED]
         assert len(failed_files) == 1
-        assert "Simulated processing error" in failed_files[0].error
+        assert failed_files[0].error is not None and "Simulated processing error" in failed_files[0].error
 
     @patch('cloakpivot.core.batch.BatchProcessor._process_mask_operation')
     def test_process_batch_with_retries(self, mock_mask_op, temp_workspace):
@@ -574,6 +574,7 @@ class TestBatchProcessorIntegration:
 
         # Mock the operation to fail first time, succeed second time
         call_count = 0
+
         def mock_mask_operation(file_item):
             nonlocal call_count
             call_count += 1
