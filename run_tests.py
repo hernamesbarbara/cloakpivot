@@ -73,11 +73,11 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
             "--cov-report=term-missing",
             "--cov-fail-under=25",
         ]
-        
+
         # Only generate HTML coverage if explicitly requested via environment variable
         if os.environ.get("COVERAGE_HTML", "").lower() in ("1", "true"):
             cov_options.append("--cov-report=html:htmlcov")
-            
+
         cmd.extend(cov_options)
 
     # Parallel execution with xdist - unit tests are isolated and safe for parallelization
@@ -252,11 +252,11 @@ def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
             "--cov-report=term-missing",
             "--cov-fail-under=60",  # Slightly lower for comprehensive suite
         ]
-        
+
         # Only generate HTML coverage if explicitly requested via environment variable
         if os.environ.get("COVERAGE_HTML", "").lower() in ("1", "true"):
             cov_options.append("--cov-report=html:htmlcov")
-            
+
         cmd.extend(cov_options)
 
     # Parallel execution with xdist - fast tests combine unit+integration, both safely parallelized
