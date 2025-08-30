@@ -3,6 +3,26 @@
 
 This script provides different test execution modes and reporting options
 for the comprehensive testing infrastructure.
+
+Parallel Test Execution:
+This runner leverages pytest-xdist for parallel test execution to reduce 
+wall-clock time on multi-core systems. Tests are parallelized using "-n auto"
+which automatically detects the number of CPU cores.
+
+Parallelization Strategy:
+- Unit Tests: Parallelized (isolated fixtures, no shared state)
+- Integration Tests: Parallelized (isolated temp directories via conftest.py)
+- E2E Tests: Parallelized (CLI tests use isolated temp workspaces)
+- Fast Tests: Parallelized (combination of unit + integration)
+- Performance Tests: Not parallelized (benchmarks need dedicated resources)
+- Slow Tests: Not parallelized (may have shared resource dependencies)
+
+Test Isolation:
+All parallelized test suites use proper fixture isolation patterns:
+- Temporary directories via tempfile.TemporaryDirectory()
+- No hardcoded ports or shared network resources
+- Session-scoped fixtures only for read-only resources (e.g., shared_analyzer)
+- Reset of global state via autouse fixtures in conftest.py
 """
 
 import argparse
@@ -51,7 +71,7 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
             "--cov-fail-under=80"
         ])
 
-    # Parallel execution
+    # Parallel execution with xdist - unit tests are isolated and safe for parallelization
     cmd.extend(["-n", "auto"])
 
     return run_command(cmd, "Unit Tests")
@@ -75,6 +95,9 @@ def run_integration_tests(verbose: bool = False) -> int:
 
     # Longer timeout for integration tests
     cmd.extend(["--timeout=300"])
+
+    # Parallel execution with xdist - integration tests use isolated temp dirs and fixtures
+    cmd.extend(["-n", "auto"])
 
     return run_command(cmd, "Integration Tests")
 
@@ -156,6 +179,9 @@ def run_e2e_tests(verbose: bool = False) -> int:
     # Longer timeout for E2E tests
     cmd.extend(["--timeout=600"])
 
+    # Parallel execution with xdist - E2E CLI tests use isolated temp workspaces and no shared state
+    cmd.extend(["-n", "auto"])
+
     return run_command(cmd, "End-to-End Tests")
 
 
@@ -230,7 +256,7 @@ def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
             "--cov-fail-under=75"  # Slightly lower for comprehensive suite
         ])
 
-    # Parallel execution
+    # Parallel execution with xdist - fast tests combine unit+integration, both safely parallelized
     cmd.extend(["-n", "auto"])
 
     return run_command(cmd, "All Fast Tests")
