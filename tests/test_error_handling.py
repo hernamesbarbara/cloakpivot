@@ -296,8 +296,15 @@ class TestPartialFailureManager:
 class TestCircuitBreaker:
     """Test circuit breaker pattern implementation."""
 
-    def test_circuit_breaker_states(self):
+    def test_circuit_breaker_states(self, monkeypatch):
         """Test circuit breaker state transitions."""
+        mock_time = 1000.0  # Start time
+
+        def mock_time_func():
+            return mock_time
+
+        monkeypatch.setattr(time, "time", mock_time_func)
+
         @with_circuit_breaker(failure_threshold=2, recovery_timeout=0.1)
         def failing_function():
             raise ConnectionError("Service unavailable")
@@ -312,14 +319,21 @@ class TestCircuitBreaker:
         with pytest.raises(ProcessingError):
             failing_function()
 
+        # Advance time beyond recovery timeout
+        mock_time += 0.2
         # After recovery timeout, should try again (HALF_OPEN state)
-        time.sleep(0.2)
         with pytest.raises(ConnectionError):
             failing_function()
 
-    def test_circuit_breaker_recovery(self):
+    def test_circuit_breaker_recovery(self, monkeypatch):
         """Test circuit breaker recovery after success."""
         failure_count = 0
+        mock_time = 2000.0  # Start time
+
+        def mock_time_func():
+            return mock_time
+
+        monkeypatch.setattr(time, "time", mock_time_func)
 
         @with_circuit_breaker(failure_threshold=2, recovery_timeout=0.1)
         def sometimes_failing_function():
@@ -339,8 +353,8 @@ class TestCircuitBreaker:
         with pytest.raises(ProcessingError):
             sometimes_failing_function()
 
-        # Wait for recovery and succeed
-        time.sleep(0.2)
+        # Advance time beyond recovery timeout and succeed
+        mock_time += 0.2
         result = sometimes_failing_function()
         assert result == "success"
 

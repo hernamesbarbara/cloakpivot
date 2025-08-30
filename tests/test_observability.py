@@ -461,7 +461,7 @@ class TestIntegration:
                     for i in range(10):
                         collector.counter("concurrent_counter", 1.0, {"worker": str(worker_id)})
                         collector.gauge("concurrent_gauge", float(i), {"worker": str(worker_id)})
-                        time.sleep(0.01)  # Small delay to simulate work
+                        # No sleep needed - testing concurrency, not timing
 
         # Start multiple workers
         threads = []

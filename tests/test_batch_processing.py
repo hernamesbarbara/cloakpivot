@@ -506,7 +506,7 @@ class TestBatchProcessorIntegration:
         # Mock the mask operation to succeed
         def mock_mask_operation(file_item):
             file_item.entities_processed = 5
-            time.sleep(0.01)  # Simulate processing time
+            # No sleep needed - testing logic, not timing
 
         mock_mask_op.side_effect = mock_mask_operation
 
