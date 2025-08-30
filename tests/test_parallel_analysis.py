@@ -6,12 +6,12 @@ from unittest.mock import Mock, patch
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.analyzer import AnalyzerConfig
+from cloakpivot.core.chunking import ChunkBoundary
 from cloakpivot.core.parallel_analysis import (
     ChunkAnalysisResult,
     ParallelAnalysisEngine,
     ParallelAnalysisResult,
 )
-from cloakpivot.core.chunking import ChunkBoundary
 from cloakpivot.core.policies import MaskingPolicy
 
 

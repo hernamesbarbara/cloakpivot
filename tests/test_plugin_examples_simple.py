@@ -2,13 +2,13 @@
 
 from cloakpivot.plugins.examples.recognizers import (
     CustomPhoneRecognizerPlugin,
-    LicensePlateRecognizerPlugin,
     IPv4AddressRecognizerPlugin,
+    LicensePlateRecognizerPlugin,
 )
 from cloakpivot.plugins.examples.strategies import (
+    ColorCodeStrategyPlugin,
     ROT13StrategyPlugin,
     UpsideDownStrategyPlugin,
-    ColorCodeStrategyPlugin,
     WordShuffleStrategyPlugin,
 )
 

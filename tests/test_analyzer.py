@@ -37,7 +37,7 @@ class TestAnalyzerEngineWrapper:
                 # Mock the NLP engine provider and engine
                 mock_nlp_engine = Mock()
                 mock_nlp_provider.return_value.create_engine.return_value = mock_nlp_engine
-                
+
                 # Mock the analyzer engine
                 mock_instance = Mock()
                 mock_instance.analyze.return_value = []  # Return empty list for analysis
