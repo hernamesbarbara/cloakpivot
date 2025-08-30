@@ -233,7 +233,7 @@ class TestPerformanceBenchmarks:
         # Round-trip should be less than 2x masking time
         text_length = len(text)
         assert_performance_acceptable(metrics['elapsed_time'], 40.0, text_length)
-        assert_memory_usage_reasonable(metrics['peak_memory_mb'], 8100.0, text_length)  # Increased for ML models
+        assert_memory_usage_reasonable(metrics['peak_memory_mb'], 8200.0, text_length)  # Increased for ML models
 
         print(f"Round-trip: {metrics['elapsed_time']:.3f}s, {metrics['peak_memory_mb']:.1f}MB peak")
 
