@@ -233,7 +233,7 @@ class TestPerformanceBenchmarks:
         # Round-trip should be less than 2x masking time
         text_length = len(text)
         assert_performance_acceptable(metrics['elapsed_time'], 40.0, text_length)
-        assert_memory_usage_reasonable(metrics['peak_memory_mb'], 8100.0, text_length)  # Increased for ML models
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], 4100.0, text_length)  # Use memory delta to avoid test suite contamination
 
         print(f"Round-trip: {metrics['elapsed_time']:.3f}s, {metrics['peak_memory_mb']:.1f}MB peak")
 
@@ -252,8 +252,8 @@ class TestPerformanceBenchmarks:
         for privacy_level in ["low", "medium", "high"]:
             policy = PolicyGenerator.generate_comprehensive_policy(privacy_level)
 
-            def mask_operation():
-                return mask_document_with_detection(document, policy, analyzer=shared_analyzer)
+            def mask_operation(p=policy):
+                return mask_document_with_detection(document, p, analyzer=shared_analyzer)
 
             result, metrics = run_with_profiling(mask_operation)
             results[privacy_level] = metrics
@@ -410,8 +410,8 @@ class TestPerformanceBenchmarks:
                 {"PHONE_NUMBER": 0.5}
             )
 
-            def mask_operation():
-                return mask_document_with_detection(document, policy, analyzer=shared_analyzer)
+            def mask_operation(p=policy):
+                return mask_document_with_detection(document, p, analyzer=shared_analyzer)
 
             result, metrics = run_with_profiling(mask_operation)
             results[strategy.value] = metrics
