@@ -75,7 +75,7 @@ class TestPropertyBasedMaskingFast:
     )
     def test_masking_preserves_document_structure(
         self, text: str, policy: MaskingPolicy, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Property: Masking preserves document structure regardless of content."""
         assume(len(text.strip()) > 0)  # Skip empty strings
 
@@ -97,7 +97,7 @@ class TestPropertyBasedMaskingFast:
     )
     def test_multi_section_masking_consistency(
         self, sections: list[str], policy: MaskingPolicy, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Property: Multi-section documents are masked consistently."""
         # Filter out empty sections
         non_empty_sections = [s for s in sections if s.strip()]
@@ -126,7 +126,7 @@ class TestPropertyBasedMaskingFast:
     )
     def test_pii_detection_and_masking_with_deterministic_input(
         self, pii_text: str, policy: MaskingPolicy
-    ):
+    ) -> None:
         """Property: PII is consistently detected and masked with deterministic patterns.
 
         Uses FastRegexDetector for predictable, fast unit-level testing.
@@ -170,7 +170,7 @@ class TestPropertyBasedMaskingFast:
     @given(text=constrained_text_strategy(max_size=50))
     def test_masking_with_no_entities_is_identity(
         self, text: str, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Property: Masking text with no detected entities should leave it unchanged."""
         assume(len(text.strip()) > 0)
 
@@ -194,7 +194,7 @@ class TestPropertyBasedMaskingFast:
     )
     def test_cloakmap_integrity(
         self, text: str, policy: MaskingPolicy, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Property: CloakMap maintains integrity invariants."""
         assume(len(text.strip()) > 0)
 
@@ -241,7 +241,7 @@ class TestPropertyBasedMaskingSlow:
     )
     def test_comprehensive_masking_with_full_presidio(
         self, text: str, policy: MaskingPolicy, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Comprehensive property test using full Presidio and broader generators."""
         assume(len(text.strip()) > 2)
 
@@ -265,7 +265,7 @@ class TestPropertyBasedMaskingSlow:
     )
     def test_large_multi_section_document_performance(
         self, sections: list[str], policy: MaskingPolicy, shared_analyzer: AnalyzerEngine
-    ):
+    ) -> None:
         """Test performance with larger multi-section documents."""
         non_empty_sections = [s for s in sections if len(s.strip()) > 1]
         assume(len(non_empty_sections) >= 2)
@@ -298,7 +298,7 @@ class TestMaskingPerformanceBenchmarks:
     """Performance-focused tests for identifying bottlenecks."""
 
     @pytest.mark.parametrize("iterations", [5, 8])
-    def test_analyzer_reuse_performance_benefit(self, iterations: int, shared_analyzer: AnalyzerEngine):
+    def test_analyzer_reuse_performance_benefit(self, iterations: int, shared_analyzer: AnalyzerEngine) -> None:
         """Benchmark the performance benefit of analyzer reuse with smaller batches."""
         import time
 
@@ -317,7 +317,7 @@ class TestMaskingPerformanceBenchmarks:
         # Test with per-call analyzer creation (fewer iterations to speed up)
         start_time = time.perf_counter()
         for _ in range(min(iterations, 5)):  # Cap at 5 to avoid slowness
-            mask_document_with_detection(document, policy, analyzer=None)
+            mask_document_with_detection(document, policy, analyzer=None)  # type: ignore[arg-type]  # type: ignore[arg-type]  # type: ignore[arg-type]
         individual_time = time.perf_counter() - start_time
 
         # Shared analyzer should be significantly faster
@@ -325,7 +325,7 @@ class TestMaskingPerformanceBenchmarks:
         performance_improvement = individual_time / shared_time
         print(f"Performance improvement with shared analyzer ({iterations} iter): {performance_improvement:.2f}x")
 
-    def test_analyzer_reuse_quick_comparison(self, shared_analyzer: AnalyzerEngine):
+    def test_analyzer_reuse_quick_comparison(self, shared_analyzer: AnalyzerEngine) -> None:
         """Quick test of analyzer reuse benefit with minimal operations."""
         import time
 
@@ -342,14 +342,14 @@ class TestMaskingPerformanceBenchmarks:
 
         # Single operation with new analyzer
         start_time = time.perf_counter()
-        mask_document_with_detection(document, policy, analyzer=None)
+        mask_document_with_detection(document, policy, analyzer=None)  # type: ignore[arg-type]
         individual_time = time.perf_counter() - start_time
 
         # Shared analyzer should be faster
         assert shared_time < individual_time
         print(f"Quick comparison - shared: {shared_time:.3f}s, individual: {individual_time:.3f}s")
 
-    def test_conflict_resolution_performance_impact(self, shared_analyzer: AnalyzerEngine):
+    def test_conflict_resolution_performance_impact(self, shared_analyzer: AnalyzerEngine) -> None:
         """Measure the performance impact of conflict resolution."""
         import time
 

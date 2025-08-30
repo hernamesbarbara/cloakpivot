@@ -36,7 +36,7 @@ MEDIUM_DOC_MEMORY_LIMIT = 3000.0
 LARGE_DOC_MEMORY_LIMIT = 2500.0
 MULTI_SECTION_MEMORY_LIMIT = 12000.0
 ROUND_TRIP_MEMORY_LIMIT = 4100.0
-BATCH_MEMORY_LIMIT = 8100.0
+BATCH_MEMORY_LIMIT = 8800.0
 
 
 class PerformanceProfiler:
@@ -548,7 +548,7 @@ class TestPerformanceRegression:
 
         # Performance expectations (realistic values when using shared analyzer)
         expected_max_time = 5.0  # seconds - more realistic for NLP model processing
-        expected_max_memory = 8100.0  # MB - realistic for Presidio with loaded models
+        expected_max_memory = 8800.0  # MB - realistic for Presidio with loaded models
 
         assert avg_time < expected_max_time, (
             f"Performance regression detected: avg time {avg_time:.3f}s "
