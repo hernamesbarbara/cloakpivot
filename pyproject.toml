@@ -86,6 +86,7 @@ test = [
     "psutil>=5.9.0",       # Performance monitoring
     "pytest-xdist>=3.0.0", # Parallel test execution
     "pytest-benchmark>=4.0.0", # Performance benchmarking
+    "pytest-timeout>=2.1.0", # Test timeout support
 ]
 
 [project.scripts]
@@ -214,8 +215,8 @@ norecursedirs = [
     "__pycache__"
 ]
 # Timeout settings - requires pytest-timeout plugin
-# timeout = 300
-# timeout_method = "thread"
+timeout = 300
+timeout_method = "thread"
 
 [tool.coverage.run]
 source = ["cloakpivot"]

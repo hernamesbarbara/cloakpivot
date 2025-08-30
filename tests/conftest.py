@@ -1,23 +1,28 @@
 """Global pytest configuration and shared fixtures for CloakPivot tests.
 
 Fast/Slow Mode Configuration:
-The test suite supports two execution modes to balance speed and coverage:
+The test suite supports multiple execution modes to balance speed and coverage:
 
 1. Fast Mode (default): Uses minimal parametrization for quick CI runs
    - Single privacy level ("medium")
    - Single strategy kind (TEMPLATE)
    - Reduced iteration counts and batch sizes
-   - Usage: pytest (default) or PYTEST_FAST_MODE=1 pytest
+   - Excludes slow, performance, and property-based tests
+   - Usage: pytest -m "not (slow or performance or property)"
+   - Hypothesis profile: Use -o hypothesis-profile=ci_fast or HYPOTHESIS_PROFILE=ci_fast
 
-2. Slow Mode: Full parametrization for comprehensive testing  
+2. Slow Mode: Full parametrization for comprehensive testing
    - All privacy levels ("low", "medium", "high")
    - All strategy kinds (TEMPLATE, REDACT, HASH, SURROGATE, PARTIAL)
    - Full iteration counts and batch sizes
+   - Includes all test types
    - Usage: PYTEST_FAST_MODE=0 pytest or pytest -m "slow"
 
 Additional markers:
 - @pytest.mark.slow: Tests that only run in comprehensive mode
-- Fast tests run in both modes, slow tests only in comprehensive mode
+- @pytest.mark.performance: Performance benchmarks and timing tests
+- @pytest.mark.property: Property-based tests using Hypothesis
+- Fast tests run in both modes, slow/performance/property tests need explicit inclusion
 """
 
 import tempfile
@@ -27,11 +32,37 @@ from unittest.mock import Mock
 import pytest
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
+from hypothesis import Verbosity, settings
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
+
+# Configure Hypothesis profiles for different test environments
+settings.register_profile(
+    "ci_fast",
+    max_examples=3,
+    deadline=2000,  # 2 seconds
+    verbosity=Verbosity.quiet,
+    suppress_health_check=[
+        # Suppress health checks that can slow down CI
+        # These are generally safe to ignore for property testing in CI
+    ]
+)
+
+settings.register_profile(
+    "default",
+    max_examples=10,
+    deadline=5000,  # 5 seconds
+)
+
+settings.register_profile(
+    "comprehensive",
+    max_examples=100,
+    deadline=30000,  # 30 seconds
+    verbosity=Verbosity.verbose
+)
 
 
 @pytest.fixture(scope="session")
@@ -296,7 +327,7 @@ def _get_privacy_levels():
     # Check if we're running in fast mode (default) or slow mode
     import os
     fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
-    
+
     if fast_mode:
         return ["medium"]  # Single representative value for fast runs
     else:
@@ -307,7 +338,7 @@ def _get_strategy_kinds():
     """Get strategy kinds based on test execution mode."""
     import os
     fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
-    
+
     if fast_mode:
         return [StrategyKind.TEMPLATE]  # Single representative strategy for fast runs
     else:
@@ -413,4 +444,7 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         "markers", "slow: marks tests as slow running tests"
+    )
+    config.addinivalue_line(
+        "markers", "property: marks tests as property-based tests using Hypothesis"
     )
