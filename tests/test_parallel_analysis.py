@@ -222,7 +222,9 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine()
         policy = MaskingPolicy()
 
-        with patch('cloakpivot.core.parallel_analysis.ChunkedDocumentProcessor') as mock_processor_class:
+        with patch(
+            'cloakpivot.core.parallel_analysis.ChunkedDocumentProcessor'
+        ) as mock_processor_class:
             mock_processor = Mock()
             mock_processor.chunk_document.return_value = []
             mock_processor_class.return_value = mock_processor
@@ -304,7 +306,9 @@ class TestParallelAnalysisEngine:
         mock_analyzer.analyze_text.return_value = [mock_detection]
 
         with patch.object(engine, '_get_thread_analyzer', return_value=mock_analyzer):
-            with patch.object(engine.chunked_processor, 'extract_chunk_text', return_value="John Doe"):
+            with patch.object(
+                engine.chunked_processor, 'extract_chunk_text', return_value="John Doe"
+            ):
                 result = engine._analyze_single_chunk(mock_chunk, config)
 
                 assert result.chunk_id == "chunk_1"
