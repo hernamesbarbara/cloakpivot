@@ -18,10 +18,7 @@ from cloakpivot.plugins.recognizers.base import (
     BaseRecognizerPlugin,
     RecognizerPluginResult,
 )
-from cloakpivot.plugins.registry import (
-    get_plugin_registry,
-    reset_plugin_registry,
-)
+from cloakpivot.plugins.registry import get_plugin_registry
 from cloakpivot.plugins.strategies.base import BaseStrategyPlugin, StrategyPluginResult
 
 
@@ -148,22 +145,14 @@ class TestPluginBase:
 class TestPluginRegistry:
     """Test plugin registry functionality."""
 
-    def setup_method(self):
-        """Set up test method."""
-        reset_plugin_registry()
-
-    def teardown_method(self):
-        """Tear down test method."""
-        reset_plugin_registry()
-
-    def test_plugin_registry_singleton(self):
+    def test_plugin_registry_singleton(self, reset_registries):
         """Test registry singleton behavior."""
         registry1 = get_plugin_registry()
         registry2 = get_plugin_registry()
 
         assert registry1 is registry2
 
-    def test_register_strategy_plugin(self):
+    def test_register_strategy_plugin(self, reset_registries):
         """Test registering a strategy plugin."""
         registry = get_plugin_registry()
         plugin = MockStrategyPlugin()
@@ -174,7 +163,7 @@ class TestPluginRegistry:
         assert "mock_strategy" in registry._strategy_plugins
         assert len(registry._recognizer_plugins) == 0
 
-    def test_register_recognizer_plugin(self):
+    def test_register_recognizer_plugin(self, reset_registries):
         """Test registering a recognizer plugin."""
         registry = get_plugin_registry()
         plugin = MockRecognizerPlugin()
@@ -185,7 +174,7 @@ class TestPluginRegistry:
         assert "mock_recognizer" in registry._recognizer_plugins
         assert len(registry._strategy_plugins) == 0
 
-    def test_duplicate_plugin_registration(self):
+    def test_duplicate_plugin_registration(self, reset_registries):
         """Test duplicate plugin registration fails."""
         registry = get_plugin_registry()
         plugin1 = MockStrategyPlugin()
@@ -196,7 +185,7 @@ class TestPluginRegistry:
         with pytest.raises(PluginRegistrationError, match="already registered"):
             registry.register_plugin(plugin2)
 
-    def test_initialize_plugin(self):
+    def test_initialize_plugin(self, reset_registries):
         """Test plugin initialization."""
         registry = get_plugin_registry()
         plugin = MockStrategyPlugin()
@@ -208,14 +197,14 @@ class TestPluginRegistry:
         assert plugin_info.status == PluginStatus.ACTIVE
         assert plugin.is_initialized
 
-    def test_plugin_not_found(self):
+    def test_plugin_not_found(self, reset_registries):
         """Test error when plugin not found."""
         registry = get_plugin_registry()
 
         with pytest.raises(PluginError, match="Plugin nonexistent not found"):
             registry.initialize_plugin("nonexistent")
 
-    def test_get_registry_status(self):
+    def test_get_registry_status(self, reset_registries):
         """Test getting registry status."""
         registry = get_plugin_registry()
         plugin1 = MockStrategyPlugin()

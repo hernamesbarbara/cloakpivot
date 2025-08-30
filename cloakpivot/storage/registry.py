@@ -474,3 +474,13 @@ def register_backend(
     """
     registry = get_storage_registry()
     registry.register_backend(backend_type, backend_class, aliases)
+
+
+def reset_storage_registry() -> None:
+    """
+    Reset the global storage registry.
+
+    This is primarily for testing purposes to ensure test isolation.
+    """
+    global _global_registry
+    _global_registry = None
