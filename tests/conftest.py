@@ -391,9 +391,15 @@ def strategy_kind_slow(request) -> StrategyKind:
 
 
 # Fixtures for masking engines
-@pytest.fixture
+@pytest.fixture(scope="module")
 def masking_engine():
-    """Create a MaskingEngine instance for testing."""
+    """Create a MaskingEngine instance for testing.
+    
+    Uses module scope for performance optimization since MaskingEngine
+    is stateless and safe to reuse across tests within the same module.
+    This reduces repeated construction costs while maintaining test isolation
+    through separate input documents and policies.
+    """
     from cloakpivot.masking.engine import MaskingEngine
     return MaskingEngine()
 
