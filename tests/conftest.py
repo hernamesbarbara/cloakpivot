@@ -37,6 +37,7 @@ from docling_core.types.doc.document import TextItem
 from hypothesis import Verbosity, settings
 from presidio_analyzer import RecognizerResult
 
+from cloakpivot.core.analyzer import AnalyzerConfig
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
@@ -566,7 +567,7 @@ def performance_profiler():
 # def cached_analyzer_wrapper(shared_analyzer) -> AnalyzerEngineWrapper:
 #     """AnalyzerEngineWrapper using the shared analyzer instance."""
 #     from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
-# 
+#
 #     # Create wrapper that uses the shared engine
 #     wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
 #     try:
@@ -575,14 +576,13 @@ def performance_profiler():
 #     except AttributeError:
 #         # If internal attributes don't exist, just return the wrapper
 #         pass
-# 
+#
 #     return wrapper
 
 
 @pytest.fixture(scope="session")
-def performance_test_configs() -> dict[str, "AnalyzerConfig"]:
+def performance_test_configs() -> dict[str, AnalyzerConfig]:
     """Various analyzer configurations for performance testing."""
-    from cloakpivot.core.analyzer import AnalyzerConfig
 
     return {
         "minimal": AnalyzerConfig(
