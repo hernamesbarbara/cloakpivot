@@ -218,6 +218,13 @@ norecursedirs = [
 timeout = 300
 timeout_method = "thread"
 
+# Parallel execution configuration
+# Use environment variables to control parallel execution:
+# - PYTEST_WORKERS: explicit worker count override
+# - PYTEST_DIST: distribution strategy (loadfile, loadscope, worksteal)
+# - PYTEST_MAX_WORKERS: maximum worker limit
+# Default behavior: auto-detect optimal worker count based on CPU cores
+
 [tool.coverage.run]
 source = ["cloakpivot"]
 omit = ["tests/*", "setup.py"]
