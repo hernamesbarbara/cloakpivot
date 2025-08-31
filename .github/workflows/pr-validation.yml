@@ -1,0 +1,46 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  MODEL_SIZE: small
+  PYTEST_FAST_MODE: true
+  CLOAKPIVOT_USE_SINGLETON: true
+
+jobs:
+  pr-checks:
+    name: PR Validation Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev,test]"
+
+    - name: Download required models
+      run: |
+        # Pre-download spaCy models for tests
+        python -m spacy download en_core_web_sm
+        python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('Model loaded successfully')"
+
+    - name: Quick validation
+      run: |
+        ruff check cloakpivot tests
+        mypy cloakpivot --ignore-missing-imports --no-strict-optional
+        pytest -x -m "not slow" --maxfail=3 --tb=short
+
+    - name: Performance regression check
+      run: |
+        # Run key performance tests to catch regressions early
+        pytest -x -m "performance" -k "baseline" --maxfail=1 --tb=short

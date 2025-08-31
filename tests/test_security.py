@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from cryptography.exceptions import InvalidTag
 
 from cloakpivot.core.anchors import AnchorEntry
 from cloakpivot.core.cloakmap import CloakMap, validate_cloakmap_integrity
@@ -546,11 +547,11 @@ class TestEncryption:
 
         # Test with wrong key
         wrong_key = CryptoUtils.generate_salt(32)
-        with pytest.raises(Exception):  # Should raise InvalidTag or similar
+        with pytest.raises((ValueError, InvalidTag)):  # Cryptographic error types
             CryptoUtils.decrypt_data(ciphertext, wrong_key, nonce, associated_data)
 
         # Test with wrong associated data
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, InvalidTag)):
             CryptoUtils.decrypt_data(ciphertext, key, nonce, b"wrong-data")
 
     def test_encrypted_cloakmap_serialization(self):
