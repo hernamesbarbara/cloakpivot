@@ -21,14 +21,14 @@ from tests.utils.assertions import (
 from tests.utils.generators import DocumentGenerator, PolicyGenerator, TextGenerator
 from tests.utils.masking_helpers import mask_document_with_detection
 
-# Performance threshold constants
-SMALL_DOC_TIMEOUT = 30.0
-MEDIUM_DOC_TIMEOUT = 20.0
-LARGE_DOC_TIMEOUT_SMALL = 15.0
-LARGE_DOC_TIMEOUT_LARGE = 30.0
-MULTI_SECTION_TIMEOUT = 60.0
-ROUND_TRIP_TIMEOUT = 40.0
-BATCH_TIMEOUT = 25.0
+# Performance threshold constants - optimized for faster CI runs
+SMALL_DOC_TIMEOUT = 5.0
+MEDIUM_DOC_TIMEOUT = 8.0
+LARGE_DOC_TIMEOUT_SMALL = 10.0
+LARGE_DOC_TIMEOUT_LARGE = 15.0
+MULTI_SECTION_TIMEOUT = 15.0
+ROUND_TRIP_TIMEOUT = 10.0
+BATCH_TIMEOUT = 10.0
 
 # Memory threshold constants
 SMALL_DOC_MEMORY_LIMIT = 2000.0
@@ -126,8 +126,8 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark performance with small documents (< 1KB)."""
-        # Generate small document
-        text = TextGenerator.generate_text_with_pii_density(100, 0.2)  # ~100 words
+        # Generate small document - reduced size for faster testing
+        text = TextGenerator.generate_text_with_pii_density(50, 0.2)  # ~50 words
         document = DocumentGenerator.generate_simple_document(text, "small_doc")
 
         def mask_operation():
@@ -153,8 +153,8 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark performance with medium documents (1-10KB)."""
-        # Generate medium document
-        text = TextGenerator.generate_text_with_pii_density(1000, 0.15)  # ~1000 words
+        # Generate medium document - reduced size for faster testing
+        text = TextGenerator.generate_text_with_pii_density(200, 0.15)  # ~200 words
         document = DocumentGenerator.generate_simple_document(text, "medium_doc")
 
         def mask_operation():
@@ -178,7 +178,7 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark performance with single scaled document size for fast runs."""
-        word_count = 2500  # Single representative size for fast testing
+        word_count = 500  # Single representative size for fast testing - reduced
         expected_time = LARGE_DOC_TIMEOUT_SMALL
         # Generate document of specified size
         text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
@@ -205,8 +205,8 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Test performance with very large documents using sampling approach."""
-        # Generate smaller representative samples instead of one huge document
-        word_counts = [1000, 2000, 3000]
+        # Generate smaller representative samples instead of one huge document - reduced sizes
+        word_counts = [200, 400, 600]
         total_time = 0
 
         for word_count in word_counts:
@@ -234,10 +234,10 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark performance with multi-section documents."""
-        # Generate document with multiple sections
+        # Generate document with multiple sections - reduced count and size
         sections = []
-        for i in range(10):
-            section_text = TextGenerator.generate_text_with_pii_density(200, 0.2)
+        for i in range(5):  # Reduced from 10 to 5 sections
+            section_text = TextGenerator.generate_text_with_pii_density(50, 0.2)  # Reduced from 200 to 50 words
             sections.append(f"Section {i + 1}: {section_text}")
 
         document = DocumentGenerator.generate_multi_section_document(sections, "multi_section_doc")
@@ -264,7 +264,7 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark round-trip masking/unmasking performance."""
-        text = TextGenerator.generate_text_with_pii_density(500, 0.2)
+        text = TextGenerator.generate_text_with_pii_density(150, 0.2)  # Reduced from 500 to 150 words
         document = DocumentGenerator.generate_simple_document(text, "round_trip_doc")
 
         def round_trip_operation():
@@ -291,7 +291,7 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Compare performance across different privacy levels."""
-        text = TextGenerator.generate_text_with_pii_density(500, 0.2)
+        text = TextGenerator.generate_text_with_pii_density(100, 0.2)  # Reduced from 500 to 100 words
         document = DocumentGenerator.generate_simple_document(text, "privacy_comparison_doc")
 
         results = {}
@@ -322,10 +322,10 @@ class TestPerformanceBenchmarks:
         shared_analyzer
     ):
         """Benchmark batch processing performance."""
-        # Create multiple documents
+        # Create multiple documents - reduced count and size
         documents = []
-        for i in range(5):
-            text = TextGenerator.generate_text_with_pii_density(300, 0.15)
+        for i in range(3):  # Reduced from 5 to 3 documents
+            text = TextGenerator.generate_text_with_pii_density(100, 0.15)  # Reduced from 300 to 100 words
             doc = DocumentGenerator.generate_simple_document(text, f"batch_doc_{i}")
             documents.append(doc)
 
@@ -418,10 +418,10 @@ class TestPerformanceBenchmarks:
         """Test performance with concurrent document processing."""
         import concurrent.futures
 
-        # Create multiple documents
+        # Create multiple documents - reduced count and size
         documents = []
-        for i in range(10):
-            text = TextGenerator.generate_text_with_pii_density(200, 0.15)
+        for i in range(4):  # Reduced from 10 to 4 documents
+            text = TextGenerator.generate_text_with_pii_density(50, 0.15)  # Reduced from 200 to 50 words
             doc = DocumentGenerator.generate_simple_document(text, f"concurrent_doc_{i}")
             documents.append(doc)
 
@@ -462,7 +462,7 @@ class TestPerformanceBenchmarks:
         """Compare performance of different masking strategies."""
         from cloakpivot.core.strategies import StrategyKind
 
-        text = TextGenerator.generate_text_with_pii_density(300, 0.3)  # Higher PII density
+        text = TextGenerator.generate_text_with_pii_density(100, 0.3)  # Reduced from 300 to 100 words
         document = DocumentGenerator.generate_simple_document(text, "strategy_comparison")
 
         strategies = [
