@@ -6,14 +6,14 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 # Performance characteristics for different model sizes
 # Based on typical spaCy model behavior and resource requirements
-MODEL_CHARACTERISTICS: Dict[str, Dict[str, any]] = {
+MODEL_CHARACTERISTICS: dict[str, dict[str, any]] = {
     "small": {
         "memory_mb": 15,
         "load_time_ms": 800,
@@ -37,7 +37,7 @@ MODEL_CHARACTERISTICS: Dict[str, Dict[str, any]] = {
 
 # Supported languages for spaCy models
 # Based on spaCy's official model releases
-SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
+SUPPORTED_LANGUAGES: dict[str, dict[str, str]] = {
     "en": {
         "name": "English",
         "small": "en_core_web_sm",
@@ -158,7 +158,7 @@ def get_model_name(language: str, size: str) -> str:
     return SUPPORTED_LANGUAGES[language][size]
 
 
-def get_supported_languages() -> List[str]:
+def get_supported_languages() -> list[str]:
     """Get list of supported language codes.
 
     Returns:
@@ -167,7 +167,7 @@ def get_supported_languages() -> List[str]:
     return list(SUPPORTED_LANGUAGES.keys())
 
 
-def get_supported_sizes() -> List[str]:
+def get_supported_sizes() -> list[str]:
     """Get list of supported model sizes.
 
     Returns:
@@ -178,7 +178,7 @@ def get_supported_sizes() -> List[str]:
 
 def get_model_recommendations(
     memory_limit_mb: Optional[int] = None, speed_priority: bool = False
-) -> Dict[str, any]:
+) -> dict[str, any]:
     """Get model size recommendations based on constraints.
 
     Args:
@@ -268,7 +268,7 @@ def get_model_recommendations(
     return recommendations
 
 
-def get_language_info(language: str) -> Optional[Dict[str, any]]:
+def get_language_info(language: str) -> Optional[dict[str, any]]:
     """Get detailed information about language support.
 
     Args:
@@ -286,7 +286,7 @@ def get_language_info(language: str) -> Optional[Dict[str, any]]:
     return SUPPORTED_LANGUAGES.get(language)
 
 
-def get_all_model_info() -> Dict[str, Dict[str, any]]:
+def get_all_model_info() -> dict[str, dict[str, any]]:
     """Get comprehensive model information for debugging and documentation.
 
     Returns:

@@ -1,6 +1,7 @@
 """Helper utilities for masking tests."""
 
 import re
+from typing import Optional
 
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
@@ -10,13 +11,34 @@ from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.document.extractor import TextExtractor, TextSegment
 from cloakpivot.masking.engine import MaskingEngine, MaskingResult
 
+# Global variable to hold shared analyzer instance for test reuse
+_test_shared_analyzer: Optional[AnalyzerEngine] = None
+
+
+def set_test_shared_analyzer(analyzer: AnalyzerEngine) -> None:
+    """Set the shared analyzer instance for tests to reuse."""
+    global _test_shared_analyzer
+    _test_shared_analyzer = analyzer
+
+
+def get_test_shared_analyzer() -> Optional[AnalyzerEngine]:
+    """Get the shared analyzer instance if available."""
+    return _test_shared_analyzer
+
+
+def clear_test_shared_analyzer() -> None:
+    """Clear the shared analyzer instance."""
+    global _test_shared_analyzer
+    _test_shared_analyzer = None
+
 
 def mask_document_with_detection(
     document: DoclingDocument,
     policy: MaskingPolicy,
     analyzer: AnalyzerEngine = None,
     resolve_conflicts: bool = True,
-    timing_log: bool = False
+    timing_log: bool = False,
+    force_new_analyzer: bool = False
 ) -> MaskingResult:
     """
     Convenience function that performs entity detection and masking in one step.
@@ -29,12 +51,22 @@ def mask_document_with_detection(
         analyzer: Optional Presidio AnalyzerEngine (creates default if None)
         resolve_conflicts: Whether to enable conflict resolution (default: True)
         timing_log: Whether to enable timing logs (default: False)
+        force_new_analyzer: Force creation of new analyzer even if shared is available
 
     Returns:
         MaskingResult containing the masked document and CloakMap
     """
     if analyzer is None:
-        analyzer = AnalyzerEngine()
+        if force_new_analyzer:
+            # Create new analyzer instance (used for performance benchmarks)
+            analyzer = AnalyzerEngine()
+        else:
+            # Try to use shared analyzer first to avoid creating multiple expensive instances
+            shared_analyzer = get_test_shared_analyzer()
+            if shared_analyzer is not None:
+                analyzer = shared_analyzer
+            else:
+                analyzer = AnalyzerEngine()
 
     # Extract text segments from document
     extractor = TextExtractor()

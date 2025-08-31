@@ -5,23 +5,24 @@ and that baseline measurements produce consistent, meaningful results.
 """
 
 import json
-import os
 import statistics
-import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List
 
 import pytest
 
-from cloakpivot.core.performance import PerformanceProfiler, get_profiler, profile_method
-from cloakpivot.core.analyzer import AnalyzerEngineWrapper, AnalyzerConfig
 from benchmarks.baseline_config import (
     BaselineConfig,
     ScenarioConfig,
     get_default_config,
     get_quick_config,
-    validate_against_prd_targets
+    validate_against_prd_targets,
+)
+from cloakpivot.core.analyzer import AnalyzerEngineWrapper
+from cloakpivot.core.performance import (
+    PerformanceProfiler,
+    get_profiler,
+    profile_method,
 )
 
 
@@ -151,7 +152,7 @@ class TestPerformanceProfilerIntegration:
         profiler.reset_metrics()
 
         # Perform analysis (should trigger profiling)
-        results = analyzer.analyze_text("Contact john@example.com for more info")
+        analyzer.analyze_text("Contact john@example.com for more info")
 
         # Check that profiling captured analyzer operations
         all_stats = profiler.get_operation_stats()
@@ -171,7 +172,7 @@ class TestBaselineMeasurement:
 
     def test_basic_timing_measurement(self):
         """Test basic timing measurement functionality."""
-        def measure_operation(iterations: int = 5) -> Dict[str, float]:
+        def measure_operation(iterations: int = 5) -> dict[str, float]:
             times = []
             for _ in range(iterations):
                 start_time = time.perf_counter()
@@ -198,10 +199,10 @@ class TestBaselineMeasurement:
 
     def test_analyzer_cold_start_measurement(self):
         """Test analyzer cold start measurement."""
-        def measure_analyzer_cold_start(iterations: int = 3) -> Dict[str, float]:
+        def measure_analyzer_cold_start(iterations: int = 3) -> dict[str, float]:
             times = []
 
-            for i in range(iterations):
+            for _i in range(iterations):
                 start_time = time.perf_counter()
 
                 analyzer = AnalyzerEngineWrapper()
@@ -231,10 +232,10 @@ class TestBaselineMeasurement:
         analyzer = AnalyzerEngineWrapper()
         analyzer.analyze_text("warmup")
 
-        def measure_warm_analysis(iterations: int = 5) -> Dict[str, float]:
+        def measure_warm_analysis(iterations: int = 5) -> dict[str, float]:
             times = []
 
-            for i in range(iterations):
+            for _i in range(iterations):
                 start_time = time.perf_counter()
                 analyzer.analyze_text("test analysis text")
                 end_time = time.perf_counter()
@@ -375,7 +376,7 @@ class TestBaselineScriptIntegration:
 
         try:
             # Should be able to import the measurement classes
-            from measure_baseline import BaselineMeasurement, BASELINE_SCENARIOS
+            from measure_baseline import BASELINE_SCENARIOS, BaselineMeasurement
 
             assert BaselineMeasurement is not None
             assert isinstance(BASELINE_SCENARIOS, dict)

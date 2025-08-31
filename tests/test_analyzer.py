@@ -219,12 +219,12 @@ class TestBackwardCompatibility:
         """Test that default AnalyzerEngineWrapper initialization behavior is unchanged."""
         # This should work exactly as it did before the singleton integration
         analyzer = AnalyzerEngineWrapper()
-        
+
         assert analyzer is not None
         assert analyzer.config is not None
         assert analyzer.config.language == "en"  # Default language
         assert analyzer.config.min_confidence == 0.5  # Default confidence
-        
+
         # New attribute should exist but default behavior preserved
         assert hasattr(analyzer, 'use_singleton')
 
@@ -235,9 +235,9 @@ class TestBackwardCompatibility:
             min_confidence=0.7,
             nlp_engine_name="spacy"
         )
-        
+
         analyzer = AnalyzerEngineWrapper(config)
-        
+
         assert analyzer.config.language == "es"
         assert analyzer.config.min_confidence == 0.7
         assert analyzer.config.nlp_engine_name == "spacy"
@@ -248,16 +248,16 @@ class TestBackwardCompatibility:
             locale="en",
             thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
         )
-        
+
         analyzer = AnalyzerEngineWrapper.from_policy(policy)
-        
+
         assert analyzer is not None
         assert analyzer.config.language == "en"
 
     def test_existing_method_signatures_unchanged(self):
         """Test that existing method signatures are unchanged."""
         analyzer = AnalyzerEngineWrapper()
-        
+
         # These methods should exist and have same signatures
         assert hasattr(analyzer, 'is_initialized')
         assert hasattr(analyzer, 'from_policy')
@@ -268,7 +268,7 @@ class TestBackwardCompatibility:
     def test_analyzer_properties_unchanged(self):
         """Test that analyzer properties work as before."""
         analyzer = AnalyzerEngineWrapper()
-        
+
         # Properties should work the same
         assert isinstance(analyzer.is_initialized, bool)
         assert analyzer.config is not None
@@ -279,24 +279,24 @@ class TestBackwardCompatibility:
         # All these should work (existing patterns)
         analyzer1 = AnalyzerEngineWrapper()
         analyzer2 = AnalyzerEngineWrapper(config=None)
-        
+
         config = AnalyzerConfig(language="en")
         analyzer3 = AnalyzerEngineWrapper(config)
-        
+
         assert all(a is not None for a in [analyzer1, analyzer2, analyzer3])
 
     def test_new_functionality_doesnt_break_old(self):
         """Test that new singleton functionality doesn't interfere with old usage."""
         # Create analyzer the old way
         old_analyzer = AnalyzerEngineWrapper(use_singleton=False)
-        
+
         # Create analyzer the new way
         new_analyzer = AnalyzerEngineWrapper.create_shared()
-        
+
         # Both should work
         assert old_analyzer is not None
         assert new_analyzer is not None
-        
+
         # They should be different instances when old way explicitly disables singleton
         # (though this might not be immediately testable without actual initialization)
         assert hasattr(old_analyzer, 'use_singleton')

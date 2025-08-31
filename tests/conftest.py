@@ -18,6 +18,13 @@ The test suite supports multiple execution modes to balance speed and coverage:
    - Includes all test types
    - Usage: PYTEST_FAST_MODE=0 pytest or pytest -m "slow"
 
+Parallel Test Execution:
+The test suite supports parallel execution using pytest-xdist:
+- Automatic worker count detection based on CPU cores
+- Worker-specific session fixtures to avoid conflicts
+- Load balancing for optimal test distribution
+- Usage: pytest -n auto (or set PYTEST_WORKERS environment variable)
+
 Additional markers:
 - @pytest.mark.slow: Tests that only run in comprehensive mode
 - @pytest.mark.performance: Performance benchmarks and timing tests
@@ -27,6 +34,7 @@ Additional markers:
 
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -41,6 +49,14 @@ from cloakpivot.core.analyzer import AnalyzerConfig
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
+
+# Import parallel test support utilities
+from .parallel_support import (
+    ParallelTestSupport,
+    get_worker_resource_manager,
+    setup_parallel_test_environment,
+    teardown_parallel_test_environment,
+)
 
 # Configure Hypothesis profiles for different test environments
 settings.register_profile(
@@ -73,6 +89,39 @@ def temp_dir() -> Path:
     """Create a temporary directory for test files."""
     with tempfile.TemporaryDirectory() as temp_dir:
         yield Path(temp_dir)
+
+
+@pytest.fixture(scope="session")
+def worker_id(request) -> str:
+    """Get the worker ID for xdist parallel execution."""
+    # Check for xdist worker input
+    if hasattr(request.config, 'workerinput'):
+        return request.config.workerinput['workerid']
+
+    # Fallback to parallel support utility
+    return ParallelTestSupport.get_worker_id()
+
+
+@pytest.fixture(scope="session")
+def shared_temp_dir(worker_id: str) -> Path:
+    """Worker-specific temporary directory for parallel execution."""
+    # Use worker resource manager for cleanup tracking
+    resource_manager = get_worker_resource_manager()
+    temp_dir = resource_manager.create_temp_dir(f'shared_temp_{worker_id}_')
+
+    yield temp_dir
+
+    # Cleanup is handled by the resource manager
+
+
+@pytest.fixture(scope="session")
+def parallel_shared_analyzer(worker_id: str):
+    """Session-scoped analyzer compatible with parallel execution."""
+    from presidio_analyzer import AnalyzerEngine
+
+    # Each worker gets its own analyzer instance to avoid conflicts
+    analyzer = AnalyzerEngine()
+    return analyzer
 
 
 @pytest.fixture(scope="session")
@@ -430,20 +479,24 @@ def benchmark_policy() -> MaskingPolicy:
 
 
 @pytest.fixture(scope="session")
-def shared_analyzer():
+def shared_analyzer(parallel_shared_analyzer):
     """Shared AnalyzerEngine instance for performance testing.
 
     This fixture creates a single AnalyzerEngine instance that can be reused
     across multiple tests to avoid the overhead of repeatedly initializing
     the engine and loading language models.
+
+    In parallel execution mode, each worker gets its own analyzer instance
+    to avoid conflicts while maintaining performance benefits.
     """
-    from presidio_analyzer import AnalyzerEngine
-    return AnalyzerEngine()
+    # Use the parallel-compatible analyzer
+    return parallel_shared_analyzer
 
 
 # Test markers for categorizing tests
 def pytest_configure(config):
-    """Configure pytest with custom markers."""
+    """Configure pytest with custom markers and parallel execution settings."""
+    # Add custom markers
     config.addinivalue_line(
         "markers", "unit: marks tests as unit tests"
     )
@@ -465,6 +518,96 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "property: marks tests as property-based tests using Hypothesis"
     )
+
+    # Configure parallel execution if not explicitly configured
+    _configure_parallel_execution(config)
+
+
+def _configure_parallel_execution(config):
+    """Configure pytest-xdist parallel execution settings."""
+    # Only configure if pytest-xdist is available and not already configured
+    try:
+        import pytest_xdist  # noqa: F401
+    except ImportError:
+        # pytest-xdist not available, skip parallel configuration
+        return
+
+    # Check if parallel execution is already configured via command line
+    numprocesses_option = config.getoption('--numprocesses', default=None)
+    dist_option = config.getoption('--dist', default=None)
+
+    # If -n/--numprocesses not specified, set optimal worker count
+    if numprocesses_option is None and not hasattr(config.option, 'numprocesses'):
+        worker_count = ParallelTestSupport.get_optimal_worker_count()
+        if worker_count > 1:
+            config.option.numprocesses = worker_count
+
+            # Set distribution strategy if not specified
+            if dist_option is None:
+                config.option.dist = os.getenv('PYTEST_DIST', 'loadfile')
+
+
+def pytest_collection_modifyitems(config, items):
+    """Optimize test distribution for better parallel performance."""
+    # Sort tests by estimated execution time (longest first) for better load balancing
+    def get_test_weight(item):
+        """Estimate test execution time based on markers and name."""
+        weight = 1  # Base weight
+
+        # Performance tests are typically longer
+        if item.get_closest_marker('performance'):
+            weight += 10
+
+        # Integration tests are usually slower than unit tests
+        if item.get_closest_marker('integration'):
+            weight += 5
+        elif item.get_closest_marker('e2e'):
+            weight += 15
+
+        # Property-based tests can be variable
+        if item.get_closest_marker('property'):
+            weight += 3
+
+        # Tests with 'slow' marker
+        if item.get_closest_marker('slow'):
+            weight += 8
+
+        # Golden file tests might be slower due to file I/O
+        if item.get_closest_marker('golden'):
+            weight += 2
+
+        return weight
+
+    # Sort items by weight (heaviest first) for better load distribution
+    items.sort(key=get_test_weight, reverse=True)
+
+
+def pytest_sessionstart(session):
+    """Set up parallel test environment at session start."""
+    setup_parallel_test_environment()
+
+    # Set up shared analyzer for masking helpers to reduce resource usage
+    try:
+        from presidio_analyzer import AnalyzerEngine
+
+        from tests.utils.masking_helpers import set_test_shared_analyzer
+        shared_analyzer = AnalyzerEngine()
+        set_test_shared_analyzer(shared_analyzer)
+    except ImportError:
+        # If dependencies not available, skip shared analyzer setup
+        pass
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Tear down parallel test environment at session end."""
+    # Clear shared analyzer
+    try:
+        from tests.utils.masking_helpers import clear_test_shared_analyzer
+        clear_test_shared_analyzer()
+    except ImportError:
+        pass
+
+    teardown_parallel_test_environment()
 
 
 # Session-scoped fixtures for performance optimization
@@ -493,25 +636,22 @@ def shared_detection_pipeline(shared_analyzer):
     """Shared EntityDetectionPipeline for performance testing.
 
     Creates a pipeline using the shared analyzer to maximize reuse.
+    Avoids singleton loader to prevent test hanging issues.
     """
     from cloakpivot.core.analyzer import AnalyzerEngineWrapper
     from cloakpivot.core.detection import EntityDetectionPipeline
 
+    # Always use direct creation to avoid singleton loader hanging
+    # The singleton loader may cause blocking when used in test environments
     try:
-        from cloakpivot.loaders import get_detection_pipeline
-        # Use singleton loader if available
-        pipeline = get_detection_pipeline()
-    except (ImportError, AttributeError):
-        # Fall back to direct creation with wrapped analyzer
-        try:
-            # Try to create wrapper with shared analyzer
-            wrapper = AnalyzerEngineWrapper()
-            wrapper._engine = shared_analyzer
-            wrapper._is_initialized = True
-            pipeline = EntityDetectionPipeline(analyzer=wrapper)
-        except AttributeError:
-            # If that doesn't work, create pipeline normally
-            pipeline = EntityDetectionPipeline()
+        # Try to create wrapper with shared analyzer
+        wrapper = AnalyzerEngineWrapper()
+        wrapper._engine = shared_analyzer
+        wrapper._is_initialized = True
+        pipeline = EntityDetectionPipeline(analyzer=wrapper)
+    except AttributeError:
+        # If that doesn't work, create pipeline normally
+        pipeline = EntityDetectionPipeline()
 
     return pipeline
 

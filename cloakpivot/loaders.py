@@ -527,7 +527,7 @@ def get_cache_info() -> dict[str, any]:
     analyzer_currsize = 0
 
     # If we have multiple cache sizes, aggregate their stats
-    for cache_size, cache_func in _analyzer_caches.items():
+    for _cache_size, cache_func in _analyzer_caches.items():
         info = cache_func.cache_info()
         analyzer_hits += info.hits
         analyzer_misses += info.misses

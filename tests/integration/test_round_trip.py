@@ -51,6 +51,7 @@ class TestRoundTripFidelity:
         start_time = time.time()
 
         # Mask document - use helper since we need entity detection
+        # The helper will now automatically use shared analyzer to avoid creating multiple instances
         mask_result = mask_document_with_detection(document, policy)
         assert_masking_result_valid(mask_result)
 

@@ -470,9 +470,18 @@ SSN: {i + 1:03d}-{i + 2:02d}-{i + 3:04d}
         temp_files_before = list(temp_workspace.glob("*tmp*")) + list(temp_workspace.glob(".*tmp*"))
 
         # Check system temp directory for any CloakPivot temp files
+        # Note: During parallel test execution, worker temp directories are legitimate and expected
         import tempfile
         system_temp = Path(tempfile.gettempdir())
         cloakpivot_temp_files = list(system_temp.glob("*cloakpivot*")) + list(system_temp.glob("*CloakPivot*"))
-
+        
+        # Filter out legitimate parallel execution worker directories
+        # These follow the pattern "cloakpivot_worker_*" and are expected during test execution
+        unexpected_temp_files = []
+        for temp_file in cloakpivot_temp_files:
+            # Allow worker temp directories (cloakpivot_worker_*) during parallel execution
+            if not temp_file.name.startswith("cloakpivot_worker_"):
+                unexpected_temp_files.append(temp_file)
+        
         assert len(temp_files_before) == 0, f"Temporary files found in workspace: {temp_files_before}"
-        assert len(cloakpivot_temp_files) == 0, f"CloakPivot temp files found in system temp: {cloakpivot_temp_files}"
+        assert len(unexpected_temp_files) == 0, f"Unexpected CloakPivot temp files found in system temp: {unexpected_temp_files}"
