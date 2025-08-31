@@ -132,6 +132,9 @@ dmypy.json
 *.cloakmap
 *.encrypted
 
+# Benchmark reports
+benchmarks/baseline_reports/
+
 # IDE
 .vscode/
 .idea/
