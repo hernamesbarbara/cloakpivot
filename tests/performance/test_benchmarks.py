@@ -123,7 +123,8 @@ class TestPerformanceBenchmarks:
         self,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
-        shared_analyzer
+        shared_analyzer,
+        benchmark
     ):
         """Benchmark performance with small documents (< 1KB)."""
         # Generate small document - reduced size for faster testing
@@ -133,13 +134,14 @@ class TestPerformanceBenchmarks:
         def mask_operation():
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
-        result, metrics = run_with_profiling(mask_operation)
+        # Use pytest-benchmark for CI integration
+        result = benchmark(mask_operation)
 
-        # Performance assertions - use memory delta instead of peak to avoid test suite contamination
-        # Note: First run may load models, so memory delta can be high initially
+        # Traditional performance assertions for backwards compatibility
+        result_traditional, metrics = run_with_profiling(mask_operation)
         text_length = len(text)
         assert_performance_acceptable(metrics['elapsed_time'], SMALL_DOC_TIMEOUT, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], SMALL_DOC_MEMORY_LIMIT, text_length)  # Increased for ML models
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], SMALL_DOC_MEMORY_LIMIT, text_length)
 
         # Log benchmark results
         chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
@@ -150,7 +152,8 @@ class TestPerformanceBenchmarks:
         self,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
-        shared_analyzer
+        shared_analyzer,
+        benchmark
     ):
         """Benchmark performance with medium documents (1-10KB)."""
         # Generate medium document - reduced size for faster testing
@@ -160,12 +163,14 @@ class TestPerformanceBenchmarks:
         def mask_operation():
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
-        result, metrics = run_with_profiling(mask_operation)
+        # Use pytest-benchmark for CI integration
+        result = benchmark(mask_operation)
 
-        # Performance assertions - use memory delta instead of peak to avoid test suite contamination
+        # Traditional performance assertions for backwards compatibility
+        result_traditional, metrics = run_with_profiling(mask_operation)
         text_length = len(text)
         assert_performance_acceptable(metrics['elapsed_time'], MEDIUM_DOC_TIMEOUT, text_length)
-        assert_memory_usage_reasonable(metrics['memory_delta_mb'], MEDIUM_DOC_MEMORY_LIMIT, text_length)  # Increased for ML models
+        assert_memory_usage_reasonable(metrics['memory_delta_mb'], MEDIUM_DOC_MEMORY_LIMIT, text_length)
 
         chars_per_sec = text_length / metrics['elapsed_time'] if metrics['elapsed_time'] > 0 else 0
         print(f"Medium document: {chars_per_sec:.0f} chars/sec, {metrics['peak_memory_mb']:.1f}MB peak")
@@ -207,7 +212,7 @@ class TestPerformanceBenchmarks:
         """Test performance with very large documents using sampling approach."""
         # Generate smaller representative samples instead of one huge document - reduced sizes
         word_counts = [200, 400, 600]
-        total_time = 0
+        total_time = 0.0
 
         for word_count in word_counts:
             text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
@@ -502,7 +507,8 @@ class TestPerformanceRegression:
         self,
         masking_engine: MaskingEngine,
         benchmark_policy: MaskingPolicy,
-        shared_analyzer
+        shared_analyzer,
+        benchmark
     ):
         """Establish performance baseline for regression detection."""
         # Standard benchmark document
@@ -529,15 +535,18 @@ class TestPerformanceRegression:
 
         document = DocumentGenerator.generate_simple_document(text, "regression_baseline")
 
-        # Run multiple times to get stable measurement using shared analyzer
+        def mask_operation():
+            return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
+
+        # Use pytest-benchmark for CI integration with multiple rounds for stability
+        result = benchmark.pedantic(mask_operation, rounds=5, iterations=1)
+
+        # Traditional performance assertions for backwards compatibility
         times = []
         memory_usage = []
 
         for _ in range(5):
-            def mask_operation():
-                return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
-
-            result, metrics = run_with_profiling(mask_operation)
+            result_traditional, metrics = run_with_profiling(mask_operation)
             times.append(metrics['elapsed_time'])
             memory_usage.append(metrics['peak_memory_mb'])
 
