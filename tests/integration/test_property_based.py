@@ -9,7 +9,7 @@ from typing import Any, Tuple
 
 import pytest
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import TextItem, DocItemLabel
+from docling_core.types.doc.document import DocItemLabel, TextItem
 from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
 from hypothesis.stateful import Bundle, RuleBasedStateMachine, invariant, rule
