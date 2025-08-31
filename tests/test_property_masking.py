@@ -317,7 +317,7 @@ class TestMaskingPerformanceBenchmarks:
         # Test with per-call analyzer creation (fewer iterations to speed up)
         start_time = time.perf_counter()
         for _ in range(min(iterations, 5)):  # Cap at 5 to avoid slowness
-            mask_document_with_detection(document, policy, analyzer=None)  # type: ignore[arg-type]  # type: ignore[arg-type]  # type: ignore[arg-type]
+            mask_document_with_detection(document, policy, analyzer=None, force_new_analyzer=True)  # type: ignore[arg-type]  # type: ignore[arg-type]  # type: ignore[arg-type]
         individual_time = time.perf_counter() - start_time
 
         # Shared analyzer should be significantly faster
@@ -342,7 +342,7 @@ class TestMaskingPerformanceBenchmarks:
 
         # Single operation with new analyzer
         start_time = time.perf_counter()
-        mask_document_with_detection(document, policy, analyzer=None)  # type: ignore[arg-type]
+        mask_document_with_detection(document, policy, analyzer=None, force_new_analyzer=True)  # type: ignore[arg-type]
         individual_time = time.perf_counter() - start_time
 
         # Shared analyzer should be faster
