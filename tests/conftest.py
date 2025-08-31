@@ -37,6 +37,7 @@ from docling_core.types.doc.document import TextItem
 from hypothesis import Verbosity, settings
 from presidio_analyzer import RecognizerResult
 
+from cloakpivot.core.analyzer import AnalyzerConfig
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
@@ -74,7 +75,7 @@ def temp_dir() -> Path:
         yield Path(temp_dir)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sample_text_with_pii() -> str:
     """Sample text containing various PII types for testing."""
     return (
@@ -85,7 +86,7 @@ def sample_text_with_pii() -> str:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def simple_document(sample_text_with_pii: str) -> DoclingDocument:
     """Create a simple DoclingDocument with PII content."""
     doc = DoclingDocument(name="test_document")
@@ -99,7 +100,7 @@ def simple_document(sample_text_with_pii: str) -> DoclingDocument:
     return doc
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def complex_document() -> DoclingDocument:
     """Create a complex document with multiple text items and structures."""
     doc = DoclingDocument(name="complex_test_document")
@@ -131,7 +132,7 @@ def complex_document() -> DoclingDocument:
     return doc
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def detected_entities() -> list[RecognizerResult]:
     """Sample detected PII entities for testing."""
     return [
@@ -182,7 +183,7 @@ def basic_masking_policy() -> MaskingPolicy:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def strict_masking_policy() -> MaskingPolicy:
     """Create a strict masking policy for testing."""
     return MaskingPolicy(
@@ -206,7 +207,7 @@ def strict_masking_policy() -> MaskingPolicy:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_analyzer_results() -> list[RecognizerResult]:
     """Mock analyzer results for various PII types."""
     return [
@@ -217,19 +218,19 @@ def mock_analyzer_results() -> list[RecognizerResult]:
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_files_dir() -> Path:
     """Directory containing test fixture files."""
     return Path(__file__).parent / "fixtures"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def golden_files_dir() -> Path:
     """Directory containing golden files for regression testing."""
     return Path(__file__).parent / "fixtures" / "golden_files"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sample_policies_dir() -> Path:
     """Directory containing sample policy files for testing."""
     return Path(__file__).parent / "fixtures" / "policies"
@@ -268,7 +269,7 @@ def mock_presidio_anonymizer():
     return mock
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def simple_text_segments(sample_text_with_pii: str) -> list[TextSegment]:
     """Create text segments for simple document testing."""
     return [
@@ -282,7 +283,7 @@ def simple_text_segments(sample_text_with_pii: str) -> list[TextSegment]:
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def complex_text_segments() -> list[TextSegment]:
     """Create text segments for complex document testing."""
     return [
@@ -297,21 +298,21 @@ def complex_text_segments() -> list[TextSegment]:
             node_id="#/texts/1",
             text="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543",
             start_offset=0,
-            end_offset=62,
+            end_offset=60,
             node_type="TextItem"
         ),
         TextSegment(
             node_id="#/texts/2",
             text="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876",
             start_offset=0,
-            end_offset=75,
+            end_offset=73,
             node_type="TextItem"
         )
     ]
 
 
 # Performance testing fixtures
-@pytest.fixture
+@pytest.fixture(scope="session")
 def large_document(sample_text_with_pii: str) -> DoclingDocument:
     """Create a large document for performance testing."""
     doc = DoclingDocument(name="large_test_document")
@@ -393,12 +394,12 @@ def strategy_kind_slow(request) -> StrategyKind:
 
 
 # Fixtures for masking engines
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def masking_engine():
     """Create a MaskingEngine instance for testing.
 
-    Uses module scope for performance optimization since MaskingEngine
-    is stateless and safe to reuse across tests within the same module.
+    Uses session scope for maximum performance optimization since MaskingEngine
+    is stateless and safe to reuse across all tests in the session.
     This reduces repeated construction costs while maintaining test isolation
     through separate input documents and policies.
     """
@@ -406,7 +407,7 @@ def masking_engine():
     return MaskingEngine()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def benchmark_policy() -> MaskingPolicy:
     """Create a benchmark masking policy for performance testing."""
     return MaskingPolicy(
@@ -468,7 +469,7 @@ def pytest_configure(config):
 
 # Session-scoped fixtures for performance optimization
 @pytest.fixture(scope="session")
-def shared_document_processor() -> DocumentProcessor:
+def shared_document_processor():
     """Shared DocumentProcessor instance for performance testing.
 
     Creates a single DocumentProcessor that can be reused across tests
@@ -488,7 +489,7 @@ def shared_document_processor() -> DocumentProcessor:
 
 
 @pytest.fixture(scope="session")
-def shared_detection_pipeline(shared_analyzer) -> EntityDetectionPipeline:
+def shared_detection_pipeline(shared_analyzer):
     """Shared EntityDetectionPipeline for performance testing.
 
     Creates a pipeline using the shared analyzer to maximize reuse.
@@ -516,7 +517,7 @@ def shared_detection_pipeline(shared_analyzer) -> EntityDetectionPipeline:
 
 
 @pytest.fixture(scope="session")
-def performance_profiler() -> PerformanceProfiler:
+def performance_profiler():
     """Shared PerformanceProfiler for test metrics collection."""
     from cloakpivot.core.performance import PerformanceProfiler
 
@@ -562,27 +563,26 @@ def performance_profiler() -> PerformanceProfiler:
         logging.warning(f"Unexpected error saving performance metrics: {e}")
 
 
-@pytest.fixture(scope="session")
-def cached_analyzer_wrapper(shared_analyzer) -> AnalyzerEngineWrapper:
-    """AnalyzerEngineWrapper using the shared analyzer instance."""
-    from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
-
-    # Create wrapper that uses the shared engine
-    wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
-    try:
-        wrapper._engine = shared_analyzer
-        wrapper._is_initialized = True
-    except AttributeError:
-        # If internal attributes don't exist, just return the wrapper
-        pass
-
-    return wrapper
+# @pytest.fixture(scope="session")
+# def cached_analyzer_wrapper(shared_analyzer) -> AnalyzerEngineWrapper:
+#     """AnalyzerEngineWrapper using the shared analyzer instance."""
+#     from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
+#
+#     # Create wrapper that uses the shared engine
+#     wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
+#     try:
+#         wrapper._engine = shared_analyzer
+#         wrapper._is_initialized = True
+#     except AttributeError:
+#         # If internal attributes don't exist, just return the wrapper
+#         pass
+#
+#     return wrapper
 
 
 @pytest.fixture(scope="session")
 def performance_test_configs() -> dict[str, AnalyzerConfig]:
     """Various analyzer configurations for performance testing."""
-    from cloakpivot.core.analyzer import AnalyzerConfig
 
     return {
         "minimal": AnalyzerConfig(

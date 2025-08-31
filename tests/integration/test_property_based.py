@@ -5,7 +5,7 @@ properties that should hold for all valid inputs.
 """
 
 from datetime import timedelta
-from typing import Any, Tuple
+from typing import Any
 
 import pytest
 from docling_core.types import DoclingDocument
@@ -336,7 +336,7 @@ class MaskingStateMachine(RuleBasedStateMachine):
         )
 
     @rule(target=masked_results, document=documents, policy=policies)
-    def mask_document(self, document: DoclingDocument, policy: MaskingPolicy) -> Tuple[Any, DoclingDocument]:
+    def mask_document(self, document: DoclingDocument, policy: MaskingPolicy) -> tuple[Any, DoclingDocument]:
         """Apply masking to a document."""
         try:
             result = mask_document_with_detection(document, policy)
@@ -349,7 +349,7 @@ class MaskingStateMachine(RuleBasedStateMachine):
             return (None, document)
 
     @rule(masked_data=masked_results)
-    def unmask_document(self, masked_data: Tuple[Any, DoclingDocument]) -> None:
+    def unmask_document(self, masked_data: tuple[Any, DoclingDocument]) -> None:
         """Unmask a previously masked document."""
         mask_result, original_doc = masked_data
 
@@ -401,19 +401,33 @@ class TestPropertyBasedSlow:
             # Test structure preservation
             assert_document_structure_preserved(document, mask_result.masked_document)
 
-            # Test round-trip if we have entities to mask
-            if len(mask_result.cloakmap.entity_mappings) > 0:
-                unmask_result = unmasking_engine.unmask_document(
-                    mask_result.masked_document,
-                    mask_result.cloakmap
-                )
+            # Test round-trip only if we have entities and all strategies are reversible
+            if len(mask_result.cloakmap.anchors) > 0:
+                # Check if all detected entities use reversible strategies
+                reversible_strategies = {StrategyKind.TEMPLATE, StrategyKind.SURROGATE, StrategyKind.PARTIAL}
+                all_reversible = True
 
-                assert_round_trip_fidelity(
-                    document,
-                    mask_result.masked_document,
-                    unmask_result.unmasked_document,
-                    mask_result.cloakmap
-                )
+                for anchor in mask_result.cloakmap.anchors:
+                    # Get the strategy used for this entity type
+                    entity_type = anchor.entity_type
+                    strategy = policy.per_entity.get(entity_type, policy.default_strategy)
+                    if strategy.kind not in reversible_strategies:
+                        all_reversible = False
+                        break
+
+                # Only test round-trip fidelity if all strategies are reversible
+                if all_reversible:
+                    unmask_result = unmasking_engine.unmask_document(
+                        mask_result.masked_document,
+                        mask_result.cloakmap
+                    )
+
+                    assert_round_trip_fidelity(
+                        document,
+                        mask_result.masked_document,
+                        unmask_result.unmasked_document,
+                        mask_result.cloakmap
+                    )
 
         except Exception as e:
             pytest.fail(f"Comprehensive testing failed: {str(e)}")
