@@ -178,6 +178,7 @@ module = [
     "presidio_analyzer.*",
     "presidio_anonymizer.*",
     "docpivot.*",
+    "pytest_xdist.*",
 ]
 ignore_missing_imports = true
 

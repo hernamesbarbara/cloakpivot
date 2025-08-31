@@ -585,10 +585,11 @@ def pytest_collection_modifyitems(config, items):
 def pytest_sessionstart(session):
     """Set up parallel test environment at session start."""
     setup_parallel_test_environment()
-    
+
     # Set up shared analyzer for masking helpers to reduce resource usage
     try:
         from presidio_analyzer import AnalyzerEngine
+
         from tests.utils.masking_helpers import set_test_shared_analyzer
         shared_analyzer = AnalyzerEngine()
         set_test_shared_analyzer(shared_analyzer)
@@ -605,7 +606,7 @@ def pytest_sessionfinish(session, exitstatus):
         clear_test_shared_analyzer()
     except ImportError:
         pass
-    
+
     teardown_parallel_test_environment()
 
 

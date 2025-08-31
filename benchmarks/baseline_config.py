@@ -5,13 +5,13 @@ establishing performance baselines in CloakPivot operations.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
 class ScenarioConfig:
     """Configuration for a single performance measurement scenario.
-    
+
     Attributes:
         description: Human-readable description of what is being measured
         iterations: Number of times to run the measurement for statistical validity
@@ -25,8 +25,8 @@ class ScenarioConfig:
     target_max_ms: float
     test_func: str
     enabled: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
+    metadata: dict[str, Any] = field(default_factory=dict)
+
     def __post_init__(self):
         """Validate configuration after initialization."""
         if self.iterations <= 0:
@@ -38,35 +38,35 @@ class ScenarioConfig:
 @dataclass
 class BaselineConfig:
     """Complete configuration for baseline performance measurements.
-    
+
     Attributes:
         scenarios: Dictionary of scenario configurations by name
         system_requirements: Minimum system requirements for valid measurements
         measurement_settings: Global settings for measurement execution
         report_settings: Configuration for report generation
     """
-    scenarios: Dict[str, ScenarioConfig] = field(default_factory=dict)
-    system_requirements: Dict[str, Any] = field(default_factory=dict)
-    measurement_settings: Dict[str, Any] = field(default_factory=dict)
-    report_settings: Dict[str, Any] = field(default_factory=dict)
-    
-    def get_enabled_scenarios(self) -> Dict[str, ScenarioConfig]:
+    scenarios: dict[str, ScenarioConfig] = field(default_factory=dict)
+    system_requirements: dict[str, Any] = field(default_factory=dict)
+    measurement_settings: dict[str, Any] = field(default_factory=dict)
+    report_settings: dict[str, Any] = field(default_factory=dict)
+
+    def get_enabled_scenarios(self) -> dict[str, ScenarioConfig]:
         """Get only the enabled scenarios."""
         return {name: config for name, config in self.scenarios.items() if config.enabled}
-    
-    def validate(self) -> List[str]:
+
+    def validate(self) -> list[str]:
         """Validate the configuration and return any validation errors."""
         errors = []
-        
+
         if not self.scenarios:
             errors.append("No scenarios defined")
-        
+
         for name, scenario in self.scenarios.items():
             try:
                 scenario.__post_init__()
             except ValueError as e:
                 errors.append(f"Scenario '{name}': {e}")
-        
+
         return errors
 
 
@@ -83,19 +83,19 @@ DEFAULT_BASELINE_SCENARIOS = {
             "notes": "Measures first-time analyzer creation including model loading"
         }
     ),
-    
+
     "analyzer_warm_start": ScenarioConfig(
-        description="Subsequent analyzer initializations (warm start)", 
+        description="Subsequent analyzer initializations (warm start)",
         iterations=10,
         target_max_ms=500,  # 0.5 seconds for warm start
         test_func="measure_analyzer_warm_start",
         metadata={
             "category": "initialization",
-            "priority": "high", 
+            "priority": "high",
             "notes": "Measures analyzer reuse performance"
         }
     ),
-    
+
     "small_text_analysis": ScenarioConfig(
         description="Analyze small text (<1KB)",
         iterations=100,
@@ -108,7 +108,7 @@ DEFAULT_BASELINE_SCENARIOS = {
             "notes": "Measures analysis performance on typical small documents"
         }
     ),
-    
+
     "medium_text_analysis": ScenarioConfig(
         description="Analyze medium text (1-10KB)",
         iterations=50,
@@ -121,12 +121,12 @@ DEFAULT_BASELINE_SCENARIOS = {
             "notes": "Measures analysis performance on medium-sized documents"
         }
     ),
-    
+
     "large_text_analysis": ScenarioConfig(
         description="Analyze large text (10-100KB)",
         iterations=20,
         target_max_ms=1000,  # 1 second for large text
-        test_func="measure_large_text_analysis", 
+        test_func="measure_large_text_analysis",
         enabled=False,  # Disabled by default, enable when test function is implemented
         metadata={
             "category": "analysis",
@@ -135,19 +135,19 @@ DEFAULT_BASELINE_SCENARIOS = {
             "notes": "Measures analysis performance on large documents"
         }
     ),
-    
+
     "pipeline_creation": ScenarioConfig(
         description="Create EntityDetectionPipeline",
         iterations=20,
         target_max_ms=100,  # 100ms for pipeline creation
         test_func="measure_pipeline_creation",
         metadata={
-            "category": "initialization", 
+            "category": "initialization",
             "priority": "medium",
             "notes": "Measures pipeline setup time"
         }
     ),
-    
+
     "batch_processing": ScenarioConfig(
         description="Process batch of small documents",
         iterations=10,
@@ -161,7 +161,7 @@ DEFAULT_BASELINE_SCENARIOS = {
             "notes": "Measures batch processing performance"
         }
     ),
-    
+
     "memory_usage_analysis": ScenarioConfig(
         description="Memory usage during analysis",
         iterations=5,
@@ -212,7 +212,7 @@ DEFAULT_REPORT_SETTINGS = {
 
 def get_default_config() -> BaselineConfig:
     """Get the default baseline configuration.
-    
+
     Returns:
         BaselineConfig instance with default scenarios and settings
     """
@@ -225,81 +225,81 @@ def get_default_config() -> BaselineConfig:
 
 
 def create_custom_config(
-    scenarios: Optional[Dict[str, ScenarioConfig]] = None,
-    system_requirements: Optional[Dict[str, Any]] = None,
-    measurement_settings: Optional[Dict[str, Any]] = None,
-    report_settings: Optional[Dict[str, Any]] = None
+    scenarios: Optional[dict[str, ScenarioConfig]] = None,
+    system_requirements: Optional[dict[str, Any]] = None,
+    measurement_settings: Optional[dict[str, Any]] = None,
+    report_settings: Optional[dict[str, Any]] = None
 ) -> BaselineConfig:
     """Create a custom baseline configuration.
-    
+
     Args:
         scenarios: Custom scenarios (uses defaults if None)
         system_requirements: Custom system requirements (uses defaults if None)
         measurement_settings: Custom measurement settings (uses defaults if None)
         report_settings: Custom report settings (uses defaults if None)
-    
+
     Returns:
         BaselineConfig instance with custom settings
     """
     config = get_default_config()
-    
+
     if scenarios is not None:
         config.scenarios = scenarios
-    
+
     if system_requirements is not None:
         config.system_requirements.update(system_requirements)
-    
+
     if measurement_settings is not None:
         config.measurement_settings.update(measurement_settings)
-    
+
     if report_settings is not None:
         config.report_settings.update(report_settings)
-    
+
     return config
 
 
 def get_quick_config() -> BaselineConfig:
     """Get a configuration for quick baseline measurements.
-    
+
     Uses fewer iterations and shorter timeouts for faster execution.
-    
+
     Returns:
         BaselineConfig optimized for quick measurements
     """
     config = get_default_config()
-    
+
     # Reduce iterations for quick measurements
     for scenario in config.scenarios.values():
         scenario.iterations = max(3, scenario.iterations // 3)
-    
+
     # Shorter timeout
     config.measurement_settings["timeout_per_scenario_s"] = 60
-    
+
     return config
 
 
 def get_comprehensive_config() -> BaselineConfig:
     """Get a configuration for comprehensive baseline measurements.
-    
+
     Uses more iterations and enables additional scenarios for thorough measurement.
-    
+
     Returns:
-        BaselineConfig optimized for comprehensive measurements  
+        BaselineConfig optimized for comprehensive measurements
     """
     config = get_default_config()
-    
+
     # Increase iterations for more statistical validity
     for scenario in config.scenarios.values():
         scenario.iterations = scenario.iterations * 2
-    
+
     # Enable additional scenarios
     config.scenarios["large_text_analysis"].enabled = True
     config.scenarios["batch_processing"].enabled = True
-    
+
     # Enable detailed logging and raw measurements
     config.measurement_settings["detailed_logging"] = True
     config.report_settings["include_raw_measurements"] = True
-    
+
     return config
 
 
@@ -312,28 +312,28 @@ PRD_PERFORMANCE_TARGETS = {
 }
 
 
-def validate_against_prd_targets(measurements: Dict[str, Any]) -> Dict[str, bool]:
+def validate_against_prd_targets(measurements: dict[str, Any]) -> dict[str, bool]:
     """Validate measurements against PRD performance targets.
-    
+
     Args:
         measurements: Baseline measurement results
-        
+
     Returns:
         Dictionary mapping target names to whether they are achievable
     """
     results = {}
-    
+
     # Check analyzer initialization target (80% improvement)
     if "analyzer_cold_start" in measurements:
         current_time = measurements["analyzer_cold_start"]["results"]["mean"]
         target_time = current_time * (1 - PRD_PERFORMANCE_TARGETS["analyzer_initialization_improvement"])
         results["analyzer_initialization_improvement"] = target_time > 100  # Reasonable minimum
-    
+
     # Check entity detection target (<100ms)
     if "small_text_analysis" in measurements:
         current_time = measurements["small_text_analysis"]["results"]["mean"]
         results["entity_detection_max_ms"] = (
             current_time <= PRD_PERFORMANCE_TARGETS["entity_detection_max_ms"] * 2  # Allow 2x current
         )
-    
+
     return results

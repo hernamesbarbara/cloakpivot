@@ -149,7 +149,7 @@ class SystemValidator:
                     raise ValidationError(
                         f"Cannot create directory {path}: {e}",
                         error_code="DIRECTORY_CREATION_FAILED",
-                    )
+                    ) from e
             else:
                 raise ValidationError(
                     f"Directory does not exist: {path}",
@@ -227,7 +227,7 @@ class DocumentValidator:
             raise ValidationError(
                 f"Invalid JSON format: {e}",
                 error_code="INVALID_JSON_FORMAT",
-            )
+            ) from e
 
     @staticmethod
     def validate_document_size(
@@ -461,7 +461,7 @@ class InputValidator:
             raise ValidationError(
                 f"Invalid CloakMap JSON format: {e}",
                 error_code="INVALID_CLOAKMAP_JSON",
-            )
+            ) from e
 
         # Output validation
         if output_path:

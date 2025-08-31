@@ -8,8 +8,8 @@ from typing import Any, Optional
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
-from .policies import MaskingPolicy
 from .performance import profile_method
+from .policies import MaskingPolicy
 
 # Temporarily mock docling_core import to allow tests to run
 try:

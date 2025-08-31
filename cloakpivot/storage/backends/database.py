@@ -121,7 +121,6 @@ class DatabaseStorage(StorageBackend):
             # PostgreSQL connection (requires psycopg2)
             try:
                 import psycopg2
-                from psycopg2 import pool
 
                 # Create connection pool
                 pool_size = self.config.get("pool_size", 5)

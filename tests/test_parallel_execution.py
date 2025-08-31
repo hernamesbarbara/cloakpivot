@@ -40,7 +40,7 @@ class TestParallelTestSupport:
             result = ParallelTestSupport.is_main_worker()
             assert isinstance(result, bool)
 
-    def test_get_worker_count_default(self):
+    def test_get_worker_count_default(self) -> None:
         """Test default worker count detection."""
         # Clear environment variables
         for var in ['PYTEST_XDIST_WORKER_COUNT', 'PYTEST_WORKERS', 'PYTEST_NUM_WORKERS']:
@@ -51,7 +51,7 @@ class TestParallelTestSupport:
         assert count >= 1
         assert isinstance(count, int)
 
-    def test_get_worker_count_from_env(self):
+    def test_get_worker_count_from_env(self) -> None:
         """Test worker count from environment variables."""
         with patch.dict(os.environ, {'PYTEST_WORKERS': '4'}):
             count = ParallelTestSupport.get_worker_count()
@@ -61,7 +61,7 @@ class TestParallelTestSupport:
             count = ParallelTestSupport.get_worker_count()
             assert count == 8
 
-    def test_get_worker_id(self):
+    def test_get_worker_id(self) -> None:
         """Test worker ID detection."""
         worker_id = ParallelTestSupport.get_worker_id()
         assert isinstance(worker_id, str)
@@ -71,7 +71,7 @@ class TestParallelTestSupport:
         if not PYTEST_XDIST_AVAILABLE or ParallelTestSupport.is_main_worker():
             assert worker_id == 'main'
 
-    def test_setup_worker_environment(self):
+    def test_setup_worker_environment(self) -> None:
         """Test worker environment setup."""
         # Test with explicit worker ID
         env_vars = ParallelTestSupport.setup_worker_environment('test_worker')
@@ -97,7 +97,7 @@ class TestParallelTestSupport:
         import shutil
         shutil.rmtree(actual_temp_dir, ignore_errors=True)
 
-    def test_get_worker_temp_dir(self):
+    def test_get_worker_temp_dir(self) -> None:
         """Test worker-specific temporary directory creation."""
         # Setup environment first
         ParallelTestSupport.setup_worker_environment('test_temp_worker')
@@ -111,7 +111,7 @@ class TestParallelTestSupport:
         import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-    def test_is_parallel_execution(self):
+    def test_is_parallel_execution(self) -> None:
         """Test parallel execution detection."""
         result = ParallelTestSupport.is_parallel_execution()
         assert isinstance(result, bool)
@@ -120,7 +120,7 @@ class TestParallelTestSupport:
         with patch('tests.parallel_support.is_xdist_worker', return_value=True):
             assert ParallelTestSupport.is_parallel_execution()
 
-    def test_get_optimal_worker_count(self):
+    def test_get_optimal_worker_count(self) -> None:
         """Test optimal worker count calculation."""
         count = ParallelTestSupport.get_optimal_worker_count()
         multiprocessing.cpu_count()
@@ -142,14 +142,14 @@ class TestParallelTestSupport:
 class TestWorkerResourceManager:
     """Test the WorkerResourceManager class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test resource manager initialization."""
         manager = WorkerResourceManager('test_manager')
         assert manager.worker_id == 'test_manager'
         assert len(manager._temp_dirs) == 0
         assert len(manager._cleanup_callbacks) == 0
 
-    def test_create_temp_dir(self):
+    def test_create_temp_dir(self) -> None:
         """Test temporary directory creation."""
         manager = WorkerResourceManager('test_create_temp')
 
@@ -173,13 +173,13 @@ class TestWorkerResourceManager:
         # Also cleanup the base worker environment
         ParallelTestSupport.cleanup_worker_environment()
 
-    def test_register_cleanup(self):
+    def test_register_cleanup(self) -> None:
         """Test cleanup callback registration."""
         manager = WorkerResourceManager('test_cleanup')
 
         callback_called = []
 
-        def test_callback():
+        def test_callback() -> None:
             callback_called.append(True)
 
         manager.register_cleanup(test_callback)
@@ -189,11 +189,11 @@ class TestWorkerResourceManager:
         manager.cleanup()
         assert len(callback_called) == 1
 
-    def test_cleanup_with_exception(self):
+    def test_cleanup_with_exception(self) -> None:
         """Test cleanup handles exceptions gracefully."""
         manager = WorkerResourceManager('test_exception')
 
-        def failing_callback():
+        def failing_callback() -> None:
             raise RuntimeError("Test exception")
 
         manager.register_cleanup(failing_callback)
@@ -205,7 +205,7 @@ class TestWorkerResourceManager:
 class TestGlobalResourceManager:
     """Test the global resource manager functionality."""
 
-    def test_get_worker_resource_manager(self):
+    def test_get_worker_resource_manager(self) -> None:
         """Test global resource manager retrieval."""
         manager1 = get_worker_resource_manager()
         manager2 = get_worker_resource_manager()
@@ -214,7 +214,7 @@ class TestGlobalResourceManager:
         assert manager1 is manager2
         assert isinstance(manager1, WorkerResourceManager)
 
-    def test_setup_teardown_environment(self):
+    def test_setup_teardown_environment(self) -> None:
         """Test environment setup and teardown."""
         # Setup should not raise exceptions
         setup_parallel_test_environment()
@@ -231,12 +231,12 @@ class TestGlobalResourceManager:
 class TestParallelSessionFixtures:
     """Test session fixtures work correctly in parallel execution."""
 
-    def test_worker_id_fixture(self, worker_id):
+    def test_worker_id_fixture(self, worker_id) -> None:
         """Test worker ID fixture provides consistent ID."""
         assert isinstance(worker_id, str)
         assert len(worker_id) > 0
 
-    def test_shared_temp_dir_fixture(self, shared_temp_dir):
+    def test_shared_temp_dir_fixture(self, shared_temp_dir) -> None:
         """Test shared temporary directory fixture."""
         assert isinstance(shared_temp_dir, Path)
         assert shared_temp_dir.exists()
@@ -248,7 +248,7 @@ class TestParallelSessionFixtures:
         assert test_file.exists()
         assert test_file.read_text() == "test content"
 
-    def test_parallel_shared_analyzer_fixture(self, parallel_shared_analyzer):
+    def test_parallel_shared_analyzer_fixture(self, parallel_shared_analyzer) -> None:
         """Test parallel analyzer fixture creates proper analyzer."""
         from presidio_analyzer import AnalyzerEngine
 
@@ -261,7 +261,7 @@ class TestParallelSessionFixtures:
         )
         assert isinstance(result, list)
 
-    def test_shared_analyzer_uses_parallel_version(self, shared_analyzer):
+    def test_shared_analyzer_uses_parallel_version(self, shared_analyzer) -> None:
         """Test that shared_analyzer fixture uses parallel-compatible version."""
         from presidio_analyzer import AnalyzerEngine
 
@@ -279,7 +279,7 @@ class TestParallelSessionFixtures:
 class TestParallelPerformance:
     """Test performance aspects of parallel execution."""
 
-    def test_worker_isolation(self, worker_id, shared_temp_dir):
+    def test_worker_isolation(self, worker_id, shared_temp_dir) -> None:
         """Test that workers are properly isolated."""
         # Create a file in worker's temp directory
         test_file = shared_temp_dir / f"worker_{worker_id}_test.txt"
@@ -294,7 +294,7 @@ class TestParallelPerformance:
         # Content should be unique to this worker
         assert worker_id in test_file.read_text()
 
-    def test_analyzer_instance_isolation(self, parallel_shared_analyzer, worker_id):
+    def test_analyzer_instance_isolation(self, parallel_shared_analyzer, worker_id) -> None:
         """Test that analyzer instances don't interfere between workers."""
         # Each worker should have its own analyzer
         analyzer = parallel_shared_analyzer
@@ -314,7 +314,7 @@ class TestParallelPerformance:
                 assert hasattr(result, 'end')
 
     @pytest.mark.slow
-    def test_concurrent_analysis_performance(self, shared_analyzer):
+    def test_concurrent_analysis_performance(self, shared_analyzer) -> None:
         """Test analyzer performance under concurrent usage."""
         import concurrent.futures
 
@@ -325,7 +325,7 @@ class TestParallelPerformance:
             "Alice Williams, phone: 555-111-2222, credit card: 4532-1234-5678-9012"
         ]
 
-        def analyze_text(text):
+        def analyze_text(text: str) -> list:
             return shared_analyzer.analyze(text=text, language="en")
 
         # Simulate concurrent analysis
@@ -350,14 +350,14 @@ class TestParallelPropertyTests:
     """Property-based tests for parallel execution."""
 
     @pytest.mark.parametrize("worker_count", [1, 2, 4])
-    def test_worker_count_scaling(self, worker_count):
+    def test_worker_count_scaling(self, worker_count) -> None:
         """Test that worker count configuration works correctly."""
         with patch.dict(os.environ, {'PYTEST_WORKERS': str(worker_count)}):
             detected_count = ParallelTestSupport.get_worker_count()
             assert detected_count == worker_count
 
     @pytest.mark.parametrize("worker_id", ['worker_1', 'worker_2', 'main', 'gw0', 'gw1'])
-    def test_worker_environment_setup_consistency(self, worker_id):
+    def test_worker_environment_setup_consistency(self, worker_id) -> None:
         """Test worker environment setup for different worker IDs."""
         env_vars = ParallelTestSupport.setup_worker_environment(worker_id)
 
@@ -381,7 +381,7 @@ class TestParallelPropertyTests:
 
 # Integration test to verify the complete parallel testing flow
 @pytest.mark.integration
-def test_complete_parallel_flow(shared_analyzer, shared_temp_dir, worker_id):
+def test_complete_parallel_flow(shared_analyzer, shared_temp_dir, worker_id) -> None:
     """Integration test for complete parallel testing workflow."""
     # This test verifies that all components work together
 

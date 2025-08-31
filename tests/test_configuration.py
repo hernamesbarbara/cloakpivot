@@ -3,13 +3,13 @@
 import os
 from unittest.mock import patch
 
+from cloakpivot.core.analyzer import AnalyzerEngineWrapper
 from cloakpivot.core.config import PerformanceConfig, reset_performance_config
 from cloakpivot.core.model_info import (
     MODEL_CHARACTERISTICS,
-    validate_model_availability,
     get_model_recommendations,
+    validate_model_availability,
 )
-from cloakpivot.core.analyzer import AnalyzerEngineWrapper
 from cloakpivot.loaders import get_presidio_analyzer
 
 
@@ -152,7 +152,7 @@ class TestModelInfo:
 
         assert set(MODEL_CHARACTERISTICS.keys()) == expected_sizes
 
-        for size, characteristics in MODEL_CHARACTERISTICS.items():
+        for _size, characteristics in MODEL_CHARACTERISTICS.items():
             assert set(characteristics.keys()) == expected_fields
             assert isinstance(characteristics["memory_mb"], int)
             assert isinstance(characteristics["load_time_ms"], int)

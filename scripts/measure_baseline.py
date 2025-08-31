@@ -13,17 +13,16 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cloakpivot.core.performance import PerformanceProfiler, get_profiler
 from cloakpivot.core.analyzer import AnalyzerEngineWrapper
 from cloakpivot.core.detection import EntityDetectionPipeline
+from cloakpivot.core.performance import PerformanceProfiler, get_profiler
 from cloakpivot.core.policies import MaskingPolicy
-
 
 # Configure logging
 logging.basicConfig(
@@ -119,9 +118,9 @@ class BaselineMeasurement:
             profiler: Optional PerformanceProfiler instance
         """
         self.profiler = profiler or get_profiler()
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
-    def measure_analyzer_cold_start(self, iterations: int) -> Dict[str, float]:
+    def measure_analyzer_cold_start(self, iterations: int) -> dict[str, float]:
         """Measure analyzer cold start initialization performance."""
         logger.info(f"Measuring analyzer cold start ({iterations} iterations)")
         times = []
@@ -142,7 +141,7 @@ class BaselineMeasurement:
 
         return self._calculate_stats(times)
 
-    def measure_analyzer_warm_start(self, iterations: int) -> Dict[str, float]:
+    def measure_analyzer_warm_start(self, iterations: int) -> dict[str, float]:
         """Measure analyzer warm start performance (reusing existing instance)."""
         logger.info(f"Measuring analyzer warm start ({iterations} iterations)")
 
@@ -165,7 +164,7 @@ class BaselineMeasurement:
 
         return self._calculate_stats(times)
 
-    def measure_small_text_analysis(self, iterations: int) -> Dict[str, float]:
+    def measure_small_text_analysis(self, iterations: int) -> dict[str, float]:
         """Measure small text analysis performance."""
         logger.info(f"Measuring small text analysis ({iterations} iterations)")
 
@@ -188,7 +187,7 @@ class BaselineMeasurement:
 
         return self._calculate_stats(times)
 
-    def measure_medium_text_analysis(self, iterations: int) -> Dict[str, float]:
+    def measure_medium_text_analysis(self, iterations: int) -> dict[str, float]:
         """Measure medium text analysis performance."""
         logger.info(f"Measuring medium text analysis ({iterations} iterations)")
 
@@ -211,7 +210,7 @@ class BaselineMeasurement:
 
         return self._calculate_stats(times)
 
-    def measure_pipeline_creation(self, iterations: int) -> Dict[str, float]:
+    def measure_pipeline_creation(self, iterations: int) -> dict[str, float]:
         """Measure EntityDetectionPipeline creation performance."""
         logger.info(f"Measuring pipeline creation ({iterations} iterations)")
 
@@ -223,16 +222,16 @@ class BaselineMeasurement:
         )
 
         times = []
-        for i in range(iterations):
+        for _i in range(iterations):
             start_time = time.perf_counter()
 
             try:
-                pipeline = EntityDetectionPipeline(policy)
+                EntityDetectionPipeline(policy)
             except Exception as e:
                 # Pipeline might not be fully implemented yet
                 logger.warning(f"Pipeline creation failed: {e}")
                 # Fallback to analyzer creation
-                analyzer = AnalyzerEngineWrapper.from_policy(policy)
+                AnalyzerEngineWrapper.from_policy(policy)
 
             end_time = time.perf_counter()
             duration_ms = (end_time - start_time) * 1000
@@ -240,7 +239,7 @@ class BaselineMeasurement:
 
         return self._calculate_stats(times)
 
-    def _calculate_stats(self, times: List[float]) -> Dict[str, float]:
+    def _calculate_stats(self, times: list[float]) -> dict[str, float]:
         """Calculate statistics from timing measurements."""
         if not times:
             return {"mean": 0, "median": 0, "std_dev": 0, "min": 0, "max": 0}
@@ -254,7 +253,7 @@ class BaselineMeasurement:
             "count": len(times)
         }
 
-    def run_all_scenarios(self) -> Dict[str, Any]:
+    def run_all_scenarios(self) -> dict[str, Any]:
         """Run all baseline measurement scenarios."""
         logger.info("Starting baseline performance measurement")
 
@@ -310,9 +309,10 @@ class BaselineMeasurement:
         logger.info(f"Baseline measurement completed in {total_time:.1f}s")
         return report
 
-    def _get_system_info(self) -> Dict[str, Any]:
+    def _get_system_info(self) -> dict[str, Any]:
         """Get system information for baseline context."""
         import platform
+
         import psutil
 
         return {
@@ -323,7 +323,7 @@ class BaselineMeasurement:
             "cpu_freq_mhz": round(psutil.cpu_freq().current) if psutil.cpu_freq() else None
         }
 
-    def _get_profiler_summary(self) -> Dict[str, Any]:
+    def _get_profiler_summary(self) -> dict[str, Any]:
         """Get summary from the profiler."""
         try:
             stats = self.profiler.get_operation_stats()
@@ -336,7 +336,7 @@ class BaselineMeasurement:
             return {"error": "Unable to get profiler stats"}
 
 
-def save_baseline_report(report: Dict[str, Any], output_dir: str = "benchmarks/baseline_reports") -> str:
+def save_baseline_report(report: dict[str, Any], output_dir: str = "benchmarks/baseline_reports") -> str:
     """Save baseline report to file."""
     os.makedirs(output_dir, exist_ok=True)
 

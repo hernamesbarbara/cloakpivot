@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 from functools import total_ordering
 from typing import Any, Optional
 
-from .policies import MaskingPolicy
 from .performance import profile_method
+from .policies import MaskingPolicy
 
 # Lazy import presidio to avoid blocking on module load
 # These will be imported when actually needed in _initialize_engine()
@@ -408,8 +408,8 @@ class AnalyzerEngineWrapper:
         Returns:
             Full spaCy model name with appropriate size suffix
         """
-        from .model_info import get_model_name
         from .config import performance_config
+        from .model_info import get_model_name
 
         # Use global performance config for model size selection
         model_size = performance_config.model_size
