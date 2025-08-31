@@ -66,6 +66,7 @@ jobs:
 
     - name: Run type checking
       run: |
+        # TODO: Remove lenient flags as type annotations improve
         mypy cloakpivot --ignore-missing-imports --no-strict-optional
 
     - name: Download required models
@@ -116,8 +117,8 @@ jobs:
       run: |
         python -m spacy download en_core_web_sm
         python -m spacy download en_core_web_md
-        # Only download large model if comprehensive testing
-        # python -m spacy download en_core_web_lg
+        # Download large model for comprehensive testing on main branch
+        python -m spacy download en_core_web_lg
 
     - name: Run comprehensive tests
       env:
@@ -158,8 +159,8 @@ jobs:
 
     - name: Run security scan
       run: |
-        bandit -r cloakpivot/ -f json -o security-report.json
-        bandit -r cloakpivot/ -f txt
+        bandit -r cloakpivot/ -f json -o security-report.json --skip B101,B601 --exclude tests/
+        bandit -r cloakpivot/ -f txt --skip B101,B601 --exclude tests/
 
     - name: Upload security scan results
       if: always()

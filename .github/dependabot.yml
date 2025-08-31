@@ -6,8 +6,7 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    reviewers:
-      - "maintainer-username"
+
     commit-message:
       prefix: "deps"
       include: "scope"

@@ -5,7 +5,7 @@ import logging
 import random
 import string
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ class SurrogateGenerator:
 
         logger.debug(f"SurrogateGenerator initialized with seed: {seed}")
 
-    def _initialize_entity_generators(self) -> dict[str, callable]:
+    def _initialize_entity_generators(self) -> dict[str, Callable]:
         """Initialize entity-specific generators."""
         return {
             "PHONE_NUMBER": self._generate_phone_surrogate,
