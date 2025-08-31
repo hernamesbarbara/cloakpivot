@@ -338,7 +338,7 @@ class EntityDetectionPipeline:
 
         return node_type_mapping.get(segment.node_type)
 
-    @profile_method("entity_anchor_mapping") 
+    @profile_method("entity_anchor_mapping")
     def map_entities_to_anchors(
         self, analysis_result: DocumentAnalysisResult
     ) -> list[AnchorEntry]:

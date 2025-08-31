@@ -286,11 +286,11 @@ class EntityDetectionResult:
             return NotImplemented
 
         return (
-            self.entity_type == other.entity_type
-            and self.start == other.start
-            and self.end == other.end
-            and abs(self.confidence - other.confidence) < 1e-6
-            and self.text == other.text
+            self.entity_type == other.entity_type and
+            self.start == other.start and
+            self.end == other.end and
+            abs(self.confidence - other.confidence) < 1e-6 and
+            self.text == other.text
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -507,7 +507,7 @@ class AnalyzerEngineWrapper:
             # Convert to our result format
             detection_results = []
             for result in presidio_results:
-                entity_text = text[result.start : result.end]
+                entity_text = text[result.start:result.end]
                 detection = EntityDetectionResult.from_presidio_result(
                     result, entity_text
                 )

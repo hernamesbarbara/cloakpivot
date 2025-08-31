@@ -332,6 +332,8 @@ def validate_against_prd_targets(measurements: Dict[str, Any]) -> Dict[str, bool
     # Check entity detection target (<100ms)
     if "small_text_analysis" in measurements:
         current_time = measurements["small_text_analysis"]["results"]["mean"]
-        results["entity_detection_max_ms"] = current_time <= PRD_PERFORMANCE_TARGETS["entity_detection_max_ms"] * 2  # Allow 2x current
+        results["entity_detection_max_ms"] = (
+            current_time <= PRD_PERFORMANCE_TARGETS["entity_detection_max_ms"] * 2  # Allow 2x current
+        )
     
     return results
