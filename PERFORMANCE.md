@@ -1,8 +1,23 @@
 # CloakPivot Performance Optimization Guide
 
-[![Performance CI](https://github.com/your-org/cloakpivot/workflows/Performance/badge.svg)](https://github.com/your-org/cloakpivot/actions)
+<!-- 
+Performance documentation for CloakPivot data masking library.
+This guide provides comprehensive instructions for optimizing performance across development,
+testing, and production environments. It documents the existing performance infrastructure
+including singleton patterns, caching strategies, parallel processing, and profiling tools.
 
-CloakPivot is designed for optimal performance with large documents and batch processing operations. This guide provides comprehensive guidance on performance optimization, monitoring, and troubleshooting.
+Maintenance Notes:
+- Update performance metrics when upgrading dependencies
+- Validate code examples when APIs change
+- Review configuration defaults quarterly
+- Update troubleshooting guide based on common developer issues
+-->
+
+[![Performance CI](https://github.com/{GITHUB_ORG}/cloakpivot/workflows/Performance/badge.svg)](https://github.com/{GITHUB_ORG}/cloakpivot/actions)
+
+<!-- Note: Replace {GITHUB_ORG} with your actual GitHub organization name -->
+
+CloakPivot is designed for optimal performance with large documents and batch processing operations. This guide provides comprehensive guidance on performance optimization, monitoring, and troubleshooting using the existing performance infrastructure built into the system.
 
 ## Table of Contents
 
@@ -158,10 +173,30 @@ print(f"Singleton enabled: {performance_config.use_singleton_analyzers}")
 print(f"Cache size: {performance_config.analyzer_cache_size}")
 print(f"Parallel enabled: {performance_config.enable_parallel}")
 
-# Runtime configuration
+# Runtime configuration with validation
 import os
-os.environ['ANALYZER_CACHE_SIZE'] = '16'  # Increase cache size
-os.environ['MAX_WORKERS'] = '6'           # Increase parallelism
+
+def set_performance_config(cache_size=16, max_workers=6):
+    """Set performance configuration with validation."""
+    try:
+        # Validate cache_size
+        if not isinstance(cache_size, int) or cache_size < 1:
+            raise ValueError(f"Invalid cache_size: {cache_size}. Must be positive integer.")
+        
+        # Validate max_workers
+        if not isinstance(max_workers, int) or max_workers < 1:
+            raise ValueError(f"Invalid max_workers: {max_workers}. Must be positive integer.")
+        
+        os.environ['ANALYZER_CACHE_SIZE'] = str(cache_size)
+        os.environ['MAX_WORKERS'] = str(max_workers)
+        
+        print(f"Performance configuration set: cache_size={cache_size}, max_workers={max_workers}")
+    except Exception as e:
+        print(f"Error setting performance configuration: {e}")
+        raise
+
+# Example usage
+set_performance_config(cache_size=16, max_workers=6)
 ```
 
 ## Best Practices
@@ -565,10 +600,16 @@ print(f"Cache misses: {cache_info['analyzer']['misses']}")
 
 **Diagnosis:**
 ```python
-# Check cache size configuration
+# Check cache size configuration with error handling
 import os
-cache_size = int(os.getenv('ANALYZER_CACHE_SIZE', '8'))
-print(f"Cache size: {cache_size}")
+
+try:
+    cache_size = int(os.getenv('ANALYZER_CACHE_SIZE', '8'))
+    print(f"Cache size: {cache_size}")
+except ValueError as e:
+    print(f"Error: Invalid ANALYZER_CACHE_SIZE value: {e}")
+    cache_size = 8  # Use default
+    print(f"Using default cache size: {cache_size}")
 
 # Monitor memory usage
 from cloakpivot.core.performance import PerformanceProfiler
@@ -763,39 +804,66 @@ for config, metrics in comparison.items():
 ### Custom Caching Strategies
 
 ```python
+# Custom TTL (Time-To-Live) cache implementation for CloakPivot performance optimization
+# Use this pattern when you need temporary caching that automatically expires old data
+
 from functools import lru_cache
 import time
 from typing import Any, Dict, Optional
 
-# Custom TTL cache for temporary data
 class TTLCache:
+    """
+    Time-To-Live cache that automatically expires entries after a specified time.
+    
+    This is useful for caching expensive operations that should be refreshed periodically,
+    such as model inference results or API responses that may become stale.
+    
+    Performance characteristics:
+    - O(1) get/set operations when cache isn't full
+    - O(n) set operation when evicting oldest item (happens rarely)
+    - Memory usage: fixed maximum based on maxsize parameter
+    """
+    
     def __init__(self, maxsize: int = 128, ttl: float = 3600.0):
-        self.cache: Dict[Any, tuple] = {}
+        self.cache: Dict[Any, tuple] = {}  # Store (value, timestamp) tuples
         self.maxsize = maxsize
-        self.ttl = ttl
+        self.ttl = ttl  # Time-to-live in seconds
     
     def get(self, key: Any) -> Optional[Any]:
+        """Retrieve cached value if exists and not expired."""
         if key in self.cache:
             value, timestamp = self.cache[key]
+            # Check if entry has expired
             if time.time() - timestamp < self.ttl:
-                return value
+                return value  # Cache hit - return valid value
             else:
-                del self.cache[key]
-        return None
+                del self.cache[key]  # Lazy expiration - remove stale entry
+        return None  # Cache miss or expired
     
     def set(self, key: Any, value: Any) -> None:
+        """Store value with current timestamp."""
+        # Implement LRU eviction when cache is full
         if len(self.cache) >= self.maxsize:
-            # Remove oldest item
+            # Find and remove the oldest entry (least recently stored)
+            # Note: This is O(n) but happens infrequently
             oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][1])
             del self.cache[oldest_key]
         
+        # Store value with current timestamp
         self.cache[key] = (value, time.time())
 
-# Application to expensive computations
-ttl_cache = TTLCache(maxsize=64, ttl=3600)  # 1 hour TTL
+# Example usage: Cache expensive entity analysis results
+ttl_cache = TTLCache(maxsize=64, ttl=3600)  # 1 hour TTL, 64 entries max
 
 def expensive_computation(data_hash: str):
-    """Cache expensive computation results with TTL."""
+    """
+    Cache expensive computation results with automatic expiration.
+    
+    This pattern is ideal for:
+    - Model inference results that may change with model updates
+    - External API responses that should be refreshed periodically
+    - Analysis results where input data might change
+    """
     cached_result = ttl_cache.get(data_hash)
     if cached_result is not None:
         return cached_result
@@ -931,48 +999,77 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
 from typing import List, Callable, Any
 
-# Thread-safe analyzer access
+# Advanced Multi-threading Pattern for CloakPivot
+# This example demonstrates how to safely use CloakPivot analyzers in a multi-threaded environment
+
 def worker_function(texts: List[str], worker_id: int) -> List[Any]:
-    """Worker function that gets its own analyzer instance."""
-    # Each worker gets an analyzer instance
-    # Singleton pattern ensures this is efficient
+    """
+    Worker function that processes a chunk of texts in parallel.
+    
+    Key implementation details:
+    - Each worker thread gets its own analyzer instance via singleton loader
+    - Singleton pattern ensures efficient resource sharing without thread conflicts
+    - Worker ID helps track which thread processed which results for debugging
+    
+    Thread Safety: CloakPivot analyzers are thread-safe when obtained via singleton loaders
+    """
+    # Get analyzer instance - singleton pattern makes this efficient across threads
+    # Multiple threads calling this will get the same underlying resources safely
     analyzer = get_presidio_analyzer()
     
     results = []
     for text in texts:
+        # Each worker processes its assigned texts independently
         result = analyzer.analyze(text)
         results.append({
             'text': text,
             'entities': result,
-            'worker_id': worker_id
+            'worker_id': worker_id  # For debugging and result tracking
         })
     
     return results
 
 def parallel_text_analysis(texts: List[str], max_workers: int = 4) -> List[Any]:
-    """Parallel text analysis using ThreadPoolExecutor."""
+    """
+    Parallel text analysis using ThreadPoolExecutor with intelligent work distribution.
     
-    # Split texts into chunks for each worker
-    chunk_size = len(texts) // max_workers
+    Performance characteristics:
+    - Scales linearly up to CPU core count
+    - Memory usage: O(n) where n is number of texts
+    - Optimal for CPU-bound entity detection tasks
+    
+    Best practices:
+    - Use max_workers = CPU cores for CPU-bound tasks
+    - Use max_workers = 2-4x CPU cores for I/O-bound tasks
+    - Monitor memory usage for large text volumes
+    """
+    
+    # Distribute work evenly across workers to maximize CPU utilization
+    chunk_size = max(1, len(texts) // max_workers)  # Ensure at least 1 text per chunk
     text_chunks = [texts[i:i + chunk_size] for i in range(0, len(texts), chunk_size)]
     
     all_results = []
     
+    # Use ThreadPoolExecutor for automatic thread management and cleanup
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit work to thread pool
+        # Submit all work upfront - ThreadPoolExecutor handles scheduling
         future_to_chunk = {
             executor.submit(worker_function, chunk, i): i 
-            for i, chunk in enumerate(text_chunks)
+            for i, chunk in enumerate(text_chunks) if chunk  # Skip empty chunks
         }
         
-        # Collect results as they complete
+        # Process results as they become available (not necessarily in order)
+        # This pattern provides better responsiveness than waiting for all threads
         for future in as_completed(future_to_chunk):
             chunk_id = future_to_chunk[future]
             try:
                 chunk_results = future.result()
                 all_results.extend(chunk_results)
             except Exception as exc:
-                print(f'Chunk {chunk_id} generated exception: {exc}')
+                # Handle individual chunk failures gracefully
+                # Production code should implement retry logic or partial failure handling
+                print(f'Chunk {chunk_id} failed with exception: {exc}')
+                # Continue processing other chunks even if one fails
     
     return all_results
 
@@ -1064,17 +1161,24 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 class PerformanceMonitor:
-    """Comprehensive performance monitoring and alerting system."""
+    """Comprehensive performance monitoring and alerting system with configurable thresholds."""
     
-    def __init__(self):
+    def __init__(self, custom_thresholds: Optional[Dict[str, Any]] = None):
         self.metrics_history = []
         self.alerts = []
-        self.thresholds = {
-            'avg_duration_ms': 5000,      # Alert if average > 5 seconds
-            'memory_delta_mb': 100,       # Alert if memory delta > 100MB
-            'success_rate': 0.95,         # Alert if success rate < 95%
-            'queue_size': 1000           # Alert if queue size > 1000
+        
+        # Default thresholds - can be overridden via environment variables or constructor
+        default_thresholds = {
+            'avg_duration_ms': float(os.getenv('PERF_ALERT_DURATION_MS', '5000')),
+            'memory_delta_mb': float(os.getenv('PERF_ALERT_MEMORY_MB', '100')), 
+            'success_rate': float(os.getenv('PERF_ALERT_SUCCESS_RATE', '0.95')),
+            'queue_size': int(os.getenv('PERF_ALERT_QUEUE_SIZE', '1000'))
         }
+        
+        # Allow custom thresholds to override defaults
+        self.thresholds = default_thresholds
+        if custom_thresholds:
+            self.thresholds.update(custom_thresholds)
     
     def collect_metrics(self, profiler: PerformanceProfiler) -> Dict[str, Any]:
         """Collect current performance metrics."""
