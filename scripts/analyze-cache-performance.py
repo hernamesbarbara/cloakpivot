@@ -10,6 +10,7 @@ import json
 import statistics
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -21,12 +22,53 @@ except ImportError:
     sys.exit(1)
 
 
+@dataclass
+class AnalysisConfig:
+    """Configuration parameters for cache performance analysis."""
+    
+    # Baseline timing thresholds (in seconds)
+    baseline_model_setup_time: int = 300  # 5 minutes baseline without cache
+    high_setup_time_threshold: int = 180  # 3 minutes - when to warn about slow setup
+    
+    # Cache hit rate thresholds (percentages)
+    spacy_cache_target: float = 80.0
+    huggingface_cache_target: float = 80.0  
+    pip_cache_target: float = 90.0
+    overall_cache_target: float = 85.0
+    excellent_cache_threshold: float = 95.0
+    
+    # API and performance settings
+    rate_limit_delay: float = 0.1  # Seconds between API calls
+    monthly_multiplier: float = 4.3  # Approximate weeks per month
+    
+    def validate(self) -> None:
+        """Validate configuration parameters."""
+        if self.baseline_model_setup_time <= 0:
+            raise ValueError("baseline_model_setup_time must be positive")
+        if self.high_setup_time_threshold <= 0:
+            raise ValueError("high_setup_time_threshold must be positive")
+        if not (0 <= self.spacy_cache_target <= 100):
+            raise ValueError("spacy_cache_target must be between 0 and 100")
+        if not (0 <= self.huggingface_cache_target <= 100):
+            raise ValueError("huggingface_cache_target must be between 0 and 100")
+        if not (0 <= self.pip_cache_target <= 100):
+            raise ValueError("pip_cache_target must be between 0 and 100")
+        if not (0 <= self.overall_cache_target <= 100):
+            raise ValueError("overall_cache_target must be between 0 and 100")
+        if not (0 <= self.excellent_cache_threshold <= 100):
+            raise ValueError("excellent_cache_threshold must be between 0 and 100")
+        if self.rate_limit_delay < 0:
+            raise ValueError("rate_limit_delay must be non-negative")
+
+
 class CacheAnalyzer:
     """Analyze GitHub Actions cache performance metrics."""
 
-    def __init__(self, github_token: str, repo: str):
+    def __init__(self, github_token: str, repo: str, config: Optional[AnalysisConfig] = None):
         self.github_token = github_token
         self.repo = repo
+        self.config = config or AnalysisConfig()
+        self.config.validate()
         self.base_url = "https://api.github.com"
         self.headers = {
             "Authorization": f"token {github_token}",
@@ -50,7 +92,7 @@ class CacheAnalyzer:
             response = requests.get(url, headers=self.headers, params=params)
             response.raise_for_status()
             return response.json().get("workflow_runs", [])
-        except requests.RequestException as e:
+        except Exception as e:
             print(f"Error fetching workflow runs: {e}")
             return []
 
@@ -62,12 +104,48 @@ class CacheAnalyzer:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             return response.text
-        except requests.RequestException as e:
+        except Exception as e:
             print(f"Error fetching logs for run {run_id}: {e}")
             return None
 
     def parse_cache_metrics_from_logs(self, logs: str) -> dict:
-        """Parse cache performance metrics from workflow logs."""
+        """Parse cache performance metrics from workflow logs.
+        
+        Analyzes GitHub Actions workflow logs to extract cache performance data
+        including cache hit/miss status and timing information.
+        
+        Expected Log Format Patterns:
+            Cache hits: Lines containing "cache hit" (case-insensitive) along with:
+                - "cache-spacy": spaCy model cache
+                - "cache-huggingface": HuggingFace transformer cache  
+                - "pip": pip package cache
+                
+            Timing: Lines containing "Total time:" followed by seconds:
+                - "Model setup complete - Total time: 45.2s"
+                
+        Args:
+            logs (str): Raw workflow log text from GitHub Actions API
+            
+        Returns:
+            dict: Cache metrics with the following structure:
+                {
+                    "spacy_cache_hit": bool,
+                    "huggingface_cache_hit": bool, 
+                    "pip_cache_hit": bool,
+                    "model_setup_time": Optional[float],  # seconds
+                    "total_job_time": Optional[float],    # seconds  
+                    "cache_restore_time": Optional[float], # seconds
+                    "model_download_time": Optional[float] # seconds
+                }
+                
+        Examples:
+            >>> logs = "cache hit detected for spacy models\\nTotal time: 45.2s"
+            >>> metrics = analyzer.parse_cache_metrics_from_logs(logs)
+            >>> metrics["spacy_cache_hit"]
+            True
+            >>> metrics["model_setup_time"] 
+            45.2
+        """
         metrics = {
             "spacy_cache_hit": False,
             "huggingface_cache_hit": False,
@@ -82,11 +160,12 @@ class CacheAnalyzer:
 
         for line in lines:
             # Cache hit detection
-            if "cache-spacy" in line and "cache hit" in line.lower():
+            line_lower = line.lower()
+            if "cache hit detected for spacy" in line_lower:
                 metrics["spacy_cache_hit"] = True
-            elif "cache-huggingface" in line and "cache hit" in line.lower():
+            elif "cache hit detected for huggingface" in line_lower:
                 metrics["huggingface_cache_hit"] = True
-            elif "pip" in line and "cache hit" in line.lower():
+            elif "pip cache hit detected" in line_lower:
                 metrics["pip_cache_hit"] = True
 
             # Time metrics extraction
@@ -139,8 +218,8 @@ class CacheAnalyzer:
             if metrics["model_setup_time"]:
                 setup_times.append(metrics["model_setup_time"])
 
-                # Estimate time savings (assuming 5min baseline without cache)
-                baseline_time = 300  # 5 minutes in seconds
+                # Estimate time savings using configured baseline
+                baseline_time = self.config.baseline_model_setup_time
                 if metrics["spacy_cache_hit"]:
                     time_saved = baseline_time - metrics["model_setup_time"]
                     time_savings.append(max(0, time_saved))
@@ -148,7 +227,7 @@ class CacheAnalyzer:
             successful_runs += 1
 
             # Rate limit protection
-            time.sleep(0.1)
+            time.sleep(self.config.rate_limit_delay)
 
         # Calculate statistics
         analysis = {
@@ -196,8 +275,8 @@ class CacheAnalyzer:
                 time_savings
             )
             analysis["timing_metrics"]["estimated_monthly_savings"] = (
-                total_time_saved * 4.3
-            )  # Approximate monthly multiplier
+                total_time_saved * self.config.monthly_multiplier
+            )
 
         # Generate recommendations
         analysis["recommendations"] = self.generate_recommendations(analysis)
@@ -210,36 +289,40 @@ class CacheAnalyzer:
         cache_perf = analysis["cache_performance"]
 
         # Cache hit rate recommendations
-        if cache_perf["spacy_hit_rate"] < 80:
+        if cache_perf["spacy_hit_rate"] < self.config.spacy_cache_target:
             recommendations.append(
-                f"spaCy cache hit rate is {cache_perf['spacy_hit_rate']:.1f}% - consider reviewing cache key strategy"
+                f"spaCy cache hit rate is {cache_perf['spacy_hit_rate']:.1f}% "
+                f"(target: {self.config.spacy_cache_target}%) - consider reviewing cache key strategy"
             )
 
-        if cache_perf["huggingface_hit_rate"] < 80:
+        if cache_perf["huggingface_hit_rate"] < self.config.huggingface_cache_target:
             recommendations.append(
-                f"HuggingFace cache hit rate is {cache_perf['huggingface_hit_rate']:.1f}% - verify cache paths and keys"
+                f"HuggingFace cache hit rate is {cache_perf['huggingface_hit_rate']:.1f}% "
+                f"(target: {self.config.huggingface_cache_target}%) - verify cache paths and keys"
             )
 
-        if cache_perf["pip_hit_rate"] < 90:
+        if cache_perf["pip_hit_rate"] < self.config.pip_cache_target:
             recommendations.append(
-                f"Pip cache hit rate is {cache_perf['pip_hit_rate']:.1f}% - dependency changes may be frequent"
+                f"Pip cache hit rate is {cache_perf['pip_hit_rate']:.1f}% "
+                f"(target: {self.config.pip_cache_target}%) - dependency changes may be frequent"
             )
 
         # Overall performance recommendations
-        if cache_perf["overall_hit_rate"] < 85:
+        if cache_perf["overall_hit_rate"] < self.config.overall_cache_target:
             recommendations.append(
-                "Overall cache performance below target (85%) - consider cache key optimization"
+                f"Overall cache performance below target ({self.config.overall_cache_target}%) - consider cache key optimization"
             )
-        elif cache_perf["overall_hit_rate"] > 95:
+        elif cache_perf["overall_hit_rate"] > self.config.excellent_cache_threshold:
             recommendations.append(
                 "Excellent cache performance! Consider documenting current strategy for other projects"
             )
 
         # Timing recommendations
         timing = analysis.get("timing_metrics", {})
-        if timing.get("avg_setup_time", 0) > 180:  # 3 minutes
+        if timing.get("avg_setup_time", 0) > self.config.high_setup_time_threshold:
             recommendations.append(
-                f"Average setup time ({timing['avg_setup_time']:.1f}s) is high - investigate model download efficiency"
+                f"Average setup time ({timing['avg_setup_time']:.1f}s) exceeds threshold "
+                f"({self.config.high_setup_time_threshold}s) - investigate model download efficiency"
             )
 
         return recommendations
@@ -263,10 +346,10 @@ class CacheAnalyzer:
         # Cache performance
         cache = analysis["cache_performance"]
         report.append("\n💾 Cache Performance:")
-        report.append(f"  spaCy models: {cache['spacy_hit_rate']:.1f}% hit rate")
-        report.append(f"  HuggingFace: {cache['huggingface_hit_rate']:.1f}% hit rate")
-        report.append(f"  Pip packages: {cache['pip_hit_rate']:.1f}% hit rate")
-        report.append(f"  Overall: {cache['overall_hit_rate']:.1f}% hit rate")
+        report.append(f"  spaCy models: {cache.get('spacy_hit_rate', 0.0):.1f}% hit rate")
+        report.append(f"  HuggingFace: {cache.get('huggingface_hit_rate', 0.0):.1f}% hit rate")
+        report.append(f"  Pip packages: {cache.get('pip_hit_rate', 0.0):.1f}% hit rate")
+        report.append(f"  Overall: {cache.get('overall_hit_rate', 0.0):.1f}% hit rate")
 
         # Timing metrics
         timing = analysis.get("timing_metrics", {})

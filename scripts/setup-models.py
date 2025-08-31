@@ -9,8 +9,9 @@ import argparse
 import json
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 try:
     import spacy
@@ -20,23 +21,83 @@ except ImportError:
     sys.exit(1)
 
 
+@dataclass
+class ModelConfig:
+    """Configuration for model management and validation."""
+    
+    # Model size configurations
+    model_definitions: Dict[str, List[str]] = None
+    
+    # Validation settings
+    validation_test_text: str = "This is a test document for validation. John Smith works at Microsoft."
+    min_pos_tags_required: int = 1
+    
+    # Timeout and performance settings
+    download_timeout_seconds: int = 300  # 5 minutes max per model
+    validation_timeout_seconds: int = 30  # 30 seconds max for validation
+    
+    def __post_init__(self):
+        """Initialize default model definitions if not provided."""
+        if self.model_definitions is None:
+            self.model_definitions = {
+                "small": ["en_core_web_sm"],
+                "medium": ["en_core_web_sm", "en_core_web_md"],
+                "large": ["en_core_web_sm", "en_core_web_md", "en_core_web_lg"],
+            }
+    
+    def validate(self) -> None:
+        """Validate configuration parameters."""
+        if not isinstance(self.model_definitions, dict):
+            raise ValueError("model_definitions must be a dictionary")
+        
+        for size, models in self.model_definitions.items():
+            if not isinstance(models, list):
+                raise ValueError(f"Models for size '{size}' must be a list")
+            if not models:
+                raise ValueError(f"Models list for size '{size}' cannot be empty")
+        
+        if self.download_timeout_seconds <= 0:
+            raise ValueError("download_timeout_seconds must be positive")
+        if self.validation_timeout_seconds <= 0:
+            raise ValueError("validation_timeout_seconds must be positive")
+        if self.min_pos_tags_required < 0:
+            raise ValueError("min_pos_tags_required must be non-negative")
+        if not self.validation_test_text.strip():
+            raise ValueError("validation_test_text cannot be empty")
+
+
 class ModelManager:
     """Intelligent model download and verification manager with caching awareness."""
 
-    def __init__(self, model_size: str = "small", cache_dir: Optional[str] = None):
+    def __init__(self, model_size: str = "small", cache_dir: Optional[str] = None, 
+                 config: Optional[ModelConfig] = None):
         self.model_size = model_size
         self.cache_dir = Path(cache_dir or Path.home() / ".cache" / "spacy")
         self.spacy_models_dir = Path.home() / "spacy_models"
+        self.config = config or ModelConfig()
+        self.config.validate()
         self.start_time = time.time()
 
-    def get_required_models(self) -> list[str]:
-        """Get list of models required for current configuration."""
-        base_models = {
-            "small": ["en_core_web_sm"],
-            "medium": ["en_core_web_sm", "en_core_web_md"],
-            "large": ["en_core_web_sm", "en_core_web_md", "en_core_web_lg"],
-        }
-        return base_models.get(self.model_size, ["en_core_web_sm"])
+    def get_required_models(self) -> List[str]:
+        """Get list of models required for current configuration.
+        
+        Returns the appropriate list of spaCy models based on the configured model size.
+        Model size mappings are defined in the ModelConfig.model_definitions dictionary.
+        
+        Returns:
+            List[str]: List of spaCy model names to download and verify.
+                      Defaults to ["en_core_web_sm"] if model_size is not recognized.
+                      
+        Examples:
+            >>> manager = ModelManager(model_size="small")
+            >>> manager.get_required_models()
+            ["en_core_web_sm"]
+            
+            >>> manager = ModelManager(model_size="medium") 
+            >>> manager.get_required_models()
+            ["en_core_web_sm", "en_core_web_md"]
+        """
+        return self.config.model_definitions.get(self.model_size, ["en_core_web_sm"])
 
     def is_model_available(self, model_name: str) -> bool:
         """Check if model is available and functional with comprehensive validation."""
@@ -45,9 +106,7 @@ class ModelManager:
             nlp = spacy.load(model_name)
 
             # Comprehensive validation tests
-            test_text = (
-                "This is a test document for validation. John Smith works at Microsoft."
-            )
+            test_text = self.config.validation_test_text
             doc = nlp(test_text)
 
             # Verify basic pipeline components work
@@ -61,18 +120,29 @@ class ModelManager:
 
             # Test POS tagging
             pos_tags = [token.pos_ for token in doc if token.pos_]
-            if not pos_tags:
-                print(f"  ✗ Model {model_name}: POS tagging not working")
+            if len(pos_tags) < self.config.min_pos_tags_required:
+                print(f"  ✗ Model {model_name}: POS tagging insufficient "
+                      f"({len(pos_tags)} < {self.config.min_pos_tags_required} required)")
                 return False
 
             print(f"  ✓ Model {model_name}: All components validated")
             return True
 
-        except (OSError, AttributeError) as e:
-            print(f"  ✗ Model {model_name}: Validation failed - {e}")
+        except OSError as e:
+            print(f"  ✗ Model {model_name}: Model not found or inaccessible - {e}")
             return False
+        except AttributeError as e:
+            print(f"  ✗ Model {model_name}: Model structure error - {e}")
+            print("  This may indicate a corrupted or incompatible model")
+            return False
+        except ImportError as e:
+            print(f"  ✗ Model {model_name}: Import error during validation - {e}")
+            return False
+        except KeyboardInterrupt:
+            print(f"  ✗ Model {model_name}: Validation cancelled by user")
+            raise  # Re-raise to allow proper cleanup
         except Exception as e:
-            print(f"  ✗ Model {model_name}: Unexpected validation error - {e}")
+            print(f"  ✗ Model {model_name}: Unexpected validation error - {type(e).__name__}: {e}")
             return False
 
     def download_model(self, model_name: str, force: bool = False) -> bool:
@@ -99,9 +169,27 @@ class ModelManager:
                 print(f"✗ Model {model_name} download failed verification")
                 return False
 
+        except OSError as e:
+            download_time = time.time() - download_start
+            print(f"✗ File system error downloading {model_name} after {download_time:.1f}s: {e}")
+            return False
+        except ImportError as e:
+            download_time = time.time() - download_start
+            print(f"✗ Import error downloading {model_name} after {download_time:.1f}s: {e}")
+            print("  This may indicate missing dependencies or corrupted installation")
+            return False
+        except PermissionError as e:
+            download_time = time.time() - download_start
+            print(f"✗ Permission denied downloading {model_name} after {download_time:.1f}s: {e}")
+            print("  Check write permissions for model cache directory")
+            return False
+        except KeyboardInterrupt:
+            download_time = time.time() - download_start
+            print(f"✗ Download of {model_name} cancelled by user after {download_time:.1f}s")
+            raise  # Re-raise to allow proper cleanup
         except Exception as e:
             download_time = time.time() - download_start
-            print(f"✗ Failed to download {model_name} after {download_time:.1f}s: {e}")
+            print(f"✗ Unexpected error downloading {model_name} after {download_time:.1f}s: {type(e).__name__}: {e}")
             return False
 
     def setup_models(self, cache_hit: bool = False, verify_only: bool = False) -> bool:
@@ -169,16 +257,23 @@ class ModelManager:
             "available_models": [],
             "spacy_version": spacy.__version__,
             "model_size_config": self.model_size,
-            "required_models": self.get_required_models(),
             "system_info": {
                 "python_version": sys.version,
                 "platform": sys.platform,
             },
         }
+        
+        # Safely get required models
+        try:
+            info["required_models"] = self.get_required_models()
+        except Exception as e:
+            info["error"] = f"Failed to get required models: {e}"
+            info["required_models"] = []
 
         # Check available models
         try:
-            for model_name in self.get_required_models():
+            required_models = info.get("required_models", [])
+            for model_name in required_models:
                 if self.is_model_available(model_name):
                     try:
                         nlp = spacy.load(model_name)

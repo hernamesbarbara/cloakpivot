@@ -143,8 +143,8 @@ jobs:
 
     - name: Run type checking
       run: |
-        # TODO: Remove lenient flags as type annotations improve
-        mypy cloakpivot --ignore-missing-imports --no-strict-optional
+        # Use strict mypy configuration for better type safety
+        mypy cloakpivot --strict --show-error-codes --pretty
 
     - name: Setup models with intelligent caching
       run: |
