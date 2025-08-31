@@ -9,6 +9,7 @@ from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
 from .policies import MaskingPolicy
+from .performance import profile_method
 
 # Temporarily mock docling_core import to allow tests to run
 try:
@@ -188,10 +189,11 @@ class EntityDetectionPipeline:
 
         return cls(analyzer)
 
+    @profile_method("document_analysis")
     def analyze_document(
         self, document: DoclingDocument, policy: Optional[MaskingPolicy] = None
     ) -> DocumentAnalysisResult:
-        """Analyze a complete document for PII entities.
+        """Analyze a complete document for PII entities with performance tracking.
 
         Args:
             document: DoclingDocument to analyze
@@ -226,10 +228,11 @@ class EntityDetectionPipeline:
 
         return result
 
+    @profile_method("segment_batch_analysis")
     def analyze_text_segments(
         self, segments: list[TextSegment], policy: Optional[MaskingPolicy] = None
     ) -> list[SegmentAnalysisResult]:
-        """Analyze a list of text segments for PII entities.
+        """Analyze a list of text segments for PII entities with performance tracking.
 
         Args:
             segments: List of TextSegment objects to analyze
@@ -335,10 +338,11 @@ class EntityDetectionPipeline:
 
         return node_type_mapping.get(segment.node_type)
 
+    @profile_method("entity_anchor_mapping") 
     def map_entities_to_anchors(
         self, analysis_result: DocumentAnalysisResult
     ) -> list[AnchorEntry]:
-        """Map detected entities to document anchor positions.
+        """Map detected entities to document anchor positions with performance tracking.
 
         Args:
             analysis_result: Result of document analysis with detected entities

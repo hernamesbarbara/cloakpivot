@@ -8,6 +8,7 @@ from functools import total_ordering
 from typing import Any, Optional
 
 from .policies import MaskingPolicy
+from .performance import profile_method
 
 # Lazy import presidio to avoid blocking on module load
 # These will be imported when actually needed in _initialize_engine()
@@ -409,6 +410,7 @@ class AnalyzerEngineWrapper:
 
         return model_mapping.get(language, f"{language}_core_web_sm")
 
+    @profile_method("analyzer_initialization")
     def _initialize_engine(self) -> None:
         """Initialize the Presidio AnalyzerEngine (lazy initialization)."""
         if self._is_initialized:
@@ -451,13 +453,14 @@ class AnalyzerEngineWrapper:
                 f"Failed to initialize Presidio AnalyzerEngine: {e}"
             ) from e
 
+    @profile_method("entity_analysis")
     def analyze_text(
         self,
         text: str,
         entities: Optional[list[str]] = None,
         min_confidence: Optional[float] = None,
     ) -> list[EntityDetectionResult]:
-        """Analyze text for PII entities.
+        """Analyze text for PII entities with performance tracking.
 
         Args:
             text: Text to analyze for PII entities
