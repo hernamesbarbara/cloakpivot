@@ -637,9 +637,9 @@ class CloakMap:
             "security": {
                 "is_encrypted": self.is_encrypted,
                 "is_signed": self.is_signed,
-                "encryption_algorithm": self.crypto.get("algorithm")
-                if self.crypto
-                else None,
+                "encryption_algorithm": (
+                    self.crypto.get("algorithm") if self.crypto else None
+                ),
             },
         }
 

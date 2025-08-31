@@ -305,6 +305,7 @@ class DependencyError(CloakPivotError):
 
 # Convenience functions for creating common exception scenarios
 
+
 def create_validation_error(
     message: str,
     field_name: str,

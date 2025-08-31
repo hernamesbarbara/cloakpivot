@@ -17,12 +17,13 @@ from .exceptions import (
     ProcessingError,
 )
 
-T = TypeVar('T')
+T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
 class FailureToleranceLevel(Enum):
     """Defines how tolerant the system should be to failures."""
+
     STRICT = "strict"  # Fail on first error
     MODERATE = "moderate"  # Allow some failures but fail if too many
     PERMISSIVE = "permissive"  # Continue processing despite failures
@@ -32,6 +33,7 @@ class FailureToleranceLevel(Enum):
 @dataclass
 class FailureToleranceConfig:
     """Configuration for failure tolerance behavior."""
+
     level: FailureToleranceLevel = FailureToleranceLevel.MODERATE
     max_failure_rate: float = 0.3  # Maximum allowed failure rate (0.0 - 1.0)
     max_consecutive_failures: int = 5  # Max consecutive failures before stopping
@@ -41,6 +43,7 @@ class FailureToleranceConfig:
 @dataclass
 class ErrorRecord:
     """Record of a single error that occurred during processing."""
+
     error: Exception
     timestamp: float = field(default_factory=time.time)
     context: dict[str, Any] = field(default_factory=dict)
@@ -130,7 +133,9 @@ class ErrorCollector:
         for error_record in self.errors:
             error_type = type(error_record.error).__name__
             error_types[error_type] = error_types.get(error_type, 0) + 1
-            components[error_record.component] = components.get(error_record.component, 0) + 1
+            components[error_record.component] = (
+                components.get(error_record.component, 0) + 1
+            )
 
         return {
             "total_errors": len(self.errors),
@@ -187,8 +192,9 @@ class PartialFailureManager:
 
         # Check minimum success requirement
         if (
-            self.error_collector.total_operations >= 10 and
-            self.error_collector.success_count < self.tolerance_config.min_success_count
+            self.error_collector.total_operations >= 10
+            and self.error_collector.success_count
+            < self.tolerance_config.min_success_count
         ):
             logger.warning(
                 f"Success count {self.error_collector.success_count} below minimum "
@@ -230,12 +236,15 @@ class PartialFailureManager:
     def _is_error_recoverable(self, error: Exception) -> bool:
         """Determine if an error is potentially recoverable."""
         # Network-related errors are often recoverable
-        if any(keyword in str(error).lower() for keyword in ['timeout', 'connection', 'network']):
+        if any(
+            keyword in str(error).lower()
+            for keyword in ["timeout", "connection", "network"]
+        ):
             return True
 
         # Some CloakPivot errors are recoverable
         if isinstance(error, CloakPivotError):
-            return error.component not in ['validation', 'integrity']
+            return error.component not in ["validation", "integrity"]
 
         # File not found might be recoverable (temporary issue)
         if isinstance(error, FileNotFoundError):
@@ -255,9 +264,8 @@ class PartialFailureManager:
         summary = self.error_collector.get_error_summary()
 
         # If we have a high failure rate or very few successes, raise an error
-        if (
-            self.tolerance_config.level != FailureToleranceLevel.BEST_EFFORT and
-            (summary["failure_rate"] > 0.8 or summary["success_count"] == 0)
+        if self.tolerance_config.level != FailureToleranceLevel.BEST_EFFORT and (
+            summary["failure_rate"] > 0.8 or summary["success_count"] == 0
         ):
             failures = [record.to_dict() for record in self.error_collector.errors]
             raise PartialProcessingError(
@@ -298,6 +306,7 @@ class CircuitBreaker:
 
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to apply circuit breaker to a function."""
+
         def wrapper(*args, **kwargs) -> T:
             if self.state == "OPEN":
                 if self._should_attempt_reset():
@@ -321,8 +330,8 @@ class CircuitBreaker:
     def _should_attempt_reset(self) -> bool:
         """Check if enough time has passed to attempt reset."""
         return (
-            self.last_failure_time is not None and
-            time.time() - self.last_failure_time >= self.recovery_timeout
+            self.last_failure_time is not None
+            and time.time() - self.last_failure_time >= self.recovery_timeout
         )
 
     def _on_success(self) -> None:
@@ -374,7 +383,9 @@ class RetryManager:
                 last_exception = e
 
                 if attempt == self.max_retries:
-                    logger.error(f"Operation failed after {self.max_retries} retries: {e}")
+                    logger.error(
+                        f"Operation failed after {self.max_retries} retries: {e}"
+                    )
                     raise e
 
                 delay = self._calculate_delay(attempt)
@@ -391,7 +402,7 @@ class RetryManager:
         """Calculate delay for the given attempt number."""
         import random
 
-        delay = self.base_delay * (self.exponential_base ** attempt)
+        delay = self.base_delay * (self.exponential_base**attempt)
         delay = min(delay, self.max_delay)
 
         if self.jitter:
@@ -404,6 +415,7 @@ class RetryManager:
 
 
 # Convenience functions for common error handling patterns
+
 
 def create_partial_failure_manager(
     tolerance: str = "moderate",
@@ -424,12 +436,15 @@ def with_error_isolation(
     recoverable: bool = True,
 ):
     """Decorator to add error isolation to a function."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
         def wrapper(*args, **kwargs) -> Optional[T]:
             return manager.execute_with_isolation(
                 func, args, kwargs, component, recoverable
             )
+
         return wrapper
+
     return decorator
 
 
@@ -439,6 +454,7 @@ def with_retry(
     retryable_exceptions: tuple = (Exception,),
 ):
     """Decorator to add retry logic to a function."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         retry_manager = RetryManager(max_retries=max_retries, base_delay=base_delay)
 
@@ -446,7 +462,9 @@ def with_retry(
             return retry_manager.execute_with_retry(
                 func, args, kwargs, retryable_exceptions
             )
+
         return wrapper
+
     return decorator
 
 
