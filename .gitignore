@@ -134,6 +134,7 @@ dmypy.json
 
 # Benchmark reports
 benchmarks/baseline_reports/
+test_reports/
 
 # IDE
 .vscode/

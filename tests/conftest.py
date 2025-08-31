@@ -160,7 +160,7 @@ def detected_entities() -> list[RecognizerResult]:
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def basic_masking_policy() -> MaskingPolicy:
     """Create a basic masking policy for testing with reversible strategies."""
     return MaskingPolicy(
@@ -462,3 +462,170 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "property: marks tests as property-based tests using Hypothesis"
     )
+
+
+# Session-scoped fixtures for performance optimization
+@pytest.fixture(scope="session")
+def shared_document_processor():
+    """Shared DocumentProcessor instance for performance testing.
+    
+    Creates a single DocumentProcessor that can be reused across tests
+    to avoid the overhead of DocPivot initialization.
+    """
+    from cloakpivot.document.processor import DocumentProcessor
+    
+    processor = DocumentProcessor(enable_chunked_processing=True)
+    # Pre-warm the processor with validation
+    try:
+        processor.validate_document_support()
+    except AttributeError:
+        # validate_document_support may not exist, that's okay
+        pass
+    
+    return processor
+
+
+@pytest.fixture(scope="session") 
+def shared_detection_pipeline(shared_analyzer):
+    """Shared EntityDetectionPipeline for performance testing.
+    
+    Creates a pipeline using the shared analyzer to maximize reuse.
+    """
+    from cloakpivot.core.detection import EntityDetectionPipeline
+    from cloakpivot.core.analyzer import AnalyzerEngineWrapper
+    
+    try:
+        from cloakpivot.loaders import get_detection_pipeline
+        # Use singleton loader if available
+        pipeline = get_detection_pipeline()
+    except (ImportError, AttributeError):
+        # Fall back to direct creation with wrapped analyzer
+        try:
+            # Try to create wrapper with shared analyzer
+            wrapper = AnalyzerEngineWrapper()
+            wrapper._engine = shared_analyzer
+            wrapper._is_initialized = True
+            pipeline = EntityDetectionPipeline(analyzer=wrapper)
+        except AttributeError:
+            # If that doesn't work, create pipeline normally
+            pipeline = EntityDetectionPipeline()
+    
+    return pipeline
+
+
+@pytest.fixture(scope="session")
+def performance_profiler():
+    """Shared PerformanceProfiler for test metrics collection."""
+    from cloakpivot.core.performance import PerformanceProfiler
+    
+    profiler = PerformanceProfiler()
+    
+    # Configure for test environment
+    profiler.enable_memory_tracking = True
+    profiler.enable_detailed_logging = False  # Reduce noise in tests
+    
+    yield profiler
+    
+    # Session teardown: save performance metrics
+    try:
+        stats = profiler.get_operation_stats()
+        if stats:
+            import json
+            import os
+            from datetime import datetime
+            
+            os.makedirs('test_reports', exist_ok=True)
+            timestamp = datetime.now().isoformat()
+            # Convert stats to JSON-serializable format
+            serializable_stats = {}
+            for op_name, op_stats in stats.items():
+                serializable_stats[op_name] = {
+                    'operation': op_stats.operation,
+                    'total_calls': op_stats.total_calls,
+                    'total_duration_ms': op_stats.total_duration_ms,
+                    'average_duration_ms': op_stats.average_duration_ms,
+                    'min_duration_ms': op_stats.min_duration_ms,
+                    'max_duration_ms': op_stats.max_duration_ms,
+                    'success_rate': op_stats.success_rate,
+                    'failure_count': op_stats.failure_count
+                }
+            
+            with open(f'test_reports/performance_metrics_{timestamp}.json', 'w') as f:
+                json.dump(serializable_stats, f, indent=2)
+    except Exception:
+        # Don't fail tests if metrics saving fails
+        pass
+
+
+@pytest.fixture(scope="session")
+def cached_analyzer_wrapper(shared_analyzer):
+    """AnalyzerEngineWrapper using the shared analyzer instance."""
+    from cloakpivot.core.analyzer import AnalyzerEngineWrapper, AnalyzerConfig
+    
+    # Create wrapper that uses the shared engine
+    wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
+    try:
+        wrapper._engine = shared_analyzer
+        wrapper._is_initialized = True
+    except AttributeError:
+        # If internal attributes don't exist, just return the wrapper
+        pass
+    
+    return wrapper
+
+
+@pytest.fixture(scope="session")
+def performance_test_configs():
+    """Various analyzer configurations for performance testing."""
+    from cloakpivot.core.analyzer import AnalyzerConfig
+    
+    return {
+        "minimal": AnalyzerConfig(
+            language="en",
+            min_confidence=0.7
+        ),
+        "standard": AnalyzerConfig(
+            language="en", 
+            min_confidence=0.5
+        ),
+        "comprehensive": AnalyzerConfig(
+            language="en",
+            min_confidence=0.3
+        )
+    }
+
+
+@pytest.fixture(scope="session")
+def sample_documents():
+    """Pre-loaded sample documents for testing."""
+    return {
+        "small_text": "John Doe lives at john.doe@email.com and his phone is 555-1234.",
+        "medium_text": """
+        John Doe is a software engineer living in San Francisco. 
+        His contact information includes:
+        - Email: john.doe@email.com
+        - Phone: (555) 123-4567
+        - SSN: 123-45-6789
+        - Credit Card: 4111-1111-1111-1111
+        """,
+        "large_text": """
+        John Doe is a software engineer living in San Francisco. 
+        His contact information includes:
+        - Email: john.doe@email.com
+        - Phone: (555) 123-4567
+        - SSN: 123-45-6789
+        - Credit Card: 4111-1111-1111-1111
+        
+        Emergency contact: Jane Smith at jane.smith@company.com or (555) 987-6543.
+        She works at 123 Main Street, New York, NY 10001.
+        
+        Additional information:
+        - Driver License: DL123456789
+        - Passport: US123456789
+        - Bank Account: 1234567890
+        - Medical Record: MR987654321
+        
+        This document contains sensitive personal information that should be
+        protected and masked appropriately during processing operations.
+        """ * 3  # Simulate larger document
+    }
