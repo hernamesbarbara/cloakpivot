@@ -17,12 +17,81 @@ from .core.detection import EntityDetectionPipeline
 from .core.policies import MaskingPolicy
 from .document.processor import DocumentProcessor
 
+
+class LoaderError(Exception):
+    """Base exception for loader-related errors."""
+    pass
+
+
+class ConfigurationError(LoaderError):
+    """Raised when loader configuration is invalid."""
+    pass
+
+
+class InitializationError(LoaderError):
+    """Raised when resource initialization fails."""
+    pass
+
 logger = logging.getLogger(__name__)
 
 # Thread-safe initialization locks
 _ANALYZER_LOCK = Lock()
 _PROCESSOR_LOCK = Lock()
 _PIPELINE_LOCK = Lock()
+
+
+def _validate_language(language: str) -> None:
+    """Validate language parameter.
+
+    Args:
+        language: Language code to validate
+
+    Raises:
+        ConfigurationError: If language is invalid
+    """
+    if not isinstance(language, str):
+        raise ConfigurationError(f"Language must be a string, got {type(language).__name__}")
+
+    if not language.strip():
+        raise ConfigurationError("Language cannot be empty")
+
+    if len(language) < 2 or len(language) > 5:
+        raise ConfigurationError(f"Language code '{language}' should be 2-5 characters (ISO format)")
+
+
+def _validate_confidence(confidence: float) -> None:
+    """Validate confidence parameter.
+
+    Args:
+        confidence: Confidence value to validate
+
+    Raises:
+        ConfigurationError: If confidence is invalid
+    """
+    if not isinstance(confidence, (int, float)):
+        raise ConfigurationError(f"Confidence must be a number, got {type(confidence).__name__}")
+
+    if not (0.0 <= confidence <= 1.0):
+        raise ConfigurationError(f"Confidence must be between 0.0 and 1.0, got {confidence}")
+
+
+def _validate_nlp_engine(nlp_engine_name: str) -> None:
+    """Validate NLP engine parameter.
+
+    Args:
+        nlp_engine_name: NLP engine name to validate
+
+    Raises:
+        ConfigurationError: If NLP engine is invalid
+    """
+    if not isinstance(nlp_engine_name, str):
+        raise ConfigurationError(f"NLP engine must be a string, got {type(nlp_engine_name).__name__}")
+
+    valid_engines = {"spacy", "transformers"}
+    if nlp_engine_name not in valid_engines:
+        raise ConfigurationError(
+            f"Invalid NLP engine '{nlp_engine_name}'. Must be one of: {', '.join(valid_engines)}"
+        )
 
 
 def _generate_config_hash(config: AnalyzerConfig) -> str:
@@ -33,17 +102,26 @@ def _generate_config_hash(config: AnalyzerConfig) -> str:
 
     Returns:
         Hexadecimal hash string for cache key generation
-    """
-    # Create a stable string representation of the config
-    config_str = (
-        f"{config.language}|{config.min_confidence}|"
-        f"{sorted(config.enabled_recognizers or [])}|"
-        f"{sorted(config.disabled_recognizers)}|"
-        f"{config.nlp_engine_name}|"
-        f"{sorted(config.custom_recognizers.keys())}"
-    )
 
-    return hashlib.md5(config_str.encode()).hexdigest()[:16]
+    Raises:
+        ConfigurationError: If config is invalid
+    """
+    if not isinstance(config, AnalyzerConfig):
+        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
+
+    try:
+        # Create a stable string representation of the config
+        config_str = (
+            f"{config.language}|{config.min_confidence}|"
+            f"{sorted(config.enabled_recognizers or [])}|"
+            f"{sorted(config.disabled_recognizers)}|"
+            f"{config.nlp_engine_name}|"
+            f"{sorted(config.custom_recognizers.keys())}"
+        )
+
+        return hashlib.sha256(config_str.encode()).hexdigest()[:32]
+    except Exception as e:
+        raise ConfigurationError(f"Failed to generate config hash: {e}") from e
 
 
 def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
@@ -54,18 +132,27 @@ def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
 
     Returns:
         Hexadecimal hash string for cache key generation
+
+    Raises:
+        ConfigurationError: If policy is invalid
     """
     if policy is None:
         return "none"
 
-    # Create a stable string representation focusing on analyzer-relevant fields
-    policy_str = (
-        f"{policy.locale}|"
-        f"{sorted(policy.thresholds.items()) if policy.thresholds else []}|"
-        f"{policy.min_entity_length}"
-    )
+    if not isinstance(policy, MaskingPolicy):
+        raise ConfigurationError(f"Expected MaskingPolicy or None, got {type(policy).__name__}")
 
-    return hashlib.md5(policy_str.encode()).hexdigest()[:16]
+    try:
+        # Create a stable string representation focusing on analyzer-relevant fields
+        policy_str = (
+            f"{policy.locale}|"
+            f"{sorted(policy.thresholds.items()) if policy.thresholds else []}|"
+            f"{policy.min_entity_length}"
+        )
+
+        return hashlib.sha256(policy_str.encode()).hexdigest()[:32]
+    except Exception as e:
+        raise ConfigurationError(f"Failed to generate policy hash: {e}") from e
 
 
 @lru_cache(maxsize=8)
@@ -90,6 +177,10 @@ def get_presidio_analyzer(
     Returns:
         AnalyzerEngineWrapper instance configured with specified parameters
 
+    Raises:
+        ConfigurationError: If parameters are invalid
+        InitializationError: If analyzer initialization fails
+
     Examples:
         >>> # Get default analyzer
         >>> analyzer = get_presidio_analyzer()
@@ -100,22 +191,35 @@ def get_presidio_analyzer(
         ...     min_confidence=0.7
         ... )
     """
-    with _ANALYZER_LOCK:
-        # Create configuration if not provided via hash
-        config = AnalyzerConfig(
-            language=language,
-            min_confidence=min_confidence,
-            nlp_engine_name=nlp_engine_name
+    # Validate parameters before attempting creation
+    _validate_language(language)
+    _validate_confidence(min_confidence)
+    _validate_nlp_engine(nlp_engine_name)
+
+    try:
+        with _ANALYZER_LOCK:
+            # Create configuration
+            config = AnalyzerConfig(
+                language=language,
+                min_confidence=min_confidence,
+                nlp_engine_name=nlp_engine_name
+            )
+
+            wrapper = AnalyzerEngineWrapper(config)
+
+            logger.info(
+                f"Created AnalyzerEngineWrapper for language='{language}', "
+                f"confidence={min_confidence}"
+            )
+
+            return wrapper
+
+    except Exception as e:
+        logger.error(
+            f"Failed to create AnalyzerEngineWrapper: {e} "
+            f"(language={language}, confidence={min_confidence}, engine={nlp_engine_name})"
         )
-
-        wrapper = AnalyzerEngineWrapper(config)
-
-        logger.info(
-            f"Created AnalyzerEngineWrapper for language='{language}', "
-            f"confidence={min_confidence}"
-        )
-
-        return wrapper
+        raise InitializationError(f"Failed to initialize analyzer: {e}") from e
 
 
 def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineWrapper:
@@ -130,18 +234,34 @@ def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineW
     Returns:
         AnalyzerEngineWrapper instance configured per the provided config
 
+    Raises:
+        ConfigurationError: If config is invalid
+        InitializationError: If analyzer initialization fails
+
     Examples:
         >>> config = AnalyzerConfig(language="fr", min_confidence=0.8)
         >>> analyzer = get_presidio_analyzer_from_config(config)
     """
-    config_hash = _generate_config_hash(config)
+    if config is None:
+        raise ConfigurationError("Config cannot be None")
 
-    return get_presidio_analyzer(
-        language=config.language,
-        config_hash=config_hash,
-        min_confidence=config.min_confidence,
-        nlp_engine_name=config.nlp_engine_name
-    )
+    if not isinstance(config, AnalyzerConfig):
+        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
+
+    try:
+        config_hash = _generate_config_hash(config)
+
+        return get_presidio_analyzer(
+            language=config.language,
+            config_hash=config_hash,
+            min_confidence=config.min_confidence,
+            nlp_engine_name=config.nlp_engine_name
+        )
+    except Exception as e:
+        logger.error(f"Failed to create analyzer from config: {e}")
+        if isinstance(e, (ConfigurationError, InitializationError)):
+            raise
+        raise InitializationError(f"Failed to create analyzer from config: {e}") from e
 
 
 @lru_cache(maxsize=4)
@@ -158,6 +278,10 @@ def get_document_processor(enable_chunked: bool = True) -> DocumentProcessor:
     Returns:
         DocumentProcessor instance configured with specified parameters
 
+    Raises:
+        ConfigurationError: If parameters are invalid
+        InitializationError: If processor initialization fails
+
     Examples:
         >>> # Get default processor
         >>> processor = get_document_processor()
@@ -165,14 +289,23 @@ def get_document_processor(enable_chunked: bool = True) -> DocumentProcessor:
         >>> # Get processor without chunking
         >>> processor = get_document_processor(enable_chunked=False)
     """
-    with _PROCESSOR_LOCK:
-        processor = DocumentProcessor(
-            enable_chunked_processing=enable_chunked
-        )
+    # Validate parameters
+    if not isinstance(enable_chunked, bool):
+        raise ConfigurationError(f"enable_chunked must be a boolean, got {type(enable_chunked).__name__}")
 
-        logger.info(f"Created DocumentProcessor with chunked={enable_chunked}")
+    try:
+        with _PROCESSOR_LOCK:
+            processor = DocumentProcessor(
+                enable_chunked_processing=enable_chunked
+            )
 
-        return processor
+            logger.info(f"Created DocumentProcessor with chunked={enable_chunked}")
+
+            return processor
+
+    except Exception as e:
+        logger.error(f"Failed to create DocumentProcessor: {e} (chunked={enable_chunked})")
+        raise InitializationError(f"Failed to initialize document processor: {e}") from e
 
 
 @lru_cache(maxsize=4)
@@ -193,6 +326,10 @@ def get_detection_pipeline(
     Returns:
         EntityDetectionPipeline instance with cached analyzer
 
+    Raises:
+        ConfigurationError: If parameters are invalid
+        InitializationError: If pipeline initialization fails
+
     Examples:
         >>> # Get default pipeline
         >>> pipeline = get_detection_pipeline()
@@ -200,15 +337,29 @@ def get_detection_pipeline(
         >>> # Get pipeline with cached analyzer
         >>> pipeline = get_detection_pipeline(analyzer_hash="default")
     """
-    with _PIPELINE_LOCK:
-        # Use default analyzer if no specific configuration provided
-        analyzer = get_presidio_analyzer()
+    # Validate parameters
+    if analyzer_hash is not None and not isinstance(analyzer_hash, str):
+        raise ConfigurationError(f"analyzer_hash must be a string or None, got {type(analyzer_hash).__name__}")
 
-        pipeline = EntityDetectionPipeline(analyzer=analyzer)
+    if policy_hash is not None and not isinstance(policy_hash, str):
+        raise ConfigurationError(f"policy_hash must be a string or None, got {type(policy_hash).__name__}")
 
-        logger.info("Created EntityDetectionPipeline with cached analyzer")
+    try:
+        with _PIPELINE_LOCK:
+            # Use default analyzer if no specific configuration provided
+            analyzer = get_presidio_analyzer()
 
-        return pipeline
+            pipeline = EntityDetectionPipeline(analyzer=analyzer)
+
+            logger.info("Created EntityDetectionPipeline with cached analyzer")
+
+            return pipeline
+
+    except Exception as e:
+        logger.error(f"Failed to create EntityDetectionPipeline: {e}")
+        if isinstance(e, (ConfigurationError, InitializationError)):
+            raise
+        raise InitializationError(f"Failed to initialize detection pipeline: {e}") from e
 
 
 def get_detection_pipeline_from_policy(policy: MaskingPolicy) -> EntityDetectionPipeline:
@@ -224,21 +375,38 @@ def get_detection_pipeline_from_policy(policy: MaskingPolicy) -> EntityDetection
     Returns:
         EntityDetectionPipeline configured according to the policy
 
+    Raises:
+        ConfigurationError: If policy is invalid
+        InitializationError: If pipeline initialization fails
+
     Examples:
         >>> policy = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
         >>> pipeline = get_detection_pipeline_from_policy(policy)
     """
-    # Create analyzer config from policy
-    config = AnalyzerConfig.from_policy(policy)
-    analyzer = get_presidio_analyzer_from_config(config)
+    if policy is None:
+        raise ConfigurationError("Policy cannot be None")
 
-    # Create a new pipeline instance with the configured analyzer
-    # Note: We don't cache the pipeline itself since it should be policy-specific
-    pipeline = EntityDetectionPipeline(analyzer=analyzer)
+    if not isinstance(policy, MaskingPolicy):
+        raise ConfigurationError(f"Expected MaskingPolicy, got {type(policy).__name__}")
 
-    logger.info(f"Created EntityDetectionPipeline from policy (locale={policy.locale})")
+    try:
+        # Create analyzer config from policy
+        config = AnalyzerConfig.from_policy(policy)
+        analyzer = get_presidio_analyzer_from_config(config)
 
-    return pipeline
+        # Create a new pipeline instance with the configured analyzer
+        # Note: We don't cache the pipeline itself since it should be policy-specific
+        pipeline = EntityDetectionPipeline(analyzer=analyzer)
+
+        logger.info(f"Created EntityDetectionPipeline from policy (locale={policy.locale})")
+
+        return pipeline
+
+    except Exception as e:
+        logger.error(f"Failed to create pipeline from policy: {e} (locale={getattr(policy, 'locale', 'unknown')})")
+        if isinstance(e, (ConfigurationError, InitializationError)):
+            raise
+        raise InitializationError(f"Failed to create pipeline from policy: {e}") from e
 
 
 def clear_all_caches() -> None:

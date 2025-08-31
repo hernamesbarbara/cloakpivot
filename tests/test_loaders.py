@@ -2,9 +2,6 @@
 
 import concurrent.futures
 import threading
-from unittest.mock import Mock, patch
-
-import pytest
 
 from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from cloakpivot.core.detection import EntityDetectionPipeline
@@ -30,36 +27,36 @@ class TestGenerateConfigHash:
         """Test that identical configs produce the same hash."""
         config1 = AnalyzerConfig(language="en", min_confidence=0.5)
         config2 = AnalyzerConfig(language="en", min_confidence=0.5)
-        
+
         hash1 = _generate_config_hash(config1)
         hash2 = _generate_config_hash(config2)
-        
+
         assert hash1 == hash2
-        assert len(hash1) == 16  # MD5 truncated to 16 chars
+        assert len(hash1) == 32  # SHA-256 truncated to 32 chars
 
     def test_different_configs_different_hash(self):
         """Test that different configs produce different hashes."""
         config1 = AnalyzerConfig(language="en", min_confidence=0.5)
         config2 = AnalyzerConfig(language="es", min_confidence=0.5)
-        
+
         hash1 = _generate_config_hash(config1)
         hash2 = _generate_config_hash(config2)
-        
+
         assert hash1 != hash2
 
     def test_config_hash_includes_all_relevant_fields(self):
         """Test that hash changes when any relevant field changes."""
         base_config = AnalyzerConfig(language="en", min_confidence=0.5)
         base_hash = _generate_config_hash(base_config)
-        
+
         # Test language change
         lang_config = AnalyzerConfig(language="es", min_confidence=0.5)
         assert _generate_config_hash(lang_config) != base_hash
-        
+
         # Test confidence change
         conf_config = AnalyzerConfig(language="en", min_confidence=0.7)
         assert _generate_config_hash(conf_config) != base_hash
-        
+
         # Test nlp_engine_name change
         nlp_config = AnalyzerConfig(language="en", min_confidence=0.5, nlp_engine_name="transformers")
         assert _generate_config_hash(nlp_config) != base_hash
@@ -77,20 +74,20 @@ class TestGeneratePolicyHash:
         """Test that identical policies produce the same hash."""
         policy1 = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
         policy2 = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
-        
+
         hash1 = _generate_policy_hash(policy1)
         hash2 = _generate_policy_hash(policy2)
-        
+
         assert hash1 == hash2
 
     def test_different_policies_different_hash(self):
         """Test that different policies produce different hashes."""
         policy1 = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
         policy2 = MaskingPolicy(locale="es", thresholds={"EMAIL": 0.8})
-        
+
         hash1 = _generate_policy_hash(policy1)
         hash2 = _generate_policy_hash(policy2)
-        
+
         assert hash1 != hash2
 
 
@@ -109,7 +106,7 @@ class TestGetPresidioAnalyzer:
     def test_default_parameters(self):
         """Test analyzer created with default parameters."""
         analyzer = get_presidio_analyzer()
-        
+
         assert analyzer.config.language == "en"
         assert analyzer.config.min_confidence == 0.5
         assert analyzer.config.nlp_engine_name == "spacy"
@@ -121,7 +118,7 @@ class TestGetPresidioAnalyzer:
             min_confidence=0.7,
             nlp_engine_name="transformers"
         )
-        
+
         assert analyzer.config.language == "es"
         assert analyzer.config.min_confidence == 0.7
         assert analyzer.config.nlp_engine_name == "transformers"
@@ -130,7 +127,7 @@ class TestGetPresidioAnalyzer:
         """Test that identical calls return cached instances."""
         analyzer1 = get_presidio_analyzer()
         analyzer2 = get_presidio_analyzer()
-        
+
         # Should be the same instance due to caching
         assert analyzer1 is analyzer2
 
@@ -138,7 +135,7 @@ class TestGetPresidioAnalyzer:
         """Test that different parameters create different instances."""
         analyzer1 = get_presidio_analyzer(language="en")
         analyzer2 = get_presidio_analyzer(language="es")
-        
+
         # Should be different instances
         assert analyzer1 is not analyzer2
         assert analyzer1.config.language == "en"
@@ -149,18 +146,18 @@ class TestGetPresidioAnalyzer:
         # Clear cache to start fresh
         clear_all_caches()
         cache_info_initial = get_cache_info()
-        
+
         # First call should be a cache miss
         get_presidio_analyzer()
         cache_info_after_first = get_cache_info()
-        
+
         assert cache_info_after_first["analyzer"]["misses"] == cache_info_initial["analyzer"]["misses"] + 1
         assert cache_info_after_first["analyzer"]["currsize"] == 1
-        
+
         # Second call should be a cache hit
         get_presidio_analyzer()
         cache_info_after_second = get_cache_info()
-        
+
         assert cache_info_after_second["analyzer"]["hits"] == cache_info_after_first["analyzer"]["hits"] + 1
         assert cache_info_after_second["analyzer"]["currsize"] == 1
 
@@ -176,7 +173,7 @@ class TestGetPresidioAnalyzerFromConfig:
         """Test that function returns analyzer with config settings."""
         config = AnalyzerConfig(language="fr", min_confidence=0.8)
         analyzer = get_presidio_analyzer_from_config(config)
-        
+
         assert isinstance(analyzer, AnalyzerEngineWrapper)
         assert analyzer.config.language == "fr"
         assert analyzer.config.min_confidence == 0.8
@@ -185,10 +182,10 @@ class TestGetPresidioAnalyzerFromConfig:
         """Test that identical configs return cached instances."""
         config1 = AnalyzerConfig(language="en", min_confidence=0.6)
         config2 = AnalyzerConfig(language="en", min_confidence=0.6)
-        
+
         analyzer1 = get_presidio_analyzer_from_config(config1)
         analyzer2 = get_presidio_analyzer_from_config(config2)
-        
+
         # Should be the same instance due to caching
         assert analyzer1 is analyzer2
 
@@ -208,21 +205,21 @@ class TestGetDocumentProcessor:
     def test_default_parameters(self):
         """Test processor created with default parameters."""
         processor = get_document_processor()
-        
+
         # Check that chunked processing is enabled by default
         assert processor._enable_chunked_processing is True
 
     def test_custom_parameters(self):
         """Test processor created with custom parameters."""
         processor = get_document_processor(enable_chunked=False)
-        
+
         assert processor._enable_chunked_processing is False
 
     def test_caching_behavior(self):
         """Test that identical calls return cached instances."""
         processor1 = get_document_processor()
         processor2 = get_document_processor()
-        
+
         # Should be the same instance due to caching
         assert processor1 is processor2
 
@@ -230,7 +227,7 @@ class TestGetDocumentProcessor:
         """Test that different parameters create different instances."""
         processor1 = get_document_processor(enable_chunked=True)
         processor2 = get_document_processor(enable_chunked=False)
-        
+
         # Should be different instances
         assert processor1 is not processor2
         assert processor1._enable_chunked_processing is True
@@ -251,12 +248,12 @@ class TestGetDetectionPipeline:
 
     def test_uses_cached_analyzer(self):
         """Test that pipeline uses cached analyzer instance."""
-        # Get an analyzer first
-        analyzer = get_presidio_analyzer()
-        
+        # Get an analyzer first to populate cache
+        get_presidio_analyzer()
+
         # Get pipeline - should use the same analyzer
         pipeline = get_detection_pipeline()
-        
+
         # The pipeline should have an analyzer (though not necessarily the same instance
         # due to implementation details, but should be configured the same way)
         assert isinstance(pipeline.analyzer, AnalyzerEngineWrapper)
@@ -265,7 +262,7 @@ class TestGetDetectionPipeline:
         """Test that identical calls return cached instances."""
         pipeline1 = get_detection_pipeline()
         pipeline2 = get_detection_pipeline()
-        
+
         # Should be the same instance due to caching
         assert pipeline1 is pipeline2
 
@@ -281,28 +278,28 @@ class TestGetDetectionPipelineFromPolicy:
         """Test that function returns pipeline configured from policy."""
         policy = MaskingPolicy(locale="es", thresholds={"EMAIL": 0.9})
         pipeline = get_detection_pipeline_from_policy(policy)
-        
+
         assert isinstance(pipeline, EntityDetectionPipeline)
         # The analyzer should be configured according to the policy
         assert pipeline.analyzer.config.language == "es"
 
     def test_identical_policies_return_different_instances(self):
         """Test that identical policies return different pipeline instances.
-        
+
         This is expected because the function creates a new pipeline
         each time, though it uses cached analyzers internally.
         """
         policy1 = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
         policy2 = MaskingPolicy(locale="en", thresholds={"EMAIL": 0.8})
-        
+
         pipeline1 = get_detection_pipeline_from_policy(policy1)
         pipeline2 = get_detection_pipeline_from_policy(policy2)
-        
+
         # Pipelines should be different instances
         assert pipeline1 is not pipeline2
         assert isinstance(pipeline1, EntityDetectionPipeline)
         assert isinstance(pipeline2, EntityDetectionPipeline)
-        
+
         # But analyzers should be the same cached instance
         assert pipeline1.analyzer is pipeline2.analyzer
 
@@ -328,7 +325,7 @@ class TestThreadSafety:
 
         # Create multiple threads
         threads = []
-        for i in range(10):
+        for _i in range(10):
             thread = threading.Thread(target=create_analyzer)
             threads.append(thread)
 
@@ -343,7 +340,7 @@ class TestThreadSafety:
         # Check results
         assert len(exceptions) == 0, f"Exceptions occurred: {exceptions}"
         assert len(results) == 10
-        
+
         # All results should be the same instance due to caching
         first_analyzer = results[0]
         for analyzer in results[1:]:
@@ -364,7 +361,7 @@ class TestThreadSafety:
         # Use ThreadPoolExecutor for cleaner thread management
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(create_processor) for _ in range(10)]
-            
+
             # Wait for all futures to complete
             for future in concurrent.futures.as_completed(futures):
                 future.result()  # This will raise if any exception occurred
@@ -372,7 +369,7 @@ class TestThreadSafety:
         # Check results
         assert len(exceptions) == 0, f"Exceptions occurred: {exceptions}"
         assert len(results) == 10
-        
+
         # All results should be the same instance due to caching
         first_processor = results[0]
         for processor in results[1:]:
@@ -393,7 +390,7 @@ class TestThreadSafety:
         # Use ThreadPoolExecutor
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(create_pipeline) for _ in range(10)]
-            
+
             # Wait for all futures to complete
             for future in concurrent.futures.as_completed(futures):
                 future.result()
@@ -401,7 +398,7 @@ class TestThreadSafety:
         # Check results
         assert len(exceptions) == 0, f"Exceptions occurred: {exceptions}"
         assert len(results) == 10
-        
+
         # All results should be the same instance due to caching
         first_pipeline = results[0]
         for pipeline in results[1:]:
@@ -421,16 +418,16 @@ class TestCacheManagement:
         get_presidio_analyzer()
         get_document_processor()
         get_detection_pipeline()
-        
+
         # Verify cache has items
         cache_info = get_cache_info()
         assert cache_info["analyzer"]["currsize"] > 0
         assert cache_info["processor"]["currsize"] > 0
         assert cache_info["pipeline"]["currsize"] > 0
-        
+
         # Clear caches
         clear_all_caches()
-        
+
         # Verify cache is empty
         cache_info_after = get_cache_info()
         assert cache_info_after["analyzer"]["currsize"] == 0
@@ -440,19 +437,19 @@ class TestCacheManagement:
     def test_get_cache_info_structure(self):
         """Test that get_cache_info returns properly structured data."""
         cache_info = get_cache_info()
-        
+
         # Check structure
         assert "analyzer" in cache_info
         assert "processor" in cache_info
         assert "pipeline" in cache_info
-        
+
         for cache_name in ["analyzer", "processor", "pipeline"]:
             cache_data = cache_info[cache_name]
             assert "hits" in cache_data
             assert "misses" in cache_data
             assert "maxsize" in cache_data
             assert "currsize" in cache_data
-            
+
             # Check types
             assert isinstance(cache_data["hits"], int)
             assert isinstance(cache_data["misses"], int)
@@ -469,9 +466,9 @@ class TestCacheManagement:
                 min_confidence=0.1 + (i * 0.01)  # Different confidence for each
             )
             analyzers.append(analyzer)
-        
+
         cache_info = get_cache_info()
-        
+
         # Cache size should not exceed maxsize
         assert cache_info["analyzer"]["currsize"] <= cache_info["analyzer"]["maxsize"]
         # Should be exactly maxsize since we created more than maxsize items
@@ -489,7 +486,7 @@ class TestMemoryLeakPrevention:
         """Test that old entries are evicted when cache size limit is reached."""
         # Create more analyzers than the cache can hold
         maxsize = 8  # From @lru_cache(maxsize=8)
-        
+
         analyzers = []
         for i in range(maxsize + 2):  # Create 2 more than maxsize
             analyzer = get_presidio_analyzer(
@@ -497,9 +494,9 @@ class TestMemoryLeakPrevention:
                 min_confidence=0.1 + (i * 0.01)
             )
             analyzers.append(analyzer)
-        
+
         cache_info = get_cache_info()
-        
+
         # Cache should be at maxsize, indicating eviction occurred
         assert cache_info["analyzer"]["currsize"] == maxsize
         assert cache_info["analyzer"]["misses"] >= maxsize + 2  # At least one miss per creation
@@ -507,20 +504,20 @@ class TestMemoryLeakPrevention:
     def test_cache_info_matches_actual_behavior(self):
         """Test that cache info statistics match actual caching behavior."""
         clear_all_caches()
-        
+
         # First call - should be a miss
         analyzer1 = get_presidio_analyzer()
         cache_info_1 = get_cache_info()
         assert cache_info_1["analyzer"]["misses"] == 1
         assert cache_info_1["analyzer"]["hits"] == 0
         assert cache_info_1["analyzer"]["currsize"] == 1
-        
+
         # Second call with same parameters - should be a hit
         analyzer2 = get_presidio_analyzer()
         cache_info_2 = get_cache_info()
         assert cache_info_2["analyzer"]["hits"] == 1
         assert cache_info_2["analyzer"]["misses"] == 1
         assert cache_info_2["analyzer"]["currsize"] == 1
-        
+
         # Should be the same instance
         assert analyzer1 is analyzer2
