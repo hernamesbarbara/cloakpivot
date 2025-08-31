@@ -656,9 +656,13 @@ def shared_detection_pipeline(shared_analyzer):
     return pipeline
 
 
-@pytest.fixture(scope="session")
-def performance_profiler():
-    """Shared PerformanceProfiler for test metrics collection."""
+@pytest.fixture(scope="function")
+def performance_profiler(worker_id: str):
+    """Worker-specific PerformanceProfiler for test metrics collection.
+    
+    Changed from session-scoped to function-scoped to avoid shared state issues
+    in parallel test execution. Each test gets its own profiler instance.
+    """
     from cloakpivot.core.performance import PerformanceProfiler
 
     profiler = PerformanceProfiler()
@@ -669,7 +673,7 @@ def performance_profiler():
 
     yield profiler
 
-    # Session teardown: save performance metrics
+    # Function teardown: save performance metrics for this specific test/worker
     try:
         stats = profiler.get_operation_stats()
         if stats:
@@ -678,7 +682,7 @@ def performance_profiler():
             from datetime import datetime
 
             os.makedirs('test_reports', exist_ok=True)
-            timestamp = datetime.now().isoformat()
+            timestamp = datetime.now().isoformat().replace(':', '-')  # Safe for filenames
             # Convert stats to JSON-serializable format
             serializable_stats = {}
             for op_name, op_stats in stats.items():
@@ -693,7 +697,7 @@ def performance_profiler():
                     'failure_count': op_stats.failure_count
                 }
 
-            with open(f'test_reports/performance_metrics_{timestamp}.json', 'w') as f:
+            with open(f'test_reports/performance_metrics_{worker_id}_{timestamp}.json', 'w') as f:
                 json.dump(serializable_stats, f, indent=2)
     except (OSError, json.JSONEncodeError) as e:
         import logging
