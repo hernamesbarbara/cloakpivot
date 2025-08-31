@@ -25,6 +25,8 @@ Additional markers:
 - Fast tests run in both modes, slow/performance/property tests need explicit inclusion
 """
 
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -160,7 +162,7 @@ def detected_entities() -> list[RecognizerResult]:
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def basic_masking_policy() -> MaskingPolicy:
     """Create a basic masking policy for testing with reversible strategies."""
     return MaskingPolicy(
@@ -462,3 +464,173 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "property: marks tests as property-based tests using Hypothesis"
     )
+
+
+# Session-scoped fixtures for performance optimization
+@pytest.fixture(scope="session")
+def shared_document_processor() -> DocumentProcessor:
+    """Shared DocumentProcessor instance for performance testing.
+
+    Creates a single DocumentProcessor that can be reused across tests
+    to avoid the overhead of DocPivot initialization.
+    """
+    from cloakpivot.document.processor import DocumentProcessor
+
+    processor = DocumentProcessor(enable_chunked_processing=True)
+    # Pre-warm the processor by checking format support
+    try:
+        processor.supports_format("test.json")  # Check for JSON support
+    except AttributeError:
+        # supports_format may not exist, that's okay
+        pass
+
+    return processor
+
+
+@pytest.fixture(scope="session")
+def shared_detection_pipeline(shared_analyzer) -> EntityDetectionPipeline:
+    """Shared EntityDetectionPipeline for performance testing.
+
+    Creates a pipeline using the shared analyzer to maximize reuse.
+    """
+    from cloakpivot.core.analyzer import AnalyzerEngineWrapper
+    from cloakpivot.core.detection import EntityDetectionPipeline
+
+    try:
+        from cloakpivot.loaders import get_detection_pipeline
+        # Use singleton loader if available
+        pipeline = get_detection_pipeline()
+    except (ImportError, AttributeError):
+        # Fall back to direct creation with wrapped analyzer
+        try:
+            # Try to create wrapper with shared analyzer
+            wrapper = AnalyzerEngineWrapper()
+            wrapper._engine = shared_analyzer
+            wrapper._is_initialized = True
+            pipeline = EntityDetectionPipeline(analyzer=wrapper)
+        except AttributeError:
+            # If that doesn't work, create pipeline normally
+            pipeline = EntityDetectionPipeline()
+
+    return pipeline
+
+
+@pytest.fixture(scope="session")
+def performance_profiler() -> PerformanceProfiler:
+    """Shared PerformanceProfiler for test metrics collection."""
+    from cloakpivot.core.performance import PerformanceProfiler
+
+    profiler = PerformanceProfiler()
+
+    # Configure for test environment
+    profiler.enable_memory_tracking = True
+    profiler.enable_detailed_logging = False  # Reduce noise in tests
+
+    yield profiler
+
+    # Session teardown: save performance metrics
+    try:
+        stats = profiler.get_operation_stats()
+        if stats:
+            import json
+            import os
+            from datetime import datetime
+
+            os.makedirs('test_reports', exist_ok=True)
+            timestamp = datetime.now().isoformat()
+            # Convert stats to JSON-serializable format
+            serializable_stats = {}
+            for op_name, op_stats in stats.items():
+                serializable_stats[op_name] = {
+                    'operation': op_stats.operation,
+                    'total_calls': op_stats.total_calls,
+                    'total_duration_ms': op_stats.total_duration_ms,
+                    'average_duration_ms': op_stats.average_duration_ms,
+                    'min_duration_ms': op_stats.min_duration_ms,
+                    'max_duration_ms': op_stats.max_duration_ms,
+                    'success_rate': op_stats.success_rate,
+                    'failure_count': op_stats.failure_count
+                }
+
+            with open(f'test_reports/performance_metrics_{timestamp}.json', 'w') as f:
+                json.dump(serializable_stats, f, indent=2)
+    except (OSError, json.JSONEncodeError) as e:
+        import logging
+        logging.warning(f"Failed to save performance metrics: {e}")
+    except Exception as e:
+        import logging
+        logging.warning(f"Unexpected error saving performance metrics: {e}")
+
+
+@pytest.fixture(scope="session")
+def cached_analyzer_wrapper(shared_analyzer) -> AnalyzerEngineWrapper:
+    """AnalyzerEngineWrapper using the shared analyzer instance."""
+    from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
+
+    # Create wrapper that uses the shared engine
+    wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
+    try:
+        wrapper._engine = shared_analyzer
+        wrapper._is_initialized = True
+    except AttributeError:
+        # If internal attributes don't exist, just return the wrapper
+        pass
+
+    return wrapper
+
+
+@pytest.fixture(scope="session")
+def performance_test_configs() -> dict[str, AnalyzerConfig]:
+    """Various analyzer configurations for performance testing."""
+    from cloakpivot.core.analyzer import AnalyzerConfig
+
+    return {
+        "minimal": AnalyzerConfig(
+            language="en",
+            min_confidence=0.7
+        ),
+        "standard": AnalyzerConfig(
+            language="en",
+            min_confidence=0.5
+        ),
+        "comprehensive": AnalyzerConfig(
+            language="en",
+            min_confidence=0.3
+        )
+    }
+
+
+@pytest.fixture(scope="session")
+def sample_documents() -> dict[str, str]:
+    """Pre-loaded sample documents for testing."""
+    return {
+        "small_text": "Test User lives at test.user@example.com and his phone is 555-0123.",
+        "medium_text": """
+        Test User is a software engineer living in Example City.
+        His contact information includes:
+        - Email: test.user@example.com
+        - Phone: (555) 012-3456
+        - SSN: 000-12-3456
+        - Credit Card: 4000-0000-0000-0002
+        """,
+        "large_text": """
+        Test User is a software engineer living in Example City.
+        His contact information includes:
+        - Email: test.user@example.com
+        - Phone: (555) 012-3456
+        - SSN: 000-12-3456
+        - Credit Card: 4000-0000-0000-0002
+
+        Emergency contact: Test Contact at test.contact@example.org or (555) 098-7654.
+        She works at 456 Test Street, Example City, EX 12345.
+
+        Additional information:
+        - Driver License: TEST123456789
+        - Passport: TEST87654321
+        - Bank Account: 0000111122223333
+        - Medical Record: MR000000001
+
+        This document contains synthetic PII data for testing purposes only.
+        All information is fake and used for validation of masking operations.
+        """ * 3  # Simulate larger document
+    }
