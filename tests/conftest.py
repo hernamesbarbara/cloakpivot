@@ -25,6 +25,8 @@ Additional markers:
 - Fast tests run in both modes, slow/performance/property tests need explicit inclusion
 """
 
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -466,34 +468,34 @@ def pytest_configure(config):
 
 # Session-scoped fixtures for performance optimization
 @pytest.fixture(scope="session")
-def shared_document_processor():
+def shared_document_processor() -> DocumentProcessor:
     """Shared DocumentProcessor instance for performance testing.
-    
+
     Creates a single DocumentProcessor that can be reused across tests
     to avoid the overhead of DocPivot initialization.
     """
     from cloakpivot.document.processor import DocumentProcessor
-    
+
     processor = DocumentProcessor(enable_chunked_processing=True)
-    # Pre-warm the processor with validation
+    # Pre-warm the processor by checking format support
     try:
-        processor.validate_document_support()
+        processor.supports_format("test.json")  # Check for JSON support
     except AttributeError:
-        # validate_document_support may not exist, that's okay
+        # supports_format may not exist, that's okay
         pass
-    
+
     return processor
 
 
-@pytest.fixture(scope="session") 
-def shared_detection_pipeline(shared_analyzer):
+@pytest.fixture(scope="session")
+def shared_detection_pipeline(shared_analyzer) -> EntityDetectionPipeline:
     """Shared EntityDetectionPipeline for performance testing.
-    
+
     Creates a pipeline using the shared analyzer to maximize reuse.
     """
-    from cloakpivot.core.detection import EntityDetectionPipeline
     from cloakpivot.core.analyzer import AnalyzerEngineWrapper
-    
+    from cloakpivot.core.detection import EntityDetectionPipeline
+
     try:
         from cloakpivot.loaders import get_detection_pipeline
         # Use singleton loader if available
@@ -509,23 +511,23 @@ def shared_detection_pipeline(shared_analyzer):
         except AttributeError:
             # If that doesn't work, create pipeline normally
             pipeline = EntityDetectionPipeline()
-    
+
     return pipeline
 
 
 @pytest.fixture(scope="session")
-def performance_profiler():
+def performance_profiler() -> PerformanceProfiler:
     """Shared PerformanceProfiler for test metrics collection."""
     from cloakpivot.core.performance import PerformanceProfiler
-    
+
     profiler = PerformanceProfiler()
-    
+
     # Configure for test environment
     profiler.enable_memory_tracking = True
     profiler.enable_detailed_logging = False  # Reduce noise in tests
-    
+
     yield profiler
-    
+
     # Session teardown: save performance metrics
     try:
         stats = profiler.get_operation_stats()
@@ -533,7 +535,7 @@ def performance_profiler():
             import json
             import os
             from datetime import datetime
-            
+
             os.makedirs('test_reports', exist_ok=True)
             timestamp = datetime.now().isoformat()
             # Convert stats to JSON-serializable format
@@ -549,19 +551,22 @@ def performance_profiler():
                     'success_rate': op_stats.success_rate,
                     'failure_count': op_stats.failure_count
                 }
-            
+
             with open(f'test_reports/performance_metrics_{timestamp}.json', 'w') as f:
                 json.dump(serializable_stats, f, indent=2)
-    except Exception:
-        # Don't fail tests if metrics saving fails
-        pass
+    except (OSError, json.JSONEncodeError) as e:
+        import logging
+        logging.warning(f"Failed to save performance metrics: {e}")
+    except Exception as e:
+        import logging
+        logging.warning(f"Unexpected error saving performance metrics: {e}")
 
 
 @pytest.fixture(scope="session")
-def cached_analyzer_wrapper(shared_analyzer):
+def cached_analyzer_wrapper(shared_analyzer) -> AnalyzerEngineWrapper:
     """AnalyzerEngineWrapper using the shared analyzer instance."""
-    from cloakpivot.core.analyzer import AnalyzerEngineWrapper, AnalyzerConfig
-    
+    from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
+
     # Create wrapper that uses the shared engine
     wrapper = AnalyzerEngineWrapper(config=AnalyzerConfig())
     try:
@@ -570,22 +575,22 @@ def cached_analyzer_wrapper(shared_analyzer):
     except AttributeError:
         # If internal attributes don't exist, just return the wrapper
         pass
-    
+
     return wrapper
 
 
 @pytest.fixture(scope="session")
-def performance_test_configs():
+def performance_test_configs() -> dict[str, AnalyzerConfig]:
     """Various analyzer configurations for performance testing."""
     from cloakpivot.core.analyzer import AnalyzerConfig
-    
+
     return {
         "minimal": AnalyzerConfig(
             language="en",
             min_confidence=0.7
         ),
         "standard": AnalyzerConfig(
-            language="en", 
+            language="en",
             min_confidence=0.5
         ),
         "comprehensive": AnalyzerConfig(
@@ -596,36 +601,36 @@ def performance_test_configs():
 
 
 @pytest.fixture(scope="session")
-def sample_documents():
+def sample_documents() -> dict[str, str]:
     """Pre-loaded sample documents for testing."""
     return {
-        "small_text": "John Doe lives at john.doe@email.com and his phone is 555-1234.",
+        "small_text": "Test User lives at test.user@example.com and his phone is 555-0123.",
         "medium_text": """
-        John Doe is a software engineer living in San Francisco. 
+        Test User is a software engineer living in Example City.
         His contact information includes:
-        - Email: john.doe@email.com
-        - Phone: (555) 123-4567
-        - SSN: 123-45-6789
-        - Credit Card: 4111-1111-1111-1111
+        - Email: test.user@example.com
+        - Phone: (555) 012-3456
+        - SSN: 000-12-3456
+        - Credit Card: 4000-0000-0000-0002
         """,
         "large_text": """
-        John Doe is a software engineer living in San Francisco. 
+        Test User is a software engineer living in Example City.
         His contact information includes:
-        - Email: john.doe@email.com
-        - Phone: (555) 123-4567
-        - SSN: 123-45-6789
-        - Credit Card: 4111-1111-1111-1111
-        
-        Emergency contact: Jane Smith at jane.smith@company.com or (555) 987-6543.
-        She works at 123 Main Street, New York, NY 10001.
-        
+        - Email: test.user@example.com
+        - Phone: (555) 012-3456
+        - SSN: 000-12-3456
+        - Credit Card: 4000-0000-0000-0002
+
+        Emergency contact: Test Contact at test.contact@example.org or (555) 098-7654.
+        She works at 456 Test Street, Example City, EX 12345.
+
         Additional information:
-        - Driver License: DL123456789
-        - Passport: US123456789
-        - Bank Account: 1234567890
-        - Medical Record: MR987654321
-        
-        This document contains sensitive personal information that should be
-        protected and masked appropriately during processing operations.
+        - Driver License: TEST123456789
+        - Passport: TEST87654321
+        - Bank Account: 0000111122223333
+        - Medical Record: MR000000001
+
+        This document contains synthetic PII data for testing purposes only.
+        All information is fake and used for validation of masking operations.
         """ * 3  # Simulate larger document
     }
