@@ -381,7 +381,7 @@ class AnalyzerEngineWrapper:
             >>> config = AnalyzerConfig(language="es", min_confidence=0.7)
             >>> analyzer = AnalyzerEngineWrapper.create_shared(config)
         """
-        from ..loaders import get_presidio_analyzer_from_config, get_presidio_analyzer
+        from ..loaders import get_presidio_analyzer, get_presidio_analyzer_from_config
 
         if config is not None:
             return get_presidio_analyzer_from_config(config)
