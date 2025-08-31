@@ -703,9 +703,9 @@ class CloakMapEncryption:
                 version=cloakmap.version,
                 doc_id=cloakmap.doc_id,
                 doc_hash=cloakmap.doc_hash,
-                created_at=cloakmap.created_at.isoformat()
-                if cloakmap.created_at
-                else None,
+                created_at=(
+                    cloakmap.created_at.isoformat() if cloakmap.created_at else None
+                ),
                 algorithm=self.config.encryption_algorithm,
                 key_id=key_id,
                 key_version=key_version,

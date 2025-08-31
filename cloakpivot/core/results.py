@@ -116,21 +116,29 @@ class PerformanceMetrics:
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "total_duration_seconds": self.duration_seconds,
-            "document_load_seconds": self.document_load_time.total_seconds()
-            if self.document_load_time
-            else None,
-            "entity_detection_seconds": self.entity_detection_time.total_seconds()
-            if self.entity_detection_time
-            else None,
-            "masking_seconds": self.masking_time.total_seconds()
-            if self.masking_time
-            else None,
-            "serialization_seconds": self.serialization_time.total_seconds()
-            if self.serialization_time
-            else None,
-            "cloakmap_creation_seconds": self.cloakmap_creation_time.total_seconds()
-            if self.cloakmap_creation_time
-            else None,
+            "document_load_seconds": (
+                self.document_load_time.total_seconds()
+                if self.document_load_time
+                else None
+            ),
+            "entity_detection_seconds": (
+                self.entity_detection_time.total_seconds()
+                if self.entity_detection_time
+                else None
+            ),
+            "masking_seconds": (
+                self.masking_time.total_seconds() if self.masking_time else None
+            ),
+            "serialization_seconds": (
+                self.serialization_time.total_seconds()
+                if self.serialization_time
+                else None
+            ),
+            "cloakmap_creation_seconds": (
+                self.cloakmap_creation_time.total_seconds()
+                if self.cloakmap_creation_time
+                else None
+            ),
         }
 
 
@@ -262,12 +270,12 @@ class MaskResult:
         return {
             "status": self.status.value,
             "input_file": str(self.input_file_path) if self.input_file_path else None,
-            "output_file": str(self.output_file_path)
-            if self.output_file_path
-            else None,
-            "cloakmap_file": str(self.cloakmap_file_path)
-            if self.cloakmap_file_path
-            else None,
+            "output_file": (
+                str(self.output_file_path) if self.output_file_path else None
+            ),
+            "cloakmap_file": (
+                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
+            ),
             "entities_found": self.stats.total_entities_found,
             "entities_masked": self.stats.entities_masked,
             "success_rate": f"{self.stats.success_rate:.2%}",
@@ -282,15 +290,15 @@ class MaskResult:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "input_file_path": str(self.input_file_path)
-            if self.input_file_path
-            else None,
-            "output_file_path": str(self.output_file_path)
-            if self.output_file_path
-            else None,
-            "cloakmap_file_path": str(self.cloakmap_file_path)
-            if self.cloakmap_file_path
-            else None,
+            "input_file_path": (
+                str(self.input_file_path) if self.input_file_path else None
+            ),
+            "output_file_path": (
+                str(self.output_file_path) if self.output_file_path else None
+            ),
+            "cloakmap_file_path": (
+                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
+            ),
             "stats": {
                 "total_entities_found": self.stats.total_entities_found,
                 "entities_masked": self.stats.entities_masked,
@@ -388,15 +396,15 @@ class UnmaskResult:
         """Get a summary of the unmasking operation."""
         return {
             "status": self.status.value,
-            "masked_file": str(self.masked_file_path)
-            if self.masked_file_path
-            else None,
-            "output_file": str(self.output_file_path)
-            if self.output_file_path
-            else None,
-            "cloakmap_file": str(self.cloakmap_file_path)
-            if self.cloakmap_file_path
-            else None,
+            "masked_file": (
+                str(self.masked_file_path) if self.masked_file_path else None
+            ),
+            "output_file": (
+                str(self.output_file_path) if self.output_file_path else None
+            ),
+            "cloakmap_file": (
+                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
+            ),
             "entities_restored": self.entities_restored,
             "total_anchors": self.cloakmap.anchor_count,
             "restoration_rate": f"{self.restoration_rate:.2%}",
@@ -411,15 +419,15 @@ class UnmaskResult:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "masked_file_path": str(self.masked_file_path)
-            if self.masked_file_path
-            else None,
-            "output_file_path": str(self.output_file_path)
-            if self.output_file_path
-            else None,
-            "cloakmap_file_path": str(self.cloakmap_file_path)
-            if self.cloakmap_file_path
-            else None,
+            "masked_file_path": (
+                str(self.masked_file_path) if self.masked_file_path else None
+            ),
+            "output_file_path": (
+                str(self.output_file_path) if self.output_file_path else None
+            ),
+            "cloakmap_file_path": (
+                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
+            ),
             "restored_stats": {
                 "entities_restored": self.entities_restored,
                 "total_anchors": self.cloakmap.anchor_count,

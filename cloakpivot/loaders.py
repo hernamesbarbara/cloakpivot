@@ -20,17 +20,21 @@ from .document.processor import DocumentProcessor
 
 class LoaderError(Exception):
     """Base exception for loader-related errors."""
+
     pass
 
 
 class ConfigurationError(LoaderError):
     """Raised when loader configuration is invalid."""
+
     pass
 
 
 class InitializationError(LoaderError):
     """Raised when resource initialization fails."""
+
     pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +54,17 @@ def _validate_language(language: str) -> None:
         ConfigurationError: If language is invalid
     """
     if not isinstance(language, str):
-        raise ConfigurationError(f"Language must be a string, got {type(language).__name__}")
+        raise ConfigurationError(
+            f"Language must be a string, got {type(language).__name__}"
+        )
 
     if not language.strip():
         raise ConfigurationError("Language cannot be empty")
 
     if len(language) < 2 or len(language) > 5:
-        raise ConfigurationError(f"Language code '{language}' should be 2-5 characters (ISO format)")
+        raise ConfigurationError(
+            f"Language code '{language}' should be 2-5 characters (ISO format)"
+        )
 
 
 def _validate_confidence(confidence: float) -> None:
@@ -69,10 +77,14 @@ def _validate_confidence(confidence: float) -> None:
         ConfigurationError: If confidence is invalid
     """
     if not isinstance(confidence, (int, float)):
-        raise ConfigurationError(f"Confidence must be a number, got {type(confidence).__name__}")
+        raise ConfigurationError(
+            f"Confidence must be a number, got {type(confidence).__name__}"
+        )
 
     if not (0.0 <= confidence <= 1.0):
-        raise ConfigurationError(f"Confidence must be between 0.0 and 1.0, got {confidence}")
+        raise ConfigurationError(
+            f"Confidence must be between 0.0 and 1.0, got {confidence}"
+        )
 
 
 def _validate_nlp_engine(nlp_engine_name: str) -> None:
@@ -85,7 +97,9 @@ def _validate_nlp_engine(nlp_engine_name: str) -> None:
         ConfigurationError: If NLP engine is invalid
     """
     if not isinstance(nlp_engine_name, str):
-        raise ConfigurationError(f"NLP engine must be a string, got {type(nlp_engine_name).__name__}")
+        raise ConfigurationError(
+            f"NLP engine must be a string, got {type(nlp_engine_name).__name__}"
+        )
 
     valid_engines = {"spacy", "transformers"}
     if nlp_engine_name not in valid_engines:
@@ -107,7 +121,9 @@ def _generate_config_hash(config: AnalyzerConfig) -> str:
         ConfigurationError: If config is invalid
     """
     if not isinstance(config, AnalyzerConfig):
-        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
+        raise ConfigurationError(
+            f"Expected AnalyzerConfig, got {type(config).__name__}"
+        )
 
     try:
         # Create a stable string representation of the config
@@ -140,7 +156,9 @@ def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
         return "none"
 
     if not isinstance(policy, MaskingPolicy):
-        raise ConfigurationError(f"Expected MaskingPolicy or None, got {type(policy).__name__}")
+        raise ConfigurationError(
+            f"Expected MaskingPolicy or None, got {type(policy).__name__}"
+        )
 
     try:
         # Create a stable string representation focusing on analyzer-relevant fields
@@ -159,7 +177,7 @@ def get_presidio_analyzer(
     language: str = "en",
     config_hash: Optional[str] = None,
     min_confidence: float = 0.5,
-    nlp_engine_name: str = "spacy"
+    nlp_engine_name: str = "spacy",
 ) -> AnalyzerEngineWrapper:
     """Get cached Presidio analyzer instance with configurable behavior.
 
@@ -191,7 +209,7 @@ def get_presidio_analyzer(
         ... )
     """
     from .core.config import performance_config
-    
+
     # Validate parameters before attempting creation
     _validate_language(language)
     _validate_confidence(min_confidence)
@@ -204,19 +222,19 @@ def get_presidio_analyzer(
             config = AnalyzerConfig(
                 language=language,
                 min_confidence=min_confidence,
-                nlp_engine_name=nlp_engine_name
+                nlp_engine_name=nlp_engine_name,
             )
             wrapper = AnalyzerEngineWrapper(config, use_singleton=False)
-            logger.info(f"Created new AnalyzerEngineWrapper (singleton disabled)")
+            logger.info("Created new AnalyzerEngineWrapper (singleton disabled)")
             return wrapper
-        
+
         # Use cached singleton with configurable cache size
         return _get_cached_analyzer(
             language=language,
             config_hash=config_hash,
             min_confidence=min_confidence,
             nlp_engine_name=nlp_engine_name,
-            cache_size=performance_config.analyzer_cache_size
+            cache_size=performance_config.analyzer_cache_size,
         )
 
     except Exception as e:
@@ -236,20 +254,19 @@ def _get_cached_analyzer(
     config_hash: Optional[str],
     min_confidence: float,
     nlp_engine_name: str,
-    cache_size: int
+    cache_size: int,
 ) -> AnalyzerEngineWrapper:
     """Get analyzer from cache with configurable cache size."""
     from functools import lru_cache
-    
+
     # Create or get cache function for this cache size
     if cache_size not in _analyzer_caches:
+
         @lru_cache(maxsize=cache_size)
         def cached_analyzer_func(lang, conf_hash, min_conf, nlp_engine):
             with _ANALYZER_LOCK:
                 config = AnalyzerConfig(
-                    language=lang,
-                    min_confidence=min_conf,
-                    nlp_engine_name=nlp_engine
+                    language=lang, min_confidence=min_conf, nlp_engine_name=nlp_engine
                 )
                 wrapper = AnalyzerEngineWrapper(config, use_singleton=True)
                 logger.info(
@@ -257,9 +274,9 @@ def _get_cached_analyzer(
                     f"confidence={min_conf}, cache_size={cache_size}"
                 )
                 return wrapper
-        
+
         _analyzer_caches[cache_size] = cached_analyzer_func
-    
+
     # Use the cached function
     return _analyzer_caches[cache_size](
         language, config_hash, min_confidence, nlp_engine_name
@@ -290,7 +307,9 @@ def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineW
         raise ConfigurationError("Config cannot be None")
 
     if not isinstance(config, AnalyzerConfig):
-        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
+        raise ConfigurationError(
+            f"Expected AnalyzerConfig, got {type(config).__name__}"
+        )
 
     try:
         config_hash = _generate_config_hash(config)
@@ -299,7 +318,7 @@ def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineW
             language=config.language,
             config_hash=config_hash,
             min_confidence=config.min_confidence,
-            nlp_engine_name=config.nlp_engine_name
+            nlp_engine_name=config.nlp_engine_name,
         )
     except Exception as e:
         logger.error(f"Failed to create analyzer from config: {e}")
@@ -335,27 +354,30 @@ def get_document_processor(enable_chunked: bool = True) -> DocumentProcessor:
     """
     # Validate parameters
     if not isinstance(enable_chunked, bool):
-        raise ConfigurationError(f"enable_chunked must be a boolean, got {type(enable_chunked).__name__}")
+        raise ConfigurationError(
+            f"enable_chunked must be a boolean, got {type(enable_chunked).__name__}"
+        )
 
     try:
         with _PROCESSOR_LOCK:
-            processor = DocumentProcessor(
-                enable_chunked_processing=enable_chunked
-            )
+            processor = DocumentProcessor(enable_chunked_processing=enable_chunked)
 
             logger.info(f"Created DocumentProcessor with chunked={enable_chunked}")
 
             return processor
 
     except Exception as e:
-        logger.error(f"Failed to create DocumentProcessor: {e} (chunked={enable_chunked})")
-        raise InitializationError(f"Failed to initialize document processor: {e}") from e
+        logger.error(
+            f"Failed to create DocumentProcessor: {e} (chunked={enable_chunked})"
+        )
+        raise InitializationError(
+            f"Failed to initialize document processor: {e}"
+        ) from e
 
 
 @lru_cache(maxsize=4)
 def get_detection_pipeline(
-    analyzer_hash: Optional[str] = None,
-    policy_hash: Optional[str] = None
+    analyzer_hash: Optional[str] = None, policy_hash: Optional[str] = None
 ) -> EntityDetectionPipeline:
     """Get cached detection pipeline instance.
 
@@ -383,10 +405,14 @@ def get_detection_pipeline(
     """
     # Validate parameters
     if analyzer_hash is not None and not isinstance(analyzer_hash, str):
-        raise ConfigurationError(f"analyzer_hash must be a string or None, got {type(analyzer_hash).__name__}")
+        raise ConfigurationError(
+            f"analyzer_hash must be a string or None, got {type(analyzer_hash).__name__}"
+        )
 
     if policy_hash is not None and not isinstance(policy_hash, str):
-        raise ConfigurationError(f"policy_hash must be a string or None, got {type(policy_hash).__name__}")
+        raise ConfigurationError(
+            f"policy_hash must be a string or None, got {type(policy_hash).__name__}"
+        )
 
     try:
         with _PIPELINE_LOCK:
@@ -403,10 +429,14 @@ def get_detection_pipeline(
         logger.error(f"Failed to create EntityDetectionPipeline: {e}")
         if isinstance(e, (ConfigurationError, InitializationError)):
             raise
-        raise InitializationError(f"Failed to initialize detection pipeline: {e}") from e
+        raise InitializationError(
+            f"Failed to initialize detection pipeline: {e}"
+        ) from e
 
 
-def get_detection_pipeline_from_policy(policy: MaskingPolicy) -> EntityDetectionPipeline:
+def get_detection_pipeline_from_policy(
+    policy: MaskingPolicy,
+) -> EntityDetectionPipeline:
     """Get detection pipeline configured from MaskingPolicy.
 
     This function creates an EntityDetectionPipeline with an analyzer
@@ -442,12 +472,17 @@ def get_detection_pipeline_from_policy(policy: MaskingPolicy) -> EntityDetection
         # Note: We don't cache the pipeline itself since it should be policy-specific
         pipeline = EntityDetectionPipeline(analyzer=analyzer)
 
-        logger.info(f"Created EntityDetectionPipeline from policy (locale={policy.locale})")
+        logger.info(
+            f"Created EntityDetectionPipeline from policy (locale={policy.locale})"
+        )
 
         return pipeline
 
     except Exception as e:
-        logger.error(f"Failed to create pipeline from policy: {e} (locale={getattr(policy, 'locale', 'unknown')})")
+        logger.error(
+            f"Failed to create pipeline from policy: {e} "
+            f"(locale={getattr(policy, 'locale', 'unknown')})"
+        )
         if isinstance(e, (ConfigurationError, InitializationError)):
             raise
         raise InitializationError(f"Failed to create pipeline from policy: {e}") from e
@@ -468,7 +503,7 @@ def clear_all_caches() -> None:
     # Clear analyzer caches (multiple cache sizes)
     for cache_func in _analyzer_caches.values():
         cache_func.cache_clear()
-    
+
     get_document_processor.cache_clear()
     get_detection_pipeline.cache_clear()
 
@@ -490,7 +525,7 @@ def get_cache_info() -> dict[str, any]:
     analyzer_misses = 0
     analyzer_maxsize = 0
     analyzer_currsize = 0
-    
+
     # If we have multiple cache sizes, aggregate their stats
     for cache_size, cache_func in _analyzer_caches.items():
         info = cache_func.cache_info()
@@ -498,12 +533,13 @@ def get_cache_info() -> dict[str, any]:
         analyzer_misses += info.misses
         analyzer_maxsize = max(analyzer_maxsize, info.maxsize)
         analyzer_currsize += info.currsize
-    
+
     # If no analyzer caches exist yet, provide sensible defaults
     if not _analyzer_caches:
         from .core.config import performance_config
+
         analyzer_maxsize = performance_config.analyzer_cache_size
-    
+
     return {
         "analyzer": {
             "hits": analyzer_hits,

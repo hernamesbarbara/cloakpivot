@@ -1,7 +1,6 @@
 """Tests for environment variable configuration system."""
 
 import os
-import pytest
 from unittest.mock import patch
 
 from cloakpivot.core.config import PerformanceConfig, reset_performance_config
@@ -21,7 +20,7 @@ class TestPerformanceConfig:
         """Test default configuration values without environment variables."""
         with patch.dict(os.environ, {}, clear=True):
             config = PerformanceConfig.from_environment()
-            
+
             assert config.model_size == "small"
             assert config.use_singleton_analyzers is True
             assert config.analyzer_cache_size == 8
@@ -34,12 +33,12 @@ class TestPerformanceConfig:
         """Test MODEL_SIZE affects model selection."""
         test_cases = [
             ("small", "small"),
-            ("medium", "medium"), 
+            ("medium", "medium"),
             ("large", "large"),
             ("LARGE", "large"),  # Test case insensitive
             ("invalid", "small"),  # Test fallback to default
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"MODEL_SIZE": env_value}):
                 config = PerformanceConfig.from_environment()
@@ -55,7 +54,7 @@ class TestPerformanceConfig:
             ("1", True),  # Invalid values use default (True)
             ("invalid", True),  # Invalid values use default (True)
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"CLOAKPIVOT_USE_SINGLETON": env_value}):
                 config = PerformanceConfig.from_environment()
@@ -68,9 +67,9 @@ class TestPerformanceConfig:
             ("32", 32),
             ("1", 1),
             ("invalid", 8),  # Should fallback to default
-            ("-1", 8),       # Should fallback to default
+            ("-1", 8),  # Should fallback to default
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"ANALYZER_CACHE_SIZE": env_value}):
                 config = PerformanceConfig.from_environment()
@@ -85,7 +84,7 @@ class TestPerformanceConfig:
             ("FALSE", False),
             ("invalid", True),  # Should default to True
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"ENABLE_PARALLEL": env_value}):
                 reset_performance_config()  # Force reload of config
@@ -98,12 +97,12 @@ class TestPerformanceConfig:
             ("4", 4),
             ("8", 8),
             ("1", 1),
-            (None, None),     # Not set
-            ("invalid", None), # Should fallback to None
-            ("0", None),      # Should fallback to None
-            ("-1", None),     # Should fallback to None
+            (None, None),  # Not set
+            ("invalid", None),  # Should fallback to None
+            ("0", None),  # Should fallback to None
+            ("-1", None),  # Should fallback to None
         ]
-        
+
         for env_value, expected in test_cases:
             env_dict = {"MAX_WORKERS": env_value} if env_value is not None else {}
             with patch.dict(os.environ, env_dict, clear=True):
@@ -119,7 +118,7 @@ class TestPerformanceConfig:
             ("FALSE", False),
             ("invalid", True),  # Should default to True
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"MEMORY_OPTIMIZATION": env_value}):
                 reset_performance_config()  # Force reload of config
@@ -133,10 +132,10 @@ class TestPerformanceConfig:
             ("200", 200),
             ("1", 1),
             ("invalid", 100),  # Should fallback to default
-            ("0", 100),        # Should fallback to default
-            ("-1", 100),       # Should fallback to default
+            ("0", 100),  # Should fallback to default
+            ("-1", 100),  # Should fallback to default
         ]
-        
+
         for env_value, expected in test_cases:
             with patch.dict(os.environ, {"GC_FREQUENCY": env_value}):
                 config = PerformanceConfig.from_environment()
@@ -150,16 +149,16 @@ class TestModelInfo:
         """Test MODEL_CHARACTERISTICS has expected structure."""
         expected_sizes = {"small", "medium", "large"}
         expected_fields = {"memory_mb", "load_time_ms", "accuracy_score", "description"}
-        
+
         assert set(MODEL_CHARACTERISTICS.keys()) == expected_sizes
-        
+
         for size, characteristics in MODEL_CHARACTERISTICS.items():
             assert set(characteristics.keys()) == expected_fields
             assert isinstance(characteristics["memory_mb"], int)
             assert isinstance(characteristics["load_time_ms"], int)
             assert isinstance(characteristics["accuracy_score"], float)
             assert isinstance(characteristics["description"], str)
-            
+
             # Validate ranges
             assert 0 < characteristics["memory_mb"] <= 500
             assert 0 < characteristics["load_time_ms"] <= 10000
@@ -169,17 +168,19 @@ class TestModelInfo:
     def test_model_characteristics_ordering(self):
         """Test that model sizes have expected performance characteristics."""
         small = MODEL_CHARACTERISTICS["small"]
-        medium = MODEL_CHARACTERISTICS["medium"] 
+        medium = MODEL_CHARACTERISTICS["medium"]
         large = MODEL_CHARACTERISTICS["large"]
-        
+
         # Memory usage should increase
         assert small["memory_mb"] < medium["memory_mb"] < large["memory_mb"]
-        
+
         # Load time should increase
         assert small["load_time_ms"] < medium["load_time_ms"] < large["load_time_ms"]
-        
+
         # Accuracy should increase
-        assert small["accuracy_score"] < medium["accuracy_score"] < large["accuracy_score"]
+        assert (
+            small["accuracy_score"] < medium["accuracy_score"] < large["accuracy_score"]
+        )
 
     def test_validate_model_availability(self):
         """Test model availability validation."""
@@ -188,7 +189,7 @@ class TestModelInfo:
         assert validate_model_availability("en", "medium") is True
         assert validate_model_availability("en", "large") is True
         assert validate_model_availability("es", "small") is True
-        
+
         # Test invalid combinations
         assert validate_model_availability("invalid_lang", "small") is False
         assert validate_model_availability("en", "invalid_size") is False
@@ -200,11 +201,11 @@ class TestModelInfo:
         # Low memory should recommend small
         recommendations = get_model_recommendations(memory_limit_mb=20)
         assert "small" in recommendations["recommended_size"]
-        
+
         # Medium memory should allow medium
         recommendations = get_model_recommendations(memory_limit_mb=75)
         assert "medium" in recommendations["recommended_size"]
-        
+
         # High memory should allow large
         recommendations = get_model_recommendations(memory_limit_mb=200)
         assert "large" in recommendations["recommended_size"]
@@ -214,7 +215,7 @@ class TestModelInfo:
         recommendations = get_model_recommendations(speed_priority=True)
         assert "small" in recommendations["recommended_size"]
         assert "fast" in recommendations["reason"].lower()
-        
+
         recommendations = get_model_recommendations(speed_priority=False)
         # Should not prioritize small when speed is not priority
         assert len(recommendations["alternatives"]) > 0
@@ -228,10 +229,10 @@ class TestAnalyzerEnhancement:
         with patch.dict(os.environ, {"MODEL_SIZE": "small"}):
             reset_performance_config()  # Force reload of config
             wrapper = AnalyzerEngineWrapper()
-            
+
             # Test English
             assert wrapper._get_spacy_model_name("en") == "en_core_web_sm"
-            
+
             # Test other languages
             assert wrapper._get_spacy_model_name("es") == "es_core_news_sm"
             assert wrapper._get_spacy_model_name("fr") == "fr_core_news_sm"
@@ -242,10 +243,10 @@ class TestAnalyzerEnhancement:
         with patch.dict(os.environ, {"MODEL_SIZE": "medium"}):
             reset_performance_config()  # Force reload of config
             wrapper = AnalyzerEngineWrapper()
-            
+
             # Test English
             assert wrapper._get_spacy_model_name("en") == "en_core_web_md"
-            
+
             # Test other languages
             assert wrapper._get_spacy_model_name("es") == "es_core_news_md"
             assert wrapper._get_spacy_model_name("fr") == "fr_core_news_md"
@@ -256,10 +257,10 @@ class TestAnalyzerEnhancement:
         with patch.dict(os.environ, {"MODEL_SIZE": "large"}):
             reset_performance_config()  # Force reload of config
             wrapper = AnalyzerEngineWrapper()
-            
+
             # Test English
             assert wrapper._get_spacy_model_name("en") == "en_core_web_lg"
-            
+
             # Test other languages
             assert wrapper._get_spacy_model_name("es") == "es_core_news_lg"
             assert wrapper._get_spacy_model_name("fr") == "fr_core_news_lg"
@@ -270,7 +271,7 @@ class TestAnalyzerEnhancement:
         with patch.dict(os.environ, {"MODEL_SIZE": "invalid"}):
             reset_performance_config()  # Force reload of config
             wrapper = AnalyzerEngineWrapper()
-            
+
             # Should fallback to small
             assert wrapper._get_spacy_model_name("en") == "en_core_web_sm"
             assert wrapper._get_spacy_model_name("es") == "es_core_news_sm"
@@ -280,7 +281,7 @@ class TestAnalyzerEnhancement:
         with patch.dict(os.environ, {"MODEL_SIZE": "medium"}):
             reset_performance_config()  # Force reload of config
             wrapper = AnalyzerEngineWrapper()
-            
+
             # Unknown language should use generic pattern
             assert wrapper._get_spacy_model_name("xx") == "xx_core_web_md"
 
@@ -294,7 +295,7 @@ class TestLoaderIntegration:
             # Multiple calls should return the same cached instance
             analyzer1 = get_presidio_analyzer(language="en")
             analyzer2 = get_presidio_analyzer(language="en")
-            
+
             # Should be the same object due to caching
             assert analyzer1 is analyzer2
 
@@ -302,21 +303,23 @@ class TestLoaderIntegration:
         """Test that PerformanceConfig can control singleton behavior."""
         with patch.dict(os.environ, {"CLOAKPIVOT_USE_SINGLETON": "false"}):
             config = PerformanceConfig.from_environment()
-            
+
             # Create wrapper directly (bypassing singleton loader)
-            wrapper = AnalyzerEngineWrapper(use_singleton=config.use_singleton_analyzers)
-            
+            wrapper = AnalyzerEngineWrapper(
+                use_singleton=config.use_singleton_analyzers
+            )
+
             assert wrapper.use_singleton is False
 
     def test_cache_size_affects_behavior(self):
         """Test that ANALYZER_CACHE_SIZE affects loader caching."""
         # This test verifies the cache size configuration is used
-        
+
         with patch.dict(os.environ, {"ANALYZER_CACHE_SIZE": "16"}):
             reset_performance_config()  # Force reload of config
             config = PerformanceConfig.from_environment()
             assert config.analyzer_cache_size == 16
-            
+
         with patch.dict(os.environ, {"ANALYZER_CACHE_SIZE": "4"}):
             reset_performance_config()  # Force reload of config
             config = PerformanceConfig.from_environment()
@@ -333,10 +336,10 @@ class TestConfigurationIntegration:
             "ANALYZER_CACHE_SIZE": "4",
             "CLOAKPIVOT_USE_SINGLETON": "true",
         }
-        
+
         with patch.dict(os.environ, dev_env):
             config = PerformanceConfig.from_environment()
-            
+
             assert config.model_size == "small"
             assert config.analyzer_cache_size == 4
             assert config.use_singleton_analyzers is True
@@ -345,14 +348,14 @@ class TestConfigurationIntegration:
         """Test production environment variable profile."""
         prod_env = {
             "MODEL_SIZE": "medium",
-            "ANALYZER_CACHE_SIZE": "16", 
+            "ANALYZER_CACHE_SIZE": "16",
             "CLOAKPIVOT_USE_SINGLETON": "true",
             "MAX_WORKERS": "4",
         }
-        
+
         with patch.dict(os.environ, prod_env):
             config = PerformanceConfig.from_environment()
-            
+
             assert config.model_size == "medium"
             assert config.analyzer_cache_size == 16
             assert config.use_singleton_analyzers is True
@@ -366,10 +369,10 @@ class TestConfigurationIntegration:
             "MAX_WORKERS": "4",
             "MEMORY_OPTIMIZATION": "true",
         }
-        
+
         with patch.dict(os.environ, high_acc_env):
             config = PerformanceConfig.from_environment()
-            
+
             assert config.model_size == "large"
             assert config.analyzer_cache_size == 32
             assert config.max_worker_threads == 4
@@ -379,15 +382,15 @@ class TestConfigurationIntegration:
         """Test that configuration validation prevents common issues."""
         # Test that invalid values fallback to safe defaults
         invalid_env = {
-            "MODEL_SIZE": "huge",           # Invalid, should fallback to small
-            "ANALYZER_CACHE_SIZE": "-1",    # Invalid, should fallback to 8
-            "MAX_WORKERS": "abc",           # Invalid, should fallback to None
-            "GC_FREQUENCY": "0",            # Invalid, should fallback to 100
+            "MODEL_SIZE": "huge",  # Invalid, should fallback to small
+            "ANALYZER_CACHE_SIZE": "-1",  # Invalid, should fallback to 8
+            "MAX_WORKERS": "abc",  # Invalid, should fallback to None
+            "GC_FREQUENCY": "0",  # Invalid, should fallback to 100
         }
-        
+
         with patch.dict(os.environ, invalid_env):
             config = PerformanceConfig.from_environment()
-            
+
             # Should use safe defaults for invalid values
             assert config.model_size == "small"
             assert config.analyzer_cache_size == 8

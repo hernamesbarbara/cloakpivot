@@ -286,11 +286,11 @@ class EntityDetectionResult:
             return NotImplemented
 
         return (
-            self.entity_type == other.entity_type and
-            self.start == other.start and
-            self.end == other.end and
-            abs(self.confidence - other.confidence) < 1e-6 and
-            self.text == other.text
+            self.entity_type == other.entity_type
+            and self.start == other.start
+            and self.end == other.end
+            and abs(self.confidence - other.confidence) < 1e-6
+            and self.text == other.text
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -316,7 +316,8 @@ class AnalyzerEngineWrapper:
 
         Args:
             config: Configuration for the analyzer (uses defaults if None)
-            use_singleton: Whether to use singleton pattern (defaults to environment variable or True)
+            use_singleton: Whether to use singleton pattern (defaults to environment
+                variable or True)
         """
         self.config = config or AnalyzerConfig()
 
@@ -391,14 +392,14 @@ class AnalyzerEngineWrapper:
 
     def _get_spacy_model_name(self, language: str) -> str:
         """Get the appropriate spaCy model name based on language and size preference.
-        
+
         Uses environment variable MODEL_SIZE to control model size selection,
         providing runtime flexibility for performance/accuracy tradeoffs.
 
         Environment Variables:
             MODEL_SIZE: {small|medium|large} - Controls model size/performance tradeoff
                 - small: *_sm models (fast, lower memory, good accuracy)
-                - medium: *_md models (balanced performance and accuracy) 
+                - medium: *_md models (balanced performance and accuracy)
                 - large: *_lg models (slower, higher memory, best accuracy)
 
         Args:
@@ -409,12 +410,12 @@ class AnalyzerEngineWrapper:
         """
         from .model_info import get_model_name
         from .config import performance_config
-        
+
         # Use global performance config for model size selection
         model_size = performance_config.model_size
-        
+
         logger.debug(f"Selecting {model_size} model for language '{language}'")
-        
+
         return get_model_name(language, model_size)
 
     @profile_method("analyzer_initialization")

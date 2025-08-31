@@ -10,6 +10,7 @@ from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
 
 class PrivacyLevel(Enum):
     """Privacy level enumeration for policies."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -83,13 +84,15 @@ class MaskingPolicy:
         if isinstance(self.privacy_level, str):
             try:
                 # Convert string to enum
-                object.__setattr__(self, 'privacy_level', PrivacyLevel(self.privacy_level))
+                object.__setattr__(
+                    self, "privacy_level", PrivacyLevel(self.privacy_level)
+                )
             except ValueError:
                 # Invalid string, use default
-                object.__setattr__(self, 'privacy_level', PrivacyLevel.MEDIUM)
+                object.__setattr__(self, "privacy_level", PrivacyLevel.MEDIUM)
         elif not isinstance(self.privacy_level, PrivacyLevel):
             # Neither string nor enum, use default
-            object.__setattr__(self, 'privacy_level', PrivacyLevel.MEDIUM)
+            object.__setattr__(self, "privacy_level", PrivacyLevel.MEDIUM)
 
     def _validate_thresholds(self) -> None:
         """Validate confidence threshold values."""

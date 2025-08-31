@@ -128,15 +128,11 @@ class BatchProgressCallback(Protocol):
         """Called when batch processing starts."""
         ...
 
-    def on_file_start(
-        self, file_item: BatchFileItem, current_index: int
-    ) -> None:
+    def on_file_start(self, file_item: BatchFileItem, current_index: int) -> None:
         """Called when file processing starts."""
         ...
 
-    def on_file_complete(
-        self, file_item: BatchFileItem, current_index: int
-    ) -> None:
+    def on_file_complete(self, file_item: BatchFileItem, current_index: int) -> None:
         """Called when file processing completes."""
         ...
 
@@ -166,18 +162,12 @@ class DefaultProgressCallback:
         if self.verbose:
             print(f"🚀 Starting batch processing of {total_files} files")
 
-    def on_file_start(
-        self, file_item: BatchFileItem, current_index: int
-    ) -> None:
+    def on_file_start(self, file_item: BatchFileItem, current_index: int) -> None:
         """Called when file processing starts."""
         if self.verbose:
-            print(
-                f"📄 Processing {current_index + 1}: {file_item.file_path.name}"
-            )
+            print(f"📄 Processing {current_index + 1}: {file_item.file_path.name}")
 
-    def on_file_complete(
-        self, file_item: BatchFileItem, current_index: int
-    ) -> None:
+    def on_file_complete(self, file_item: BatchFileItem, current_index: int) -> None:
         """Called when file processing completes."""
         # Throttle console updates to avoid spam
         current_time = time.time()
@@ -185,9 +175,7 @@ class DefaultProgressCallback:
             elapsed = current_time - self._start_time
             if elapsed > 0:
                 rate = (current_index + 1) / elapsed
-                print(
-                    f"✅ Completed {current_index + 1} files ({rate:.1f} files/sec)"
-                )
+                print(f"✅ Completed {current_index + 1} files ({rate:.1f} files/sec)")
             self._last_update_time = current_time
 
     def on_file_error(
@@ -211,9 +199,7 @@ class DefaultProgressCallback:
         print(f"   Failed: {result.failed_files}")
         print(f"   Success rate: {success_rate:.1f}%")
         print(f"   Duration: {result.duration_ms / 1000:.1f} seconds")
-        print(
-            f"   Throughput: {result.throughput_files_per_second:.1f} files/sec"
-        )
+        print(f"   Throughput: {result.throughput_files_per_second:.1f} files/sec")
 
 
 class BatchProcessor:
@@ -306,9 +292,7 @@ class BatchProcessor:
                 try:
                     file_size = file_path.stat().st_size
                 except OSError:
-                    logger.warning(
-                        f"Cannot access file {file_path} - skipping"
-                    )
+                    logger.warning(f"Cannot access file {file_path} - skipping")
                     continue
 
                 file_item = BatchFileItem(
@@ -329,13 +313,9 @@ class BatchProcessor:
                 f"Limiting batch to {self.config.max_files_per_batch} files "
                 f"(found {len(discovered_files)})"
             )
-            discovered_files = discovered_files[
-                : self.config.max_files_per_batch
-            ]
+            discovered_files = discovered_files[: self.config.max_files_per_batch]
 
-        logger.info(
-            f"Discovered {len(discovered_files)} files for batch processing"
-        )
+        logger.info(f"Discovered {len(discovered_files)} files for batch processing")
         return discovered_files
 
     def _calculate_output_path(self, input_path: Path) -> Optional[Path]:
@@ -368,13 +348,9 @@ class BatchProcessor:
             if self.config.cloakmap_directory:
                 if self.config.preserve_directory_structure:
                     relative_path = input_path.relative_to(input_path.anchor)
-                    cloakmap_path = (
-                        self.config.cloakmap_directory / relative_path
-                    )
+                    cloakmap_path = self.config.cloakmap_directory / relative_path
                 else:
-                    cloakmap_path = (
-                        self.config.cloakmap_directory / input_path.name
-                    )
+                    cloakmap_path = self.config.cloakmap_directory / input_path.name
                 return cloakmap_path.with_suffix(".cloakmap.json")
         elif self.config.operation_type == BatchOperationType.MASK:
             # For mask operations, generate CloakMap alongside output
@@ -425,9 +401,7 @@ class BatchProcessor:
         self.progress_callback.on_batch_start(len(files))
 
         # Process files in parallel
-        with self.profiler.measure_operation(
-            "batch.parallel_processing"
-        ) as metric:
+        with self.profiler.measure_operation("batch.parallel_processing") as metric:
             processed_files = self._process_files_parallel(files)
             metric.metadata["files_processed"] = len(processed_files)
 
@@ -436,21 +410,15 @@ class BatchProcessor:
         successful_files = [
             f for f in processed_files if f.status == BatchStatus.COMPLETED
         ]
-        failed_files = [
-            f for f in processed_files if f.status == BatchStatus.FAILED
-        ]
+        failed_files = [f for f in processed_files if f.status == BatchStatus.FAILED]
 
-        total_processing_time = sum(
-            f.processing_time_ms for f in processed_files
-        )
+        total_processing_time = sum(f.processing_time_ms for f in processed_files)
         total_entities = sum(f.entities_processed for f in processed_files)
 
         result = BatchResult(
             config=self.config,
             status=(
-                BatchStatus.CANCELLED
-                if self._is_cancelled
-                else BatchStatus.COMPLETED
+                BatchStatus.CANCELLED if self._is_cancelled else BatchStatus.COMPLETED
             ),
             start_time=start_time,
             end_time=end_time,
@@ -492,9 +460,7 @@ class BatchProcessor:
                 logger.error(f"Failed to create directory {directory}: {e}")
                 raise
 
-    def _filter_existing_files(
-        self, files: list[BatchFileItem]
-    ) -> list[BatchFileItem]:
+    def _filter_existing_files(self, files: list[BatchFileItem]) -> list[BatchFileItem]:
         """Filter out files that would overwrite existing outputs."""
         filtered_files = []
 
@@ -502,9 +468,7 @@ class BatchProcessor:
             should_skip = False
 
             if file_item.output_path and file_item.output_path.exists():
-                logger.warning(
-                    f"Output file exists, skipping: {file_item.output_path}"
-                )
+                logger.warning(f"Output file exists, skipping: {file_item.output_path}")
                 file_item.status = BatchStatus.FAILED
                 file_item.error = "Output file already exists"
                 should_skip = True
@@ -528,9 +492,7 @@ class BatchProcessor:
         """Process files in parallel using ThreadPoolExecutor."""
         processed_files = []
 
-        with ThreadPoolExecutor(
-            max_workers=self.config.max_workers
-        ) as executor:
+        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
             # Submit all file processing tasks
             future_to_file = {}
 
@@ -538,9 +500,7 @@ class BatchProcessor:
                 if self._is_cancelled:
                     break
 
-                future = executor.submit(
-                    self._process_single_file, file_item, i
-                )
+                future = executor.submit(self._process_single_file, file_item, i)
                 future_to_file[future] = (file_item, i)
 
             # Collect results as they complete
@@ -565,9 +525,7 @@ class BatchProcessor:
                     file_item.status = BatchStatus.FAILED
                     file_item.error = f"Unexpected error: {e}"
                     processed_files.append(file_item)
-                    self.progress_callback.on_file_error(
-                        file_item, str(e), index
-                    )
+                    self.progress_callback.on_file_error(file_item, str(e), index)
 
                 # Check memory limits
                 if self._memory_monitor and self.config.max_memory_mb:
@@ -606,14 +564,9 @@ class BatchProcessor:
                     # Delegate to specific operation handler
                     if self.config.operation_type == BatchOperationType.MASK:
                         self._process_mask_operation(file_item)
-                    elif (
-                        self.config.operation_type == BatchOperationType.UNMASK
-                    ):
+                    elif self.config.operation_type == BatchOperationType.UNMASK:
                         self._process_unmask_operation(file_item)
-                    elif (
-                        self.config.operation_type
-                        == BatchOperationType.ANALYZE
-                    ):
+                    elif self.config.operation_type == BatchOperationType.ANALYZE:
                         self._process_analyze_operation(file_item)
                     else:
                         raise ValueError(
@@ -701,9 +654,7 @@ class BatchProcessor:
         # Save CloakMap
         if file_item.cloakmap_path:
             with open(file_item.cloakmap_path, "w", encoding="utf-8") as f:
-                json.dump(
-                    masking_result.cloakmap.to_dict(), f, indent=2, default=str
-                )
+                json.dump(masking_result.cloakmap.to_dict(), f, indent=2, default=str)
 
         file_item.entities_processed = len(entities)
 
@@ -716,9 +667,7 @@ class BatchProcessor:
         from ..unmasking.engine import UnmaskingEngine
 
         if not file_item.cloakmap_path or not file_item.cloakmap_path.exists():
-            raise FileNotFoundError(
-                f"CloakMap not found: {file_item.cloakmap_path}"
-            )
+            raise FileNotFoundError(f"CloakMap not found: {file_item.cloakmap_path}")
 
         # Load CloakMap
         with open(file_item.cloakmap_path, encoding="utf-8") as f:
@@ -727,9 +676,7 @@ class BatchProcessor:
 
         # Load masked document
         processor = DocumentProcessor()
-        masked_document = processor.load_document(
-            file_item.file_path, validate=True
-        )
+        masked_document = processor.load_document(file_item.file_path, validate=True)
 
         # Unmask document
         unmasking_engine = UnmaskingEngine()
@@ -743,9 +690,7 @@ class BatchProcessor:
         if file_item.output_path:
             from docpivot import LexicalDocSerializer
 
-            serializer = LexicalDocSerializer(
-                unmasking_result.restored_document
-            )
+            serializer = LexicalDocSerializer(unmasking_result.restored_document)
             result = serializer.serialize()
 
             with open(file_item.output_path, "w", encoding="utf-8") as f:

@@ -37,11 +37,11 @@ class SystemValidator:
     def validate_dependencies() -> None:
         """Validate required dependencies are installed with compatible versions."""
         required_packages = {
-            'presidio_analyzer': '2.0.0',
-            'presidio_anonymizer': '2.0.0',
-            'docpivot': '0.1.0',
-            'pydantic': '2.0.0',
-            'click': '8.0.0',
+            "presidio_analyzer": "2.0.0",
+            "presidio_anonymizer": "2.0.0",
+            "docpivot": "0.1.0",
+            "pydantic": "2.0.0",
+            "click": "8.0.0",
         }
 
         missing_packages = []
@@ -50,22 +50,27 @@ class SystemValidator:
         for package, min_version in required_packages.items():
             try:
                 import importlib.metadata
+
                 installed_version = importlib.metadata.version(package)
 
                 # Simple version comparison (major.minor.patch)
-                if not SystemValidator._version_compatible(installed_version, min_version):
-                    version_conflicts.append({
-                        'package': package,
-                        'required': min_version,
-                        'installed': installed_version,
-                    })
+                if not SystemValidator._version_compatible(
+                    installed_version, min_version
+                ):
+                    version_conflicts.append(
+                        {
+                            "package": package,
+                            "required": min_version,
+                            "installed": installed_version,
+                        }
+                    )
 
             except importlib.metadata.PackageNotFoundError:
                 missing_packages.append(package)
 
         if missing_packages:
             raise create_dependency_error(
-                ', '.join(missing_packages),
+                ", ".join(missing_packages),
                 required_version="See requirements.txt",
             )
 
@@ -84,8 +89,9 @@ class SystemValidator:
     @staticmethod
     def _version_compatible(installed: str, required: str) -> bool:
         """Check if installed version meets minimum requirement."""
+
         def parse_version(v: str) -> tuple:
-            return tuple(map(int, v.split('.')[:3]))
+            return tuple(map(int, v.split(".")[:3]))
 
         try:
             return parse_version(installed) >= parse_version(required)
@@ -108,7 +114,9 @@ class SystemValidator:
                 error_code="FILE_NOT_FOUND",
             )
             error.add_recovery_suggestion("Check the file path is correct")
-            error.add_recovery_suggestion("Ensure the file exists at the specified location")
+            error.add_recovery_suggestion(
+                "Ensure the file exists at the specified location"
+            )
             raise error
 
         if require_read and not os.access(path, os.R_OK):
@@ -177,7 +185,7 @@ class DocumentValidator:
         SystemValidator.validate_file_permissions(path, require_read=True)
 
         suffix = path.suffix.lower()
-        supported_formats = {'.pdf', '.docx', '.txt', '.md', '.html', '.json'}
+        supported_formats = {".pdf", ".docx", ".txt", ".md", ".html", ".json"}
 
         if suffix not in supported_formats:
             raise ValidationError(
@@ -187,7 +195,7 @@ class DocumentValidator:
             )
 
         # Additional format-specific validation
-        if suffix == '.json':
+        if suffix == ".json":
             DocumentValidator._validate_json_document(path)
 
         return suffix[1:]  # Remove the dot
@@ -198,12 +206,12 @@ class DocumentValidator:
         import json
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Check if it's a valid docling document structure
             if isinstance(data, dict):
-                required_keys = {'name', 'texts'}  # Minimal docling structure
+                required_keys = {"name", "texts"}  # Minimal docling structure
                 if not required_keys.issubset(data.keys()):
                     raise ValidationError(
                         f"Invalid document structure. Required keys: {required_keys}",
@@ -244,8 +252,10 @@ class PolicyValidator:
     @staticmethod
     def validate_policy_structure(policy_data: dict[str, Any]) -> None:
         """Validate basic policy structure and required fields."""
-        required_fields = ['default_strategy']
-        missing_fields = [field for field in required_fields if field not in policy_data]
+        required_fields = ["default_strategy"]
+        missing_fields = [
+            field for field in required_fields if field not in policy_data
+        ]
 
         if missing_fields:
             raise ConfigurationError(
@@ -254,19 +264,19 @@ class PolicyValidator:
             )
 
         # Validate default strategy
-        PolicyValidator._validate_strategy(policy_data['default_strategy'])
+        PolicyValidator._validate_strategy(policy_data["default_strategy"])
 
         # Validate per-entity strategies if present
-        if 'per_entity' in policy_data:
-            if not isinstance(policy_data['per_entity'], dict):
+        if "per_entity" in policy_data:
+            if not isinstance(policy_data["per_entity"], dict):
                 raise create_validation_error(
                     "per_entity must be a dictionary",
                     "per_entity",
                     dict,
-                    type(policy_data['per_entity'])
+                    type(policy_data["per_entity"]),
                 )
 
-            for _entity_type, strategy in policy_data['per_entity'].items():
+            for _entity_type, strategy in policy_data["per_entity"].items():
                 PolicyValidator._validate_strategy(strategy)
 
     @staticmethod
@@ -274,26 +284,23 @@ class PolicyValidator:
         """Validate a masking strategy configuration."""
         if not isinstance(strategy, dict):
             raise create_validation_error(
-                "Strategy must be a dictionary",
-                "strategy",
-                dict,
-                type(strategy)
+                "Strategy must be a dictionary", "strategy", dict, type(strategy)
             )
 
-        if 'kind' not in strategy:
+        if "kind" not in strategy:
             raise ValidationError(
                 "Strategy must specify 'kind'",
                 field_name="strategy.kind",
             )
 
-        valid_kinds = {'redact', 'hash', 'template', 'partial'}
-        if strategy['kind'] not in valid_kinds:
+        valid_kinds = {"redact", "hash", "template", "partial"}
+        if strategy["kind"] not in valid_kinds:
             raise ValidationError(
                 f"Invalid strategy kind '{strategy['kind']}'. "
                 f"Valid kinds: {', '.join(sorted(valid_kinds))}",
                 field_name="strategy.kind",
                 expected_type=f"one of {valid_kinds}",
-                actual_value=strategy['kind'],
+                actual_value=strategy["kind"],
             )
 
     @staticmethod
@@ -305,7 +312,7 @@ class PolicyValidator:
                     f"Threshold for {entity_type} must be numeric",
                     f"thresholds.{entity_type}",
                     float,
-                    threshold
+                    threshold,
                 )
 
             if not 0.0 <= threshold <= 1.0:
@@ -323,8 +330,10 @@ class CloakMapValidator:
     @staticmethod
     def validate_cloakmap_structure(cloakmap_data: dict[str, Any]) -> None:
         """Validate CloakMap has required structure."""
-        required_fields = ['doc_id', 'version', 'anchors', 'created_at']
-        missing_fields = [field for field in required_fields if field not in cloakmap_data]
+        required_fields = ["doc_id", "version", "anchors", "created_at"]
+        missing_fields = [
+            field for field in required_fields if field not in cloakmap_data
+        ]
 
         if missing_fields:
             raise ValidationError(
@@ -333,16 +342,16 @@ class CloakMapValidator:
             )
 
         # Validate anchors is a list
-        if not isinstance(cloakmap_data['anchors'], list):
+        if not isinstance(cloakmap_data["anchors"], list):
             raise create_validation_error(
                 "CloakMap anchors must be a list",
                 "anchors",
                 list,
-                type(cloakmap_data['anchors'])
+                type(cloakmap_data["anchors"]),
             )
 
         # Validate each anchor
-        for i, anchor in enumerate(cloakmap_data['anchors']):
+        for i, anchor in enumerate(cloakmap_data["anchors"]):
             CloakMapValidator._validate_anchor(anchor, i)
 
     @staticmethod
@@ -353,10 +362,10 @@ class CloakMapValidator:
                 f"Anchor at index {index} must be a dictionary",
                 f"anchors[{index}]",
                 dict,
-                type(anchor)
+                type(anchor),
             )
 
-        required_fields = ['anchor_id', 'node_id', 'start', 'end', 'entity_type']
+        required_fields = ["anchor_id", "node_id", "start", "end", "entity_type"]
         missing_fields = [field for field in required_fields if field not in anchor]
 
         if missing_fields:
@@ -366,20 +375,20 @@ class CloakMapValidator:
             )
 
         # Validate position values
-        if not isinstance(anchor['start'], int) or anchor['start'] < 0:
+        if not isinstance(anchor["start"], int) or anchor["start"] < 0:
             raise ValidationError(
                 f"Anchor at index {index} has invalid start position: {anchor['start']}",
                 field_name=f"anchors[{index}].start",
                 expected_type="non-negative integer",
-                actual_value=anchor['start'],
+                actual_value=anchor["start"],
             )
 
-        if not isinstance(anchor['end'], int) or anchor['end'] < anchor['start']:
+        if not isinstance(anchor["end"], int) or anchor["end"] < anchor["start"]:
             raise ValidationError(
                 f"Anchor at index {index} has invalid end position: {anchor['end']}",
                 field_name=f"anchors[{index}].end",
                 expected_type="integer >= start position",
-                actual_value=anchor['end'],
+                actual_value=anchor["end"],
             )
 
 
@@ -410,8 +419,8 @@ class InputValidator:
         # Policy validation
         if policy_data:
             self.policy_validator.validate_policy_structure(policy_data)
-            if 'thresholds' in policy_data:
-                self.policy_validator.validate_thresholds(policy_data['thresholds'])
+            if "thresholds" in policy_data:
+                self.policy_validator.validate_thresholds(policy_data["thresholds"])
 
         # Output validation
         if output_path:
@@ -434,13 +443,18 @@ class InputValidator:
         self.system_validator.validate_dependencies()
 
         # Input file validation
-        self.system_validator.validate_file_permissions(masked_document_path, require_read=True)
-        self.system_validator.validate_file_permissions(cloakmap_path, require_read=True)
+        self.system_validator.validate_file_permissions(
+            masked_document_path, require_read=True
+        )
+        self.system_validator.validate_file_permissions(
+            cloakmap_path, require_read=True
+        )
 
         # CloakMap structure validation
         import json
+
         try:
-            with open(cloakmap_path, encoding='utf-8') as f:
+            with open(cloakmap_path, encoding="utf-8") as f:
                 cloakmap_data = json.load(f)
             self.cloakmap_validator.validate_cloakmap_structure(cloakmap_data)
         except json.JSONDecodeError as e:
@@ -463,19 +477,21 @@ class InputValidator:
         warnings = []
 
         # Check for deprecated settings
-        deprecated_keys = {'legacy_mode', 'old_strategy_format'}
+        deprecated_keys = {"legacy_mode", "old_strategy_format"}
         for key in deprecated_keys:
             if key in config:
-                warnings.append(f"Configuration key '{key}' is deprecated and will be ignored")
+                warnings.append(
+                    f"Configuration key '{key}' is deprecated and will be ignored"
+                )
 
         # Check for potentially problematic settings
-        if config.get('max_file_size_mb', 100) > 500:
+        if config.get("max_file_size_mb", 100) > 500:
             warnings.append(
                 f"Large file size limit ({config['max_file_size_mb']}MB) may cause memory issues"
             )
 
         # Check performance settings
-        if config.get('parallel_processing', True) and config.get('max_workers', 4) > 8:
+        if config.get("parallel_processing", True) and config.get("max_workers", 4) > 8:
             warnings.append(
                 f"High worker count ({config['max_workers']}) may impact performance"
             )
@@ -484,6 +500,7 @@ class InputValidator:
 
 
 # Convenience functions for common validation scenarios
+
 
 def validate_for_masking(
     document_path: Union[str, Path],
@@ -509,5 +526,7 @@ def validate_for_unmasking(
 ) -> list[str]:
     """Validate inputs for unmasking operation and return any warnings."""
     validator = InputValidator()
-    validator.validate_unmasking_inputs(masked_document_path, cloakmap_path, output_path)
+    validator.validate_unmasking_inputs(
+        masked_document_path, cloakmap_path, output_path
+    )
     return []

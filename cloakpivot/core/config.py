@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceConfig:
     """Runtime performance configuration from environment variables.
-    
+
     This dataclass encapsulates all performance-related configuration options
     that can be controlled through environment variables, providing a single
     source of truth for performance settings across the application.
-    
+
     Attributes:
         model_size: Size of spaCy models to use (small|medium|large)
         use_singleton_analyzers: Whether to use singleton analyzer pattern
@@ -33,15 +33,15 @@ class PerformanceConfig:
 
     # Model configuration
     model_size: str = "small"  # small|medium|large
-    
+
     # Singleton behavior
     use_singleton_analyzers: bool = True
     analyzer_cache_size: int = 8
-    
-    # Performance tuning  
+
+    # Performance tuning
     enable_parallel_processing: bool = True
     max_worker_threads: Optional[int] = None
-    
+
     # Memory optimization
     enable_memory_optimization: bool = True
     gc_frequency: int = 100  # operations between garbage collection
@@ -52,7 +52,7 @@ class PerformanceConfig:
         self._validate_cache_size()
         self._validate_worker_threads()
         self._validate_gc_frequency()
-        
+
         logger.debug(
             f"PerformanceConfig initialized: model_size={self.model_size}, "
             f"cache_size={self.analyzer_cache_size}, use_singleton={self.use_singleton_analyzers}"
@@ -61,72 +61,90 @@ class PerformanceConfig:
     def _validate_model_size(self) -> None:
         """Validate and normalize model_size."""
         if not isinstance(self.model_size, str):
-            logger.warning(f"model_size must be string, got {type(self.model_size)}, using 'small'")
+            logger.warning(
+                f"model_size must be string, got {type(self.model_size)}, using 'small'"
+            )
             self.model_size = "small"
             return
-            
+
         self.model_size = self.model_size.lower()
         valid_sizes = {"small", "medium", "large"}
-        
+
         if self.model_size not in valid_sizes:
-            logger.warning(f"Invalid model_size '{self.model_size}', using 'small'. Valid: {valid_sizes}")
+            logger.warning(
+                f"Invalid model_size '{self.model_size}', using 'small'. Valid: {valid_sizes}"
+            )
             self.model_size = "small"
 
     def _validate_cache_size(self) -> None:
         """Validate and normalize analyzer_cache_size."""
-        if not isinstance(self.analyzer_cache_size, int) or self.analyzer_cache_size <= 0:
-            logger.warning(f"analyzer_cache_size must be positive integer, got {self.analyzer_cache_size}, using 8")
+        if (
+            not isinstance(self.analyzer_cache_size, int)
+            or self.analyzer_cache_size <= 0
+        ):
+            logger.warning(
+                f"analyzer_cache_size must be positive integer, got "
+                f"{self.analyzer_cache_size}, using 8"
+            )
             self.analyzer_cache_size = 8
 
     def _validate_worker_threads(self) -> None:
         """Validate max_worker_threads."""
         if self.max_worker_threads is not None:
-            if not isinstance(self.max_worker_threads, int) or self.max_worker_threads <= 0:
-                logger.warning(f"max_worker_threads must be positive integer or None, got {self.max_worker_threads}, using None")
+            if (
+                not isinstance(self.max_worker_threads, int)
+                or self.max_worker_threads <= 0
+            ):
+                logger.warning(
+                    f"max_worker_threads must be positive integer or None, got "
+                    f"{self.max_worker_threads}, using None"
+                )
                 self.max_worker_threads = None
 
     def _validate_gc_frequency(self) -> None:
         """Validate gc_frequency."""
         if not isinstance(self.gc_frequency, int) or self.gc_frequency <= 0:
-            logger.warning(f"gc_frequency must be positive integer, got {self.gc_frequency}, using 100")
+            logger.warning(
+                f"gc_frequency must be positive integer, got {self.gc_frequency}, using 100"
+            )
             self.gc_frequency = 100
 
     @classmethod
-    def from_environment(cls) -> 'PerformanceConfig':
+    def from_environment(cls) -> "PerformanceConfig":
         """Load configuration from environment variables.
-        
+
         Loads configuration values from environment variables with fallback
         to safe defaults. All environment variable parsing is tolerant of
         invalid values and will log warnings while falling back to defaults.
-        
+
         Environment Variables:
-            MODEL_SIZE: Model size selection (small|medium|large) 
+            MODEL_SIZE: Model size selection (small|medium|large)
             CLOAKPIVOT_USE_SINGLETON: Enable singleton analyzers (true|false)
             ANALYZER_CACHE_SIZE: LRU cache size for analyzers (positive integer)
             ENABLE_PARALLEL: Enable parallel processing (true|false)
             MAX_WORKERS: Maximum worker threads (positive integer)
             MEMORY_OPTIMIZATION: Enable memory optimization (true|false)
             GC_FREQUENCY: Garbage collection frequency (positive integer)
-        
+
         Returns:
             PerformanceConfig instance with values from environment or defaults
         """
         try:
             # Model configuration
             model_size = cls._get_env_string("MODEL_SIZE", "small").lower()
-            
-            # Singleton behavior 
+
+            # Singleton behavior
             use_singleton = cls._get_env_bool("CLOAKPIVOT_USE_SINGLETON", True)
             cache_size = cls._get_env_int("ANALYZER_CACHE_SIZE", 8)
-            
+
             # Performance tuning
             enable_parallel = cls._get_env_bool("ENABLE_PARALLEL", True)
             max_workers = cls._get_env_int("MAX_WORKERS", None, allow_none=True)
-            
+
             # Memory optimization
             enable_memory_opt = cls._get_env_bool("MEMORY_OPTIMIZATION", True)
             gc_frequency = cls._get_env_int("GC_FREQUENCY", 100)
-            
+
             config = cls(
                 model_size=model_size,
                 use_singleton_analyzers=use_singleton,
@@ -134,14 +152,16 @@ class PerformanceConfig:
                 enable_parallel_processing=enable_parallel,
                 max_worker_threads=max_workers,
                 enable_memory_optimization=enable_memory_opt,
-                gc_frequency=gc_frequency
+                gc_frequency=gc_frequency,
             )
-            
+
             logger.info(f"Loaded configuration from environment: {config}")
             return config
-            
+
         except Exception as e:
-            logger.error(f"Error loading configuration from environment: {e}, using defaults")
+            logger.error(
+                f"Error loading configuration from environment: {e}, using defaults"
+            )
             return cls()
 
     @staticmethod
@@ -152,16 +172,17 @@ class PerformanceConfig:
             return default
         return value.strip()
 
-    @staticmethod 
+    @staticmethod
     def _get_env_bool(key: str, default: bool) -> bool:
         """Get boolean value from environment with default fallback.
-        
-        Only 'true' (case insensitive) evaluates to True, everything else defaults to the provided default.
+
+        Only 'true' (case insensitive) evaluates to True, everything else
+        defaults to the provided default.
         """
         value = os.getenv(key)
         if value is None:
             return default
-        
+
         cleaned_value = value.strip().lower()
         if cleaned_value == "true":
             return True
@@ -172,30 +193,40 @@ class PerformanceConfig:
             return default
 
     @staticmethod
-    def _get_env_int(key: str, default: Optional[int], allow_none: bool = False) -> Optional[int]:
+    def _get_env_int(
+        key: str, default: Optional[int], allow_none: bool = False
+    ) -> Optional[int]:
         """Get integer value from environment with default fallback."""
         value = os.getenv(key)
         if value is None:
             return default
-            
+
         try:
             parsed = int(value.strip())
             if parsed <= 0 and not allow_none:
-                logger.warning(f"Environment variable {key}={value} must be positive, using default {default}")
+                logger.warning(
+                    f"Environment variable {key}={value} must be positive, using default {default}"
+                )
                 return default
             return parsed
         except ValueError:
-            logger.warning(f"Environment variable {key}={value} is not a valid integer, using default {default}")
+            logger.warning(
+                f"Environment variable {key}={value} is not a valid integer, "
+                f"using default {default}"
+            )
             return default
 
     def get_model_characteristics(self) -> dict[str, any]:
         """Get performance characteristics for current model size.
-        
+
         Returns:
             Dictionary with memory, performance, and accuracy information
         """
         from .model_info import MODEL_CHARACTERISTICS
-        return MODEL_CHARACTERISTICS.get(self.model_size, MODEL_CHARACTERISTICS["small"])
+
+        return MODEL_CHARACTERISTICS.get(
+            self.model_size, MODEL_CHARACTERISTICS["small"]
+        )
 
     def to_dict(self) -> dict[str, any]:
         """Convert configuration to dictionary for serialization."""
@@ -240,11 +271,11 @@ def reset_performance_config() -> None:
 # For backwards compatibility, provide the performance_config as a property-like access
 class _ConfigProxy:
     """Proxy object that provides lazy access to performance config."""
-    
+
     def __getattr__(self, name: str):
         config = get_performance_config()
         return getattr(config, name)
-    
+
     def __repr__(self) -> str:
         return repr(get_performance_config())
 
