@@ -15,11 +15,49 @@ env:
   MODEL_SIZE: small
   PYTEST_FAST_MODE: true
   CLOAKPIVOT_USE_SINGLETON: true
+  
+  # Cache versioning for intelligent invalidation
+  SPACY_CACHE_VERSION: v1
+  HUGGINGFACE_CACHE_VERSION: v1
+  MODEL_CACHE_VERSION: v2
+  SPACY_VERSION: "3.7.0"
 
 jobs:
+  cache-setup:
+    name: Setup Model Cache Keys
+    runs-on: ubuntu-latest
+    outputs:
+      spacy-cache-key: ${{ steps.cache-keys.outputs.spacy-key }}
+      huggingface-cache-key: ${{ steps.cache-keys.outputs.huggingface-key }}
+      pip-cache-key: ${{ steps.cache-keys.outputs.pip-key }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate cache keys
+      id: cache-keys
+      run: |
+        # Create deterministic cache keys based on dependencies and versions
+        PYPROJECT_HASH=$(sha256sum pyproject.toml | cut -d' ' -f1 | head -c 8)
+        
+        SPACY_KEY="spacy-${{ env.SPACY_CACHE_VERSION }}-${{ env.SPACY_VERSION }}-${PYPROJECT_HASH}"
+        HF_KEY="huggingface-${{ env.HUGGINGFACE_CACHE_VERSION }}-${PYPROJECT_HASH}"
+        PIP_KEY="pip-${PYPROJECT_HASH}"
+        
+        echo "spacy-key=$SPACY_KEY" >> $GITHUB_OUTPUT
+        echo "huggingface-key=$HF_KEY" >> $GITHUB_OUTPUT  
+        echo "pip-key=$PIP_KEY" >> $GITHUB_OUTPUT
+        
+        echo "Generated cache keys:"
+        echo "  spaCy: $SPACY_KEY"
+        echo "  HuggingFace: $HF_KEY"
+        echo "  Pip: $PIP_KEY"
+
   test-matrix:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: cache-setup
     strategy:
       fail-fast: false
       matrix:
@@ -40,6 +78,45 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
+    # Multi-level caching strategy for optimal hit rates
+    - name: Cache spaCy models
+      id: cache-spacy
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/spacy
+          ~/spacy_models
+        key: ${{ needs.cache-setup.outputs.spacy-cache-key }}-${{ matrix.python-version }}-${{ matrix.os }}
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.spacy-cache-key }}-${{ matrix.python-version }}-
+          ${{ needs.cache-setup.outputs.spacy-cache-key }}-
+          spacy-${{ env.SPACY_CACHE_VERSION }}-${{ env.SPACY_VERSION }}-
+
+    - name: Cache HuggingFace models
+      id: cache-huggingface
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/huggingface/transformers
+          ~/.cache/huggingface/datasets
+          ~/.cache/huggingface/hub
+        key: ${{ needs.cache-setup.outputs.huggingface-cache-key }}-${{ matrix.python-version }}-${{ matrix.os }}
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.huggingface-cache-key }}-${{ matrix.python-version }}-
+          ${{ needs.cache-setup.outputs.huggingface-cache-key }}-
+          huggingface-${{ env.HUGGINGFACE_CACHE_VERSION }}-
+
+    - name: Cache pip packages
+      id: cache-pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ needs.cache-setup.outputs.pip-cache-key }}-${{ matrix.python-version }}-${{ matrix.os }}
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.pip-cache-key }}-${{ matrix.python-version }}-
+          ${{ needs.cache-setup.outputs.pip-cache-key }}-
+          pip-${{ matrix.python-version }}-
 
     - name: Install system dependencies
       run: |
@@ -66,14 +143,16 @@ jobs:
 
     - name: Run type checking
       run: |
-        # TODO: Remove lenient flags as type annotations improve
-        mypy cloakpivot --ignore-missing-imports --no-strict-optional
+        # Use strict mypy configuration for better type safety
+        mypy cloakpivot --strict --show-error-codes --pretty
 
-    - name: Download required models
+    - name: Setup models with intelligent caching
       run: |
-        # Pre-download spaCy models to avoid download during tests
-        python -m spacy download en_core_web_sm
-        python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('Model loaded successfully')"
+        # Use intelligent model setup script with caching awareness
+        python scripts/setup-models.py \
+          --model-size ${{ env.MODEL_SIZE }} \
+          --cache-hit ${{ steps.cache-spacy.outputs.cache-hit }} \
+          --verify-installation
 
     - name: Run tests
       run: |
@@ -96,6 +175,7 @@ jobs:
   test-comprehensive:
     name: Comprehensive Test Suite
     runs-on: ubuntu-latest
+    needs: cache-setup
     # Only run on main branch merges
     if: github.ref == 'refs/heads/main'
     
@@ -108,17 +188,54 @@ jobs:
       with:
         python-version: "3.11"
 
+    # Use same caching strategy for comprehensive tests
+    - name: Cache spaCy models (comprehensive)
+      id: cache-spacy-comprehensive
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/spacy
+          ~/spacy_models
+        key: ${{ needs.cache-setup.outputs.spacy-cache-key }}-comprehensive-3.11-ubuntu-latest
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.spacy-cache-key }}-3.11-
+          ${{ needs.cache-setup.outputs.spacy-cache-key }}-
+          spacy-${{ env.SPACY_CACHE_VERSION }}-${{ env.SPACY_VERSION }}-
+
+    - name: Cache HuggingFace models (comprehensive)
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/huggingface/transformers
+          ~/.cache/huggingface/datasets
+          ~/.cache/huggingface/hub
+        key: ${{ needs.cache-setup.outputs.huggingface-cache-key }}-comprehensive-3.11-ubuntu-latest
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.huggingface-cache-key }}-3.11-
+          ${{ needs.cache-setup.outputs.huggingface-cache-key }}-
+          huggingface-${{ env.HUGGINGFACE_CACHE_VERSION }}-
+
+    - name: Cache pip packages (comprehensive)
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ needs.cache-setup.outputs.pip-cache-key }}-comprehensive-3.11-ubuntu-latest
+        restore-keys: |
+          ${{ needs.cache-setup.outputs.pip-cache-key }}-3.11-
+          ${{ needs.cache-setup.outputs.pip-cache-key }}-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev,test]"
 
-    - name: Download all models
+    - name: Setup comprehensive model set
       run: |
-        python -m spacy download en_core_web_sm
-        python -m spacy download en_core_web_md
-        # Download large model for comprehensive testing on main branch
-        python -m spacy download en_core_web_lg
+        # Download all model sizes for comprehensive testing
+        python scripts/setup-models.py \
+          --model-size large \
+          --cache-hit ${{ steps.cache-spacy-comprehensive.outputs.cache-hit }} \
+          --verify-installation
 
     - name: Run comprehensive tests
       env:
