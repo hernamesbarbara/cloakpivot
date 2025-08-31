@@ -1,5 +1,33 @@
 """Global pytest configuration and shared fixtures for CloakPivot tests.
 
+Fixture Dependency Relationships:
+The fixture hierarchy is designed to minimize resource creation while maintaining test isolation:
+
+Core Dependencies:
+- worker_id → shared_temp_dir, parallel_shared_analyzer, performance_profiler
+- parallel_shared_analyzer → shared_analyzer → shared_detection_pipeline
+- temp_dir (independent session fixture for basic temp directory needs)
+
+Document Fixtures:
+- sample_text_with_pii → simple_document, large_document, simple_text_segments
+- complex_document → complex_text_segments (independent complex document structure)
+
+Policy Fixtures (all independent):
+- basic_masking_policy, strict_masking_policy, benchmark_policy
+
+Performance Fixtures:
+- shared_analyzer → shared_detection_pipeline
+- shared_document_processor (independent)
+- performance_test_configs (independent configuration dictionary)
+
+Mocking Fixtures:
+- mock_presidio_analyzer, mock_presidio_anonymizer (independent mocks)
+- mock_analyzer_results (independent test data)
+
+Parametrized Fixtures:
+- privacy_level, strategy_kind (depend on fast/slow mode environment variable)
+- privacy_level_slow, strategy_kind_slow (always use full parameter sets)
+
 Fast/Slow Mode Configuration:
 The test suite supports multiple execution modes to balance speed and coverage:
 
@@ -94,11 +122,13 @@ def temp_dir() -> Path:
 @pytest.fixture(scope="session")
 def worker_id(request) -> str:
     """Get the worker ID for xdist parallel execution."""
-    # Check for xdist worker input
+    # Primary method: Check for xdist worker input from pytest-xdist
+    # When running with pytest -n auto, each worker process gets a unique workerid
     if hasattr(request.config, 'workerinput'):
         return request.config.workerinput['workerid']
 
-    # Fallback to parallel support utility
+    # Fallback method: Use parallel support utility for non-xdist environments
+    # This handles cases where tests are run without pytest-xdist but may still need worker identification
     return ParallelTestSupport.get_worker_id()
 
 
@@ -589,13 +619,21 @@ def pytest_sessionstart(session):
     # Set up shared analyzer for masking helpers to reduce resource usage
     try:
         from presidio_analyzer import AnalyzerEngine
-
-        from tests.utils.masking_helpers import set_test_shared_analyzer
-        shared_analyzer = AnalyzerEngine()
-        set_test_shared_analyzer(shared_analyzer)
     except ImportError:
-        # If dependencies not available, skip shared analyzer setup
+        # presidio_analyzer not available, skip shared analyzer setup
         pass
+    else:
+        try:
+            from tests.utils.masking_helpers import set_test_shared_analyzer
+            shared_analyzer = AnalyzerEngine()
+            set_test_shared_analyzer(shared_analyzer)
+        except ImportError:
+            # masking_helpers module not available, skip shared analyzer setup
+            pass
+        except Exception as e:
+            # Log unexpected errors but don't fail test setup
+            import logging
+            logging.warning(f"Failed to setup shared analyzer: {e}")
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -649,16 +687,27 @@ def shared_detection_pipeline(shared_analyzer):
         wrapper._engine = shared_analyzer
         wrapper._is_initialized = True
         pipeline = EntityDetectionPipeline(analyzer=wrapper)
-    except AttributeError:
-        # If that doesn't work, create pipeline normally
+    except AttributeError as e:
+        # Wrapper doesn't support direct engine assignment, create pipeline normally
+        import logging
+        logging.debug(f"Direct analyzer assignment failed: {e}")
+        pipeline = EntityDetectionPipeline()
+    except (TypeError, ValueError) as e:
+        # Pipeline creation failed with wrapper, try without analyzer parameter
+        import logging
+        logging.debug(f"Pipeline creation with wrapper failed: {e}")
         pipeline = EntityDetectionPipeline()
 
     return pipeline
 
 
-@pytest.fixture(scope="session")
-def performance_profiler():
-    """Shared PerformanceProfiler for test metrics collection."""
+@pytest.fixture(scope="function")
+def performance_profiler(worker_id: str):
+    """Worker-specific PerformanceProfiler for test metrics collection.
+    
+    Changed from session-scoped to function-scoped to avoid shared state issues
+    in parallel test execution. Each test gets its own profiler instance.
+    """
     from cloakpivot.core.performance import PerformanceProfiler
 
     profiler = PerformanceProfiler()
@@ -669,7 +718,7 @@ def performance_profiler():
 
     yield profiler
 
-    # Session teardown: save performance metrics
+    # Function teardown: save performance metrics for this specific test/worker
     try:
         stats = profiler.get_operation_stats()
         if stats:
@@ -677,30 +726,57 @@ def performance_profiler():
             import os
             from datetime import datetime
 
-            os.makedirs('test_reports', exist_ok=True)
-            timestamp = datetime.now().isoformat()
-            # Convert stats to JSON-serializable format
-            serializable_stats = {}
-            for op_name, op_stats in stats.items():
-                serializable_stats[op_name] = {
-                    'operation': op_stats.operation,
-                    'total_calls': op_stats.total_calls,
-                    'total_duration_ms': op_stats.total_duration_ms,
-                    'average_duration_ms': op_stats.average_duration_ms,
-                    'min_duration_ms': op_stats.min_duration_ms,
-                    'max_duration_ms': op_stats.max_duration_ms,
-                    'success_rate': op_stats.success_rate,
-                    'failure_count': op_stats.failure_count
-                }
+            # Create reports directory with proper error handling
+            try:
+                os.makedirs('test_reports', exist_ok=True)
+            except PermissionError:
+                import logging
+                logging.warning("Permission denied creating test_reports directory")
+                return
+            except OSError as e:
+                import logging
+                logging.warning(f"Failed to create test_reports directory: {e}")
+                return
 
-            with open(f'test_reports/performance_metrics_{timestamp}.json', 'w') as f:
-                json.dump(serializable_stats, f, indent=2)
-    except (OSError, json.JSONEncodeError) as e:
-        import logging
-        logging.warning(f"Failed to save performance metrics: {e}")
+            timestamp = datetime.now().isoformat().replace(':', '-')  # Safe for filenames
+            
+            # Convert stats to JSON-serializable format with error handling
+            serializable_stats = {}
+            try:
+                for op_name, op_stats in stats.items():
+                    serializable_stats[op_name] = {
+                        'operation': op_stats.operation,
+                        'total_calls': op_stats.total_calls,
+                        'total_duration_ms': op_stats.total_duration_ms,
+                        'average_duration_ms': op_stats.average_duration_ms,
+                        'min_duration_ms': op_stats.min_duration_ms,
+                        'max_duration_ms': op_stats.max_duration_ms,
+                        'success_rate': op_stats.success_rate,
+                        'failure_count': op_stats.failure_count
+                    }
+            except (AttributeError, TypeError) as e:
+                import logging
+                logging.warning(f"Failed to serialize performance stats: {e}")
+                return
+
+            # Write metrics file with specific error handling
+            filename = f'test_reports/performance_metrics_{worker_id}_{timestamp}.json'
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(serializable_stats, f, indent=2, ensure_ascii=False)
+            except PermissionError:
+                import logging
+                logging.warning(f"Permission denied writing to {filename}")
+            except OSError as e:
+                import logging
+                logging.warning(f"Failed to write performance metrics file {filename}: {e}")
+            except json.JSONEncodeError as e:
+                import logging
+                logging.warning(f"Failed to JSON encode performance metrics: {e}")
     except Exception as e:
+        # Catch-all for unexpected errors during teardown - should not fail the test
         import logging
-        logging.warning(f"Unexpected error saving performance metrics: {e}")
+        logging.warning(f"Unexpected error in performance profiler teardown: {e}")
 
 
 # @pytest.fixture(scope="session")
