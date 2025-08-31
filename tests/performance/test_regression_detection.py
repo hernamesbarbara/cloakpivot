@@ -7,7 +7,6 @@ to ensure reliable detection of performance changes in CI/CD pipelines.
 import json
 import tempfile
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -32,9 +31,9 @@ class TestPerformanceBenchmark:
                 'rounds': 10
             }
         }
-        
+
         benchmark = PerformanceBenchmark.from_pytest_benchmark(benchmark_data)
-        
+
         assert benchmark.name == 'test_benchmark'
         assert benchmark.mean == 0.12345
         assert benchmark.stddev == 0.01234
@@ -48,7 +47,7 @@ class TestPerformanceBenchmark:
             'name': 'test_benchmark'
             # Missing 'stats' key
         }
-        
+
         with pytest.raises(KeyError):
             PerformanceBenchmark.from_pytest_benchmark(benchmark_data)
 
@@ -137,7 +136,7 @@ class TestPerformanceRegressionAnalyzer:
             ]
         }
 
-    @pytest.fixture 
+    @pytest.fixture
     def sample_current_data_regression(self):
         """Sample current data showing performance regressions."""
         return {
@@ -180,15 +179,15 @@ class TestPerformanceRegressionAnalyzer:
         # Critical benchmark should use 5% threshold
         critical_threshold = analyzer._get_threshold_for_benchmark('test_regression_baseline')
         assert critical_threshold == 0.05
-        
+
         # Important benchmark should use 10% threshold
         important_threshold = analyzer._get_threshold_for_benchmark('test_round_trip_performance')
         assert important_threshold == 0.10
-        
+
         # General benchmark should use 20% threshold
         general_threshold = analyzer._get_threshold_for_benchmark('test_batch_processing')
         assert general_threshold == 0.20
-        
+
         # Unknown benchmark should use default threshold
         default_threshold = analyzer._get_threshold_for_benchmark('test_unknown_benchmark')
         assert default_threshold == 0.10  # Default threshold
@@ -198,10 +197,10 @@ class TestPerformanceRegressionAnalyzer:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(sample_baseline_data, f)
             temp_file = Path(f.name)
-        
+
         try:
             benchmarks = analyzer.load_benchmarks(temp_file)
-            
+
             assert len(benchmarks) == 3
             assert 'test_small_document_performance' in benchmarks
             assert benchmarks['test_small_document_performance'].mean == 0.100
@@ -216,11 +215,11 @@ class TestPerformanceRegressionAnalyzer:
     def test_load_benchmarks_invalid_format(self, analyzer):
         """Test loading file with invalid format."""
         invalid_data = {'invalid': 'format'}
-        
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(invalid_data, f)
             temp_file = Path(f.name)
-        
+
         try:
             with pytest.raises(ValueError, match="missing 'benchmarks' key"):
                 analyzer.load_benchmarks(temp_file)
@@ -232,7 +231,7 @@ class TestPerformanceRegressionAnalyzer:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(sample_baseline_data, f)
             baseline_file = Path(f.name)
-            
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(sample_current_data_stable, f)
             current_file = Path(f.name)
@@ -240,14 +239,14 @@ class TestPerformanceRegressionAnalyzer:
         try:
             baseline = analyzer.load_benchmarks(baseline_file)
             current = analyzer.load_benchmarks(current_file)
-            
+
             results = analyzer.compare_benchmarks(baseline, current)
-            
+
             # All should be stable or improvements
             assert results['test_small_document_performance']['status'] == 'stable'
             assert results['test_regression_baseline']['status'] == 'improvement'
             assert results['test_batch_processing']['status'] == 'stable'
-            
+
         finally:
             baseline_file.unlink()
             current_file.unlink()
@@ -257,7 +256,7 @@ class TestPerformanceRegressionAnalyzer:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(sample_baseline_data, f)
             baseline_file = Path(f.name)
-            
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(sample_current_data_regression, f)
             current_file = Path(f.name)
@@ -265,18 +264,18 @@ class TestPerformanceRegressionAnalyzer:
         try:
             baseline = analyzer.load_benchmarks(baseline_file)
             current = analyzer.load_benchmarks(current_file)
-            
+
             results = analyzer.compare_benchmarks(baseline, current)
-            
+
             # Should detect regressions based on adaptive thresholds
             assert results['test_small_document_performance']['status'] == 'regression'
             assert results['test_regression_baseline']['status'] == 'regression'  # Critical threshold exceeded
             assert results['test_new_benchmark']['status'] == 'new'
-            
+
             # Check missing benchmark
             assert 'test_batch_processing' in results
             assert results['test_batch_processing']['status'] == 'missing'
-            
+
         finally:
             baseline_file.unlink()
             current_file.unlink()
@@ -284,12 +283,12 @@ class TestPerformanceRegressionAnalyzer:
     def test_statistical_significance_calculation(self, analyzer):
         """Test statistical significance calculations."""
         baseline = PerformanceBenchmark('test', 0.100, 0.010, 0.090, 0.110, 5)
-        
+
         # Highly significant change
         current_high_sig = PerformanceBenchmark('test', 0.130, 0.005, 0.125, 0.135, 5)
         sig = analyzer._calculate_significance(baseline, current_high_sig)
         assert sig in ['significant', 'highly_significant']
-        
+
         # Low significance change
         current_low_sig = PerformanceBenchmark('test', 0.102, 0.010, 0.092, 0.112, 5)
         sig = analyzer._calculate_significance(baseline, current_low_sig)
@@ -299,13 +298,13 @@ class TestPerformanceRegressionAnalyzer:
         """Test report generation with no regressions."""
         comparison_results = {
             'benchmark1': {'status': 'stable', 'change_pct': 2.0},
-            'benchmark2': {'status': 'improvement', 'change_pct': -5.0, 'baseline_mean': 0.100, 
+            'benchmark2': {'status': 'improvement', 'change_pct': -5.0, 'baseline_mean': 0.100,
                           'current_mean': 0.095, 'threshold_used': 10.0, 'significance': 'likely'},
             'benchmark3': {'status': 'stable', 'change_pct': 1.0}
         }
-        
+
         report = analyzer.generate_report(comparison_results)
-        
+
         assert "Performance Summary" in report
         assert "**Regressions**: 0" in report
         assert "**Improvements**: 1" in report
@@ -327,9 +326,9 @@ class TestPerformanceRegressionAnalyzer:
                 'change_pct': 2.0
             }
         }
-        
+
         report = analyzer.generate_report(comparison_results)
-        
+
         assert "Performance Summary" in report
         assert "**Regressions**: 1" in report
         assert "🔴 Performance Regressions" in report
@@ -348,9 +347,9 @@ class TestPerformanceRegressionAnalyzer:
                 'significance': 'highly_significant'
             }
         }
-        
+
         report = analyzer.generate_report(comparison_results)
-        
+
         assert "🚨" in report  # Severe regression emoji
         assert "severe regression(s)" in report
 
@@ -369,9 +368,9 @@ class TestPerformanceRegressionAnalyzer:
                 'message': 'New benchmark - no baseline comparison available'
             }
         }
-        
+
         report = analyzer.generate_report(comparison_results)
-        
+
         assert "**Missing**: 1" in report
         assert "**New**: 1" in report
         assert "⚠️ Missing Benchmarks" in report
@@ -387,7 +386,7 @@ class TestRegressionDetectionIntegration:
     def test_end_to_end_analysis_no_regression(self):
         """Test complete analysis pipeline with no regressions."""
         analyzer = PerformanceRegressionAnalyzer()
-        
+
         # Create sample data files
         baseline_data = {
             'benchmarks': [
@@ -397,32 +396,32 @@ class TestRegressionDetectionIntegration:
                 }
             ]
         }
-        
+
         current_data = {
             'benchmarks': [
                 {
-                    'name': 'test_performance', 
+                    'name': 'test_performance',
                     'stats': {'mean': 0.105, 'stddev': 0.011, 'min': 0.094, 'max': 0.116, 'rounds': 5}
                 }
             ]
         }
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             baseline_file = Path(temp_dir) / 'baseline.json'
             current_file = Path(temp_dir) / 'current.json'
-            
+
             with open(baseline_file, 'w') as f:
                 json.dump(baseline_data, f)
             with open(current_file, 'w') as f:
                 json.dump(current_data, f)
-            
+
             # Load and compare
             baseline_benchmarks = analyzer.load_benchmarks(baseline_file)
             current_benchmarks = analyzer.load_benchmarks(current_file)
-            
+
             results = analyzer.compare_benchmarks(baseline_benchmarks, current_benchmarks)
             report = analyzer.generate_report(results)
-            
+
             assert 'test_performance' in results
             assert results['test_performance']['status'] == 'stable'
             assert "Safe to merge" in report
@@ -430,7 +429,7 @@ class TestRegressionDetectionIntegration:
     def test_end_to_end_analysis_with_regression(self):
         """Test complete analysis pipeline with regression detected."""
         analyzer = PerformanceRegressionAnalyzer()
-        
+
         # Create sample data with regression
         baseline_data = {
             'benchmarks': [
@@ -440,7 +439,7 @@ class TestRegressionDetectionIntegration:
                 }
             ]
         }
-        
+
         current_data = {
             'benchmarks': [
                 {
@@ -449,23 +448,23 @@ class TestRegressionDetectionIntegration:
                 }
             ]
         }
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             baseline_file = Path(temp_dir) / 'baseline.json'
             current_file = Path(temp_dir) / 'current.json'
-            
+
             with open(baseline_file, 'w') as f:
                 json.dump(baseline_data, f)
             with open(current_file, 'w') as f:
                 json.dump(current_data, f)
-            
+
             # Load and compare
             baseline_benchmarks = analyzer.load_benchmarks(baseline_file)
             current_benchmarks = analyzer.load_benchmarks(current_file)
-            
+
             results = analyzer.compare_benchmarks(baseline_benchmarks, current_benchmarks)
             report = analyzer.generate_report(results)
-            
+
             assert 'test_critical_performance' in results
             assert results['test_critical_performance']['status'] == 'regression'
             assert "performance regression(s)" in report
@@ -480,7 +479,7 @@ class TestPerformanceRegressionDetectionComprehensive:
     def test_realistic_benchmark_thresholds(self):
         """Test with realistic benchmark data to verify thresholds."""
         analyzer = PerformanceRegressionAnalyzer()
-        
+
         # Test various benchmark categories
         test_cases = [
             ('test_analyzer_initialization', 0.04, 'stable'),  # Under critical threshold
@@ -490,19 +489,19 @@ class TestPerformanceRegressionDetectionComprehensive:
             ('test_batch_processing', 0.15, 'stable'),  # Under general threshold
             ('test_batch_processing', 0.25, 'regression'),  # Over general threshold
         ]
-        
+
         for bench_name, change_ratio, expected_status in test_cases:
             baseline_mean = 0.100
             current_mean = baseline_mean * (1 + change_ratio)
-            
+
             baseline = PerformanceBenchmark(bench_name, baseline_mean, 0.010, 0.090, 0.110, 5)
             current = PerformanceBenchmark(bench_name, current_mean, 0.010, 0.090, current_mean + 0.020, 5)
-            
+
             baseline_dict = {bench_name: baseline}
             current_dict = {bench_name: current}
-            
+
             results = analyzer.compare_benchmarks(baseline_dict, current_dict)
-            
+
             assert results[bench_name]['status'] == expected_status, (
                 f"Benchmark {bench_name} with {change_ratio*100:.0f}% change "
                 f"should be {expected_status}, got {results[bench_name]['status']}"

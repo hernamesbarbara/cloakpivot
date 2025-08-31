@@ -212,7 +212,7 @@ class TestPerformanceBenchmarks:
         """Test performance with very large documents using sampling approach."""
         # Generate smaller representative samples instead of one huge document - reduced sizes
         word_counts = [200, 400, 600]
-        total_time = 0
+        total_time = 0.0
 
         for word_count in word_counts:
             text = TextGenerator.generate_text_with_pii_density(word_count, 0.1)
