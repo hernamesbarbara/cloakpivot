@@ -1,6 +1,7 @@
 """Presidio AnalyzerEngine integration for PII detection."""
 
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from functools import total_ordering
@@ -305,13 +306,27 @@ class EntityDetectionResult:
 class AnalyzerEngineWrapper:
     """Wrapper around Presidio AnalyzerEngine with enhanced configuration."""
 
-    def __init__(self, config: Optional[AnalyzerConfig] = None):
+    def __init__(
+        self,
+        config: Optional[AnalyzerConfig] = None,
+        use_singleton: Optional[bool] = None,
+    ):
         """Initialize analyzer wrapper.
 
         Args:
             config: Configuration for the analyzer (uses defaults if None)
+            use_singleton: Whether to use singleton pattern (defaults to environment variable or True)
         """
         self.config = config or AnalyzerConfig()
+
+        # Determine singleton usage from parameter, environment, or default
+        default_use_singleton = (
+            os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
+        )
+        self.use_singleton = (
+            use_singleton if use_singleton is not None else default_use_singleton
+        )
+
         self.registry = RecognizerRegistry(self.config.enabled_recognizers)
         self._engine: Optional[AnalyzerEngine] = None
         self._is_initialized = False
@@ -322,7 +337,7 @@ class AnalyzerEngineWrapper:
 
         logger.info(
             f"Created analyzer wrapper with language='{self.config.language}', "
-            f"min_confidence={self.config.min_confidence}"
+            f"min_confidence={self.config.min_confidence}, use_singleton={self.use_singleton}"
         )
 
     @property
@@ -342,6 +357,36 @@ class AnalyzerEngineWrapper:
         """
         config = AnalyzerConfig.from_policy(policy)
         return cls(config)
+
+    @classmethod
+    def create_shared(
+        cls, config: Optional[AnalyzerConfig] = None
+    ) -> "AnalyzerEngineWrapper":
+        """Create analyzer using singleton loader from loaders module.
+
+        This method uses the cached singleton analyzer instances from the loaders
+        module to provide better performance through shared instances.
+
+        Args:
+            config: Optional AnalyzerConfig for analyzer configuration
+
+        Returns:
+            AnalyzerEngineWrapper instance from singleton cache
+
+        Examples:
+            >>> # Create shared analyzer with default config
+            >>> analyzer = AnalyzerEngineWrapper.create_shared()
+            >>>
+            >>> # Create shared analyzer with custom config
+            >>> config = AnalyzerConfig(language="es", min_confidence=0.7)
+            >>> analyzer = AnalyzerEngineWrapper.create_shared(config)
+        """
+        from ..loaders import get_presidio_analyzer, get_presidio_analyzer_from_config
+
+        if config is not None:
+            return get_presidio_analyzer_from_config(config)
+        else:
+            return get_presidio_analyzer()
 
     def _get_spacy_model_name(self, language: str) -> str:
         """Map language code to full spaCy model name.

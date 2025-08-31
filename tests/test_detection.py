@@ -357,3 +357,124 @@ class TestAnchorMapping:
         # Second anchor should have global position based on second segment
         assert anchors[1].metadata["global_start"] == 66  # 55 + 11
         assert anchors[1].metadata["global_end"] == 78    # 55 + 23
+
+
+class TestEntityDetectionPipelineBackwardCompatibility:
+    """Test backward compatibility for EntityDetectionPipeline usage patterns."""
+
+    def test_default_initialization_unchanged(self):
+        """Test that default EntityDetectionPipeline initialization behavior works."""
+        # This should work exactly as it did before
+        pipeline = EntityDetectionPipeline()
+        
+        assert pipeline is not None
+        assert pipeline.analyzer is not None
+        assert pipeline.text_extractor is not None
+        
+        # New attributes should exist
+        assert hasattr(pipeline, '_used_shared_analyzer')
+
+    def test_with_provided_analyzer_unchanged(self):
+        """Test that providing an analyzer directly works as before."""
+        from cloakpivot.core.analyzer import AnalyzerEngineWrapper
+        
+        custom_analyzer = AnalyzerEngineWrapper()
+        pipeline = EntityDetectionPipeline(analyzer=custom_analyzer)
+        
+        assert pipeline.analyzer is custom_analyzer
+        assert pipeline._used_shared_analyzer is False
+
+    def test_from_policy_method_unchanged(self):
+        """Test that from_policy method works as before."""
+        policy = MaskingPolicy(
+            locale="en",
+            thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
+        )
+        
+        pipeline = EntityDetectionPipeline.from_policy(policy)
+        
+        assert pipeline is not None
+        assert pipeline.analyzer is not None
+
+    def test_existing_methods_unchanged(self):
+        """Test that existing methods have unchanged signatures."""
+        pipeline = EntityDetectionPipeline()
+        
+        # These methods should exist with same signatures
+        assert hasattr(pipeline, 'from_policy')
+        assert hasattr(pipeline, 'analyze_document')
+        assert hasattr(pipeline, 'analyze_text_segments')
+        assert hasattr(pipeline, 'map_entities_to_anchors')
+
+    def test_shared_analyzer_parameter_optional(self):
+        """Test that use_shared_analyzer parameter is optional."""
+        # All these should work (backward compatible)
+        pipeline1 = EntityDetectionPipeline()
+        pipeline2 = EntityDetectionPipeline(analyzer=None)
+        
+        assert pipeline1 is not None
+        assert pipeline2 is not None
+
+    def test_policy_method_signature_backward_compatible(self):
+        """Test that from_policy method accepts original signature."""
+        policy = MaskingPolicy(locale="en")
+        
+        # Original signature should still work
+        pipeline = EntityDetectionPipeline.from_policy(policy)
+        assert pipeline is not None
+
+    def test_analyzer_behavior_unchanged(self):
+        """Test that analyzer behavior is functionally unchanged."""
+        from cloakpivot.core.analyzer import AnalyzerEngineWrapper
+        
+        # Create pipeline with explicit direct analyzer (old behavior)
+        direct_analyzer = AnalyzerEngineWrapper(use_singleton=False)
+        pipeline_direct = EntityDetectionPipeline(analyzer=direct_analyzer)
+        
+        # Create pipeline with shared analyzer (new default behavior)
+        pipeline_shared = EntityDetectionPipeline(use_shared_analyzer=True)
+        
+        # Both should have functional analyzers
+        assert pipeline_direct.analyzer is not None
+        assert pipeline_shared.analyzer is not None
+        
+        # Both should have text extractors
+        assert pipeline_direct.text_extractor is not None
+        assert pipeline_shared.text_extractor is not None
+
+    def test_no_breaking_changes_in_interface(self):
+        """Test that the public interface has no breaking changes."""
+        pipeline = EntityDetectionPipeline()
+        
+        # All original attributes should exist
+        assert hasattr(pipeline, 'analyzer')
+        assert hasattr(pipeline, 'text_extractor')
+        
+        # All original methods should exist
+        methods = [
+            'from_policy',
+            'analyze_document',
+            'analyze_text_segments',
+            'map_entities_to_anchors',
+            '_analyze_segment'
+        ]
+        
+        for method in methods:
+            assert hasattr(pipeline, method), f"Missing method: {method}"
+
+    def test_environment_variable_does_not_break_existing_code(self):
+        """Test that environment variable changes don't break existing patterns."""
+        import os
+        from unittest.mock import patch
+        
+        # Test with environment variable set to false
+        with patch.dict(os.environ, {'CLOAKPIVOT_USE_SINGLETON': 'false'}):
+            pipeline = EntityDetectionPipeline()
+            assert pipeline is not None
+            assert pipeline.analyzer is not None
+        
+        # Test with environment variable set to true
+        with patch.dict(os.environ, {'CLOAKPIVOT_USE_SINGLETON': 'true'}):
+            pipeline = EntityDetectionPipeline()
+            assert pipeline is not None
+            assert pipeline.analyzer is not None

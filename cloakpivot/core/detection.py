@@ -1,6 +1,7 @@
 """Entity detection pipeline for analyzing text segments and mapping results to document anchors."""
 
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -112,28 +113,79 @@ class DocumentAnalysisResult:
 class EntityDetectionPipeline:
     """Pipeline for detecting PII entities in document text segments."""
 
-    def __init__(self, analyzer: Optional[AnalyzerEngineWrapper] = None):
+    def __init__(
+        self,
+        analyzer: Optional[AnalyzerEngineWrapper] = None,
+        use_shared_analyzer: Optional[bool] = None,
+    ):
         """Initialize the detection pipeline.
 
         Args:
             analyzer: Pre-configured analyzer wrapper (creates default if None)
+            use_shared_analyzer: Whether to use shared analyzer instance (defaults to environment variable or True)
         """
-        self.analyzer = analyzer or AnalyzerEngineWrapper()
+        if analyzer is not None:
+            # Use provided analyzer directly
+            self.analyzer = analyzer
+            self._used_shared_analyzer = False
+        else:
+            # Determine shared analyzer usage from parameter, environment, or default
+            default_use_shared = (
+                os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
+            )
+            use_shared = (
+                use_shared_analyzer
+                if use_shared_analyzer is not None
+                else default_use_shared
+            )
+
+            if use_shared:
+                self.analyzer = AnalyzerEngineWrapper.create_shared()
+                self._used_shared_analyzer = True
+            else:
+                self.analyzer = AnalyzerEngineWrapper()
+                self._used_shared_analyzer = False
+
         self.text_extractor = TextExtractor(normalize_whitespace=True)
 
-        logger.info("EntityDetectionPipeline initialized")
+        shared_status = "shared" if self._used_shared_analyzer else "direct"
+        logger.info(
+            f"EntityDetectionPipeline initialized with {shared_status} analyzer"
+        )
 
     @classmethod
-    def from_policy(cls, policy: MaskingPolicy) -> "EntityDetectionPipeline":
+    def from_policy(
+        cls, policy: MaskingPolicy, use_shared_analyzer: Optional[bool] = None
+    ) -> "EntityDetectionPipeline":
         """Create detection pipeline from masking policy.
 
         Args:
             policy: MaskingPolicy to configure the analyzer
+            use_shared_analyzer: Whether to use shared analyzer instance (defaults to environment variable or True)
 
         Returns:
             Configured EntityDetectionPipeline instance
         """
-        analyzer = AnalyzerEngineWrapper.from_policy(policy)
+        from .analyzer import AnalyzerConfig
+
+        # Determine shared analyzer usage from parameter, environment, or default
+        default_use_shared = (
+            os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
+        )
+        use_shared = (
+            use_shared_analyzer
+            if use_shared_analyzer is not None
+            else default_use_shared
+        )
+
+        if use_shared:
+            # Use shared analyzer with policy-derived config
+            config = AnalyzerConfig.from_policy(policy)
+            analyzer = AnalyzerEngineWrapper.create_shared(config)
+        else:
+            # Use direct analyzer creation
+            analyzer = AnalyzerEngineWrapper.from_policy(policy)
+
         return cls(analyzer)
 
     def analyze_document(
