@@ -401,19 +401,33 @@ class TestPropertyBasedSlow:
             # Test structure preservation
             assert_document_structure_preserved(document, mask_result.masked_document)
 
-            # Test round-trip if we have entities to mask
-            if len(mask_result.cloakmap.entity_mappings) > 0:
-                unmask_result = unmasking_engine.unmask_document(
-                    mask_result.masked_document,
-                    mask_result.cloakmap
-                )
+            # Test round-trip only if we have entities and all strategies are reversible
+            if len(mask_result.cloakmap.anchors) > 0:
+                # Check if all detected entities use reversible strategies
+                reversible_strategies = {StrategyKind.TEMPLATE, StrategyKind.SURROGATE, StrategyKind.PARTIAL}
+                all_reversible = True
+                
+                for anchor in mask_result.cloakmap.anchors:
+                    # Get the strategy used for this entity type
+                    entity_type = anchor.entity_type
+                    strategy = policy.per_entity.get(entity_type, policy.default_strategy)
+                    if strategy.kind not in reversible_strategies:
+                        all_reversible = False
+                        break
+                
+                # Only test round-trip fidelity if all strategies are reversible
+                if all_reversible:
+                    unmask_result = unmasking_engine.unmask_document(
+                        mask_result.masked_document,
+                        mask_result.cloakmap
+                    )
 
-                assert_round_trip_fidelity(
-                    document,
-                    mask_result.masked_document,
-                    unmask_result.unmasked_document,
-                    mask_result.cloakmap
-                )
+                    assert_round_trip_fidelity(
+                        document,
+                        mask_result.masked_document,
+                        unmask_result.unmasked_document,
+                        mask_result.cloakmap
+                    )
 
         except Exception as e:
             pytest.fail(f"Comprehensive testing failed: {str(e)}")
