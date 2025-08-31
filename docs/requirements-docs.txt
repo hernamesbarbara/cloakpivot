@@ -8,7 +8,7 @@ sphinx-click>=4.0.0,<6.0.0
 sphinx-autobuild>=2021.3.14
 
 # Markdown and notebook support
-myst-parser>=0.18.0,<3.0.0
+myst-parser>=0.18.0,<4.0.0
 nbsphinx>=0.8.0,<1.0.0
 jupyterlab>=3.0.0
 
