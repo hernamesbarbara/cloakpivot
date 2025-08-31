@@ -155,18 +155,17 @@ def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
         raise ConfigurationError(f"Failed to generate policy hash: {e}") from e
 
 
-@lru_cache(maxsize=8)
 def get_presidio_analyzer(
     language: str = "en",
     config_hash: Optional[str] = None,
     min_confidence: float = 0.5,
     nlp_engine_name: str = "spacy"
 ) -> AnalyzerEngineWrapper:
-    """Get cached Presidio analyzer instance with thread safety.
+    """Get cached Presidio analyzer instance with configurable behavior.
 
-    This function provides a singleton pattern for AnalyzerEngineWrapper instances,
-    using LRU caching to avoid repeated expensive initialization. Thread safety
-    is ensured through a module-level lock during initialization.
+    This function provides analyzer instances with behavior controlled by
+    environment variables through PerformanceConfig. When singleton behavior
+    is enabled (default), uses LRU caching. When disabled, creates new instances.
 
     Args:
         language: Language code for analysis (ISO 639-1 format)
@@ -191,28 +190,34 @@ def get_presidio_analyzer(
         ...     min_confidence=0.7
         ... )
     """
+    from .core.config import performance_config
+    
     # Validate parameters before attempting creation
     _validate_language(language)
     _validate_confidence(min_confidence)
     _validate_nlp_engine(nlp_engine_name)
 
     try:
-        with _ANALYZER_LOCK:
-            # Create configuration
+        # Check if singleton behavior is enabled
+        if not performance_config.use_singleton_analyzers:
+            # Direct instantiation without caching
             config = AnalyzerConfig(
                 language=language,
                 min_confidence=min_confidence,
                 nlp_engine_name=nlp_engine_name
             )
-
-            wrapper = AnalyzerEngineWrapper(config)
-
-            logger.info(
-                f"Created AnalyzerEngineWrapper for language='{language}', "
-                f"confidence={min_confidence}"
-            )
-
+            wrapper = AnalyzerEngineWrapper(config, use_singleton=False)
+            logger.info(f"Created new AnalyzerEngineWrapper (singleton disabled)")
             return wrapper
+        
+        # Use cached singleton with configurable cache size
+        return _get_cached_analyzer(
+            language=language,
+            config_hash=config_hash,
+            min_confidence=min_confidence,
+            nlp_engine_name=nlp_engine_name,
+            cache_size=performance_config.analyzer_cache_size
+        )
 
     except Exception as e:
         logger.error(
@@ -220,6 +225,45 @@ def get_presidio_analyzer(
             f"(language={language}, confidence={min_confidence}, engine={nlp_engine_name})"
         )
         raise InitializationError(f"Failed to initialize analyzer: {e}") from e
+
+
+# Dynamic LRU cache creation based on configuration
+_analyzer_caches = {}
+
+
+def _get_cached_analyzer(
+    language: str,
+    config_hash: Optional[str],
+    min_confidence: float,
+    nlp_engine_name: str,
+    cache_size: int
+) -> AnalyzerEngineWrapper:
+    """Get analyzer from cache with configurable cache size."""
+    from functools import lru_cache
+    
+    # Create or get cache function for this cache size
+    if cache_size not in _analyzer_caches:
+        @lru_cache(maxsize=cache_size)
+        def cached_analyzer_func(lang, conf_hash, min_conf, nlp_engine):
+            with _ANALYZER_LOCK:
+                config = AnalyzerConfig(
+                    language=lang,
+                    min_confidence=min_conf,
+                    nlp_engine_name=nlp_engine
+                )
+                wrapper = AnalyzerEngineWrapper(config, use_singleton=True)
+                logger.info(
+                    f"Created cached AnalyzerEngineWrapper for language='{lang}', "
+                    f"confidence={min_conf}, cache_size={cache_size}"
+                )
+                return wrapper
+        
+        _analyzer_caches[cache_size] = cached_analyzer_func
+    
+    # Use the cached function
+    return _analyzer_caches[cache_size](
+        language, config_hash, min_confidence, nlp_engine_name
+    )
 
 
 def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineWrapper:
@@ -421,7 +465,10 @@ def clear_all_caches() -> None:
         >>> # Next calls will create fresh instances
         >>> analyzer = get_presidio_analyzer()
     """
-    get_presidio_analyzer.cache_clear()
+    # Clear analyzer caches (multiple cache sizes)
+    for cache_func in _analyzer_caches.values():
+        cache_func.cache_clear()
+    
     get_document_processor.cache_clear()
     get_detection_pipeline.cache_clear()
 
@@ -438,12 +485,31 @@ def get_cache_info() -> dict[str, any]:
         >>> stats = get_cache_info()
         >>> print(f"Analyzer cache hits: {stats['analyzer']['hits']}")
     """
+    # Aggregate analyzer cache stats across different cache sizes into expected flat format
+    analyzer_hits = 0
+    analyzer_misses = 0
+    analyzer_maxsize = 0
+    analyzer_currsize = 0
+    
+    # If we have multiple cache sizes, aggregate their stats
+    for cache_size, cache_func in _analyzer_caches.items():
+        info = cache_func.cache_info()
+        analyzer_hits += info.hits
+        analyzer_misses += info.misses
+        analyzer_maxsize = max(analyzer_maxsize, info.maxsize)
+        analyzer_currsize += info.currsize
+    
+    # If no analyzer caches exist yet, provide sensible defaults
+    if not _analyzer_caches:
+        from .core.config import performance_config
+        analyzer_maxsize = performance_config.analyzer_cache_size
+    
     return {
         "analyzer": {
-            "hits": get_presidio_analyzer.cache_info().hits,
-            "misses": get_presidio_analyzer.cache_info().misses,
-            "maxsize": get_presidio_analyzer.cache_info().maxsize,
-            "currsize": get_presidio_analyzer.cache_info().currsize,
+            "hits": analyzer_hits,
+            "misses": analyzer_misses,
+            "maxsize": analyzer_maxsize,
+            "currsize": analyzer_currsize,
         },
         "processor": {
             "hits": get_document_processor.cache_info().hits,

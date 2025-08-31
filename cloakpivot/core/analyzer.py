@@ -390,25 +390,32 @@ class AnalyzerEngineWrapper:
             return get_presidio_analyzer()
 
     def _get_spacy_model_name(self, language: str) -> str:
-        """Map language code to full spaCy model name.
+        """Get the appropriate spaCy model name based on language and size preference.
+        
+        Uses environment variable MODEL_SIZE to control model size selection,
+        providing runtime flexibility for performance/accuracy tradeoffs.
+
+        Environment Variables:
+            MODEL_SIZE: {small|medium|large} - Controls model size/performance tradeoff
+                - small: *_sm models (fast, lower memory, good accuracy)
+                - medium: *_md models (balanced performance and accuracy) 
+                - large: *_lg models (slower, higher memory, best accuracy)
 
         Args:
             language: ISO 639-1 language code
 
         Returns:
-            Full spaCy model name
+            Full spaCy model name with appropriate size suffix
         """
-        model_mapping = {
-            "en": "en_core_web_sm",
-            "es": "es_core_news_sm",
-            "fr": "fr_core_news_sm",
-            "de": "de_core_news_sm",
-            "it": "it_core_news_sm",
-            "nl": "nl_core_news_sm",
-            "pt": "pt_core_news_sm",
-        }
-
-        return model_mapping.get(language, f"{language}_core_web_sm")
+        from .model_info import get_model_name
+        from .config import performance_config
+        
+        # Use global performance config for model size selection
+        model_size = performance_config.model_size
+        
+        logger.debug(f"Selecting {model_size} model for language '{language}'")
+        
+        return get_model_name(language, model_size)
 
     @profile_method("analyzer_initialization")
     def _initialize_engine(self) -> None:
