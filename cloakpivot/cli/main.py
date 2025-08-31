@@ -11,6 +11,8 @@ import click
 
 from cloakpivot import __version__
 
+from .batch import batch
+
 # Error messages
 ERROR_MASK_ARGS = (
     "Must specify either --out for masked output or --cloakmap for CloakMap output"
@@ -2452,9 +2454,7 @@ def completion(shell: str) -> None:
     cli.main(standalone_mode=False)
 
 
-# Import and add command groups
-from .batch import batch
-
+# Add command groups
 cli.add_command(batch)
 
 

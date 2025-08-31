@@ -1,0 +1,170 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Performance optimizations
+  MODEL_SIZE: small
+  PYTEST_FAST_MODE: true
+  CLOAKPIVOT_USE_SINGLETON: true
+
+jobs:
+  test-matrix:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest]
+        include:
+          # Add specific OS combinations for comprehensive testing
+          - python-version: "3.11"
+            os: macos-latest
+          - python-version: "3.11" 
+            os: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system dependencies
+      run: |
+        # Ubuntu system dependencies
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+        fi
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev,test]"
+
+    - name: Verify installation
+      run: |
+        pip list
+        python -c "import cloakpivot; print(f'CloakPivot version: {cloakpivot.__version__}')"
+
+    - name: Run linting
+      run: |
+        ruff check cloakpivot tests
+        ruff format --check cloakpivot tests
+
+    - name: Run type checking
+      run: |
+        # TODO: Remove lenient flags as type annotations improve
+        mypy cloakpivot --ignore-missing-imports --no-strict-optional
+
+    - name: Download required models
+      run: |
+        # Pre-download spaCy models to avoid download during tests
+        python -m spacy download en_core_web_sm
+        python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('Model loaded successfully')"
+
+    - name: Run tests
+      run: |
+        # Fast mode for CI - focus on core functionality
+        pytest -xvs \
+          --tb=short \
+          --cov=cloakpivot \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          -m "not slow" \
+          --maxfail=5
+
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  test-comprehensive:
+    name: Comprehensive Test Suite
+    runs-on: ubuntu-latest
+    # Only run on main branch merges
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev,test]"
+
+    - name: Download all models
+      run: |
+        python -m spacy download en_core_web_sm
+        python -m spacy download en_core_web_md
+        # Download large model for comprehensive testing on main branch
+        python -m spacy download en_core_web_lg
+
+    - name: Run comprehensive tests
+      env:
+        MODEL_SIZE: medium
+        PYTEST_FAST_MODE: false
+      run: |
+        pytest -xvs \
+          --tb=short \
+          --cov=cloakpivot \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --maxfail=10
+
+    - name: Run performance tests
+      env:
+        MODEL_SIZE: small
+      run: |
+        pytest -xvs -m "performance" \
+          --tb=short \
+          --benchmark-only \
+          --benchmark-sort=mean
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install bandit
+      run: pip install bandit[toml]
+
+    - name: Run security scan
+      run: |
+        bandit -r cloakpivot/ -f json -o security-report.json --skip B101,B601 --exclude tests/
+        bandit -r cloakpivot/ -f txt --skip B101,B601 --exclude tests/
+
+    - name: Upload security scan results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-scan-results
+        path: security-report.json

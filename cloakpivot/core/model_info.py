@@ -6,14 +6,14 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
 
 # Performance characteristics for different model sizes
 # Based on typical spaCy model behavior and resource requirements
-MODEL_CHARACTERISTICS: dict[str, dict[str, any]] = {
+MODEL_CHARACTERISTICS: dict[str, dict[str, Any]] = {
     "small": {
         "memory_mb": 15,
         "load_time_ms": 800,
@@ -178,7 +178,7 @@ def get_supported_sizes() -> list[str]:
 
 def get_model_recommendations(
     memory_limit_mb: Optional[int] = None, speed_priority: bool = False
-) -> dict[str, any]:
+) -> dict[str, Any]:
     """Get model size recommendations based on constraints.
 
     Args:
@@ -268,7 +268,7 @@ def get_model_recommendations(
     return recommendations
 
 
-def get_language_info(language: str) -> Optional[dict[str, any]]:
+def get_language_info(language: str) -> Optional[dict[str, Any]]:
     """Get detailed information about language support.
 
     Args:
@@ -286,7 +286,7 @@ def get_language_info(language: str) -> Optional[dict[str, any]]:
     return SUPPORTED_LANGUAGES.get(language)
 
 
-def get_all_model_info() -> dict[str, dict[str, any]]:
+def get_all_model_info() -> dict[str, dict[str, Any]]:
     """Get comprehensive model information for debugging and documentation.
 
     Returns:
