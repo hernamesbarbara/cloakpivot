@@ -2,6 +2,9 @@
 
 import concurrent.futures
 import threading
+import time
+
+import pytest
 
 from cloakpivot.core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from cloakpivot.core.detection import EntityDetectionPipeline
@@ -311,6 +314,7 @@ class TestThreadSafety:
         """Clear caches before each test."""
         clear_all_caches()
 
+    @pytest.mark.performance
     def test_concurrent_analyzer_creation(self):
         """Test that concurrent analyzer creation is thread-safe."""
         results = []
@@ -346,6 +350,7 @@ class TestThreadSafety:
         for analyzer in results[1:]:
             assert analyzer is first_analyzer
 
+    @pytest.mark.performance
     def test_concurrent_processor_creation(self):
         """Test that concurrent processor creation is thread-safe."""
         results = []
@@ -375,6 +380,7 @@ class TestThreadSafety:
         for processor in results[1:]:
             assert processor is first_processor
 
+    @pytest.mark.performance
     def test_concurrent_pipeline_creation(self):
         """Test that concurrent pipeline creation is thread-safe."""
         results = []
@@ -403,6 +409,172 @@ class TestThreadSafety:
         first_pipeline = results[0]
         for pipeline in results[1:]:
             assert pipeline is first_pipeline
+
+    @pytest.mark.performance
+    def test_concurrent_mixed_configuration_access(self):
+        """Test concurrent access with mixed configurations."""
+        results = {"analyzer": [], "processor": [], "pipeline": []}
+        exceptions = []
+
+        def create_analyzer_variant(confidence: float):
+            try:
+                analyzer = get_presidio_analyzer(min_confidence=confidence)
+                results["analyzer"].append((confidence, id(analyzer)))
+            except Exception as e:
+                exceptions.append(("analyzer", e))
+
+        def create_processor_variant(chunked: bool):
+            try:
+                processor = get_document_processor(enable_chunked=chunked)
+                results["processor"].append((chunked, id(processor)))
+            except Exception as e:
+                exceptions.append(("processor", e))
+
+        def create_pipeline():
+            try:
+                pipeline = get_detection_pipeline()
+                results["pipeline"].append(id(pipeline))
+            except Exception as e:
+                exceptions.append(("pipeline", e))
+
+        # Create workers with different configurations
+        workers = []
+        # Different analyzer configurations
+        for conf in [0.5, 0.6, 0.7]:
+            for _ in range(3):
+                workers.append(lambda c=conf: create_analyzer_variant(c))
+        
+        # Different processor configurations
+        for chunked in [True, False]:
+            for _ in range(3):
+                workers.append(lambda ch=chunked: create_processor_variant(ch))
+        
+        # Pipeline workers
+        for _ in range(6):
+            workers.append(create_pipeline)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(worker) for worker in workers]
+            
+            for future in concurrent.futures.as_completed(futures, timeout=10):
+                future.result()
+
+        # Validate results
+        assert len(exceptions) == 0, f"Exceptions during mixed config test: {exceptions}"
+        
+        # Validate analyzer results - each confidence should have consistent instances
+        analyzer_by_conf = {}
+        for conf, analyzer_id in results["analyzer"]:
+            if conf not in analyzer_by_conf:
+                analyzer_by_conf[conf] = []
+            analyzer_by_conf[conf].append(analyzer_id)
+        
+        for conf, analyzer_ids in analyzer_by_conf.items():
+            assert len(analyzer_ids) == 3, f"Confidence {conf} should have 3 instances"
+            assert len(set(analyzer_ids)) == 1, f"Confidence {conf} should return same cached instance"
+
+        # Validate processor results - each chunked setting should have consistent instances  
+        processor_by_chunked = {}
+        for chunked, processor_id in results["processor"]:
+            if chunked not in processor_by_chunked:
+                processor_by_chunked[chunked] = []
+            processor_by_chunked[chunked].append(processor_id)
+        
+        for chunked, processor_ids in processor_by_chunked.items():
+            assert len(processor_ids) == 3, f"Chunked {chunked} should have 3 instances"
+            assert len(set(processor_ids)) == 1, f"Chunked {chunked} should return same cached instance"
+
+        # Validate pipeline results - all should be same instance
+        pipeline_ids = results["pipeline"]
+        assert len(pipeline_ids) == 6, "Should have 6 pipeline instances"
+        assert len(set(pipeline_ids)) == 1, "All pipelines should be same cached instance"
+
+    @pytest.mark.performance
+    def test_high_concurrency_stress_test(self):
+        """Stress test with higher concurrency than basic tests."""
+        thread_count = 25
+        iterations_per_thread = 5
+        results = []
+        exceptions = []
+
+        def stress_worker():
+            try:
+                thread_results = []
+                for _ in range(iterations_per_thread):
+                    # Mix of all loader types
+                    analyzer = get_presidio_analyzer()
+                    processor = get_document_processor()
+                    pipeline = get_detection_pipeline()
+                    thread_results.extend([id(analyzer), id(processor), id(pipeline)])
+                results.extend(thread_results)
+            except Exception as e:
+                exceptions.append(e)
+
+        start_time = time.time()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+            futures = [executor.submit(stress_worker) for _ in range(thread_count)]
+            
+            for future in concurrent.futures.as_completed(futures, timeout=15):
+                future.result()
+
+        execution_time = time.time() - start_time
+
+        # Validate results
+        assert len(exceptions) == 0, f"Exceptions during stress test: {exceptions}"
+        
+        expected_total_results = thread_count * iterations_per_thread * 3  # 3 loaders per iteration
+        assert len(results) == expected_total_results
+
+        # Group results by type (every 3rd element starting from index 0, 1, 2)
+        analyzer_ids = results[0::3]
+        processor_ids = results[1::3] 
+        pipeline_ids = results[2::3]
+
+        # Each type should return singleton instances
+        assert len(set(analyzer_ids)) == 1, "Analyzers should be singleton under stress"
+        assert len(set(processor_ids)) == 1, "Processors should be singleton under stress"
+        assert len(set(pipeline_ids)) == 1, "Pipelines should be singleton under stress"
+
+        # Performance validation
+        operations_per_second = expected_total_results / execution_time
+        assert execution_time < 10.0, f"Stress test took too long: {execution_time:.2f}s"
+        
+        print(f"Stress test: {thread_count} threads × {iterations_per_thread} iterations "
+              f"completed in {execution_time:.2f}s ({operations_per_second:.1f} ops/sec)")
+
+    @pytest.mark.performance  
+    def test_rapid_cache_clear_and_recreate(self):
+        """Test rapid cache clearing and recreation doesn't break thread safety."""
+        results = []
+        exceptions = []
+        clear_count = 0
+
+        def cache_clear_worker():
+            nonlocal clear_count
+            try:
+                for _ in range(3):
+                    get_presidio_analyzer()
+                    clear_all_caches()
+                    clear_count += 1
+                    analyzer = get_presidio_analyzer(min_confidence=0.6)
+                    results.append(id(analyzer))
+            except Exception as e:
+                exceptions.append(e)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(cache_clear_worker) for _ in range(5)]
+            
+            for future in concurrent.futures.as_completed(futures, timeout=10):
+                future.result()
+
+        # Validate results
+        assert len(exceptions) == 0, f"Exceptions during rapid cache clear test: {exceptions}"
+        assert len(results) == 15  # 5 threads × 3 iterations each
+        assert clear_count == 15  # Should have cleared cache 15 times
+
+        # Note: Due to rapid clearing, we can't guarantee singleton behavior,
+        # but we validate that no exceptions occurred during the process
 
 
 class TestCacheManagement:
