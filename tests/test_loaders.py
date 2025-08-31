@@ -443,43 +443,43 @@ class TestThreadSafety:
         for conf in [0.5, 0.6, 0.7]:
             for _ in range(3):
                 workers.append(lambda c=conf: create_analyzer_variant(c))
-        
+
         # Different processor configurations
         for chunked in [True, False]:
             for _ in range(3):
                 workers.append(lambda ch=chunked: create_processor_variant(ch))
-        
+
         # Pipeline workers
         for _ in range(6):
             workers.append(create_pipeline)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = [executor.submit(worker) for worker in workers]
-            
+
             for future in concurrent.futures.as_completed(futures, timeout=10):
                 future.result()
 
         # Validate results
         assert len(exceptions) == 0, f"Exceptions during mixed config test: {exceptions}"
-        
+
         # Validate analyzer results - each confidence should have consistent instances
         analyzer_by_conf = {}
         for conf, analyzer_id in results["analyzer"]:
             if conf not in analyzer_by_conf:
                 analyzer_by_conf[conf] = []
             analyzer_by_conf[conf].append(analyzer_id)
-        
+
         for conf, analyzer_ids in analyzer_by_conf.items():
             assert len(analyzer_ids) == 3, f"Confidence {conf} should have 3 instances"
             assert len(set(analyzer_ids)) == 1, f"Confidence {conf} should return same cached instance"
 
-        # Validate processor results - each chunked setting should have consistent instances  
+        # Validate processor results - each chunked setting should have consistent instances
         processor_by_chunked = {}
         for chunked, processor_id in results["processor"]:
             if chunked not in processor_by_chunked:
                 processor_by_chunked[chunked] = []
             processor_by_chunked[chunked].append(processor_id)
-        
+
         for chunked, processor_ids in processor_by_chunked.items():
             assert len(processor_ids) == 3, f"Chunked {chunked} should have 3 instances"
             assert len(set(processor_ids)) == 1, f"Chunked {chunked} should return same cached instance"
@@ -514,7 +514,7 @@ class TestThreadSafety:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
             futures = [executor.submit(stress_worker) for _ in range(thread_count)]
-            
+
             for future in concurrent.futures.as_completed(futures, timeout=15):
                 future.result()
 
@@ -522,13 +522,13 @@ class TestThreadSafety:
 
         # Validate results
         assert len(exceptions) == 0, f"Exceptions during stress test: {exceptions}"
-        
+
         expected_total_results = thread_count * iterations_per_thread * 3  # 3 loaders per iteration
         assert len(results) == expected_total_results
 
         # Group results by type (every 3rd element starting from index 0, 1, 2)
         analyzer_ids = results[0::3]
-        processor_ids = results[1::3] 
+        processor_ids = results[1::3]
         pipeline_ids = results[2::3]
 
         # Each type should return singleton instances
@@ -539,11 +539,11 @@ class TestThreadSafety:
         # Performance validation
         operations_per_second = expected_total_results / execution_time
         assert execution_time < 10.0, f"Stress test took too long: {execution_time:.2f}s"
-        
+
         print(f"Stress test: {thread_count} threads × {iterations_per_thread} iterations "
               f"completed in {execution_time:.2f}s ({operations_per_second:.1f} ops/sec)")
 
-    @pytest.mark.performance  
+    @pytest.mark.performance
     def test_rapid_cache_clear_and_recreate(self):
         """Test rapid cache clearing and recreation doesn't break thread safety."""
         results = []
@@ -564,7 +564,7 @@ class TestThreadSafety:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(cache_clear_worker) for _ in range(5)]
-            
+
             for future in concurrent.futures.as_completed(futures, timeout=10):
                 future.result()
 
