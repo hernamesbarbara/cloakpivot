@@ -704,7 +704,6 @@ def shared_detection_pipeline(shared_analyzer):
 @pytest.fixture(scope="function")
 def performance_profiler(worker_id: str):
     """Worker-specific PerformanceProfiler for test metrics collection.
-    
     Changed from session-scoped to function-scoped to avoid shared state issues
     in parallel test execution. Each test gets its own profiler instance.
     """
@@ -739,7 +738,7 @@ def performance_profiler(worker_id: str):
                 return
 
             timestamp = datetime.now().isoformat().replace(':', '-')  # Safe for filenames
-            
+
             # Convert stats to JSON-serializable format with error handling
             serializable_stats = {}
             try:

@@ -135,7 +135,7 @@ class TestPerformanceBenchmarks:
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
         # Use pytest-benchmark for CI integration
-        result = benchmark(mask_operation)
+        benchmark(mask_operation)
 
         # Traditional performance assertions for backwards compatibility
         result_traditional, metrics = run_with_profiling(mask_operation)
@@ -164,7 +164,7 @@ class TestPerformanceBenchmarks:
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
         # Use pytest-benchmark for CI integration
-        result = benchmark(mask_operation)
+        benchmark(mask_operation)
 
         # Traditional performance assertions for backwards compatibility
         result_traditional, metrics = run_with_profiling(mask_operation)
@@ -539,7 +539,7 @@ class TestPerformanceRegression:
             return mask_document_with_detection(document, benchmark_policy, analyzer=shared_analyzer)
 
         # Use pytest-benchmark for CI integration with multiple rounds for stability
-        result = benchmark.pedantic(mask_operation, rounds=5, iterations=1)
+        benchmark.pedantic(mask_operation, rounds=5, iterations=1)
 
         # Traditional performance assertions for backwards compatibility
         times = []
