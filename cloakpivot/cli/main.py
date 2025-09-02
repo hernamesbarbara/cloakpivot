@@ -2059,22 +2059,22 @@ def format_list(verbose: bool) -> None:
 
 
 @cli.command()
-@click.argument("doc1", type=click.Path(exists=True, path_type=Path))
-@click.argument("doc2", type=click.Path(exists=True, path_type=Path))
+@click.argument("doc1", type=click.Path(exists=True))
+@click.argument("doc2", type=click.Path(exists=True))
 @click.option(
     "--cloakmap1",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="CloakMap for first document (for masking strategy analysis)",
 )
 @click.option(
     "--cloakmap2",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="CloakMap for second document (for masking strategy analysis)",
 )
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path for diff report (default: diff_report.html)",
 )
 @click.option(
