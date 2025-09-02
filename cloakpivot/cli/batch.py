@@ -203,8 +203,8 @@ def mask(
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=pattern_list,
-            output_directory=out_dir,
-            cloakmap_directory=cloakmap_dir,
+            output_directory=Path(out_dir),
+            cloakmap_directory=Path(cloakmap_dir),
             max_workers=max_workers,
             max_files_per_batch=max_files,
             max_retries=max_retries,
@@ -341,8 +341,8 @@ def unmask(
         config = BatchConfig(
             operation_type=BatchOperationType.UNMASK,
             input_patterns=pattern_list,
-            output_directory=out_dir,
-            cloakmap_directory=cloakmap_dir,
+            output_directory=Path(out_dir),
+            cloakmap_directory=Path(cloakmap_dir),
             max_workers=max_workers,
             max_files_per_batch=max_files,
             max_retries=max_retries,
@@ -462,7 +462,7 @@ def analyze(
         config = BatchConfig(
             operation_type=BatchOperationType.ANALYZE,
             input_patterns=pattern_list,
-            output_directory=out_dir if not summary_only else None,
+            output_directory=Path(out_dir) if out_dir and not summary_only else None,
             max_workers=max_workers,
             max_files_per_batch=max_files,
             masking_policy=masking_policy,

@@ -382,6 +382,12 @@ def mask(
         from cloakpivot.document.processor import DocumentProcessor
         from cloakpivot.masking.engine import MaskingEngine
 
+        # Convert string paths to Path objects
+        input_path = Path(input_path)
+        output_path = Path(output_path) if output_path else None
+        cloakmap = Path(cloakmap) if cloakmap else None
+        policy = Path(policy) if policy else None
+
         if verbose:
             click.echo(f"🔍 Loading document: {input_path}")
 
@@ -605,6 +611,11 @@ def unmask(
         from cloakpivot.core.cloakmap import CloakMap
         from cloakpivot.document.processor import DocumentProcessor
         from cloakpivot.unmasking.engine import UnmaskingEngine
+
+        # Convert string paths to Path objects
+        masked_path = Path(masked_path)
+        cloakmap = Path(cloakmap)
+        output_path = Path(output_path) if output_path else None
 
         if verbose:
             click.echo(f"🔓 Loading masked document: {masked_path}")
@@ -2113,6 +2124,13 @@ def diff(
         import json
 
         verbose = verbose or ctx.obj.get("verbose", False)
+
+        # Convert string paths to Path objects
+        doc1 = Path(doc1)
+        doc2 = Path(doc2)
+        cloakmap1 = Path(cloakmap1) if cloakmap1 else None
+        cloakmap2 = Path(cloakmap2) if cloakmap2 else None
+        output = Path(output) if output else None
 
         if verbose:
             click.echo("📊 Comparing documents")
