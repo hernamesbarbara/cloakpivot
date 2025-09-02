@@ -89,18 +89,18 @@ def _load_masking_policy(
 @click.option(
     "--out-dir",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     required=True,
     help="Output directory for masked documents",
 )
 @click.option(
     "--cloakmap-dir",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Directory for CloakMap files (default: same as output directory)",
 )
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to masking policy file",
 )
 @click.option(
@@ -265,14 +265,14 @@ def mask(
 @click.argument("patterns", nargs=-1, required=True)
 @click.option(
     "--cloakmap-dir",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     required=True,
     help="Directory containing CloakMap files",
 )
 @click.option(
     "--out-dir",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     required=True,
     help="Output directory for restored documents",
 )
@@ -399,12 +399,12 @@ def unmask(
 @click.option(
     "--out-dir",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output directory for analysis results (optional)",
 )
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to masking policy file for analysis configuration",
 )
 @click.option(
