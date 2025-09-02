@@ -6,7 +6,7 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 

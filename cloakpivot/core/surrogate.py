@@ -5,7 +5,7 @@ import logging
 import random
 import string
 from dataclasses import dataclass, field
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -16,13 +16,13 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.loaders import (
-    get_presidio_analyzer,
-    get_detection_pipeline,
-    get_cache_info,
-    clear_all_caches
-)
 from cloakpivot.core.performance import get_profiler
+from cloakpivot.loaders import (
+    clear_all_caches,
+    get_cache_info,
+    get_detection_pipeline,
+    get_presidio_analyzer,
+)
 
 # Add scripts directory to path for importing validation module
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))

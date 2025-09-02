@@ -31,7 +31,10 @@ sys.path.insert(0, str(project_root))
 
 from cloakpivot.core.performance import get_profiler  # noqa: E402
 from cloakpivot.loaders import (  # noqa: E402
-    get_presidio_analyzer, get_detection_pipeline, get_cache_info, clear_all_caches
+    clear_all_caches,
+    get_cache_info,
+    get_detection_pipeline,
+    get_presidio_analyzer,
 )
 
 # Configure logging
