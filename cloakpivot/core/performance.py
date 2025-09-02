@@ -77,6 +77,7 @@ class PerformanceProfiler:
 
         self._metrics: list[PerformanceMetric] = []
         self._operation_stats: dict[str, OperationStats] = {}
+        self._memory_monitor: Optional[Any] = None
 
         if self.enable_memory_tracking:
             try:
@@ -177,7 +178,7 @@ class PerformanceProfiler:
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 op_name = operation or f"{func.__module__}.{func.__name__}"
 
-                metadata = {}
+                metadata: dict[str, Any] = {}
                 if include_args:
                     metadata["args_count"] = len(args)
                     metadata["kwargs_keys"] = list(kwargs.keys())

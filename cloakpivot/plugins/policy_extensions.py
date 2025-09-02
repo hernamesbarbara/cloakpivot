@@ -25,7 +25,7 @@ class PluginConfiguration:
         """Validate plugin configuration."""
         if not self.plugin_name:
             raise ValueError("Plugin name cannot be empty")
-        if self.plugin_type not in ('strategy', 'recognizer'):
+        if self.plugin_type not in ("strategy", "recognizer"):
             raise ValueError("Plugin type must be 'strategy' or 'recognizer'")
         if not isinstance(self.config, dict):
             raise ValueError("Plugin config must be a dictionary")
@@ -69,7 +69,9 @@ class EnhancedMaskingPolicy(MaskingPolicy):
 
     # Plugin-specific fields
     plugin_configurations: dict[str, PluginConfiguration] = field(default_factory=dict)
-    plugin_strategy_mapping: dict[str, str] = field(default_factory=dict)  # entity_type -> plugin_name
+    plugin_strategy_mapping: dict[str, str] = field(
+        default_factory=dict
+    )  # entity_type -> plugin_name
     enabled_strategy_plugins: list[str] = field(default_factory=list)
     enabled_recognizer_plugins: list[str] = field(default_factory=list)
     plugin_fallback_enabled: bool = field(default=True)
@@ -89,38 +91,54 @@ class EnhancedMaskingPolicy(MaskingPolicy):
         """Validate plugin configuration entries."""
         for name, config in self.plugin_configurations.items():
             if not isinstance(config, PluginConfiguration):
-                raise ValueError(f"Plugin configuration for {name} must be PluginConfiguration instance")
+                raise ValueError(
+                    f"Plugin configuration for {name} must be PluginConfiguration instance"
+                )
 
             # Validate plugin name matches key
             if config.plugin_name != name:
-                raise ValueError(f"Plugin name mismatch: key={name}, config.plugin_name={config.plugin_name}")
+                raise ValueError(
+                    f"Plugin name mismatch: key={name}, config.plugin_name={config.plugin_name}"
+                )
 
     def _validate_plugin_mappings(self) -> None:
         """Validate plugin mapping references."""
         for _entity_type, plugin_name in self.plugin_strategy_mapping.items():
             if plugin_name not in self.plugin_configurations:
-                raise ValueError(f"Strategy mapping references unknown plugin: {plugin_name}")
+                raise ValueError(
+                    f"Strategy mapping references unknown plugin: {plugin_name}"
+                )
 
             config = self.plugin_configurations[plugin_name]
             if config.plugin_type != "strategy":
-                raise ValueError(f"Strategy mapping references non-strategy plugin: {plugin_name}")
+                raise ValueError(
+                    f"Strategy mapping references non-strategy plugin: {plugin_name}"
+                )
 
         # Validate enabled plugin lists
         for plugin_name in self.enabled_strategy_plugins:
             if plugin_name not in self.plugin_configurations:
-                raise ValueError(f"Enabled strategy plugins references unknown plugin: {plugin_name}")
+                raise ValueError(
+                    f"Enabled strategy plugins references unknown plugin: {plugin_name}"
+                )
 
             config = self.plugin_configurations[plugin_name]
             if config.plugin_type != "strategy":
-                raise ValueError(f"Enabled strategy plugins references non-strategy plugin: {plugin_name}")
+                raise ValueError(
+                    f"Enabled strategy plugins references non-strategy plugin: {plugin_name}"
+                )
 
         for plugin_name in self.enabled_recognizer_plugins:
             if plugin_name not in self.plugin_configurations:
-                raise ValueError(f"Enabled recognizer plugins references unknown plugin: {plugin_name}")
+                raise ValueError(
+                    f"Enabled recognizer plugins references unknown plugin: {plugin_name}"
+                )
 
             config = self.plugin_configurations[plugin_name]
             if config.plugin_type != "recognizer":
-                raise ValueError(f"Enabled recognizer plugins references non-recognizer plugin: {plugin_name}")
+                raise ValueError(
+                    f"Enabled recognizer plugins references non-recognizer plugin: {plugin_name}"
+                )
 
     def _validate_error_handling(self) -> None:
         """Validate error handling configuration."""
@@ -129,9 +147,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
             raise ValueError(f"plugin_error_handling must be one of {valid_modes}")
 
     def get_strategy_for_entity(
-        self,
-        entity_type: str,
-        context: Optional[str] = None
+        self, entity_type: str, context: Optional[str] = None
     ) -> Strategy:
         """
         Get strategy for entity, checking plugin mappings first.
@@ -151,7 +167,9 @@ class EnhancedMaskingPolicy(MaskingPolicy):
             if plugin_config and plugin_config.enabled:
                 # Return a custom strategy that indicates plugin usage
                 # Add a dummy callback to satisfy Strategy validation
-                def plugin_callback(original_text: str, entity_type: str, confidence: float) -> str:
+                def plugin_callback(
+                    original_text: str, entity_type: str, confidence: float
+                ) -> str:
                     return f"PLUGIN_{plugin_name}[{original_text}]"
 
                 return Strategy(
@@ -160,14 +178,16 @@ class EnhancedMaskingPolicy(MaskingPolicy):
                         "callback": plugin_callback,
                         "plugin_name": plugin_name,
                         "plugin_config": plugin_config.config,
-                        "fallback_strategy": plugin_config.fallback_strategy
-                    }
+                        "fallback_strategy": plugin_config.fallback_strategy,
+                    },
                 )
 
         # Fall back to base implementation
         return super().get_strategy_for_entity(entity_type, context)
 
-    def get_plugin_configuration(self, plugin_name: str) -> Optional[PluginConfiguration]:
+    def get_plugin_configuration(
+        self, plugin_name: str
+    ) -> Optional[PluginConfiguration]:
         """Get configuration for a specific plugin."""
         return self.plugin_configurations.get(plugin_name)
 
@@ -179,14 +199,16 @@ class EnhancedMaskingPolicy(MaskingPolicy):
     def get_enabled_strategy_plugins(self) -> list[str]:
         """Get list of enabled strategy plugin names."""
         return [
-            name for name in self.enabled_strategy_plugins
+            name
+            for name in self.enabled_strategy_plugins
             if self.is_plugin_enabled(name)
         ]
 
     def get_enabled_recognizer_plugins(self) -> list[str]:
         """Get list of enabled recognizer plugin names."""
         return [
-            name for name in self.enabled_recognizer_plugins
+            name
+            for name in self.enabled_recognizer_plugins
             if self.is_plugin_enabled(name)
         ]
 
@@ -197,7 +219,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
         return sorted(
             enabled_plugins,
             key=lambda name: self.plugin_configurations[name].priority,
-            reverse=True
+            reverse=True,
         )
 
     def get_recognizer_plugins_by_priority(self) -> list[str]:
@@ -207,13 +229,11 @@ class EnhancedMaskingPolicy(MaskingPolicy):
         return sorted(
             enabled_plugins,
             key=lambda name: self.plugin_configurations[name].priority,
-            reverse=True
+            reverse=True,
         )
 
     def with_plugin_configuration(
-        self,
-        plugin_name: str,
-        plugin_config: PluginConfiguration
+        self, plugin_name: str, plugin_config: PluginConfiguration
     ) -> "EnhancedMaskingPolicy":
         """Create new policy with additional plugin configuration."""
         new_configs = {**self.plugin_configurations, plugin_name: plugin_config}
@@ -240,9 +260,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
         )
 
     def with_plugin_strategy_mapping(
-        self,
-        entity_type: str,
-        plugin_name: str
+        self, entity_type: str, plugin_name: str
     ) -> "EnhancedMaskingPolicy":
         """Create new policy with additional plugin strategy mapping."""
         new_mapping = {**self.plugin_strategy_mapping, entity_type: plugin_name}
@@ -273,29 +291,33 @@ class EnhancedMaskingPolicy(MaskingPolicy):
         base_dict = super().to_dict()
 
         # Add plugin-specific fields
-        base_dict.update({
-            "plugin_configurations": {
-                name: {
-                    "plugin_name": config.plugin_name,
-                    "plugin_type": config.plugin_type,
-                    "config": config.config,
-                    "enabled": config.enabled,
-                    "priority": config.priority,
-                    "fallback_strategy": (
-                        {
-                            "kind": config.fallback_strategy.kind.value,
-                            "parameters": config.fallback_strategy.parameters
-                        } if config.fallback_strategy else None
-                    )
-                }
-                for name, config in self.plugin_configurations.items()
-            },
-            "plugin_strategy_mapping": dict(self.plugin_strategy_mapping),
-            "enabled_strategy_plugins": list(self.enabled_strategy_plugins),
-            "enabled_recognizer_plugins": list(self.enabled_recognizer_plugins),
-            "plugin_fallback_enabled": self.plugin_fallback_enabled,
-            "plugin_error_handling": self.plugin_error_handling,
-        })
+        base_dict.update(
+            {
+                "plugin_configurations": {
+                    name: {
+                        "plugin_name": config.plugin_name,
+                        "plugin_type": config.plugin_type,
+                        "config": config.config,
+                        "enabled": config.enabled,
+                        "priority": config.priority,
+                        "fallback_strategy": (
+                            {
+                                "kind": config.fallback_strategy.kind.value,
+                                "parameters": config.fallback_strategy.parameters,
+                            }
+                            if config.fallback_strategy
+                            else None
+                        ),
+                    }
+                    for name, config in self.plugin_configurations.items()
+                },
+                "plugin_strategy_mapping": dict(self.plugin_strategy_mapping),
+                "enabled_strategy_plugins": list(self.enabled_strategy_plugins),
+                "enabled_recognizer_plugins": list(self.enabled_recognizer_plugins),
+                "plugin_fallback_enabled": self.plugin_fallback_enabled,
+                "plugin_error_handling": self.plugin_error_handling,
+            }
+        )
 
         return base_dict
 
@@ -315,7 +337,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
                 fs_data = config_data["fallback_strategy"]
                 fallback_strategy = Strategy(
                     kind=StrategyKind(fs_data["kind"]),
-                    parameters=fs_data.get("parameters", {})
+                    parameters=fs_data.get("parameters", {}),
                 )
 
             plugin_configs[name] = PluginConfiguration(
@@ -324,7 +346,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
                 config=config_data.get("config", {}),
                 enabled=config_data.get("enabled", True),
                 priority=config_data.get("priority", 0),
-                fallback_strategy=fallback_strategy
+                fallback_strategy=fallback_strategy,
             )
 
         return cls(
@@ -351,7 +373,7 @@ class EnhancedMaskingPolicy(MaskingPolicy):
 
 def create_plugin_enabled_policy(
     base_policy: MaskingPolicy,
-    plugin_configs: Optional[dict[str, PluginConfiguration]] = None
+    plugin_configs: Optional[dict[str, PluginConfiguration]] = None,
 ) -> EnhancedMaskingPolicy:
     """
     Convert a base MaskingPolicy to an EnhancedMaskingPolicy.
@@ -376,5 +398,5 @@ def create_plugin_enabled_policy(
         context_rules=base_policy.context_rules,
         min_entity_length=base_policy.min_entity_length,
         # Add plugin configurations
-        plugin_configurations=plugin_configs or {}
+        plugin_configurations=plugin_configs or {},
     )

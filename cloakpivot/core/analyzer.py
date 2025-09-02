@@ -5,35 +5,37 @@ import os
 import re
 from dataclasses import dataclass, field
 from functools import total_ordering
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from .performance import profile_method
 from .policies import MaskingPolicy
 
-# Lazy import presidio to avoid blocking on module load
-# These will be imported when actually needed in _initialize_engine()
-AnalyzerEngine = None
-RecognizerResult = None
-NlpEngineProvider = None
+if TYPE_CHECKING:
+    from presidio_analyzer import AnalyzerEngine, RecognizerResult
+    from presidio_analyzer.nlp_engine import NlpEngineProvider
+else:
+    # Lazy import presidio to avoid blocking on module load
+    # These will be imported when actually needed in _initialize_engine()
+    AnalyzerEngine = None
+    RecognizerResult = None
+    NlpEngineProvider = None
 
 
-def _import_presidio():
+def _import_presidio() -> None:
     """Import presidio modules with proper error handling."""
     global AnalyzerEngine, RecognizerResult, NlpEngineProvider
 
-    if AnalyzerEngine is not None:
+    if not TYPE_CHECKING and AnalyzerEngine is not None:
         return  # Already imported
 
     try:
-        from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
-        from presidio_analyzer import RecognizerResult as _RecognizerResult
-        from presidio_analyzer.nlp_engine import (
-            NlpEngineProvider as _NlpEngineProvider,
+        from presidio_analyzer import (
+            AnalyzerEngine,
+            RecognizerResult,
         )
-
-        AnalyzerEngine = _AnalyzerEngine
-        RecognizerResult = _RecognizerResult
-        NlpEngineProvider = _NlpEngineProvider
+        from presidio_analyzer.nlp_engine import (
+            NlpEngineProvider,
+        )
 
     except ImportError as e:
         raise ImportError(
@@ -330,7 +332,7 @@ class AnalyzerEngineWrapper:
         )
 
         self.registry = RecognizerRegistry(self.config.enabled_recognizers)
-        self._engine: Optional[AnalyzerEngine] = None
+        self._engine: Optional[Any] = None  # Will be AnalyzerEngine after import
         self._is_initialized = False
 
         # Apply disabled recognizers
@@ -439,6 +441,10 @@ class AnalyzerEngineWrapper:
                 ],
             }
 
+            if not TYPE_CHECKING:
+                if NlpEngineProvider is None or AnalyzerEngine is None:
+                    raise ImportError("Presidio modules not properly imported")
+
             nlp_engine_provider = NlpEngineProvider(nlp_configuration=nlp_configuration)
             nlp_engine = nlp_engine_provider.create_engine()
 
@@ -515,7 +521,7 @@ class AnalyzerEngineWrapper:
             # Convert to our result format
             detection_results = []
             for result in presidio_results:
-                entity_text = text[result.start:result.end]
+                entity_text = text[result.start : result.end]
                 detection = EntityDetectionResult.from_presidio_result(
                     result, entity_text
                 )
@@ -538,7 +544,7 @@ class AnalyzerEngineWrapper:
         if not self._engine:
             return list(self.registry.get_enabled_recognizers())
 
-        return self._engine.get_supported_entities(language=self.config.language)
+        return list(self._engine.get_supported_entities(language=self.config.language))
 
     def validate_configuration(self) -> dict[str, Any]:
         """Validate current configuration and return diagnostics.
@@ -570,15 +576,17 @@ class AnalyzerEngineWrapper:
 
         except Exception as e:
             diagnostics["config_valid"] = False
-            diagnostics["errors"].append(str(e))
+            cast(list[str], diagnostics["errors"]).append(str(e))
             diagnostics["test_analysis_successful"] = False
 
         # Check for common issues
         if not self.registry.get_enabled_recognizers():
-            diagnostics["warnings"].append("No recognizers are enabled")
+            cast(list[str], diagnostics["warnings"]).append(
+                "No recognizers are enabled"
+            )
 
         if self.config.min_confidence > 0.9:
-            diagnostics["warnings"].append(
+            cast(list[str], diagnostics["warnings"]).append(
                 "Very high confidence threshold may miss valid entities"
             )
 

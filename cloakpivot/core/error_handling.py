@@ -67,7 +67,7 @@ class ErrorRecord:
 class ErrorCollector:
     """Collects and categorizes errors during processing operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: list[ErrorRecord] = []
         self.success_count = 0
         self.total_operations = 0
@@ -127,8 +127,8 @@ class ErrorCollector:
 
     def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all recorded errors."""
-        error_types = {}
-        components = {}
+        error_types: dict[str, int] = {}
+        components: dict[str, int] = {}
 
         for error_record in self.errors:
             error_type = type(error_record.error).__name__
@@ -207,7 +207,7 @@ class PartialFailureManager:
     def execute_with_isolation(
         self,
         operation: Callable[..., T],
-        args: tuple = (),
+        args: tuple[Any, ...] = (),
         kwargs: Optional[dict[str, Any]] = None,
         component: str = "unknown",
         recoverable: bool = True,
@@ -307,7 +307,7 @@ class CircuitBreaker:
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to apply circuit breaker to a function."""
 
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             if self.state == "OPEN":
                 if self._should_attempt_reset():
                     self.state = "HALF_OPEN"
@@ -368,9 +368,9 @@ class RetryManager:
     def execute_with_retry(
         self,
         operation: Callable[..., T],
-        args: tuple = (),
+        args: tuple[Any, ...] = (),
         kwargs: Optional[dict[str, Any]] = None,
-        retryable_exceptions: tuple = (Exception,),
+        retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     ) -> T:
         """Execute operation with retry logic."""
         kwargs = kwargs or {}
@@ -434,11 +434,11 @@ def with_error_isolation(
     manager: PartialFailureManager,
     component: str = "unknown",
     recoverable: bool = True,
-):
+) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """Decorator to add error isolation to a function."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
-        def wrapper(*args, **kwargs) -> Optional[T]:
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[T]:
             return manager.execute_with_isolation(
                 func, args, kwargs, component, recoverable
             )
@@ -451,14 +451,14 @@ def with_error_isolation(
 def with_retry(
     max_retries: int = 3,
     base_delay: float = 1.0,
-    retryable_exceptions: tuple = (Exception,),
-):
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator to add retry logic to a function."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         retry_manager = RetryManager(max_retries=max_retries, base_delay=base_delay)
 
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             return retry_manager.execute_with_retry(
                 func, args, kwargs, retryable_exceptions
             )
@@ -472,7 +472,7 @@ def with_circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: float = 60.0,
     expected_exception: type[Exception] = Exception,
-):
+) -> CircuitBreaker:
     """Decorator to add circuit breaker pattern to a function."""
     breaker = CircuitBreaker(failure_threshold, recovery_timeout, expected_exception)
     return breaker

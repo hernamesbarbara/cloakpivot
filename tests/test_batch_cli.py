@@ -57,16 +57,16 @@ per_entity:
 """)
 
             yield {
-                'workspace': workspace,
-                'input_dir': input_dir,
-                'output_dir': output_dir,
-                'cloakmap_dir': cloakmap_dir,
-                'policy_file': policy_file,
+                "workspace": workspace,
+                "input_dir": input_dir,
+                "output_dir": output_dir,
+                "cloakmap_dir": cloakmap_dir,
+                "policy_file": policy_file,
             }
 
     def test_batch_mask_help(self, cli_runner):
         """Test batch mask command help."""
-        result = cli_runner.invoke(batch, ['mask', '--help'])
+        result = cli_runner.invoke(batch, ["mask", "--help"])
 
         assert result.exit_code == 0
         assert "Batch mask PII in multiple documents" in result.output
@@ -76,7 +76,7 @@ per_entity:
 
     def test_batch_unmask_help(self, cli_runner):
         """Test batch unmask command help."""
-        result = cli_runner.invoke(batch, ['unmask', '--help'])
+        result = cli_runner.invoke(batch, ["unmask", "--help"])
 
         assert result.exit_code == 0
         assert "Batch unmask previously masked documents" in result.output
@@ -86,7 +86,7 @@ per_entity:
 
     def test_batch_analyze_help(self, cli_runner):
         """Test batch analyze command help."""
-        result = cli_runner.invoke(batch, ['analyze', '--help'])
+        result = cli_runner.invoke(batch, ["analyze", "--help"])
 
         assert result.exit_code == 0
         assert "Batch analyze documents for PII" in result.output
@@ -95,7 +95,7 @@ per_entity:
 
     def test_batch_config_sample(self, cli_runner):
         """Test batch config sample command."""
-        result = cli_runner.invoke(batch, ['config-sample'])
+        result = cli_runner.invoke(batch, ["config-sample"])
 
         assert result.exit_code == 0
         assert "CloakPivot Batch Processing Configuration Options" in result.output
@@ -104,16 +104,16 @@ per_entity:
 
     def test_batch_config_sample_yaml(self, cli_runner):
         """Test batch config sample with YAML format."""
-        result = cli_runner.invoke(batch, ['config-sample', '--format', 'yaml'])
+        result = cli_runner.invoke(batch, ["config-sample", "--format", "yaml"])
 
         assert result.exit_code == 0
         assert "# CloakPivot Batch Processing Configuration Sample" in result.output
-        assert "operation_type: \"mask\"" in result.output
+        assert 'operation_type: "mask"' in result.output
         assert "input_patterns:" in result.output
 
     def test_batch_config_sample_json(self, cli_runner):
         """Test batch config sample with JSON format."""
-        result = cli_runner.invoke(batch, ['config-sample', '--format', 'json'])
+        result = cli_runner.invoke(batch, ["config-sample", "--format", "json"])
 
         assert result.exit_code == 0
 
@@ -128,19 +128,19 @@ per_entity:
 
     def test_batch_mask_missing_arguments(self, cli_runner):
         """Test batch mask with missing required arguments."""
-        result = cli_runner.invoke(batch, ['mask'])
+        result = cli_runner.invoke(batch, ["mask"])
 
         assert result.exit_code != 0
         assert "Missing argument" in result.output or "Usage:" in result.output
 
     def test_batch_mask_missing_output_dir(self, cli_runner):
         """Test batch mask with missing output directory."""
-        result = cli_runner.invoke(batch, ['mask', '*.pdf'])
+        result = cli_runner.invoke(batch, ["mask", "*.pdf"])
 
         assert result.exit_code != 0
         assert "Missing option" in result.output or "--out-dir" in result.output
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
+    @patch("cloakpivot.cli.batch.BatchProcessor")
     def test_batch_mask_basic(self, mock_processor_class, cli_runner, temp_workspace):
         """Test basic batch mask command."""
         # Mock successful batch processing
@@ -161,25 +161,34 @@ per_entity:
         )
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "*.pdf")
-        output_dir = str(temp_workspace['output_dir'])
+        input_pattern = str(temp_workspace["input_dir"] / "*.pdf")
+        output_dir = str(temp_workspace["output_dir"])
 
-        result = cli_runner.invoke(batch, [
-            'mask', input_pattern,
-            '--out-dir', output_dir,
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "mask",
+                input_pattern,
+                "--out-dir",
+                output_dir,
+            ],
+        )
 
         assert result.exit_code == 0
         mock_processor_class.assert_called_once()
         mock_processor.process_batch.assert_called_once()
 
         # Check that the configuration was created correctly
-        call_args = mock_processor_class.call_args[0][0]  # First positional argument (config)
+        call_args = mock_processor_class.call_args[0][
+            0
+        ]  # First positional argument (config)
         assert call_args.operation_type == BatchOperationType.MASK
         assert call_args.output_directory == Path(output_dir)
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
-    def test_batch_mask_with_all_options(self, mock_processor_class, cli_runner, temp_workspace):
+    @patch("cloakpivot.cli.batch.BatchProcessor")
+    def test_batch_mask_with_all_options(
+        self, mock_processor_class, cli_runner, temp_workspace
+    ):
         """Test batch mask command with all options specified."""
         mock_processor = Mock()
         mock_processor_class.return_value = mock_processor
@@ -198,28 +207,41 @@ per_entity:
         )
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "**/*.pdf")
-        output_dir = str(temp_workspace['output_dir'])
-        cloakmap_dir = str(temp_workspace['cloakmap_dir'])
-        policy_file = str(temp_workspace['policy_file'])
+        input_pattern = str(temp_workspace["input_dir"] / "**/*.pdf")
+        output_dir = str(temp_workspace["output_dir"])
+        cloakmap_dir = str(temp_workspace["cloakmap_dir"])
+        policy_file = str(temp_workspace["policy_file"])
 
-        with patch('cloakpivot.cli.batch._load_masking_policy') as mock_load_policy:
+        with patch("cloakpivot.cli.batch._load_masking_policy") as mock_load_policy:
             mock_load_policy.return_value = MaskingPolicy()
 
-            result = cli_runner.invoke(batch, [
-                'mask', input_pattern,
-                '--out-dir', output_dir,
-                '--cloakmap-dir', cloakmap_dir,
-                '--policy', policy_file,
-                '--format', 'docling',
-                '--max-workers', '8',
-                '--max-files', '100',
-                '--max-retries', '3',
-                '--overwrite',
-                '--throttle-delay', '0.1',
-                '--max-memory', '2048',
-                '--verbose',
-            ])
+            result = cli_runner.invoke(
+                batch,
+                [
+                    "mask",
+                    input_pattern,
+                    "--out-dir",
+                    output_dir,
+                    "--cloakmap-dir",
+                    cloakmap_dir,
+                    "--policy",
+                    policy_file,
+                    "--format",
+                    "docling",
+                    "--max-workers",
+                    "8",
+                    "--max-files",
+                    "100",
+                    "--max-retries",
+                    "3",
+                    "--overwrite",
+                    "--throttle-delay",
+                    "0.1",
+                    "--max-memory",
+                    "2048",
+                    "--verbose",
+                ],
+            )
 
             assert result.exit_code == 0
 
@@ -240,8 +262,10 @@ per_entity:
             # Check that policy loader was called
             mock_load_policy.assert_called_once_with(Path(policy_file), True)
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
-    def test_batch_mask_with_failures(self, mock_processor_class, cli_runner, temp_workspace):
+    @patch("cloakpivot.cli.batch.BatchProcessor")
+    def test_batch_mask_with_failures(
+        self, mock_processor_class, cli_runner, temp_workspace
+    ):
         """Test batch mask command with some failures."""
         mock_processor = Mock()
         mock_processor_class.return_value = mock_processor
@@ -261,31 +285,39 @@ per_entity:
 
         # Add file results with errors
         from cloakpivot.core.batch import BatchFileItem
+
         mock_result.file_results = [
             BatchFileItem(file_path=Path("doc1.pdf"), status=BatchStatus.COMPLETED),
             BatchFileItem(file_path=Path("doc2.pdf"), status=BatchStatus.COMPLETED),
             BatchFileItem(
                 file_path=Path("doc3.pdf"),
                 status=BatchStatus.FAILED,
-                error="Processing failed"
+                error="Processing failed",
             ),
         ]
 
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "*.pdf")
-        output_dir = str(temp_workspace['output_dir'])
+        input_pattern = str(temp_workspace["input_dir"] / "*.pdf")
+        output_dir = str(temp_workspace["output_dir"])
 
-        result = cli_runner.invoke(batch, [
-            'mask', input_pattern,
-            '--out-dir', output_dir,
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "mask",
+                input_pattern,
+                "--out-dir",
+                output_dir,
+            ],
+        )
 
-        assert result.exit_code == 1  # Should exit with failure code due to failed files
+        assert (
+            result.exit_code == 1
+        )  # Should exit with failure code due to failed files
         assert "files failed processing" in result.output
         assert "Processing failed" in result.output
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
+    @patch("cloakpivot.cli.batch.BatchProcessor")
     def test_batch_unmask_basic(self, mock_processor_class, cli_runner, temp_workspace):
         """Test basic batch unmask command."""
         mock_processor = Mock()
@@ -305,15 +337,21 @@ per_entity:
         )
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "*.json")
-        output_dir = str(temp_workspace['output_dir'])
-        cloakmap_dir = str(temp_workspace['cloakmap_dir'])
+        input_pattern = str(temp_workspace["input_dir"] / "*.json")
+        output_dir = str(temp_workspace["output_dir"])
+        cloakmap_dir = str(temp_workspace["cloakmap_dir"])
 
-        result = cli_runner.invoke(batch, [
-            'unmask', input_pattern,
-            '--cloakmap-dir', cloakmap_dir,
-            '--out-dir', output_dir,
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "unmask",
+                input_pattern,
+                "--cloakmap-dir",
+                cloakmap_dir,
+                "--out-dir",
+                output_dir,
+            ],
+        )
 
         assert result.exit_code == 0
         mock_processor_class.assert_called_once()
@@ -325,8 +363,10 @@ per_entity:
         assert call_args.cloakmap_directory == Path(cloakmap_dir)
         assert call_args.output_directory == Path(output_dir)
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
-    def test_batch_analyze_basic(self, mock_processor_class, cli_runner, temp_workspace):
+    @patch("cloakpivot.cli.batch.BatchProcessor")
+    def test_batch_analyze_basic(
+        self, mock_processor_class, cli_runner, temp_workspace
+    ):
         """Test basic batch analyze command."""
         mock_processor = Mock()
         mock_processor_class.return_value = mock_processor
@@ -345,12 +385,16 @@ per_entity:
         )
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "**/*.pdf")
+        input_pattern = str(temp_workspace["input_dir"] / "**/*.pdf")
 
-        result = cli_runner.invoke(batch, [
-            'analyze', input_pattern,
-            '--summary-only',
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "analyze",
+                input_pattern,
+                "--summary-only",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Batch Analysis Summary" in result.output
@@ -364,8 +408,10 @@ per_entity:
         assert call_args.operation_type == BatchOperationType.ANALYZE
         assert call_args.output_directory is None  # summary-only mode
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
-    def test_batch_analyze_with_output(self, mock_processor_class, cli_runner, temp_workspace):
+    @patch("cloakpivot.cli.batch.BatchProcessor")
+    def test_batch_analyze_with_output(
+        self, mock_processor_class, cli_runner, temp_workspace
+    ):
         """Test batch analyze command with output directory."""
         mock_processor = Mock()
         mock_processor_class.return_value = mock_processor
@@ -384,14 +430,19 @@ per_entity:
         )
         mock_processor.process_batch.return_value = mock_result
 
-        input_pattern = str(temp_workspace['input_dir'] / "*.pdf")
-        output_dir = str(temp_workspace['output_dir'])
+        input_pattern = str(temp_workspace["input_dir"] / "*.pdf")
+        output_dir = str(temp_workspace["output_dir"])
 
-        result = cli_runner.invoke(batch, [
-            'analyze', input_pattern,
-            '--out-dir', output_dir,
-            '--verbose',
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "analyze",
+                input_pattern,
+                "--out-dir",
+                output_dir,
+                "--verbose",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Starting batch analysis operation" in result.output
@@ -402,8 +453,10 @@ per_entity:
         assert call_args.output_directory == Path(output_dir)
         assert call_args.verbose_logging is True
 
-    @patch('cloakpivot.cli.batch.BatchProcessor')
-    def test_batch_keyboard_interrupt(self, mock_processor_class, cli_runner, temp_workspace):
+    @patch("cloakpivot.cli.batch.BatchProcessor")
+    def test_batch_keyboard_interrupt(
+        self, mock_processor_class, cli_runner, temp_workspace
+    ):
         """Test handling of keyboard interrupt during batch processing."""
         mock_processor = Mock()
         mock_processor_class.return_value = mock_processor
@@ -411,13 +464,18 @@ per_entity:
         # Simulate KeyboardInterrupt
         mock_processor.process_batch.side_effect = KeyboardInterrupt()
 
-        input_pattern = str(temp_workspace['input_dir'] / "*.pdf")
-        output_dir = str(temp_workspace['output_dir'])
+        input_pattern = str(temp_workspace["input_dir"] / "*.pdf")
+        output_dir = str(temp_workspace["output_dir"])
 
-        result = cli_runner.invoke(batch, [
-            'mask', input_pattern,
-            '--out-dir', output_dir,
-        ])
+        result = cli_runner.invoke(
+            batch,
+            [
+                "mask",
+                input_pattern,
+                "--out-dir",
+                output_dir,
+            ],
+        )
 
         assert result.exit_code == 130  # SIGINT exit code
         assert "cancelled by user" in result.output
@@ -446,10 +504,12 @@ per_entity:
 
         assert "At least one input pattern must be specified" in str(exc_info.value)
 
-    @patch('cloakpivot.core.policy_loader.PolicyLoader')
-    @patch('builtins.open')
-    @patch('yaml.safe_load')
-    def test_load_masking_policy_yaml(self, mock_yaml_load, mock_open, mock_loader_class):
+    @patch("cloakpivot.core.policy_loader.PolicyLoader")
+    @patch("builtins.open")
+    @patch("yaml.safe_load")
+    def test_load_masking_policy_yaml(
+        self, mock_yaml_load, mock_open, mock_loader_class
+    ):
         """Test loading masking policy from YAML file."""
         from cloakpivot.cli.batch import _load_masking_policy
 
@@ -457,13 +517,15 @@ per_entity:
         mock_loader_class.side_effect = ImportError("PolicyLoader not available")
 
         policy_data = {
-            'locale': 'en',
-            'default_strategy': {'kind': 'redact'},
-            'per_entity': {'PERSON': {'kind': 'hash'}}
+            "locale": "en",
+            "default_strategy": {"kind": "redact"},
+            "per_entity": {"PERSON": {"kind": "hash"}},
         }
         mock_yaml_load.return_value = policy_data
 
-        with patch('cloakpivot.core.policies.MaskingPolicy.from_dict') as mock_from_dict:
+        with patch(
+            "cloakpivot.core.policies.MaskingPolicy.from_dict"
+        ) as mock_from_dict:
             mock_policy = MaskingPolicy()
             mock_from_dict.return_value = mock_policy
 
@@ -479,7 +541,7 @@ per_entity:
         result = _load_masking_policy(None, verbose=False)
         assert result is None
 
-    @patch('cloakpivot.core.policy_loader.PolicyLoader')
+    @patch("cloakpivot.core.policy_loader.PolicyLoader")
     def test_load_masking_policy_enhanced_loader(self, mock_loader_class):
         """Test loading masking policy with enhanced loader."""
         from cloakpivot.cli.batch import _load_masking_policy

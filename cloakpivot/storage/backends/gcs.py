@@ -89,25 +89,27 @@ class GCSStorage(StorageBackend):
                 # Build client arguments
                 client_kwargs = {}
 
-                if self.config.get('project_id'):
-                    client_kwargs['project'] = self.config['project_id']
+                if self.config.get("project_id"):
+                    client_kwargs["project"] = self.config["project_id"]
 
                 # Handle service account credentials
-                if self.config.get('credentials_path'):
+                if self.config.get("credentials_path"):
                     credentials = service_account.Credentials.from_service_account_file(
-                        self.config['credentials_path']
+                        self.config["credentials_path"]
                     )
-                    client_kwargs['credentials'] = credentials
-                elif self.config.get('credentials_json'):
+                    client_kwargs["credentials"] = credentials
+                elif self.config.get("credentials_json"):
                     credentials = service_account.Credentials.from_service_account_info(
-                        self.config['credentials_json']
+                        self.config["credentials_json"]
                     )
-                    client_kwargs['credentials'] = credentials
+                    client_kwargs["credentials"] = credentials
 
                 self._client = storage.Client(**client_kwargs)
 
             except ImportError as e:
-                raise ValueError("google-cloud-storage is required for GCS storage backend") from e
+                raise ValueError(
+                    "google-cloud-storage is required for GCS storage backend"
+                ) from e
 
         return self._client
 
@@ -139,12 +141,12 @@ class GCSStorage(StorageBackend):
         kwargs = {}
 
         # Add storage class
-        storage_class = self.config.get('storage_class', 'STANDARD')
-        kwargs['storage_class'] = storage_class
+        storage_class = self.config.get("storage_class", "STANDARD")
+        kwargs["storage_class"] = storage_class
 
         # Add encryption key if configured
-        if self.config.get('encryption_key_name'):
-            kwargs['kms_key_name'] = self.config['encryption_key_name']
+        if self.config.get("encryption_key_name"):
+            kwargs["kms_key_name"] = self.config["encryption_key_name"]
 
         return kwargs
 
@@ -153,7 +155,7 @@ class GCSStorage(StorageBackend):
         key: str,
         cloakmap: CloakMap,
         metadata: Optional[dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """
         Save a CloakMap to GCS.
@@ -181,7 +183,7 @@ class GCSStorage(StorageBackend):
                 content_bytes=content_bytes,
                 bucket_name=self.config["bucket_name"],
                 blob_name=blob_name,
-                **(metadata or {})
+                **(metadata or {}),
             )
 
             # Create blob and upload CloakMap
@@ -193,30 +195,33 @@ class GCSStorage(StorageBackend):
                 setattr(blob, attr, value)
 
             # Set content type
-            blob.content_type = 'application/json'
+            blob.content_type = "application/json"
 
             # Upload content
             blob.upload_from_string(
                 content_bytes,
-                content_type='application/json',
-                **kwargs.get('upload_kwargs', {})
+                content_type="application/json",
+                **kwargs.get("upload_kwargs", {}),
             )
 
             # Upload metadata
             metadata_blob = self.bucket.blob(metadata_blob_name)
-            metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode("utf-8")
+            metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode(
+                "utf-8"
+            )
 
-            metadata_blob.content_type = 'application/json'
+            metadata_blob.content_type = "application/json"
             metadata_blob.upload_from_string(
-                metadata_content,
-                content_type='application/json'
+                metadata_content, content_type="application/json"
             )
 
             return storage_metadata
 
         except Exception as e:
             if "NotFound" in str(e):
-                raise ValueError(f"GCS bucket '{self.config['bucket_name']}' does not exist") from e
+                raise ValueError(
+                    f"GCS bucket '{self.config['bucket_name']}' does not exist"
+                ) from e
             elif "Forbidden" in str(e):
                 raise PermissionError("Access denied to GCS bucket") from e
             else:
@@ -239,7 +244,7 @@ class GCSStorage(StorageBackend):
 
             # Download content
             content_bytes = blob.download_as_bytes()
-            content = content_bytes.decode('utf-8')
+            content = content_bytes.decode("utf-8")
 
             return CloakMap.from_json(content)
 
@@ -247,7 +252,9 @@ class GCSStorage(StorageBackend):
             if "NotFound" in str(e):
                 raise KeyError(f"CloakMap not found: {key}") from e
             elif "Forbidden" in str(e):
-                raise PermissionError(f"Access denied to GCS object '{blob_name}'") from e
+                raise PermissionError(
+                    f"Access denied to GCS object '{blob_name}'"
+                ) from e
             else:
                 raise ValueError(f"Failed to load CloakMap from GCS: {e}") from e
 
@@ -302,10 +309,7 @@ class GCSStorage(StorageBackend):
                 raise ConnectionError(f"Failed to delete from GCS: {e}") from e
 
     def list_keys(
-        self,
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
-        **kwargs: Any
+        self, prefix: Optional[str] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> list[str]:
         """
         List CloakMap keys in GCS.
@@ -330,21 +334,18 @@ class GCSStorage(StorageBackend):
             keys = []
 
             # List blobs with prefix
-            blobs = self.bucket.list_blobs(
-                prefix=gcs_prefix,
-                max_results=limit
-            )
+            blobs = self.bucket.list_blobs(prefix=gcs_prefix, max_results=limit)
 
             for blob in blobs:
                 blob_name = blob.name
 
                 # Skip metadata files
-                if blob_name.endswith('.meta'):
+                if blob_name.endswith(".meta"):
                     continue
 
                 # Remove object prefix to get clean key
                 if blob_name.startswith(object_prefix):
-                    clean_key = blob_name[len(object_prefix):]
+                    clean_key = blob_name[len(object_prefix) :]
                     keys.append(clean_key)
 
                     if limit and len(keys) >= limit:
@@ -354,7 +355,9 @@ class GCSStorage(StorageBackend):
 
         except Exception as e:
             if "NotFound" in str(e):
-                raise ValueError(f"GCS bucket '{self.config['bucket_name']}' does not exist") from e
+                raise ValueError(
+                    f"GCS bucket '{self.config['bucket_name']}' does not exist"
+                ) from e
             elif "Forbidden" in str(e):
                 raise PermissionError("Access denied to list GCS bucket") from e
             else:
@@ -402,7 +405,7 @@ class GCSStorage(StorageBackend):
 
             # Build minimal content bytes for hash calculation
             content = cloakmap.to_json()
-            content_bytes = content.encode('utf-8')
+            content_bytes = content.encode("utf-8")
 
             metadata = StorageMetadata.from_cloakmap(
                 key=key,
@@ -421,13 +424,17 @@ class GCSStorage(StorageBackend):
             if blob.updated:
                 metadata.modified_at = blob.updated.replace(tzinfo=None)
 
-            metadata.backend_metadata.update({
-                'etag': blob.etag,
-                'storage_class': blob.storage_class,
-                'content_type': blob.content_type,
-                'generation': str(blob.generation) if blob.generation else None,
-                'metageneration': str(blob.metageneration) if blob.metageneration else None,
-            })
+            metadata.backend_metadata.update(
+                {
+                    "etag": blob.etag,
+                    "storage_class": blob.storage_class,
+                    "content_type": blob.content_type,
+                    "generation": str(blob.generation) if blob.generation else None,
+                    "metageneration": str(blob.metageneration)
+                    if blob.metageneration
+                    else None,
+                }
+            )
 
             return metadata
 
@@ -437,12 +444,7 @@ class GCSStorage(StorageBackend):
             else:
                 raise ConnectionError(f"Failed to get GCS metadata: {e}") from e
 
-    def copy(
-        self,
-        source_key: str,
-        dest_key: str,
-        **kwargs: Any
-    ) -> StorageMetadata:
+    def copy(self, source_key: str, dest_key: str, **kwargs: Any) -> StorageMetadata:
         """
         Copy a CloakMap to a new key using GCS server-side copy.
 
@@ -493,21 +495,25 @@ class GCSStorage(StorageBackend):
             # Try to list objects (limited)
             list(self.bucket.list_blobs(max_results=1))
 
-            base_result.update({
-                "bucket_name": bucket_name,
-                "bucket_accessible": True,
-                "can_list": True,
-                "location": getattr(self.bucket, 'location', None),
-                "storage_class": getattr(self.bucket, 'storage_class', None),
-            })
+            base_result.update(
+                {
+                    "bucket_name": bucket_name,
+                    "bucket_accessible": True,
+                    "can_list": True,
+                    "location": getattr(self.bucket, "location", None),
+                    "storage_class": getattr(self.bucket, "storage_class", None),
+                }
+            )
 
         except Exception as e:
-            base_result.update({
-                "status": "unhealthy",
-                "bucket_name": self.config.get("bucket_name"),
-                "bucket_accessible": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            })
+            base_result.update(
+                {
+                    "status": "unhealthy",
+                    "bucket_name": self.config.get("bucket_name"),
+                    "bucket_accessible": False,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
 
         return base_result

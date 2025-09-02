@@ -10,7 +10,7 @@ import hashlib
 import logging
 from functools import lru_cache
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 
 from .core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from .core.detection import EntityDetectionPipeline
@@ -263,7 +263,9 @@ def _get_cached_analyzer(
     if cache_size not in _analyzer_caches:
 
         @lru_cache(maxsize=cache_size)
-        def cached_analyzer_func(lang, conf_hash, min_conf, nlp_engine):
+        def cached_analyzer_func(
+            lang: str, conf_hash: Optional[str], min_conf: float, nlp_engine: str
+        ) -> AnalyzerEngineWrapper:
             with _ANALYZER_LOCK:
                 config = AnalyzerConfig(
                     language=lang, min_confidence=min_conf, nlp_engine_name=nlp_engine
@@ -510,7 +512,7 @@ def clear_all_caches() -> None:
     logger.info("Cleared all loader caches")
 
 
-def get_cache_info() -> dict[str, any]:
+def get_cache_info() -> dict[str, Any]:
     """Get cache statistics for monitoring and debugging.
 
     Returns:
@@ -531,7 +533,8 @@ def get_cache_info() -> dict[str, any]:
         info = cache_func.cache_info()
         analyzer_hits += info.hits
         analyzer_misses += info.misses
-        analyzer_maxsize = max(analyzer_maxsize, info.maxsize)
+        if info.maxsize is not None:
+            analyzer_maxsize = max(analyzer_maxsize, info.maxsize)
         analyzer_currsize += info.currsize
 
     # If no analyzer caches exist yet, provide sensible defaults

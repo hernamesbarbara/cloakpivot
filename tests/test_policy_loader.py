@@ -34,29 +34,24 @@ class TestPolicyFileSchema:
             "description": "Test policy",
             "locale": "en-US",
             "seed": "test-seed",
-            "default_strategy": {
-                "kind": "redact",
-                "parameters": {"redact_char": "*"}
-            },
+            "default_strategy": {"kind": "redact", "parameters": {"redact_char": "*"}},
             "per_entity": {
                 "PERSON": {
                     "kind": "template",
                     "parameters": {"template": "[PERSON]"},
                     "threshold": 0.8,
-                    "enabled": True
+                    "enabled": True,
                 }
             },
             "thresholds": {"EMAIL_ADDRESS": 0.7},
             "allow_list": ["test@example.com"],
             "deny_list": ["confidential"],
             "min_entity_length": 2,
-            "context_rules": {
-                "heading": {"enabled": False}
-            },
+            "context_rules": {"heading": {"enabled": False}},
             "policy_composition": {
                 "merge_strategy": "override",
-                "validation_level": "strict"
-            }
+                "validation_level": "strict",
+            },
         }
 
         schema = PolicyFileSchema(**data)
@@ -67,12 +62,7 @@ class TestPolicyFileSchema:
 
     def test_invalid_strategy_kind(self):
         """Test validation fails for invalid strategy kind."""
-        data = {
-            "default_strategy": {
-                "kind": "invalid_strategy",
-                "parameters": {}
-            }
-        }
+        data = {"default_strategy": {"kind": "invalid_strategy", "parameters": {}}}
 
         with pytest.raises(ValueError):  # Pydantic ValidationError
             PolicyFileSchema(**data)
@@ -109,6 +99,7 @@ class TestPolicyLoader:
     def teardown_method(self):
         """Clean up test environment."""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def test_load_simple_policy(self):
@@ -225,7 +216,9 @@ class TestPolicyLoader:
         file_a.write_text(policy_a)
         file_b.write_text(policy_b)
 
-        with pytest.raises(PolicyInheritanceError, match="Circular inheritance detected"):
+        with pytest.raises(
+            PolicyInheritanceError, match="Circular inheritance detected"
+        ):
             self.loader.load_policy(file_a)
 
     def test_missing_base_policy_file(self):
@@ -406,33 +399,27 @@ class TestPolicyConversion:
             "locale": "en-US",
             "seed": "test-seed",
             "min_entity_length": 3,
-            "default_strategy": {
-                "kind": "redact",
-                "parameters": {"redact_char": "X"}
-            },
+            "default_strategy": {"kind": "redact", "parameters": {"redact_char": "X"}},
             "per_entity": {
                 "PERSON": {
                     "kind": "hash",
                     "parameters": {"algorithm": "sha256"},
                     "threshold": 0.8,
-                    "enabled": True
+                    "enabled": True,
                 },
                 "EMAIL_ADDRESS": {
                     "kind": "partial",
                     "parameters": {"visible_chars": 3},
                     "threshold": 0.7,
-                    "enabled": True
-                }
+                    "enabled": True,
+                },
             },
             "allow_list": ["test@example.com", "John Doe"],
             "deny_list": ["confidential"],
             "context_rules": {
                 "heading": {"enabled": False},
-                "table": {
-                    "enabled": True,
-                    "threshold_overrides": {"PERSON": 0.9}
-                }
-            }
+                "table": {"enabled": True, "threshold_overrides": {"PERSON": 0.9}},
+            },
         }
 
         schema = PolicyFileSchema(**schema_data)

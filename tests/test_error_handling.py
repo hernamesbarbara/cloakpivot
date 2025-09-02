@@ -53,7 +53,7 @@ class TestExceptionHierarchy:
             error_code="TEST_ERROR",
             context={"key": "value"},
             recovery_suggestions=["Try again"],
-            component="test"
+            component="test",
         )
 
         assert str(error) == "Test error"
@@ -119,19 +119,32 @@ class TestExceptionHierarchy:
     def test_specialized_exceptions(self):
         """Test specialized exception types with their specific attributes."""
         # ValidationError
-        val_error = ValidationError("Invalid value", field_name="test", expected_type="int", actual_value="string")
+        val_error = ValidationError(
+            "Invalid value",
+            field_name="test",
+            expected_type="int",
+            actual_value="string",
+        )
         assert val_error.context["field_name"] == "test"
 
         # ProcessingError
-        proc_error = ProcessingError("Processing failed", document_path="/test/doc.pdf", processing_stage="extraction")
+        proc_error = ProcessingError(
+            "Processing failed",
+            document_path="/test/doc.pdf",
+            processing_stage="extraction",
+        )
         assert proc_error.context["document_path"] == "/test/doc.pdf"
 
         # DetectionError
-        det_error = DetectionError("Detection failed", entity_type="PERSON", confidence_threshold=0.8)
+        det_error = DetectionError(
+            "Detection failed", entity_type="PERSON", confidence_threshold=0.8
+        )
         assert det_error.context["entity_type"] == "PERSON"
 
         # UnmaskingError
-        unmask_error = UnmaskingError("Unmasking failed", cloakmap_version="1.0", anchor_count=5)
+        unmask_error = UnmaskingError(
+            "Unmasking failed", cloakmap_version="1.0", anchor_count=5
+        )
         assert unmask_error.context["cloakmap_version"] == "1.0"
 
     def test_convenience_functions(self):
@@ -140,7 +153,9 @@ class TestExceptionHierarchy:
         assert val_error.context["field_name"] == "field"
         assert val_error.context["expected_type"] == "str"
 
-        proc_error = create_processing_error("Failed", "/test/doc", "parsing", ValueError("test"))
+        proc_error = create_processing_error(
+            "Failed", "/test/doc", "parsing", ValueError("test")
+        )
         assert proc_error.context["document_path"] == "/test/doc"
         assert proc_error.context["processing_stage"] == "parsing"
         assert "ValueError" in proc_error.context["original_error_type"]
@@ -158,7 +173,9 @@ class TestErrorCollector:
         collector = ErrorCollector()
 
         collector.record_success({"operation": "test1"})
-        collector.record_error(ValueError("Test error"), {"operation": "test2"}, component="test")
+        collector.record_error(
+            ValueError("Test error"), {"operation": "test2"}, component="test"
+        )
         collector.record_success({"operation": "test3"})
 
         assert collector.success_count == 2
@@ -224,19 +241,20 @@ class TestPartialFailureManager:
         strict_manager = PartialFailureManager(strict_config)
 
         result = strict_manager.execute_with_isolation(
-            lambda: 1/0,  # Will raise ZeroDivisionError
-            component="test"
+            lambda: 1 / 0,  # Will raise ZeroDivisionError
+            component="test",
         )
         assert result is None
         assert not strict_manager.should_continue_processing()
 
         # Best effort - should never stop
-        best_effort_config = FailureToleranceConfig(level=FailureToleranceLevel.BEST_EFFORT)
+        best_effort_config = FailureToleranceConfig(
+            level=FailureToleranceLevel.BEST_EFFORT
+        )
         best_effort_manager = PartialFailureManager(best_effort_config)
 
         result = best_effort_manager.execute_with_isolation(
-            lambda: 1/0,
-            component="test"
+            lambda: 1 / 0, component="test"
         )
         assert result is None
         assert best_effort_manager.should_continue_processing()
@@ -244,8 +262,7 @@ class TestPartialFailureManager:
     def test_failure_rate_threshold(self):
         """Test failure rate threshold enforcement."""
         config = FailureToleranceConfig(
-            level=FailureToleranceLevel.MODERATE,
-            max_failure_rate=0.5
+            level=FailureToleranceLevel.MODERATE, max_failure_rate=0.5
         )
         manager = PartialFailureManager(config)
 
@@ -266,9 +283,7 @@ class TestPartialFailureManager:
             return x + y
 
         result = manager.execute_with_isolation(
-            successful_operation,
-            args=(2, 3),
-            component="math"
+            successful_operation, args=(2, 3), component="math"
         )
 
         assert result == 5
@@ -380,6 +395,7 @@ class TestRetryManager:
 
     def test_retry_exhaustion(self):
         """Test behavior when all retries are exhausted."""
+
         @with_retry(max_retries=2, base_delay=0.01)
         def always_failing():
             raise ValueError("Permanent failure")
@@ -414,7 +430,7 @@ class TestValidation:
 
     def test_file_validation(self):
         """Test file permission validation."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("test content")
             temp_path = f.name
 
@@ -432,10 +448,8 @@ class TestValidation:
         """Test policy structure validation."""
         valid_policy = {
             "default_strategy": {"kind": "redact"},
-            "per_entity": {
-                "PERSON": {"kind": "hash"}
-            },
-            "thresholds": {"PERSON": 0.8}
+            "per_entity": {"PERSON": {"kind": "hash"}},
+            "thresholds": {"PERSON": 0.8},
         }
 
         # Valid policy should pass
@@ -463,9 +477,9 @@ class TestValidation:
                     "node_id": "node-1",
                     "start": 0,
                     "end": 10,
-                    "entity_type": "PERSON"
+                    "entity_type": "PERSON",
                 }
-            ]
+            ],
         }
 
         # Valid CloakMap should pass
@@ -478,18 +492,20 @@ class TestValidation:
 
         # Invalid anchor should fail
         invalid_anchor_cloakmap = valid_cloakmap.copy()
-        invalid_anchor_cloakmap["anchors"] = [{"anchor_id": "test", "start": -1, "end": 5}]
+        invalid_anchor_cloakmap["anchors"] = [
+            {"anchor_id": "test", "start": -1, "end": 5}
+        ]
         with pytest.raises(ValidationError):
             CloakMapValidator.validate_cloakmap_structure(invalid_anchor_cloakmap)
 
     def test_document_validation(self):
         """Test document format and size validation."""
         # Create temporary test files
-        with tempfile.NamedTemporaryFile(suffix='.json', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
             json.dump({"name": "test", "texts": []}, f)
             json_path = f.name
 
-        with tempfile.NamedTemporaryFile(suffix='.xyz', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".xyz", mode="w", delete=False) as f:
             f.write("test")
             invalid_path = f.name
 
@@ -518,13 +534,13 @@ class TestIntegration:
         # Create a manager with moderate tolerance but higher failure rate threshold
         manager = create_partial_failure_manager(
             tolerance="moderate",
-            max_failure_rate=0.6  # Allow higher failure rate for this test
+            max_failure_rate=0.6,  # Allow higher failure rate for this test
         )
 
         # Simulate processing workflow with mixed success/failure
         operations = [
             (lambda: "success1", True),
-            (lambda: 1/0, False),  # Will fail
+            (lambda: 1 / 0, False),  # Will fail
             (lambda: "success2", True),
             (lambda: "success3", True),
             (lambda: int("not_a_number"), False),  # Will fail
@@ -536,8 +552,7 @@ class TestIntegration:
                 break
 
             result = manager.execute_with_isolation(
-                operation,
-                component="test_workflow"
+                operation, component="test_workflow"
             )
             results.append(result)
 
@@ -562,8 +577,7 @@ class TestIntegration:
         # Test with invalid inputs - should get clear validation errors
         with pytest.raises(ValidationError) as exc_info:
             validator.validate_masking_inputs(
-                document_path="/non/existent/file",
-                policy_data={"invalid": "policy"}
+                document_path="/non/existent/file", policy_data={"invalid": "policy"}
             )
 
         error = exc_info.value
@@ -597,8 +611,7 @@ class TestConvenienceFunctions:
     def test_convenience_manager_creation(self):
         """Test convenience function for creating managers."""
         manager = create_partial_failure_manager(
-            tolerance="permissive",
-            max_failure_rate=0.8
+            tolerance="permissive", max_failure_rate=0.8
         )
 
         assert manager.tolerance_config.level == FailureToleranceLevel.PERMISSIVE
@@ -611,20 +624,26 @@ class TestErrorRecovery:
     def test_recovery_suggestions(self):
         """Test that errors provide helpful recovery suggestions."""
         dep_error = create_dependency_error("missing-package", "1.0.0")
-        assert any("pip install" in suggestion for suggestion in dep_error.recovery_suggestions)
+        assert any(
+            "pip install" in suggestion for suggestion in dep_error.recovery_suggestions
+        )
 
         val_error = create_validation_error("Invalid type", "field", str, 42)
-        assert any("Ensure field is of type" in suggestion for suggestion in val_error.recovery_suggestions)
+        assert any(
+            "Ensure field is of type" in suggestion
+            for suggestion in val_error.recovery_suggestions
+        )
 
         proc_error = create_processing_error("Failed to parse", "/test/doc", "parsing")
-        assert any("Check document format" in suggestion for suggestion in proc_error.recovery_suggestions)
+        assert any(
+            "Check document format" in suggestion
+            for suggestion in proc_error.recovery_suggestions
+        )
 
     def test_structured_error_information(self):
         """Test that errors provide structured information for debugging."""
         error = DetectionError(
-            "PII detection failed",
-            entity_type="PERSON",
-            confidence_threshold=0.8
+            "PII detection failed", entity_type="PERSON", confidence_threshold=0.8
         )
 
         error_dict = error.to_dict()

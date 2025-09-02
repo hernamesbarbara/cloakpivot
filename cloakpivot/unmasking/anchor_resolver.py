@@ -2,9 +2,8 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
-from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
     CodeItem,
     FormulaItem,
@@ -16,6 +15,8 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.anchors import AnchorEntry
 
@@ -80,7 +81,9 @@ class AnchorResolver:
     """
 
     # Configuration for anchor resolution
-    MAX_POSITION_DRIFT = 100  # Maximum characters to search around expected position (increased)
+    MAX_POSITION_DRIFT = (
+        100  # Maximum characters to search around expected position (increased)
+    )
     MIN_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence to accept resolution (lowered)
     FUZZY_SEARCH_WINDOW = 20  # Characters to search in each direction (increased)
 
@@ -383,9 +386,9 @@ class AnchorResolver:
             try:
                 row_idx, col_idx = map(int, cell_suffix.split("_"))
                 if row_idx < len(table_data.table_cells) and col_idx < len(
-                    table_data.table_cells[row_idx]
+                    cast(Any, table_data.table_cells)[row_idx]
                 ):
-                    cell = table_data.table_cells[row_idx][col_idx]
+                    cell = cast(Any, table_data.table_cells)[row_idx][col_idx]
                     return getattr(cell, "text", None)
             except ValueError:
                 pass
@@ -410,7 +413,7 @@ class AnchorResolver:
         # Check for key-specific node ID
         if node_id == f"{base_node_id}/key":
             if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
-                return kv_item.key.text
+                return kv_item.key.text  # type: ignore[no-any-return]
 
         # Check for value-specific node ID
         elif node_id == f"{base_node_id}/value":
@@ -419,7 +422,7 @@ class AnchorResolver:
                 and kv_item.value
                 and hasattr(kv_item.value, "text")
             ):
-                return kv_item.value.text
+                return kv_item.value.text  # type: ignore[no-any-return]
 
         # Return concatenated key-value text if node_id matches the item
         elif node_id == base_node_id:
@@ -456,7 +459,7 @@ class AnchorResolver:
             position_deltas.append(resolved_anchor.position_delta)
 
         # Failure analysis
-        failure_reasons = {}
+        failure_reasons: dict[str, int] = {}
         for failed_anchor in failed:
             reason = failed_anchor.failure_reason
             failure_reasons[reason] = failure_reasons.get(reason, 0) + 1

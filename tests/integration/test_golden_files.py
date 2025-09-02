@@ -44,7 +44,7 @@ class TestGoldenFiles:
         """Create golden file if it doesn't exist (for initial test creation)."""
         if not golden_path.exists():
             golden_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(golden_path, 'w', encoding='utf-8') as f:
+            with open(golden_path, "w", encoding="utf-8") as f:
                 if isinstance(content, str):
                     f.write(content)
                 else:
@@ -52,22 +52,19 @@ class TestGoldenFiles:
 
     def load_golden_file(self, golden_path: Path) -> Any:
         """Load golden file content."""
-        with open(golden_path, encoding='utf-8') as f:
-            if golden_path.suffix == '.json':
+        with open(golden_path, encoding="utf-8") as f:
+            if golden_path.suffix == ".json":
                 return json.load(f)
             else:
                 return f.read()
 
     def create_document_from_file(self, file_path: Path) -> DoclingDocument:
         """Create DoclingDocument from text file."""
-        text_content = file_path.read_text(encoding='utf-8')
+        text_content = file_path.read_text(encoding="utf-8")
         doc = DoclingDocument(name=file_path.stem)
 
         text_item = TextItem(
-            text=text_content,
-            self_ref="#/texts/0",
-            label="text",
-            orig=text_content
+            text=text_content, self_ref="#/texts/0", label="text", orig=text_content
         )
         doc.texts = [text_item]
         return doc
@@ -77,7 +74,7 @@ class TestGoldenFiles:
         self,
         golden_files_dir: Path,
         test_documents_dir: Path,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test masking of employee record with basic policy."""
         # Load test document
@@ -94,8 +91,8 @@ class TestGoldenFiles:
             "policy_hash": result.cloakmap.doc_hash,
             "document_structure": {
                 "name": result.masked_document.name,
-                "text_items_count": len(result.masked_document.texts)
-            }
+                "text_items_count": len(result.masked_document.texts),
+            },
         }
 
         # Compare with golden file
@@ -120,7 +117,7 @@ class TestGoldenFiles:
         self,
         golden_files_dir: Path,
         test_documents_dir: Path,
-        strict_masking_policy: MaskingPolicy
+        strict_masking_policy: MaskingPolicy,
     ):
         """Test masking of medical report with strict policy."""
         # Load test document
@@ -139,7 +136,7 @@ class TestGoldenFiles:
             "entity_count": result.cloakmap.anchor_count,
             "document_name": result.masked_document.name,
             "text_items_count": len(result.masked_document.texts),
-            "policy_privacy_level": str(strict_masking_policy.privacy_level)
+            "policy_privacy_level": str(strict_masking_policy.privacy_level),
         }
 
         golden_path = golden_files_dir / "medical_report_strict_masking.json"
@@ -156,7 +153,7 @@ class TestGoldenFiles:
         self,
         golden_files_dir: Path,
         test_documents_dir: Path,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test round-trip masking/unmasking produces consistent results."""
         # Test with multiple documents
@@ -170,13 +167,14 @@ class TestGoldenFiles:
             original_document = self.create_document_from_file(doc_path)
 
             # Mask document
-            mask_result = mask_document_with_detection(original_document, basic_masking_policy)
+            mask_result = mask_document_with_detection(
+                original_document, basic_masking_policy
+            )
 
             # Unmask document
             unmasking_engine = UnmaskingEngine()
             unmask_result = unmasking_engine.unmask_document(
-                mask_result.masked_document,
-                mask_result.cloakmap
+                mask_result.masked_document, mask_result.cloakmap
             )
 
             # Validate round-trip fidelity
@@ -184,7 +182,7 @@ class TestGoldenFiles:
                 original_document,
                 mask_result.masked_document,
                 unmask_result.unmasked_document,
-                mask_result.cloakmap
+                mask_result.cloakmap,
             )
 
             # Golden file for round-trip validation
@@ -192,9 +190,11 @@ class TestGoldenFiles:
                 "document_name": doc_path.stem,
                 "original_char_count": len(original_document.texts[0].text),
                 "masked_char_count": len(mask_result.masked_document.texts[0].text),
-                "unmasked_char_count": len(unmask_result.unmasked_document.texts[0].text),
+                "unmasked_char_count": len(
+                    unmask_result.unmasked_document.texts[0].text
+                ),
                 "entity_mappings_count": len(mask_result.cloakmap.entity_mappings),
-                "round_trip_success": True
+                "round_trip_success": True,
             }
 
             golden_path = golden_files_dir / f"round_trip_{doc_path.stem}.json"
@@ -206,16 +206,25 @@ class TestGoldenFiles:
             expected_data = self.load_golden_file(golden_path)
 
             # Validate key metrics match golden file
-            assert golden_data["original_char_count"] == expected_data["original_char_count"]
-            assert golden_data["round_trip_success"] == expected_data["round_trip_success"]
+            assert (
+                golden_data["original_char_count"]
+                == expected_data["original_char_count"]
+            )
+            assert (
+                golden_data["round_trip_success"] == expected_data["round_trip_success"]
+            )
             # Allow some variation in entity count due to confidence thresholds
-            assert abs(golden_data["entity_mappings_count"] - expected_data["entity_mappings_count"]) <= 2
+            assert (
+                abs(
+                    golden_data["entity_mappings_count"]
+                    - expected_data["entity_mappings_count"]
+                )
+                <= 2
+            )
 
     @pytest.mark.golden
     def test_format_specific_golden_files(
-        self,
-        golden_files_dir: Path,
-        basic_masking_policy: MaskingPolicy
+        self, golden_files_dir: Path, basic_masking_policy: MaskingPolicy
     ):
         """Test masking behavior with format-specific challenges."""
         # Test cases for specific formatting challenges
@@ -252,7 +261,7 @@ Section 2: Development Team
     Email: charlie.brown@company.com
     SSN: 123-45-6789 (for payroll)
 """,
-            }
+            },
         ]
 
         for test_case in test_cases:
@@ -262,7 +271,7 @@ Section 2: Development Team
                 text=test_case["text"],
                 self_ref="#/texts/0",
                 label="text",
-                orig=test_case["text"]
+                orig=test_case["text"],
             )
             document.texts = [text_item]
 
@@ -270,8 +279,8 @@ Section 2: Development Team
             result = mask_document_with_detection(document, basic_masking_policy)
 
             # Create golden file data focusing on structure preservation
-            lines_original = test_case["text"].strip().split('\n')
-            lines_masked = result.masked_document.texts[0].text.strip().split('\n')
+            lines_original = test_case["text"].strip().split("\n")
+            lines_masked = result.masked_document.texts[0].text.strip().split("\n")
 
             golden_data = {
                 "test_case": test_case["name"],
@@ -279,9 +288,12 @@ Section 2: Development Team
                 "entity_mappings": len(result.cloakmap.entity_mappings),
                 "structure_markers": {
                     "has_table_separators": "|" in result.masked_document.texts[0].text,
-                    "has_section_headers": "Section" in result.masked_document.texts[0].text,
-                    "has_indentation": any(line.startswith("  ") for line in lines_masked),
-                }
+                    "has_section_headers": "Section"
+                    in result.masked_document.texts[0].text,
+                    "has_indentation": any(
+                        line.startswith("  ") for line in lines_masked
+                    ),
+                },
             }
 
             golden_path = golden_files_dir / f"format_{test_case['name']}.json"
@@ -293,15 +305,20 @@ Section 2: Development Team
             expected_data = self.load_golden_file(golden_path)
 
             # Validate structural preservation
-            assert golden_data["line_count_preserved"] == expected_data["line_count_preserved"]
-            assert golden_data["structure_markers"] == expected_data["structure_markers"]
+            assert (
+                golden_data["line_count_preserved"]
+                == expected_data["line_count_preserved"]
+            )
+            assert (
+                golden_data["structure_markers"] == expected_data["structure_markers"]
+            )
 
     @pytest.mark.golden
     def test_regression_detection(
         self,
         golden_files_dir: Path,
         test_documents_dir: Path,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test that changes in masking behavior are detected."""
         # This test helps detect unintended changes in masking behavior
@@ -322,10 +339,7 @@ Section 2: Development Team
 
         document = DoclingDocument(name="regression_test")
         text_item = TextItem(
-            text=test_text,
-            self_ref="#/texts/0",
-            label="text",
-            orig=test_text
+            text=test_text, self_ref="#/texts/0", label="text", orig=test_text
         )
         document.texts = [text_item]
 
@@ -340,9 +354,15 @@ Section 2: Development Team
                 "entities_detected": len(result.cloakmap.entity_mappings),
                 "masked_length": len(result.masked_document.texts[0].text),
                 "cloakmap_size": len(str(result.cloakmap.entity_mappings)),
-                "has_phone_masking": any("PHONE" in str(mapping) for mapping in result.cloakmap.entity_mappings.values()),
-                "has_email_masking": any("EMAIL" in str(mapping) for mapping in result.cloakmap.entity_mappings.values()),
-            }
+                "has_phone_masking": any(
+                    "PHONE" in str(mapping)
+                    for mapping in result.cloakmap.entity_mappings.values()
+                ),
+                "has_email_masking": any(
+                    "EMAIL" in str(mapping)
+                    for mapping in result.cloakmap.entity_mappings.values()
+                ),
+            },
         }
 
         golden_path = golden_files_dir / "regression_detection.json"

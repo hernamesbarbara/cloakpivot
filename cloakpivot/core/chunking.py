@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from docling_core.types import DoclingDocument
+from cloakpivot.core.types import DoclingDocument
 
 from ..document.extractor import TextExtractor, TextSegment
 

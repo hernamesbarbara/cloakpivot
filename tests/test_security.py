@@ -41,14 +41,14 @@ class TestSecurityConfig:
     def test_custom_config(self):
         """Test custom security configuration."""
         config = SecurityConfig(
-            hmac_algorithm='sha512',
+            hmac_algorithm="sha512",
             pbkdf2_iterations=200000,
             salt_length=64,
             key_derivation_enabled=False,
-            constant_time_verification=False
+            constant_time_verification=False,
         )
 
-        assert config.hmac_algorithm == 'sha512'
+        assert config.hmac_algorithm == "sha512"
         assert config.pbkdf2_iterations == 200000
         assert config.salt_length == 64
         assert config.key_derivation_enabled is False
@@ -57,7 +57,7 @@ class TestSecurityConfig:
     def test_invalid_config(self):
         """Test invalid configuration parameters."""
         with pytest.raises(ValueError, match="Unsupported HMAC algorithm"):
-            SecurityConfig(hmac_algorithm='md5')
+            SecurityConfig(hmac_algorithm="md5")
 
         with pytest.raises(ValueError, match="PBKDF2 iterations must be at least"):
             SecurityConfig(pbkdf2_iterations=1000)
@@ -72,45 +72,49 @@ class TestKeyManagers:
     def test_environment_key_manager(self):
         """Test environment variable key manager."""
         # Setup environment
-        os.environ['CLOAKPIVOT_KEY_TEST'] = 'test-secret-key'
-        os.environ['CLOAKPIVOT_KEY_HEX'] = 'hex:48656c6c6f'  # "Hello" in hex
-        os.environ['CLOAKPIVOT_KEY_B64'] = 'b64:SGVsbG8='     # "Hello" in base64
-        os.environ['CLOAKPIVOT_KEY_VERSIONED_V1'] = 'version-1-key'
+        os.environ["CLOAKPIVOT_KEY_TEST"] = "test-secret-key"
+        os.environ["CLOAKPIVOT_KEY_HEX"] = "hex:48656c6c6f"  # "Hello" in hex
+        os.environ["CLOAKPIVOT_KEY_B64"] = "b64:SGVsbG8="  # "Hello" in base64
+        os.environ["CLOAKPIVOT_KEY_VERSIONED_V1"] = "version-1-key"
 
         try:
             manager = EnvironmentKeyManager()
 
             # Test basic key retrieval
-            key = manager.get_key('test')
-            assert key == b'test-secret-key'
+            key = manager.get_key("test")
+            assert key == b"test-secret-key"
 
             # Test hex encoding
-            key = manager.get_key('hex')
-            assert key == b'Hello'
+            key = manager.get_key("hex")
+            assert key == b"Hello"
 
             # Test base64 encoding
-            key = manager.get_key('b64')
-            assert key == b'Hello'
+            key = manager.get_key("b64")
+            assert key == b"Hello"
 
             # Test versioned key
-            key = manager.get_key('versioned', version='1')
-            assert key == b'version-1-key'
+            key = manager.get_key("versioned", version="1")
+            assert key == b"version-1-key"
 
             # Test key listing
             keys = manager.list_keys()
-            assert 'test' in keys
-            assert 'hex' in keys
-            assert 'b64' in keys
-            assert 'versioned' in keys
+            assert "test" in keys
+            assert "hex" in keys
+            assert "b64" in keys
+            assert "versioned" in keys
 
             # Test missing key
             with pytest.raises(KeyError):
-                manager.get_key('missing')
+                manager.get_key("missing")
 
         finally:
             # Cleanup
-            for key in ['CLOAKPIVOT_KEY_TEST', 'CLOAKPIVOT_KEY_HEX',
-                       'CLOAKPIVOT_KEY_B64', 'CLOAKPIVOT_KEY_VERSIONED_V1']:
+            for key in [
+                "CLOAKPIVOT_KEY_TEST",
+                "CLOAKPIVOT_KEY_HEX",
+                "CLOAKPIVOT_KEY_B64",
+                "CLOAKPIVOT_KEY_VERSIONED_V1",
+            ]:
                 os.environ.pop(key, None)
 
     def test_file_key_manager(self):
@@ -127,38 +131,38 @@ class TestKeyManagers:
             manager = FileKeyManager(key_dir)
 
             # Test key retrieval
-            key = manager.get_key('test')
-            assert key == b'file-secret-key'
+            key = manager.get_key("test")
+            assert key == b"file-secret-key"
 
             # Test hex encoding
-            key = manager.get_key('hex')
-            assert key == b'Hello'
+            key = manager.get_key("hex")
+            assert key == b"Hello"
 
             # Test versioned key
-            key = manager.get_key('versioned', version='1')
-            assert key == b'version-1-key'
+            key = manager.get_key("versioned", version="1")
+            assert key == b"version-1-key"
 
             # Test key listing
             keys = manager.list_keys()
-            assert 'test' in keys
-            assert 'hex' in keys
-            assert 'versioned' in keys
+            assert "test" in keys
+            assert "hex" in keys
+            assert "versioned" in keys
 
             # Test missing key
             with pytest.raises(KeyError):
-                manager.get_key('missing')
+                manager.get_key("missing")
 
     def test_composite_key_manager(self):
         """Test composite key manager."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Setup environment manager
-            os.environ['CLOAKPIVOT_KEY_ENV_ONLY'] = 'env-key'
+            os.environ["CLOAKPIVOT_KEY_ENV_ONLY"] = "env-key"
 
             # Setup file manager
             key_dir = Path(temp_dir)
             (key_dir / "file_only.key").write_text("file-key")
             (key_dir / "both.key").write_text("file-version")
-            os.environ['CLOAKPIVOT_KEY_BOTH'] = 'env-version'
+            os.environ["CLOAKPIVOT_KEY_BOTH"] = "env-version"
 
             try:
                 env_manager = EnvironmentKeyManager()
@@ -166,26 +170,26 @@ class TestKeyManagers:
                 composite = CompositeKeyManager([env_manager, file_manager])
 
                 # Test env-only key
-                key = composite.get_key('env_only')
-                assert key == b'env-key'
+                key = composite.get_key("env_only")
+                assert key == b"env-key"
 
                 # Test file-only key
-                key = composite.get_key('file_only')
-                assert key == b'file-key'
+                key = composite.get_key("file_only")
+                assert key == b"file-key"
 
                 # Test priority (env first)
-                key = composite.get_key('both')
-                assert key == b'env-version'
+                key = composite.get_key("both")
+                assert key == b"env-version"
 
                 # Test key listing from all sources
                 keys = composite.list_keys()
-                assert 'env_only' in keys
-                assert 'file_only' in keys
-                assert 'both' in keys
+                assert "env_only" in keys
+                assert "file_only" in keys
+                assert "both" in keys
 
             finally:
-                os.environ.pop('CLOAKPIVOT_KEY_ENV_ONLY', None)
-                os.environ.pop('CLOAKPIVOT_KEY_BOTH', None)
+                os.environ.pop("CLOAKPIVOT_KEY_ENV_ONLY", None)
+                os.environ.pop("CLOAKPIVOT_KEY_BOTH", None)
 
 
 class TestCryptoUtils:
@@ -216,12 +220,16 @@ class TestCryptoUtils:
         assert is_valid
 
         # Test with wrong data
-        is_valid = CryptoUtils.verify_salted_checksum("wrong-data", salt, checksum, config)
+        is_valid = CryptoUtils.verify_salted_checksum(
+            "wrong-data", salt, checksum, config
+        )
         assert not is_valid
 
         # Test with wrong salt
         wrong_salt = CryptoUtils.generate_salt()
-        is_valid = CryptoUtils.verify_salted_checksum(data, wrong_salt, checksum, config)
+        is_valid = CryptoUtils.verify_salted_checksum(
+            data, wrong_salt, checksum, config
+        )
         assert not is_valid
 
     def test_hmac_operations(self):
@@ -247,10 +255,10 @@ class TestCryptoUtils:
         assert not is_valid
 
         # Test different algorithms
-        mac_512 = CryptoUtils.compute_hmac(data, key, 'sha512')
+        mac_512 = CryptoUtils.compute_hmac(data, key, "sha512")
         assert len(mac_512) == 128  # SHA-512 hex length
 
-        is_valid = CryptoUtils.verify_hmac(data, key, mac_512, 'sha512')
+        is_valid = CryptoUtils.verify_hmac(data, key, mac_512, "sha512")
         assert is_valid
 
 
@@ -270,7 +278,7 @@ class TestSecureAnchors:
             original_text="secret-data",
             masked_value="[MASKED]",
             strategy_used="test",
-            config=config
+            config=config,
         )
 
         # Check that salt and checksum are present
@@ -298,7 +306,7 @@ class TestSecureAnchors:
             "masked_value": "[MASKED]",
             "replacement_id": "repl_123",
             "original_checksum": "a" * 64,  # Valid hex checksum
-            "strategy_used": "test"
+            "strategy_used": "test",
         }
 
         # Should create anchor with default salt
@@ -312,7 +320,7 @@ class TestCloakMapSecurity:
     def test_enhanced_signing(self):
         """Test enhanced CloakMap signing with key manager."""
         # Setup key manager
-        os.environ['CLOAKPIVOT_KEY_TEST'] = 'test-signing-key'
+        os.environ["CLOAKPIVOT_KEY_TEST"] = "test-signing-key"
 
         try:
             key_manager = EnvironmentKeyManager()
@@ -329,44 +337,40 @@ class TestCloakMapSecurity:
                     original_text="hello",
                     masked_value="[TEST]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
             cloakmap = CloakMap.create(
-                doc_id="test_doc",
-                doc_hash="a" * 64,
-                anchors=anchors
+                doc_id="test_doc", doc_hash="a" * 64, anchors=anchors
             )
 
             # Sign with key manager
             signed_map = cloakmap.with_signature(
-                key_manager=key_manager,
-                key_id="test",
-                config=config
+                key_manager=key_manager, key_id="test", config=config
             )
 
             assert signed_map.is_signed
             assert signed_map.signature
             assert signed_map.crypto
-            assert signed_map.crypto['key_id'] == 'test'
-            assert signed_map.crypto['signature_algorithm'] == config.hmac_algorithm
+            assert signed_map.crypto["key_id"] == "test"
+            assert signed_map.crypto["signature_algorithm"] == config.hmac_algorithm
 
             # Verify signature
             is_valid = signed_map.verify_signature(key_manager, config=config)
             assert is_valid
 
             # Test with wrong key
-            os.environ['CLOAKPIVOT_KEY_TEST'] = 'wrong-key'
+            os.environ["CLOAKPIVOT_KEY_TEST"] = "wrong-key"
             is_valid = signed_map.verify_signature(key_manager, config=config)
             assert not is_valid
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_TEST', None)
+            os.environ.pop("CLOAKPIVOT_KEY_TEST", None)
 
     def test_security_validator(self):
         """Test comprehensive security validator."""
-        os.environ['CLOAKPIVOT_KEY_DEFAULT'] = 'test-key'
+        os.environ["CLOAKPIVOT_KEY_DEFAULT"] = "test-key"
 
         try:
             key_manager = EnvironmentKeyManager()
@@ -383,14 +387,12 @@ class TestCloakMapSecurity:
                     original_text="hello",
                     masked_value="[TEST]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
             cloakmap = CloakMap.create(
-                doc_id="test_doc",
-                doc_hash="a" * 64,
-                anchors=anchors
+                doc_id="test_doc", doc_hash="a" * 64, anchors=anchors
             ).with_signature(key_manager=key_manager, config=config)
 
             # Validate with security validator
@@ -405,11 +407,11 @@ class TestCloakMapSecurity:
             assert results["performance"]["validation_time_ms"] > 0
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_DEFAULT', None)
+            os.environ.pop("CLOAKPIVOT_KEY_DEFAULT", None)
 
     def test_integrity_validation_enhanced(self):
         """Test enhanced integrity validation function."""
-        os.environ['CLOAKPIVOT_KEY_DEFAULT'] = 'test-key'
+        os.environ["CLOAKPIVOT_KEY_DEFAULT"] = "test-key"
 
         try:
             key_manager = EnvironmentKeyManager()
@@ -425,14 +427,12 @@ class TestCloakMapSecurity:
                     original_text="hello",
                     masked_value="[TEST]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
             cloakmap = CloakMap.create(
-                doc_id="test_doc",
-                doc_hash="a" * 64,
-                anchors=anchors
+                doc_id="test_doc", doc_hash="a" * 64, anchors=anchors
             ).with_signature(key_manager=key_manager, config=config)
 
             # Test enhanced validation
@@ -445,7 +445,7 @@ class TestCloakMapSecurity:
             assert "performance" in results
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_DEFAULT', None)
+            os.environ.pop("CLOAKPIVOT_KEY_DEFAULT", None)
 
 
 class TestSecurityMetadata:
@@ -460,7 +460,7 @@ class TestSecurityMetadata:
             key_id="test-key",
             key_version="v1",
             salt=salt,
-            iterations=100000
+            iterations=100000,
         )
 
         # Test to_dict
@@ -601,7 +601,7 @@ class TestCloakMapEncryption:
     def test_cloakmap_encryption_round_trip(self):
         """Test full CloakMap encryption and decryption round trip."""
         # Setup environment
-        os.environ['CLOAKPIVOT_KEY_TEST_ENC'] = 'hex:' + '0' * 64  # 32-byte key in hex
+        os.environ["CLOAKPIVOT_KEY_TEST_ENC"] = "hex:" + "0" * 64  # 32-byte key in hex
 
         try:
             from cloakpivot.core.security import (
@@ -624,7 +624,7 @@ class TestCloakMapEncryption:
                     original_text="secret-data",
                     masked_value="[MASKED]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
@@ -632,7 +632,7 @@ class TestCloakMapEncryption:
                 doc_id="test_document",
                 doc_hash="a" * 64,
                 anchors=anchors,
-                metadata={"test": "metadata"}
+                metadata={"test": "metadata"},
             )
 
             # Encrypt
@@ -661,12 +661,12 @@ class TestCloakMapEncryption:
             assert decrypted_anchor.masked_value == original_anchor.masked_value
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_TEST_ENC', None)
+            os.environ.pop("CLOAKPIVOT_KEY_TEST_ENC", None)
 
     def test_cloakmap_encryption_methods(self):
         """Test CloakMap encryption methods."""
         # Setup environment
-        os.environ['CLOAKPIVOT_KEY_DEFAULT'] = 'hex:' + 'a' * 64  # 32-byte key
+        os.environ["CLOAKPIVOT_KEY_DEFAULT"] = "hex:" + "a" * 64  # 32-byte key
 
         try:
             key_manager = EnvironmentKeyManager()
@@ -683,14 +683,12 @@ class TestCloakMapEncryption:
                     original_text="hello",
                     masked_value="[TEST]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
             cloakmap = CloakMap.create(
-                doc_id="test_doc",
-                doc_hash="b" * 64,
-                anchors=anchors
+                doc_id="test_doc", doc_hash="b" * 64, anchors=anchors
             )
 
             # Test encrypt method
@@ -716,13 +714,13 @@ class TestCloakMapEncryption:
                 assert auto_loaded.doc_id == cloakmap.doc_id
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_DEFAULT', None)
+            os.environ.pop("CLOAKPIVOT_KEY_DEFAULT", None)
 
     def test_key_rotation(self):
         """Test encryption key rotation."""
         # Setup multiple keys
-        os.environ['CLOAKPIVOT_KEY_OLD'] = 'hex:' + '1' * 64
-        os.environ['CLOAKPIVOT_KEY_NEW'] = 'hex:' + '2' * 64
+        os.environ["CLOAKPIVOT_KEY_OLD"] = "hex:" + "1" * 64
+        os.environ["CLOAKPIVOT_KEY_NEW"] = "hex:" + "2" * 64
 
         try:
             from cloakpivot.core.security import CloakMapEncryption, KeyRotationManager
@@ -742,14 +740,12 @@ class TestCloakMapEncryption:
                     original_text="data",
                     masked_value="[TEST]",
                     strategy_used="test",
-                    config=config
+                    config=config,
                 )
             ]
 
             cloakmap = CloakMap.create(
-                doc_id="test_doc",
-                doc_hash="c" * 64,
-                anchors=anchors
+                doc_id="test_doc", doc_hash="c" * 64, anchors=anchors
             )
 
             # Encrypt with old key
@@ -770,14 +766,16 @@ class TestCloakMapEncryption:
             rotation_manager = KeyRotationManager(key_manager, config)
 
             # Test key availability check
-            availability = rotation_manager.verify_key_availability(["old", "new", "missing"])
+            availability = rotation_manager.verify_key_availability(
+                ["old", "new", "missing"]
+            )
             assert availability["old"] is True
             assert availability["new"] is True
             assert availability["missing"] is False
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_OLD', None)
-            os.environ.pop('CLOAKPIVOT_KEY_NEW', None)
+            os.environ.pop("CLOAKPIVOT_KEY_OLD", None)
+            os.environ.pop("CLOAKPIVOT_KEY_NEW", None)
 
     def test_encryption_errors(self):
         """Test encryption error handling."""
@@ -788,18 +786,14 @@ class TestCloakMapEncryption:
         encryption = CloakMapEncryption(key_manager, config)
 
         # Create test CloakMap
-        cloakmap = CloakMap.create(
-            doc_id="test",
-            doc_hash="d" * 64,
-            anchors=[]
-        )
+        cloakmap = CloakMap.create(doc_id="test", doc_hash="d" * 64, anchors=[])
 
         # Test missing key (should raise ValueError wrapping KeyError)
         with pytest.raises(ValueError, match="Failed to encrypt CloakMap"):
             encryption.encrypt_cloakmap(cloakmap, "missing_key")
 
         # Test decryption with wrong key
-        os.environ['CLOAKPIVOT_KEY_WRONG'] = 'hex:' + '9' * 64
+        os.environ["CLOAKPIVOT_KEY_WRONG"] = "hex:" + "9" * 64
         try:
             encrypted_map = EncryptedCloakMap(
                 version="1.0",
@@ -809,14 +803,14 @@ class TestCloakMapEncryption:
                 nonce="dGVzdF9ub25jZQ==",
                 encrypted_anchors="aW52YWxpZA==",  # Invalid encrypted data
                 encrypted_policy="aW52YWxpZA==",
-                encrypted_metadata="aW52YWxpZA=="
+                encrypted_metadata="aW52YWxpZA==",
             )
 
             with pytest.raises(ValueError):
                 encryption.decrypt_cloakmap(encrypted_map)
 
         finally:
-            os.environ.pop('CLOAKPIVOT_KEY_WRONG', None)
+            os.environ.pop("CLOAKPIVOT_KEY_WRONG", None)
 
 
 if __name__ == "__main__":

@@ -65,10 +65,14 @@ class StorageConfig:
     def _validate_backend_type(self) -> None:
         """Validate that backend_type is supported."""
         supported_backends = {
-            "local", "local_filesystem",
-            "s3", "aws_s3",
-            "gcs", "google_cloud_storage",
-            "database", "db"
+            "local",
+            "local_filesystem",
+            "s3",
+            "aws_s3",
+            "gcs",
+            "google_cloud_storage",
+            "database",
+            "db",
         }
 
         if self.backend_type not in supported_backends:
@@ -155,12 +159,13 @@ class StorageConfig:
             return cls.from_dict(data)
 
         except Exception as e:
-            raise ValueError(f"Failed to load storage config from {file_path}: {e}") from e
+            raise ValueError(
+                f"Failed to load storage config from {file_path}: {e}"
+            ) from e
 
     @classmethod
     def from_environment(
-        cls,
-        environment_prefix: str = "CLOAKPIVOT_STORAGE"
+        cls, environment_prefix: str = "CLOAKPIVOT_STORAGE"
     ) -> "StorageConfig":
         """Create StorageConfig from environment variables only."""
         config = cls(environment_prefix=environment_prefix)
@@ -215,6 +220,7 @@ class StorageConfig:
             fallback_params = fallback_config.get("config", {})
 
             from .registry import StorageRegistry
+
             registry = StorageRegistry()
             fallback_backend = registry.create_backend(fallback_type, fallback_params)
             fallback_instances.append(fallback_backend)
@@ -245,7 +251,9 @@ class StorageConfig:
             results["health_check"] = health
 
             if health.get("status") != "healthy":
-                results["warnings"].append(f"Backend health check failed: {health.get('error')}")
+                results["warnings"].append(
+                    f"Backend health check failed: {health.get('error')}"
+                )
 
         except Exception as e:
             results["valid"] = False
@@ -254,12 +262,17 @@ class StorageConfig:
         # Validate fallback backends
         for i, fallback_config in enumerate(self.fallback_backends):
             try:
-                fallback_type = fallback_config.get("backend_type", self.default_backend)
+                fallback_type = fallback_config.get(
+                    "backend_type", self.default_backend
+                )
                 fallback_params = fallback_config.get("config", {})
 
                 from .registry import StorageRegistry
+
                 registry = StorageRegistry()
-                fallback_backend = registry.create_backend(fallback_type, fallback_params)
+                fallback_backend = registry.create_backend(
+                    fallback_type, fallback_params
+                )
 
                 fallback_health = fallback_backend.health_check()
                 results[f"fallback_{i}_health"] = fallback_health
@@ -270,7 +283,9 @@ class StorageConfig:
                     )
 
             except Exception as e:
-                results["warnings"].append(f"Fallback backend {i} validation failed: {e}")
+                results["warnings"].append(
+                    f"Fallback backend {i} validation failed: {e}"
+                )
 
         return results
 
@@ -284,9 +299,7 @@ class FallbackStorageBackend(StorageBackend):
     """
 
     def __init__(
-        self,
-        primary_backend: StorageBackend,
-        fallback_backends: list[StorageBackend]
+        self, primary_backend: StorageBackend, fallback_backends: list[StorageBackend]
     ):
         """
         Initialize fallback storage backend.
@@ -303,7 +316,9 @@ class FallbackStorageBackend(StorageBackend):
     def backend_type(self) -> str:
         """Return composite backend type."""
         fallback_types = [b.backend_type for b in self.fallback_backends]
-        return f"fallback({self.primary_backend.backend_type}→{','.join(fallback_types)})"
+        return (
+            f"fallback({self.primary_backend.backend_type}→{','.join(fallback_types)})"
+        )
 
     def _validate_config(self) -> None:
         """Validate configuration (delegated to underlying backends)."""
@@ -339,7 +354,7 @@ class FallbackStorageBackend(StorageBackend):
         key: str,
         cloakmap: Any,
         metadata: Optional[dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Any:
         """Save with fallback (only tries primary backend for consistency)."""
         return self.primary_backend.save(key, cloakmap, metadata, **kwargs)
@@ -357,10 +372,7 @@ class FallbackStorageBackend(StorageBackend):
         return self.primary_backend.delete(key, **kwargs)
 
     def list_keys(
-        self,
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
-        **kwargs: Any
+        self, prefix: Optional[str] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> list[str]:
         """List keys with fallback support."""
         return self._try_operation("list_keys", prefix, limit, **kwargs)
@@ -380,11 +392,13 @@ class FallbackStorageBackend(StorageBackend):
                 health["fallback_index"] = i
                 fallback_healths.append(health)
             except Exception as e:
-                fallback_healths.append({
-                    "fallback_index": i,
-                    "status": "error",
-                    "error": str(e),
-                })
+                fallback_healths.append(
+                    {
+                        "fallback_index": i,
+                        "status": "error",
+                        "error": str(e),
+                    }
+                )
 
         return {
             "status": primary_health.get("status", "unknown"),
@@ -395,7 +409,9 @@ class FallbackStorageBackend(StorageBackend):
         }
 
 
-def create_storage_config_from_policy(policy_data: dict[str, Any]) -> Optional[StorageConfig]:
+def create_storage_config_from_policy(
+    policy_data: dict[str, Any],
+) -> Optional[StorageConfig]:
     """
     Create StorageConfig from policy data.
 
@@ -447,7 +463,7 @@ def get_default_storage_config() -> StorageConfig:
             "create_dirs": True,
             "file_extension": ".cmap",
             "metadata_extension": ".meta",
-        }
+        },
     )
 
     return default_config

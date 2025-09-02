@@ -42,14 +42,12 @@ class TestStorageMetadata:
                 confidence=0.9,
                 original_text="John Doe",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             )
         ]
 
         cloakmap = CloakMap.create(
-            doc_id="test_doc",
-            doc_hash="abc123",
-            anchors=anchors
+            doc_id="test_doc", doc_hash="abc123", anchors=anchors
         )
 
         content_bytes = b'{"test": "content"}'
@@ -58,7 +56,7 @@ class TestStorageMetadata:
             key="test_key",
             cloakmap=cloakmap,
             backend_type="test_backend",
-            content_bytes=content_bytes
+            content_bytes=content_bytes,
         )
 
         assert metadata.key == "test_key"
@@ -80,7 +78,7 @@ class TestStorageMetadata:
             version="1.0",
             anchor_count=5,
             is_encrypted=False,
-            backend_type="local"
+            backend_type="local",
         )
 
         # Convert to dict and back
@@ -110,19 +108,18 @@ class TestLocalStorage:
                 confidence=0.9,
                 original_text="John Doe",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             )
         ]
 
         self.test_cloakmap = CloakMap.create(
-            doc_id="test_document",
-            doc_hash="abc123def456",
-            anchors=anchors
+            doc_id="test_document", doc_hash="abc123def456", anchors=anchors
         )
 
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_backend_type(self):
@@ -276,7 +273,9 @@ class TestStorageRegistry:
     def test_resolve_backend_type(self):
         """Test backend type resolution."""
         # Direct types
-        assert self.registry.resolve_backend_type("local_filesystem") == "local_filesystem"
+        assert (
+            self.registry.resolve_backend_type("local_filesystem") == "local_filesystem"
+        )
 
         # Aliases
         assert self.registry.resolve_backend_type("local") == "local_filesystem"
@@ -305,7 +304,9 @@ class TestStorageRegistry:
         """Test creating backend instances."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create local backend
-            local_backend = self.registry.create_backend("local", {"base_path": temp_dir})
+            local_backend = self.registry.create_backend(
+                "local", {"base_path": temp_dir}
+            )
             assert isinstance(local_backend, LocalStorage)
             assert local_backend.backend_type == "local_filesystem"
 
@@ -315,6 +316,7 @@ class TestStorageRegistry:
 
     def test_custom_backend_registration(self):
         """Test registering custom backends."""
+
         class CustomStorageBackend(StorageBackend):
             @property
             def backend_type(self) -> str:
@@ -342,7 +344,9 @@ class TestStorageRegistry:
                 pass
 
         # Register custom backend
-        self.registry.register_backend("custom", CustomStorageBackend, ["c", "custom_alias"])
+        self.registry.register_backend(
+            "custom", CustomStorageBackend, ["c", "custom_alias"]
+        )
 
         # Verify registration
         assert "custom" in self.registry.list_backend_types()
@@ -393,10 +397,7 @@ class TestStorageConfig:
 
     def test_basic_config(self):
         """Test basic configuration creation."""
-        config = StorageConfig(
-            backend_type="local",
-            config={"base_path": "/tmp/test"}
-        )
+        config = StorageConfig(backend_type="local", config={"base_path": "/tmp/test"})
 
         assert config.backend_type == "local"
         assert config.config["base_path"] == "/tmp/test"
@@ -405,13 +406,10 @@ class TestStorageConfig:
         """Test creating config from dictionary."""
         data = {
             "backend_type": "s3",
-            "config": {
-                "bucket_name": "my-bucket",
-                "region_name": "us-west-2"
-            },
+            "config": {"bucket_name": "my-bucket", "region_name": "us-west-2"},
             "fallback_backends": [
                 {"backend_type": "local", "config": {"base_path": "/tmp"}}
-            ]
+            ],
         }
 
         config = StorageConfig.from_dict(data)
@@ -421,11 +419,14 @@ class TestStorageConfig:
 
     def test_environment_overrides(self):
         """Test environment variable overrides."""
-        with patch.dict("os.environ", {
-            "CLOAKPIVOT_STORAGE_BACKEND": "s3",
-            "CLOAKPIVOT_STORAGE_BUCKET_NAME": "env-bucket",
-            "AWS_DEFAULT_REGION": "us-east-1"
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "CLOAKPIVOT_STORAGE_BACKEND": "s3",
+                "CLOAKPIVOT_STORAGE_BUCKET_NAME": "env-bucket",
+                "AWS_DEFAULT_REGION": "us-east-1",
+            },
+        ):
             config = StorageConfig()
             assert config.backend_type == "s3"
             assert config.config["bucket_name"] == "env-bucket"
@@ -434,8 +435,7 @@ class TestStorageConfig:
     def test_yaml_serialization(self):
         """Test YAML serialization."""
         config = StorageConfig(
-            backend_type="gcs",
-            config={"bucket_name": "my-gcs-bucket"}
+            backend_type="gcs", config={"bucket_name": "my-gcs-bucket"}
         )
 
         yaml_str = config.to_yaml()
@@ -451,10 +451,7 @@ class TestStorageConfig:
     def test_create_backend(self):
         """Test backend creation from config."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            config = StorageConfig(
-                backend_type="local",
-                config={"base_path": temp_dir}
-            )
+            config = StorageConfig(backend_type="local", config={"base_path": temp_dir})
 
             backend = config.create_backend()
             assert isinstance(backend, LocalStorage)
@@ -464,10 +461,7 @@ class TestStorageConfig:
         """Test configuration validation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Valid configuration
-            config = StorageConfig(
-                backend_type="local",
-                config={"base_path": temp_dir}
-            )
+            config = StorageConfig(backend_type="local", config={"base_path": temp_dir})
 
             result = config.validate()
             assert result["valid"] is True
@@ -476,7 +470,7 @@ class TestStorageConfig:
         # Invalid configuration
         config = StorageConfig(
             backend_type="local",
-            config={}  # Missing base_path
+            config={},  # Missing base_path
         )
 
         result = config.validate()
@@ -484,7 +478,9 @@ class TestStorageConfig:
         assert len(result["errors"]) > 0
 
 
-@pytest.mark.skipif(not __import__("shutil").which("sqlite3"), reason="SQLite not available")
+@pytest.mark.skipif(
+    not __import__("shutil").which("sqlite3"), reason="SQLite not available"
+)
 class TestDatabaseStorage:
     """Test database storage backend (SQLite only for CI/CD)."""
 
@@ -502,14 +498,12 @@ class TestDatabaseStorage:
                 confidence=0.9,
                 original_text="Jane Doe",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             )
         ]
 
         self.test_cloakmap = CloakMap.create(
-            doc_id="test_database_document",
-            doc_hash="def456ghi789",
-            anchors=anchors
+            doc_id="test_database_document", doc_hash="def456ghi789", anchors=anchors
         )
 
     def test_backend_type(self):

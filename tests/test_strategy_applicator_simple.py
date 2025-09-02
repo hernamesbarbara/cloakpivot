@@ -33,7 +33,7 @@ class TestPluginAwareStrategyApplicator:
         """Test that applicator has the expected strategy registry attribute."""
         applicator = PluginAwareStrategyApplicator()
 
-        assert hasattr(applicator, 'strategy_registry')
+        assert hasattr(applicator, "strategy_registry")
         assert applicator.strategy_registry is not None
 
     def test_extends_strategy_applicator(self):
@@ -41,7 +41,7 @@ class TestPluginAwareStrategyApplicator:
         applicator = PluginAwareStrategyApplicator()
 
         # Should have the apply_strategy method from base class
-        assert hasattr(applicator, 'apply_strategy')
+        assert hasattr(applicator, "apply_strategy")
         assert callable(applicator.apply_strategy)
 
     def test_registry_integration(self):
@@ -50,5 +50,5 @@ class TestPluginAwareStrategyApplicator:
         applicator = PluginAwareStrategyApplicator(strategy_registry=registry)
 
         # Should be able to access registry methods
-        assert hasattr(applicator.strategy_registry, 'register_strategy_plugin')
+        assert hasattr(applicator.strategy_registry, "register_strategy_plugin")
         assert callable(applicator.strategy_registry.register_strategy_plugin)

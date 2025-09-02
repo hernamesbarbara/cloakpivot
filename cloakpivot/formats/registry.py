@@ -3,7 +3,7 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from docpivot import SerializerProvider
 
@@ -59,7 +59,7 @@ class FormatRegistry:
         ".htm": {SupportedFormat.HTML},
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the format registry."""
         self._provider = SerializerProvider()
         self._custom_serializers: dict[str, type] = {}
@@ -67,7 +67,9 @@ class FormatRegistry:
         # Enable registry integration for extensibility
         self._provider.enable_registry_integration()
 
-        logger.debug(f"FormatRegistry initialized with formats: {self.list_supported_formats()}")
+        logger.debug(
+            f"FormatRegistry initialized with formats: {self.list_supported_formats()}"
+        )
 
     def is_format_supported(self, format_name: str) -> bool:
         """Check if a format is supported.
@@ -83,7 +85,7 @@ class FormatRegistry:
             # Handle special case formats
             if format_name == "docling":
                 return True  # We handle docling format specially
-            return self._provider.is_format_supported(format_name)
+            return bool(self._provider.is_format_supported(format_name))
         except ValueError:
             return False
 
@@ -97,9 +99,11 @@ class FormatRegistry:
         # Add our special case formats
         if "docling" not in formats:
             formats.append("docling")
-        return formats
+        return list(formats)
 
-    def detect_format_from_path(self, file_path: Union[str, Path]) -> Optional[SupportedFormat]:
+    def detect_format_from_path(
+        self, file_path: Union[str, Path]
+    ) -> Optional[SupportedFormat]:
         """Detect format from file path based on extension and naming conventions.
 
         Args:
@@ -133,7 +137,9 @@ class FormatRegistry:
 
         return None
 
-    def detect_format_from_content(self, content: str, file_path: Optional[Path] = None) -> Optional[SupportedFormat]:
+    def detect_format_from_content(
+        self, content: str, file_path: Optional[Path] = None
+    ) -> Optional[SupportedFormat]:
         """Detect format from file content.
 
         Args:
@@ -146,17 +152,25 @@ class FormatRegistry:
         content = content.strip()
 
         # JSON formats - check these first before markdown
-        if content.startswith('{') and content.endswith('}'):
+        if content.startswith("{") and content.endswith("}"):
             try:
                 import json
+
                 data = json.loads(content)
 
                 # Check for docling-specific fields
                 if isinstance(data, dict):
                     # DoclingDocument format has schema_name field and other specific structure
-                    if "schema_name" in data and data.get("schema_name") == "DoclingDocument":
+                    if (
+                        "schema_name" in data
+                        and data.get("schema_name") == "DoclingDocument"
+                    ):
                         return SupportedFormat.DOCLING
-                    elif "texts" in data and "tables" in data and "schema_name" not in data:
+                    elif (
+                        "texts" in data
+                        and "tables" in data
+                        and "schema_name" not in data
+                    ):
                         # Legacy or variant DoclingDocument format
                         return SupportedFormat.DOCLING
                     elif "root" in data and "children" in data:
@@ -186,7 +200,7 @@ class FormatRegistry:
 
         return None
 
-    def get_serializer(self, format_name: str, document=None):
+    def get_serializer(self, format_name: str, document: Any = None) -> Any:
         """Get a serializer instance for the specified format.
 
         Args:
@@ -209,11 +223,12 @@ class FormatRegistry:
         if format_name == "docling":
             # For docling format, we use the DoclingDocument's native export_to_dict method
             class DoclingSerializer:
-                def __init__(self, document):
+                def __init__(self, document: Any) -> None:
                     self.document = document
 
-                def serialize(self):
+                def serialize(self) -> str:
                     import json
+
                     # Use model_dump() instead of export_to_dict() for complete serialization
                     result_dict = self.document.model_dump()
                     return json.dumps(result_dict, indent=2)
@@ -225,7 +240,9 @@ class FormatRegistry:
 
         # Check if format is supported by docpivot
         if not self._provider.is_format_supported(format_name):
-            raise ValueError(f"Format '{format_name}' not available in docpivot SerializerProvider")
+            raise ValueError(
+                f"Format '{format_name}' not available in docpivot SerializerProvider"
+            )
 
         # For docpivot, we need a document to get the serializer
         if document is None:
@@ -234,7 +251,9 @@ class FormatRegistry:
         else:
             return self._provider.get_serializer(format_name, document)
 
-    def register_custom_serializer(self, format_name: str, serializer_class: type) -> None:
+    def register_custom_serializer(
+        self, format_name: str, serializer_class: type
+    ) -> None:
         """Register a custom serializer for a format.
 
         Args:
@@ -287,12 +306,14 @@ class FormatRegistry:
             SupportedFormat.MARKDOWN: ".md",
             SupportedFormat.MD: ".md",
             SupportedFormat.HTML: ".html",
-            SupportedFormat.DOCTAGS: ".doctags.json"
+            SupportedFormat.DOCTAGS: ".doctags.json",
         }
 
         return extension_map.get(fmt, ".txt")
 
-    def validate_format_compatibility(self, input_format: str, output_format: str) -> bool:
+    def validate_format_compatibility(
+        self, input_format: str, output_format: str
+    ) -> bool:
         """Check if conversion between two formats is supported.
 
         Args:
@@ -303,5 +324,6 @@ class FormatRegistry:
             True if conversion is supported
         """
         # All supported formats should be inter-convertible through DoclingDocument
-        return (self.is_format_supported(input_format) and
-                self.is_format_supported(output_format))
+        return self.is_format_supported(input_format) and self.is_format_supported(
+            output_format
+        )

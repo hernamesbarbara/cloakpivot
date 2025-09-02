@@ -329,7 +329,9 @@ def collect_metrics(
                         "function": func.__name__,
                         "status": "success",
                     }
-                    collector.counter(f"{metric_name}_calls_success", 1.0, success_labels)
+                    collector.counter(
+                        f"{metric_name}_calls_success", 1.0, success_labels
+                    )
 
                 return result
 

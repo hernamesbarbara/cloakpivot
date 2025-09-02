@@ -49,7 +49,7 @@ class StrategyConfig(BaseModel):
 
     @field_validator("kind")
     @classmethod
-    def validate_kind(cls, v):
+    def validate_kind(cls, v: Any) -> Any:
         """Validate strategy kind is supported."""
         try:
             StrategyKind(v)
@@ -77,7 +77,7 @@ class EntityConfig(BaseModel):
 
     @field_validator("kind")
     @classmethod
-    def validate_kind(cls, v):
+    def validate_kind(cls, v: Any) -> Any:
         """Validate strategy kind if provided."""
         if v is not None:
             try:
@@ -123,7 +123,7 @@ class AllowListItem(BaseModel):
 
     @field_validator("pattern")
     @classmethod
-    def validate_pattern(cls, v):
+    def validate_pattern(cls, v: Any) -> Any:
         """Validate regex pattern if provided."""
         if v is not None:
             try:
@@ -143,7 +143,7 @@ class PolicyCompositionConfig(BaseModel):
 
     @field_validator("merge_strategy")
     @classmethod
-    def validate_merge_strategy(cls, v):
+    def validate_merge_strategy(cls, v: Any) -> Any:
         """Validate merge strategy."""
         valid_strategies = ["override", "merge", "strict"]
         if v not in valid_strategies:
@@ -154,7 +154,7 @@ class PolicyCompositionConfig(BaseModel):
 
     @field_validator("validation_level")
     @classmethod
-    def validate_validation_level(cls, v):
+    def validate_validation_level(cls, v: Any) -> Any:
         """Validate validation level."""
         valid_levels = ["strict", "warn", "permissive"]
         if v not in valid_levels:
@@ -215,7 +215,7 @@ class PolicyFileSchema(BaseModel):
 
     @field_validator("locale")
     @classmethod
-    def validate_locale(cls, v):
+    def validate_locale(cls, v: Any) -> Any:
         """Validate locale format."""
         if v is not None:
             locale_pattern = r"^[a-z]{2}(-[A-Z]{2})?$"
@@ -227,7 +227,7 @@ class PolicyFileSchema(BaseModel):
 
     @field_validator("version")
     @classmethod
-    def validate_version(cls, v):
+    def validate_version(cls, v: Any) -> Any:
         """Validate version format."""
         if v is not None:
             version_pattern = r"^\d+\.\d+(\.\d+)?$"
@@ -424,7 +424,9 @@ class PolicyLoader:
     ) -> PolicyFileSchema:
         """Merge two policy schemas."""
         # Get composition settings from override policy
-        composition_config = override.policy_composition or PolicyCompositionConfig()
+        composition_config = override.policy_composition or PolicyCompositionConfig(
+            merge_strategy="override", validation_level="strict"
+        )
 
         # Create merged policy data
         merged_data = base.model_dump()
@@ -537,10 +539,10 @@ class PolicyLoader:
             deny_list.update(schema.deny_list)
 
         # Convert context rules
-        context_rules = {}
+        context_rules: dict[str, Any] = {}
         if schema.context_rules:
             for context, rule_config in schema.context_rules.items():
-                context_rule = {"enabled": rule_config.enabled}
+                context_rule: dict[str, Any] = {"enabled": rule_config.enabled}
 
                 if rule_config.strategy_overrides:
                     # Convert strategy overrides to Strategy objects
@@ -562,7 +564,9 @@ class PolicyLoader:
                 context_rules[context] = context_rule
 
         return MaskingPolicy(
-            default_strategy=default_strategy,
+            default_strategy=default_strategy
+            if default_strategy is not None
+            else Strategy(kind=StrategyKind.REDACT),
             per_entity=per_entity,
             thresholds=thresholds,
             locale=schema.locale or "en",

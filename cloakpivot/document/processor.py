@@ -3,9 +3,8 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union, cast
+from typing import Any, Optional, Union, cast
 
-from docling_core.types import DoclingDocument
 from docpivot import load_document
 from docpivot.io.readers.exceptions import (
     FileAccessError,
@@ -13,6 +12,8 @@ from docpivot.io.readers.exceptions import (
     UnsupportedFormatError,
     ValidationError,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.chunking import ChunkedDocumentProcessor
 
@@ -53,6 +54,7 @@ class DocumentProcessor:
         """Initialize the document processor."""
         self._stats = DocumentProcessingStats()
         self._enable_chunked_processing = enable_chunked_processing
+        self._chunked_processor: Optional[ChunkedDocumentProcessor]
 
         if enable_chunked_processing:
             self._chunked_processor = ChunkedDocumentProcessor()

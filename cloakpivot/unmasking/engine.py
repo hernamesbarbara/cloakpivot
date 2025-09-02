@@ -4,9 +4,9 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
-from docling_core.types import DoclingDocument
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.cloakmap import CloakMap
 from .anchor_resolver import AnchorResolver
@@ -103,7 +103,9 @@ class UnmaskingEngine:
 
         # Handle empty CloakMap case - if no anchors exist, return document unchanged
         if not cloakmap_obj.anchors:
-            logger.warning("CloakMap contains no anchors - returning document unchanged")
+            logger.warning(
+                "CloakMap contains no anchors - returning document unchanged"
+            )
             return UnmaskingResult(
                 restored_document=self._copy_document(masked_document),
                 cloakmap=cloakmap_obj,
@@ -258,7 +260,7 @@ class UnmaskingEngine:
         failed_anchors = resolved_anchors.get("failed", [])
         if failed_anchors:
             integrity_report["valid"] = False
-            integrity_report["issues"].append(
+            cast(list[str], integrity_report["issues"]).append(
                 f"Failed to resolve {len(failed_anchors)} anchors"
             )
 

@@ -5,20 +5,14 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+# Temporarily mock docling_core import to allow tests to run
+from cloakpivot.core.types import DoclingDocument
+
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
 from .performance import profile_method
 from .policies import MaskingPolicy
-
-# Temporarily mock docling_core import to allow tests to run
-try:
-    from docling_core.types import DoclingDocument
-except ImportError:
-    # Mock DoclingDocument for testing
-    class DoclingDocument:
-        pass
-
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +93,7 @@ class DocumentAnalysisResult:
         successful = sum(1 for result in self.segment_results if result.success)
         return successful / self.segments_analyzed
 
-    def get_all_entities(self):
+    def get_all_entities(self) -> list[tuple[Any, TextSegment]]:
         """Get all detected entities with their source segments."""
         entities_with_segments = []
 

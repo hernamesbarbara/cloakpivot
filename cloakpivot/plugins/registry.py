@@ -39,7 +39,9 @@ class PluginRegistry:
     def __init__(self) -> None:
         """Initialize the plugin registry."""
         if PluginRegistry._instance is not None:
-            raise RuntimeError("PluginRegistry is a singleton. Use get_plugin_registry() instead.")
+            raise RuntimeError(
+                "PluginRegistry is a singleton. Use get_plugin_registry() instead."
+            )
 
         self._plugins: dict[str, BasePlugin] = {}
         self._plugin_infos: dict[str, PluginInfo] = {}
@@ -74,14 +76,14 @@ class PluginRegistry:
             self._discover_entry_point_plugins(
                 "cloakpivot.plugins.strategies",
                 BaseStrategyPlugin,  # type: ignore[type-abstract]
-                "strategy"
+                "strategy",
             )
 
             # Discover recognizer plugins
             self._discover_entry_point_plugins(
                 "cloakpivot.plugins.recognizers",
                 BaseRecognizerPlugin,  # type: ignore[type-abstract]
-                "recognizer"
+                "recognizer",
             )
 
             self._discovery_completed = True
@@ -95,10 +97,7 @@ class PluginRegistry:
             raise PluginRegistrationError(f"Plugin discovery failed: {e}") from e
 
     def _discover_entry_point_plugins(
-        self,
-        entry_point_group: str,
-        base_class: type[BasePlugin],
-        plugin_type: str
+        self, entry_point_group: str, base_class: type[BasePlugin], plugin_type: str
     ) -> None:
         """
         Discover plugins from a specific entry point group.
@@ -129,14 +128,13 @@ class PluginRegistry:
                     continue
 
         except Exception as e:
-            logger.error(f"Failed to discover entry points for {entry_point_group}: {e}")
+            logger.error(
+                f"Failed to discover entry points for {entry_point_group}: {e}"
+            )
             # Don't raise - continue with other discovery methods
 
     def _load_entry_point_plugin(
-        self,
-        entry_point: EntryPoint,
-        base_class: type[BasePlugin],
-        plugin_type: str
+        self, entry_point: EntryPoint, base_class: type[BasePlugin], plugin_type: str
     ) -> None:
         """
         Load a plugin from an entry point.
@@ -156,7 +154,7 @@ class PluginRegistry:
             if not issubclass(plugin_class, base_class):
                 raise PluginValidationError(
                     f"Plugin {plugin_name} does not inherit from {base_class.__name__}",
-                    plugin_name=plugin_name
+                    plugin_name=plugin_name,
                 )
 
             # Create plugin instance with empty config initially
@@ -167,19 +165,20 @@ class PluginRegistry:
             if plugin_info.plugin_type != plugin_type:
                 raise PluginValidationError(
                     f"Plugin {plugin_name} has incorrect type: {plugin_info.plugin_type}, expected {plugin_type}",
-                    plugin_name=plugin_name
+                    plugin_name=plugin_name,
                 )
 
             # Register the plugin
             self.register_plugin(plugin_instance)
 
-            logger.info(f"Loaded {plugin_type} plugin: {plugin_name} v{plugin_info.version}")
+            logger.info(
+                f"Loaded {plugin_type} plugin: {plugin_name} v{plugin_info.version}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load plugin {plugin_name}: {e}")
             raise PluginRegistrationError(
-                f"Failed to load plugin {plugin_name}: {e}",
-                plugin_name=plugin_name
+                f"Failed to load plugin {plugin_name}: {e}", plugin_name=plugin_name
             ) from e
 
     def register_plugin(self, plugin: BasePlugin) -> None:
@@ -197,8 +196,7 @@ class PluginRegistry:
 
         if plugin_name in self._plugins:
             raise PluginRegistrationError(
-                f"Plugin {plugin_name} is already registered",
-                plugin_name=plugin_name
+                f"Plugin {plugin_name} is already registered", plugin_name=plugin_name
             )
 
         try:
@@ -222,8 +220,7 @@ class PluginRegistry:
         except Exception as e:
             logger.error(f"Failed to register plugin {plugin_name}: {e}")
             raise PluginRegistrationError(
-                f"Failed to register plugin {plugin_name}: {e}",
-                plugin_name=plugin_name
+                f"Failed to register plugin {plugin_name}: {e}", plugin_name=plugin_name
             ) from e
 
     def _validate_plugin(self, plugin: BasePlugin) -> None:
@@ -244,10 +241,14 @@ class PluginRegistry:
             raise PluginValidationError("Plugin name cannot be empty")
 
         if not plugin_info.version:
-            raise PluginValidationError("Plugin version cannot be empty", plugin_name=plugin_name)
+            raise PluginValidationError(
+                "Plugin version cannot be empty", plugin_name=plugin_name
+            )
 
         if not plugin_info.plugin_type:
-            raise PluginValidationError("Plugin type cannot be empty", plugin_name=plugin_name)
+            raise PluginValidationError(
+                "Plugin type cannot be empty", plugin_name=plugin_name
+            )
 
         # Validate dependencies
         self._validate_plugin_dependencies(plugin)
@@ -272,7 +273,7 @@ class PluginRegistry:
             if not self._is_dependency_available(dependency):
                 raise PluginDependencyError(
                     f"Plugin dependency not available: {dependency}",
-                    plugin_name=plugin_info.name
+                    plugin_name=plugin_info.name,
                 )
 
     def _is_dependency_available(self, dependency: str) -> bool:
@@ -306,17 +307,17 @@ class PluginRegistry:
         # Basic schema validation - could be enhanced with jsonschema library
         if not isinstance(schema, dict):
             raise PluginValidationError(
-                "Config schema must be a dictionary",
-                plugin_name=plugin_name
+                "Config schema must be a dictionary", plugin_name=plugin_name
             )
 
         if "type" not in schema:
             raise PluginValidationError(
-                "Config schema must have a 'type' field",
-                plugin_name=plugin_name
+                "Config schema must have a 'type' field", plugin_name=plugin_name
             )
 
-    def initialize_plugin(self, plugin_name: str, config: Optional[dict[str, Any]] = None) -> None:
+    def initialize_plugin(
+        self, plugin_name: str, config: Optional[dict[str, Any]] = None
+    ) -> None:
         """
         Initialize a plugin with optional configuration.
 
@@ -328,7 +329,9 @@ class PluginRegistry:
             PluginError: If plugin not found or initialization fails
         """
         if plugin_name not in self._plugins:
-            raise PluginError(f"Plugin {plugin_name} not found", plugin_name=plugin_name)
+            raise PluginError(
+                f"Plugin {plugin_name} not found", plugin_name=plugin_name
+            )
 
         plugin = self._plugins[plugin_name]
         plugin_info = self._plugin_infos[plugin_name]
@@ -355,7 +358,7 @@ class PluginRegistry:
             raise PluginExecutionError(
                 f"Failed to initialize plugin {plugin_name}: {e}",
                 plugin_name=plugin_name,
-                original_exception=e
+                original_exception=e,
             ) from e
 
     def cleanup_plugin(self, plugin_name: str) -> None:

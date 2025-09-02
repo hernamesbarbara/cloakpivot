@@ -37,7 +37,7 @@ class MockStrategyPlugin(BaseStrategyPlugin):
             version="1.0.0",
             description="Mock strategy plugin for testing",
             author="Test Suite",
-            plugin_type="strategy"
+            plugin_type="strategy",
         )
 
     def apply_strategy(
@@ -45,7 +45,7 @@ class MockStrategyPlugin(BaseStrategyPlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         self.apply_count += 1
 
@@ -55,7 +55,7 @@ class MockStrategyPlugin(BaseStrategyPlugin):
         return StrategyPluginResult(
             masked_text=f"MOCK[{original_text}]",
             execution_time_ms=0.0,
-            metadata={"mock": True, "call_count": self.apply_count}
+            metadata={"mock": True, "call_count": self.apply_count},
         )
 
 
@@ -74,14 +74,11 @@ class MockRecognizerPlugin(BaseRecognizerPlugin):
             version="1.0.0",
             description="Mock recognizer plugin for testing",
             author="Test Suite",
-            plugin_type="recognizer"
+            plugin_type="recognizer",
         )
 
     def analyze_text(
-        self,
-        text: str,
-        language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        self, text: str, language: str = "en", context: Optional[dict[str, Any]] = None
     ) -> list[RecognizerPluginResult]:
         self.analyze_count += 1
 
@@ -92,14 +89,16 @@ class MockRecognizerPlugin(BaseRecognizerPlugin):
         results = []
         start = text.lower().find("test")
         if start != -1:
-            results.append(RecognizerPluginResult(
-                entity_type="TEST",
-                start=start,
-                end=start + 4,
-                confidence=0.9,
-                text="test",
-                metadata={"mock": True, "call_count": self.analyze_count}
-            ))
+            results.append(
+                RecognizerPluginResult(
+                    entity_type="TEST",
+                    start=start,
+                    end=start + 4,
+                    confidence=0.9,
+                    text="test",
+                    metadata={"mock": True, "call_count": self.analyze_count},
+                )
+            )
 
         return results
 
@@ -110,10 +109,22 @@ class TestPluginBase:
     def test_plugin_info_validation(self):
         """Test plugin info validation."""
         with pytest.raises(ValueError, match="Plugin name cannot be empty"):
-            PluginInfo(name="", version="1.0.0", description="Test", author="Test", plugin_type="strategy")
+            PluginInfo(
+                name="",
+                version="1.0.0",
+                description="Test",
+                author="Test",
+                plugin_type="strategy",
+            )
 
         with pytest.raises(ValueError, match="Plugin version cannot be empty"):
-            PluginInfo(name="test", version="", description="Test", author="Test", plugin_type="strategy")
+            PluginInfo(
+                name="test",
+                version="",
+                description="Test",
+                author="Test",
+                plugin_type="strategy",
+            )
 
     def test_mock_strategy_plugin(self):
         """Test mock strategy plugin."""
@@ -239,12 +250,12 @@ class TestPluginConfiguration:
         plugin_config = PluginConfiguration(
             plugin_name="test_strategy",
             plugin_type="strategy",
-            config={"param": "value"}
+            config={"param": "value"},
         )
 
         policy = EnhancedMaskingPolicy(
             plugin_configurations={"test_strategy": plugin_config},
-            plugin_strategy_mapping={"PHONE_NUMBER": "test_strategy"}
+            plugin_strategy_mapping={"PHONE_NUMBER": "test_strategy"},
         )
 
         strategy = policy.get_strategy_for_entity("PHONE_NUMBER")
@@ -260,12 +271,12 @@ class TestPluginConfiguration:
             plugin_type="strategy",
             config={"param": "value"},
             enabled=True,
-            priority=5
+            priority=5,
         )
 
         policy = EnhancedMaskingPolicy(
             plugin_configurations={"test_strategy": plugin_config},
-            enabled_strategy_plugins=["test_strategy"]
+            enabled_strategy_plugins=["test_strategy"],
         )
 
         # Serialize to dict

@@ -23,7 +23,7 @@ class SystemValidator:
     """Validates system requirements and environment setup."""
 
     @staticmethod
-    def validate_python_version(min_version: tuple = (3, 8)) -> None:
+    def validate_python_version(min_version: tuple[int, int] = (3, 8)) -> None:
         """Validate Python version meets requirements."""
         current_version = sys.version_info[:2]
         if current_version < min_version:
@@ -90,7 +90,7 @@ class SystemValidator:
     def _version_compatible(installed: str, required: str) -> bool:
         """Check if installed version meets minimum requirement."""
 
-        def parse_version(v: str) -> tuple:
+        def parse_version(v: str) -> tuple[int, ...]:
             return tuple(map(int, v.split(".")[:3]))
 
         try:
@@ -395,7 +395,7 @@ class CloakMapValidator:
 class InputValidator:
     """Main validator class that orchestrates all validation checks."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.system_validator = SystemValidator()
         self.document_validator = DocumentValidator()
         self.policy_validator = PolicyValidator()

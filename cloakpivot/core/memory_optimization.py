@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 import psutil
-from docling_core.types import DoclingDocument
+
+from cloakpivot.core.types import DoclingDocument
 
 logger = logging.getLogger(__name__)
 

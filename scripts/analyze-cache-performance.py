@@ -25,22 +25,22 @@ except ImportError:
 @dataclass
 class AnalysisConfig:
     """Configuration parameters for cache performance analysis."""
-    
+
     # Baseline timing thresholds (in seconds)
     baseline_model_setup_time: int = 300  # 5 minutes baseline without cache
     high_setup_time_threshold: int = 180  # 3 minutes - when to warn about slow setup
-    
+
     # Cache hit rate thresholds (percentages)
     spacy_cache_target: float = 80.0
-    huggingface_cache_target: float = 80.0  
+    huggingface_cache_target: float = 80.0
     pip_cache_target: float = 90.0
     overall_cache_target: float = 85.0
     excellent_cache_threshold: float = 95.0
-    
+
     # API and performance settings
     rate_limit_delay: float = 0.1  # Seconds between API calls
     monthly_multiplier: float = 4.3  # Approximate weeks per month
-    
+
     def validate(self) -> None:
         """Validate configuration parameters."""
         if self.baseline_model_setup_time <= 0:

@@ -39,7 +39,9 @@ def format_labels(labels: dict[str, str]) -> str:
 class PrometheusMetricsHandler(BaseHTTPRequestHandler):
     """HTTP handler for Prometheus metrics endpoint."""
 
-    def __init__(self, metric_store: MetricStore, namespace: str, *args: Any, **kwargs: Any):
+    def __init__(
+        self, metric_store: MetricStore, namespace: str, *args: Any, **kwargs: Any
+    ):
         self.metric_store = metric_store
         self.namespace = namespace
         super().__init__(*args, **kwargs)
@@ -131,7 +133,9 @@ class PrometheusMetricsHandler(BaseHTTPRequestHandler):
                     for bucket in buckets:
                         bucket_labels = {**labels, "le": str(bucket)}
                         bucket_label_str = format_labels(bucket_labels)
-                        lines.append(f"{full_name}_bucket{bucket_label_str} {bucket_counts[bucket]}")
+                        lines.append(
+                            f"{full_name}_bucket{bucket_label_str} {bucket_counts[bucket]}"
+                        )
 
                     # Add +Inf bucket
                     inf_labels = {**labels, "le": "+Inf"}
@@ -167,13 +171,16 @@ class PrometheusExporter(MetricExporter):
     def _start_server(self) -> None:
         """Start the HTTP server for metrics."""
         try:
+
             def handler_factory(*args: Any, **kwargs: Any) -> PrometheusMetricsHandler:
                 return PrometheusMetricsHandler(
                     self.metric_store, self.config.namespace, *args, **kwargs
                 )
 
             self.server = HTTPServer(("", self.config.port), handler_factory)
-            self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+            self.thread = threading.Thread(
+                target=self.server.serve_forever, daemon=True
+            )
             self.thread.start()
 
             self.logger.info(

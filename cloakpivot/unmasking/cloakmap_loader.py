@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -181,7 +182,7 @@ class CloakMapLoader:
         path = Path(file_path)
         logger.info(f"Validating CloakMap file {path}")
 
-        validation_result = {
+        validation_result: dict[str, Any] = {
             "valid": True,
             "errors": [],
             "warnings": [],
@@ -218,12 +219,15 @@ class CloakMapLoader:
             )
 
             validation_result["valid"] = integrity_result["valid"]
-            validation_result["errors"].extend(integrity_result["errors"])
-            validation_result["warnings"].extend(integrity_result["warnings"])
+            if isinstance(validation_result["errors"], list):
+                validation_result["errors"].extend(integrity_result["errors"])
+            if isinstance(validation_result["warnings"], list):
+                validation_result["warnings"].extend(integrity_result["warnings"])
 
         except Exception as e:
             validation_result["valid"] = False
-            validation_result["errors"].append(str(e))
+            if isinstance(validation_result["errors"], list):
+                validation_result["errors"].append(str(e))
 
         return validation_result
 
@@ -311,6 +315,11 @@ class CloakMapLoader:
                     f"CloakMap version {cloakmap.version} may not be fully supported"
                 )
 
+        # Initialize key_manager variable (may be used later for integrity validation)
+        from ..core.security import KeyManager, create_default_key_manager
+
+        key_manager: Optional[KeyManager] = None
+
         # Verify signature if requested
         if verify_signature:
             if not cloakmap.is_signed:
@@ -323,13 +332,25 @@ class CloakMapLoader:
                     "Secret key required for signature verification"
                 )
 
-            if not cloakmap.verify_signature(secret_key):
+            # Create key manager from secret key for signature verification
+            if secret_key:
+                # Use default key manager if secret key is provided
+                key_manager = create_default_key_manager()
+
+            if not cloakmap.verify_signature(
+                key_manager=key_manager, secret_key=secret_key
+            ):
                 raise CloakMapLoadError("CloakMap signature verification failed")
 
             logger.info("CloakMap signature verified successfully")
 
         # Perform comprehensive integrity validation
-        integrity_result = validate_cloakmap_integrity(cloakmap, secret_key)
+        # Use the key manager from signature verification if it exists,
+        # otherwise integrity validation will create its own if needed
+
+        integrity_result = validate_cloakmap_integrity(
+            cloakmap, key_manager=key_manager, secret_key=secret_key
+        )
 
         if not integrity_result["valid"]:
             error_msg = "CloakMap integrity validation failed: " + "; ".join(
@@ -367,7 +388,7 @@ class CloakMapLoader:
             "size": path.stat().st_size,
             "exists": path.exists(),
             "is_file": path.is_file(),
-            "readable": path.readable(),
+            "readable": os.access(path, os.R_OK),
             "modified_time": path.stat().st_mtime,
         }
 

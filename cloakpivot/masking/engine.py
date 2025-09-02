@@ -8,8 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
-from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.analyzer import EntityDetectionResult
 from ..core.anchors import AnchorEntry
@@ -334,6 +335,10 @@ class MaskingEngine:
                 continue
 
         # Use EntityNormalizer to resolve conflicts
+        if self.entity_normalizer is None:
+            raise ValueError(
+                "Entity normalizer is not configured but conflict resolution was attempted"
+            )
         normalization_result = self.entity_normalizer.normalize_entities(
             entity_detection_results
         )

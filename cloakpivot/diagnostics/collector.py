@@ -152,7 +152,7 @@ class DiagnosticsCollector:
             MaskingStatistics with collected data
         """
         # Handle missing or None stats object
-        if not hasattr(mask_result, 'stats') or mask_result.stats is None:
+        if not hasattr(mask_result, "stats") or mask_result.stats is None:
             return MaskingStatistics(
                 total_entities_detected=0,
                 total_entities_masked=0,
@@ -168,14 +168,17 @@ class DiagnosticsCollector:
         stats_obj = mask_result.stats
 
         # Safely extract entity counts with defaults
-        total_entities_found = getattr(stats_obj, 'total_entities_found', 0)
-        entities_masked = getattr(stats_obj, 'entities_masked', 0)
-        entities_skipped = getattr(stats_obj, 'entities_skipped', 0)
-        entities_failed = getattr(stats_obj, 'entities_failed', 0)
+        total_entities_found = getattr(stats_obj, "total_entities_found", 0)
+        entities_masked = getattr(stats_obj, "entities_masked", 0)
+        entities_skipped = getattr(stats_obj, "entities_skipped", 0)
+        entities_failed = getattr(stats_obj, "entities_failed", 0)
 
         # Safely get entities_by_type with null check
         entities_by_type = {}
-        if hasattr(mask_result, 'entities_by_type') and mask_result.entities_by_type is not None:
+        if (
+            hasattr(mask_result, "entities_by_type")
+            and mask_result.entities_by_type is not None
+        ):
             entities_by_type = mask_result.entities_by_type.copy()
 
         statistics = MaskingStatistics(
@@ -217,7 +220,7 @@ class DiagnosticsCollector:
             Dictionary of performance metrics
         """
         # Handle missing or None performance object
-        if not hasattr(mask_result, 'performance') or mask_result.performance is None:
+        if not hasattr(mask_result, "performance") or mask_result.performance is None:
             return {
                 "total_time_seconds": 0.0,
                 "detection_time_seconds": 0.0,
@@ -229,28 +232,35 @@ class DiagnosticsCollector:
         perf = mask_result.performance
 
         # Handle missing or None total_time_seconds
-        total_time = getattr(perf, 'total_time_seconds', None)
+        total_time = getattr(perf, "total_time_seconds", None)
         if total_time is None or not isinstance(total_time, (int, float)):
             total_time = 0.0
 
         metrics = {
             "total_time_seconds": total_time,
             "detection_time_seconds": perf.detection_time.total_seconds()
-            if hasattr(perf, 'detection_time') and perf.detection_time is not None
+            if hasattr(perf, "detection_time") and perf.detection_time is not None
             else 0.0,
             "masking_time_seconds": perf.masking_time.total_seconds()
-            if hasattr(perf, 'masking_time') and perf.masking_time is not None
+            if hasattr(perf, "masking_time") and perf.masking_time is not None
             else 0.0,
             "serialization_time_seconds": perf.serialization_time.total_seconds()
-            if hasattr(perf, 'serialization_time') and perf.serialization_time is not None
+            if hasattr(perf, "serialization_time")
+            and perf.serialization_time is not None
             else 0.0,
         }
 
         # Calculate throughput if we have timing data and stats
-        if total_time > 0 and hasattr(mask_result, 'stats') and mask_result.stats is not None:
-            entities_processed = getattr(mask_result.stats, 'entities_masked', 0)
+        if (
+            total_time > 0
+            and hasattr(mask_result, "stats")
+            and mask_result.stats is not None
+        ):
+            entities_processed = getattr(mask_result.stats, "entities_masked", 0)
             if isinstance(entities_processed, (int, float)) and entities_processed >= 0:
-                metrics["throughput_entities_per_second"] = entities_processed / total_time
+                metrics["throughput_entities_per_second"] = (
+                    entities_processed / total_time
+                )
             else:
                 metrics["throughput_entities_per_second"] = 0.0
         else:

@@ -61,7 +61,8 @@ class WebhookExporter(MetricExporter):
         gauges = store.get_gauges()
 
         error_events = [
-            e for e in events
+            e
+            for e in events
             if any(
                 severity in e.labels.get("status", "").lower()
                 for severity in ["error", "critical", "failed"]
@@ -70,9 +71,9 @@ class WebhookExporter(MetricExporter):
 
         # Only send if we have alerts or significant events
         should_alert = (
-            len(error_events) > 0 or
-            any("error" in severity for severity in self.config.severity_levels) and
-            any("error" in str(e.labels).lower() for e in events)
+            len(error_events) > 0
+            or any("error" in severity for severity in self.config.severity_levels)
+            and any("error" in str(e.labels).lower() for e in events)
         )
 
         if not should_alert:
@@ -123,7 +124,8 @@ class WebhookExporter(MetricExporter):
     def _calculate_severity(self, events: list[MetricEvent]) -> str:
         """Calculate alert severity based on events."""
         error_count = sum(
-            1 for e in events
+            1
+            for e in events
             if any(
                 severity in e.labels.get("status", "").lower()
                 for severity in ["error", "critical", "failed"]
@@ -171,7 +173,7 @@ class WebhookExporter(MetricExporter):
                 self.logger.error(f"Unexpected error sending webhook: {e}")
 
             if attempt < self.config.retry_count:
-                wait_time = 2 ** attempt  # Exponential backoff
+                wait_time = 2**attempt  # Exponential backoff
                 self.logger.info(f"Retrying webhook in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:

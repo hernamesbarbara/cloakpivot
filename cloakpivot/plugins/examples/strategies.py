@@ -27,8 +27,8 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
             metadata={
                 "reversible": True,
                 "deterministic": True,
-                "preserves_length": True
-            }
+                "preserves_length": True,
+            },
         )
 
     def apply_strategy(
@@ -36,15 +36,17 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """Apply ROT13 transformation to the text."""
         try:
             # ROT13 transformation
-            result_text = original_text.translate(str.maketrans(
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm"
-            ))
+            result_text = original_text.translate(
+                str.maketrans(
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                    "NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm",
+                )
+            )
 
             return StrategyPluginResult(
                 masked_text=result_text,
@@ -52,8 +54,8 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
                 metadata={
                     "algorithm": "rot13",
                     "reversible": True,
-                    "original_length": len(original_text)
-                }
+                    "original_length": len(original_text),
+                },
             )
 
         except Exception as e:
@@ -62,7 +64,7 @@ class ROT13StrategyPlugin(BaseStrategyPlugin):
                 execution_time_ms=0.0,
                 metadata={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
 
 
@@ -76,7 +78,7 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
     # Character mapping for upside down text
     UPSIDE_DOWN_MAP = str.maketrans(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzAQƆDEℲƃHIſʞ˥WNOԀQᴿSʇNΛMXʎZ0ㄥәろϛ9ㄥ86Ϭ"
+        "ɐqɔpǝɟɓɥᴉɾʞlɯuodbɹsʇnʌʍxʎzAQƆDEℲƃHIſʞ˥WNOԀQᴿSʇNΛMXʎZ0ㄥәろϛ9ㄥ86Ϭ",
     )
 
     @property
@@ -91,8 +93,8 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
                 "reversible": False,
                 "deterministic": True,
                 "preserves_length": True,
-                "unicode_required": True
-            }
+                "unicode_required": True,
+            },
         )
 
     def apply_strategy(
@@ -100,7 +102,7 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """Apply upside down transformation."""
         try:
@@ -114,8 +116,8 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
                 metadata={
                     "algorithm": "upside_down",
                     "reversible": False,
-                    "transformation": "unicode_flip_reverse"
-                }
+                    "transformation": "unicode_flip_reverse",
+                },
             )
 
         except Exception as e:
@@ -124,7 +126,7 @@ class UpsideDownStrategyPlugin(BaseStrategyPlugin):
                 execution_time_ms=0.0,
                 metadata={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
 
 
@@ -147,8 +149,8 @@ class ColorCodeStrategyPlugin(BaseStrategyPlugin):
                 "reversible": False,
                 "deterministic": True,
                 "preserves_length": False,
-                "output_format": "hex_colors"
-            }
+                "output_format": "hex_colors",
+            },
         )
 
     def _validate_strategy_config(self, config: dict[str, Any]) -> bool:
@@ -163,7 +165,7 @@ class ColorCodeStrategyPlugin(BaseStrategyPlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """Convert text to color codes."""
         try:
@@ -195,8 +197,8 @@ class ColorCodeStrategyPlugin(BaseStrategyPlugin):
                     "algorithm": "color_code",
                     "color_format": color_format,
                     "source_hash": text_hash[:8],
-                    "original_length": len(original_text)
-                }
+                    "original_length": len(original_text),
+                },
             )
 
         except Exception as e:
@@ -205,7 +207,7 @@ class ColorCodeStrategyPlugin(BaseStrategyPlugin):
                 execution_time_ms=0.0,
                 metadata={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
 
 
@@ -228,8 +230,8 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
                 "reversible": False,
                 "deterministic": True,
                 "preserves_word_count": True,
-                "preserves_punctuation": True
-            }
+                "preserves_punctuation": True,
+            },
         )
 
     def get_supported_entity_types(self) -> Optional[list[str]]:
@@ -248,7 +250,7 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """Shuffle words in the text."""
         try:
@@ -256,10 +258,11 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
 
             # Split into words and non-word characters
             import re
-            tokens = re.findall(r'\w+|\W+', original_text)
+
+            tokens = re.findall(r"\w+|\W+", original_text)
 
             # Extract just the words
-            words = [token for token in tokens if re.match(r'\w+', token)]
+            words = [token for token in tokens if re.match(r"\w+", token)]
 
             if len(words) <= 1:
                 # Not enough words to shuffle meaningfully
@@ -270,8 +273,8 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
                         "algorithm": "word_shuffle",
                         "word_count": len(words),
                         "shuffled": False,
-                        "reason": "insufficient_words"
-                    }
+                        "reason": "insufficient_words",
+                    },
                 )
 
             # Shuffle words deterministically based on original text
@@ -296,12 +299,12 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
             result_tokens = []
 
             for token in tokens:
-                if re.match(r'\w+', token):
+                if re.match(r"\w+", token):
                     result_tokens.append(next(word_iter))
                 else:
                     result_tokens.append(token)
 
-            result_text = ''.join(result_tokens)
+            result_text = "".join(result_tokens)
 
             return StrategyPluginResult(
                 masked_text=result_text,
@@ -311,8 +314,8 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
                     "word_count": len(words),
                     "shuffled": True,
                     "preserve_case": preserve_case,
-                    "shuffle_seed": shuffle_seed
-                }
+                    "shuffle_seed": shuffle_seed,
+                },
             )
 
         except Exception as e:
@@ -321,5 +324,5 @@ class WordShuffleStrategyPlugin(BaseStrategyPlugin):
                 execution_time_ms=0.0,
                 metadata={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )

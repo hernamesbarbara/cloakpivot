@@ -31,20 +31,20 @@ class CustomPhoneRecognizerPlugin(PatternBasedRecognizerPlugin):
                     "country_codes": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of country codes to support"
+                        "description": "List of country codes to support",
                     },
                     "patterns": {
                         "type": "object",
-                        "description": "Custom regex patterns by entity type"
+                        "description": "Custom regex patterns by entity type",
                     },
                     "min_confidence": {
                         "type": "number",
                         "minimum": 0.0,
                         "maximum": 1.0,
-                        "description": "Minimum confidence threshold"
-                    }
-                }
-            }
+                        "description": "Minimum confidence threshold",
+                    },
+                },
+            },
         )
 
     def _initialize_recognizer(self) -> None:
@@ -58,15 +58,15 @@ class CustomPhoneRecognizerPlugin(PatternBasedRecognizerPlugin):
             "patterns": {
                 "PHONE_NUMBER": [
                     # US/Canada formats
-                    r'\b(?:\+1[-.\s]?)?(?:\(?[2-9][0-8][0-9]\)?[-.\s]?)?[2-9][0-9]{2}[-.\s]?[0-9]{4}\b',
+                    r"\b(?:\+1[-.\s]?)?(?:\(?[2-9][0-8][0-9]\)?[-.\s]?)?[2-9][0-9]{2}[-.\s]?[0-9]{4}\b",
                     # International format
-                    r'\+[1-9]\d{1,14}\b',
+                    r"\+[1-9]\d{1,14}\b",
                     # UK format
-                    r'\b(?:\+44[-.\s]?)?(?:\(?0\)?[-.\s]?)?[1-9]\d{8,9}\b',
+                    r"\b(?:\+44[-.\s]?)?(?:\(?0\)?[-.\s]?)?[1-9]\d{8,9}\b",
                     # Generic format with separators
-                    r'\b(?:\d[-.\s]?){9,14}\d\b'
+                    r"\b(?:\d[-.\s]?){9,14}\d\b",
                 ]
-            }
+            },
         }
 
         # Update with user configuration
@@ -78,22 +78,21 @@ class CustomPhoneRecognizerPlugin(PatternBasedRecognizerPlugin):
         super()._initialize_recognizer()
 
     def _calculate_confidence(
-        self,
-        match: re.Match[str],
-        entity_type: str,
-        context: Optional[dict[str, Any]]
+        self, match: re.Match[str], entity_type: str, context: Optional[dict[str, Any]]
     ) -> float:
         """Calculate confidence based on phone number validation."""
         match_text = match.group()
         base_confidence = 0.6
 
         # Length-based confidence
-        digits = re.sub(r'\D', '', match_text)
+        digits = re.sub(r"\D", "", match_text)
         digit_count = len(digits)
 
         if digit_count == 10:  # US/Canada local
             base_confidence += 0.2
-        elif digit_count == 11 and digits.startswith('1'):  # US/Canada with country code
+        elif digit_count == 11 and digits.startswith(
+            "1"
+        ):  # US/Canada with country code
             base_confidence += 0.3
         elif 7 <= digit_count <= 15:  # International range
             base_confidence += 0.1
@@ -101,13 +100,13 @@ class CustomPhoneRecognizerPlugin(PatternBasedRecognizerPlugin):
             base_confidence -= 0.2
 
         # Format validation bonuses
-        if re.search(r'\+\d', match_text):  # International prefix
+        if re.search(r"\+\d", match_text):  # International prefix
             base_confidence += 0.1
 
-        if re.search(r'\(\d{3}\)', match_text):  # Area code in parentheses
+        if re.search(r"\(\d{3}\)", match_text):  # Area code in parentheses
             base_confidence += 0.1
 
-        if re.search(r'\d{3}[-.\s]\d{3}[-.\s]\d{4}', match_text):  # Standard formatting
+        if re.search(r"\d{3}[-.\s]\d{3}[-.\s]\d{4}", match_text):  # Standard formatting
             base_confidence += 0.1
 
         # Check for common false positives
@@ -119,15 +118,15 @@ class CustomPhoneRecognizerPlugin(PatternBasedRecognizerPlugin):
     def _is_likely_false_positive(self, text: str, entity_type: str) -> bool:
         """Check for phone number false positives."""
         # Remove formatting
-        digits = re.sub(r'\D', '', text)
+        digits = re.sub(r"\D", "", text)
 
         # Common false positive patterns
         false_positive_patterns = [
-            r'^0{7,}$',  # All zeros
-            r'^1{7,}$',  # All ones
-            r'^(\d)\1{6,}$',  # Repeating digit
-            r'^123456',  # Sequential numbers
-            r'^1234567890$',  # Classic test number
+            r"^0{7,}$",  # All zeros
+            r"^1{7,}$",  # All ones
+            r"^(\d)\1{6,}$",  # Repeating digit
+            r"^123456",  # Sequential numbers
+            r"^1234567890$",  # Classic test number
         ]
 
         for pattern in false_positive_patterns:
@@ -159,14 +158,14 @@ class LicensePlateRecognizerPlugin(PatternBasedRecognizerPlugin):
                     "regions": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Regions to support (US, CA, EU, etc.)"
+                        "description": "Regions to support (US, CA, EU, etc.)",
                     },
                     "case_sensitive": {
                         "type": "boolean",
-                        "description": "Whether matching should be case sensitive"
-                    }
-                }
-            }
+                        "description": "Whether matching should be case sensitive",
+                    },
+                },
+            },
         )
 
     def _initialize_recognizer(self) -> None:
@@ -180,16 +179,16 @@ class LicensePlateRecognizerPlugin(PatternBasedRecognizerPlugin):
             "patterns": {
                 "LICENSE_PLATE": [
                     # US formats (3 letters + 3 numbers, etc.)
-                    r'\b[A-Z]{2,3}[-\s]?[0-9]{3,4}\b',
-                    r'\b[0-9]{3}[-\s]?[A-Z]{2,3}\b',
+                    r"\b[A-Z]{2,3}[-\s]?[0-9]{3,4}\b",
+                    r"\b[0-9]{3}[-\s]?[A-Z]{2,3}\b",
                     # Canadian formats
-                    r'\b[A-Z]{4}[-\s]?[0-9]{3}\b',
+                    r"\b[A-Z]{4}[-\s]?[0-9]{3}\b",
                     # European formats (country code + numbers/letters)
-                    r'\b[A-Z]{1,3}[-\s]?[0-9A-Z]{2,6}\b',
+                    r"\b[A-Z]{1,3}[-\s]?[0-9A-Z]{2,6}\b",
                     # Generic alphanumeric plates
-                    r'\b(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{5,8}\b'
+                    r"\b(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{5,8}\b",
                 ]
-            }
+            },
         }
 
         # Update with user configuration
@@ -201,23 +200,20 @@ class LicensePlateRecognizerPlugin(PatternBasedRecognizerPlugin):
         super()._initialize_recognizer()
 
     def _calculate_confidence(
-        self,
-        match: re.Match[str],
-        entity_type: str,
-        context: Optional[dict[str, Any]]
+        self, match: re.Match[str], entity_type: str, context: Optional[dict[str, Any]]
     ) -> float:
         """Calculate confidence for license plate matches."""
         match_text = match.group()
         base_confidence = 0.7
 
         # Length validation
-        clean_text = re.sub(r'[-\s]', '', match_text)
+        clean_text = re.sub(r"[-\s]", "", match_text)
         if 5 <= len(clean_text) <= 8:
             base_confidence += 0.1
 
         # Character mix validation (letters + numbers)
-        has_letters = bool(re.search(r'[A-Z]', match_text.upper()))
-        has_numbers = bool(re.search(r'[0-9]', match_text))
+        has_letters = bool(re.search(r"[A-Z]", match_text.upper()))
+        has_numbers = bool(re.search(r"[0-9]", match_text))
 
         if has_letters and has_numbers:
             base_confidence += 0.1
@@ -229,12 +225,12 @@ class LicensePlateRecognizerPlugin(PatternBasedRecognizerPlugin):
 
         if "US" in regions:
             # US-style patterns
-            if re.match(r'[A-Z]{3}[-\s]?[0-9]{3,4}', match_text.upper()):
+            if re.match(r"[A-Z]{3}[-\s]?[0-9]{3,4}", match_text.upper()):
                 base_confidence += 0.1
 
         if "CA" in regions:
             # Canadian-style patterns
-            if re.match(r'[A-Z]{4}[-\s]?[0-9]{3}', match_text.upper()):
+            if re.match(r"[A-Z]{4}[-\s]?[0-9]{3}", match_text.upper()):
                 base_confidence += 0.1
 
         return max(0.0, min(1.0, base_confidence))
@@ -260,14 +256,14 @@ class IPv4AddressRecognizerPlugin(PatternBasedRecognizerPlugin):
                 "properties": {
                     "include_private": {
                         "type": "boolean",
-                        "description": "Include private IP ranges"
+                        "description": "Include private IP ranges",
                     },
                     "include_localhost": {
                         "type": "boolean",
-                        "description": "Include localhost addresses"
-                    }
-                }
-            }
+                        "description": "Include localhost addresses",
+                    },
+                },
+            },
         )
 
     def _initialize_recognizer(self) -> None:
@@ -281,9 +277,9 @@ class IPv4AddressRecognizerPlugin(PatternBasedRecognizerPlugin):
             "patterns": {
                 "IP_ADDRESS": [
                     # IPv4 pattern with word boundaries
-                    r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b'
+                    r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
                 ]
-            }
+            },
         }
 
         for key, value in default_config.items():
@@ -293,17 +289,14 @@ class IPv4AddressRecognizerPlugin(PatternBasedRecognizerPlugin):
         super()._initialize_recognizer()
 
     def _calculate_confidence(
-        self,
-        match: re.Match[str],
-        entity_type: str,
-        context: Optional[dict[str, Any]]
+        self, match: re.Match[str], entity_type: str, context: Optional[dict[str, Any]]
     ) -> float:
         """Calculate confidence with IP address validation."""
         match_text = match.group()
 
         try:
             # Parse IP address components
-            octets = match_text.split('.')
+            octets = match_text.split(".")
             if len(octets) != 4:
                 return 0.0
 
@@ -314,7 +307,7 @@ class IPv4AddressRecognizerPlugin(PatternBasedRecognizerPlugin):
                     return 0.0
 
                 # Check for leading zeros (invalid in IP addresses)
-                if len(octet_str) > 1 and octet_str.startswith('0'):
+                if len(octet_str) > 1 and octet_str.startswith("0"):
                     return 0.0
 
             # Base confidence for valid IP
@@ -333,9 +326,9 @@ class IPv4AddressRecognizerPlugin(PatternBasedRecognizerPlugin):
 
             # Check for private ranges
             is_private = (
-                first_octet == 10 or
-                (first_octet == 172 and 16 <= second_octet <= 31) or
-                (first_octet == 192 and second_octet == 168)
+                first_octet == 10
+                or (first_octet == 172 and 16 <= second_octet <= 31)
+                or (first_octet == 192 and second_octet == 168)
             )
 
             if is_private and not include_private:

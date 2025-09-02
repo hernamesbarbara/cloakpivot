@@ -26,7 +26,7 @@ class TestDocumentProcessor:
         assert stats.files_processed == 0
         assert stats.errors_encountered == 0
 
-    @patch('cloakpivot.document.processor.load_document')
+    @patch("cloakpivot.document.processor.load_document")
     def test_load_document_success(self, mock_load_document):
         """Test successful document loading."""
         # Setup mock
@@ -48,7 +48,7 @@ class TestDocumentProcessor:
         assert processor.get_processing_stats().files_processed == 1
         mock_load_document.assert_called_once_with("test.docling.json")
 
-    @patch('cloakpivot.document.processor.load_document')
+    @patch("cloakpivot.document.processor.load_document")
     def test_load_document_with_validation_disabled(self, mock_load_document):
         """Test document loading with validation disabled."""
         mock_doc = Mock(spec=DoclingDocument)
@@ -66,15 +66,13 @@ class TestDocumentProcessor:
         assert result == mock_doc
         mock_load_document.assert_called_once_with("test.docling.json")
 
-    @patch('cloakpivot.document.processor.load_document')
+    @patch("cloakpivot.document.processor.load_document")
     def test_load_document_file_not_found(self, mock_load_document):
         """Test handling of file not found error."""
         from docpivot.io.readers.exceptions import FileAccessError
 
         mock_load_document.side_effect = FileAccessError(
-            "File not found",
-            file_path="nonexistent.json",
-            operation="load_document"
+            "File not found", file_path="nonexistent.json", operation="load_document"
         )
 
         processor = DocumentProcessor()
@@ -282,7 +280,7 @@ class TestTextSegment:
             text="Hello world",
             start_offset=0,
             end_offset=11,
-            node_type="TextItem"
+            node_type="TextItem",
         )
 
         assert segment.node_id == "#/texts/0"
@@ -294,12 +292,18 @@ class TestTextSegment:
     def test_invalid_segment_creation(self):
         """Test validation errors in segment creation."""
         # Test invalid offsets
-        with pytest.raises(ValueError, match="end_offset must be greater than start_offset"):
+        with pytest.raises(
+            ValueError, match="end_offset must be greater than start_offset"
+        ):
             TextSegment("#/texts/0", "Hello", 5, 5, "TextItem")
 
         # Test mismatched text length
-        with pytest.raises(ValueError, match="text length must match offset difference"):
-            TextSegment("#/texts/0", "Hello", 0, 10, "TextItem")  # Text is 5 chars, offset diff is 10
+        with pytest.raises(
+            ValueError, match="text length must match offset difference"
+        ):
+            TextSegment(
+                "#/texts/0", "Hello", 0, 10, "TextItem"
+            )  # Text is 5 chars, offset diff is 10
 
         # Test empty node_id
         with pytest.raises(ValueError, match="node_id cannot be empty"):
@@ -327,14 +331,11 @@ class TestAnchorMapper:
         start: int,
         end: int,
         entity_type: str = "PHONE_NUMBER",
-        score: float = 0.9
+        score: float = 0.9,
     ) -> RecognizerResult:
         """Create a mock RecognizerResult."""
         result = RecognizerResult(
-            entity_type=entity_type,
-            start=start,
-            end=end,
-            score=score
+            entity_type=entity_type, start=start, end=end, score=score
         )
         return result
 
@@ -398,13 +399,9 @@ class TestAnchorMapper:
             TextSegment("#/texts/0", "Call me at 555-1234", 0, 19, "TextItem"),
         ]
 
-        detections = [
-            self.create_mock_recognizer_result(11, 19, "PHONE_NUMBER", 0.95)
-        ]
+        detections = [self.create_mock_recognizer_result(11, 19, "PHONE_NUMBER", 0.95)]
 
-        original_texts = {
-            "#/texts/0": "Call me at 555-1234"
-        }
+        original_texts = {"#/texts/0": "Call me at 555-1234"}
 
         mapper = AnchorMapper()
         anchors = mapper.create_anchors_from_detections(
@@ -469,7 +466,7 @@ class TestNodeReference:
             end_pos=10,
             global_start=15,
             global_end=20,
-            segment_index=0
+            segment_index=0,
         )
 
         assert ref.node_id == "#/texts/0"
@@ -483,7 +480,9 @@ class TestNodeReference:
             NodeReference("#/texts/0", 10, 10, 15, 20, 0)
 
         # Test invalid global positions
-        with pytest.raises(ValueError, match="global_end must be greater than global_start"):
+        with pytest.raises(
+            ValueError, match="global_end must be greater than global_start"
+        ):
             NodeReference("#/texts/0", 5, 10, 20, 20, 0)
 
         # Test invalid segment index
@@ -494,7 +493,7 @@ class TestNodeReference:
 class TestDocumentIntegrationEndToEnd:
     """End-to-end integration tests."""
 
-    @patch('cloakpivot.document.processor.load_document')
+    @patch("cloakpivot.document.processor.load_document")
     def test_complete_document_processing_workflow(self, mock_load_document):
         """Test the complete document processing workflow."""
         # Create a mock document with realistic structure
@@ -521,7 +520,10 @@ class TestDocumentIntegrationEndToEnd:
         extractor = TextExtractor()
         segments = extractor.extract_text_segments(document)
         assert len(segments) == 1
-        assert segments[0].text == "Contact John Smith at 555-123-4567 for more information."
+        assert (
+            segments[0].text
+            == "Contact John Smith at 555-123-4567 for more information."
+        )
 
         # Step 3: Create mock detections
         detections = [

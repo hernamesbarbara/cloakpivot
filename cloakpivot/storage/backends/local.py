@@ -118,7 +118,7 @@ class LocalStorage(StorageBackend):
         key: str,
         cloakmap: CloakMap,
         metadata: dict[str, Any] | None = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """
         Save a CloakMap to local filesystem.
@@ -150,14 +150,16 @@ class LocalStorage(StorageBackend):
             content_bytes=content_bytes,
             file_path=str(file_path),
             base_path=str(self.base_path),
-            **(metadata or {})
+            **(metadata or {}),
         )
 
         # Write CloakMap with atomic operation
         self._write_file_atomic(file_path, content_bytes)
 
         # Write metadata
-        metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode("utf-8")
+        metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode(
+            "utf-8"
+        )
         self._write_file_atomic(metadata_path, metadata_content)
 
         # Set file permissions
@@ -172,7 +174,7 @@ class LocalStorage(StorageBackend):
             mode="wb",
             dir=file_path.parent,
             delete=False,
-            prefix=f".{file_path.name}.tmp"
+            prefix=f".{file_path.name}.tmp",
         ) as tmp_file:
             tmp_file.write(content)
             tmp_file.flush()
@@ -263,10 +265,7 @@ class LocalStorage(StorageBackend):
                 break
 
     def list_keys(
-        self,
-        prefix: str | None = None,
-        limit: int | None = None,
-        **kwargs: Any
+        self, prefix: str | None = None, limit: int | None = None, **kwargs: Any
     ) -> list[str]:
         """
         List CloakMap keys in storage.
@@ -288,7 +287,11 @@ class LocalStorage(StorageBackend):
             search_prefix = prefix
             if not search_prefix.endswith(file_ext):
                 search_prefix = search_prefix + "*"
-            pattern = search_prefix + file_ext if not search_prefix.endswith(file_ext) else search_prefix
+            pattern = (
+                search_prefix + file_ext
+                if not search_prefix.endswith(file_ext)
+                else search_prefix
+            )
             glob_pattern = pattern
         else:
             glob_pattern = f"**/*{file_ext}"
@@ -303,7 +306,7 @@ class LocalStorage(StorageBackend):
 
                     # Remove extension for clean key
                     if key.endswith(file_ext):
-                        key = key[:-len(file_ext)]
+                        key = key[: -len(file_ext)]
 
                     if not prefix or key.startswith(prefix):
                         keys.append(key)
@@ -378,10 +381,7 @@ class LocalStorage(StorageBackend):
         return metadata
 
     def list_metadata(
-        self,
-        prefix: str | None = None,
-        limit: int | None = None,
-        **kwargs: Any
+        self, prefix: str | None = None, limit: int | None = None, **kwargs: Any
     ) -> list[StorageMetadata]:
         """
         List metadata for all CloakMaps efficiently.
@@ -414,19 +414,23 @@ class LocalStorage(StorageBackend):
             with tempfile.NamedTemporaryFile(dir=self.base_path, delete=True):
                 pass
 
-            base_result.update({
-                "base_path": str(self.base_path),
-                "directory_accessible": accessible,
-                "can_write": True,
-            })
+            base_result.update(
+                {
+                    "base_path": str(self.base_path),
+                    "directory_accessible": accessible,
+                    "can_write": True,
+                }
+            )
 
         except Exception as e:
-            base_result.update({
-                "status": "unhealthy",
-                "base_path": str(self.base_path),
-                "directory_accessible": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            })
+            base_result.update(
+                {
+                    "status": "unhealthy",
+                    "base_path": str(self.base_path),
+                    "directory_accessible": False,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
 
         return base_result

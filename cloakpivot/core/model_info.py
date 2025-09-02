@@ -6,7 +6,7 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -263,7 +263,8 @@ def get_model_recommendations(
 
     except Exception as e:
         logger.error(f"Error generating model recommendations: {e}")
-        recommendations["warnings"].append(f"Error in recommendation: {e}")
+        if isinstance(recommendations["warnings"], list):
+            recommendations["warnings"].append(f"Error in recommendation: {e}")
 
     return recommendations
 
@@ -286,7 +287,7 @@ def get_language_info(language: str) -> Optional[dict[str, Any]]:
     return SUPPORTED_LANGUAGES.get(language)
 
 
-def get_all_model_info() -> dict[str, dict[str, Any]]:
+def get_all_model_info() -> dict[str, Any]:
     """Get comprehensive model information for debugging and documentation.
 
     Returns:

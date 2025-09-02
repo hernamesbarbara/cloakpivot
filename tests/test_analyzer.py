@@ -32,11 +32,15 @@ class TestAnalyzerEngineWrapper:
         assert analyzer.is_initialized is False
 
         # First call should initialize
-        with patch('cloakpivot.core.analyzer.AnalyzerEngine') as mock_engine:
-            with patch('cloakpivot.core.analyzer.NlpEngineProvider') as mock_nlp_provider:
+        with patch("cloakpivot.core.analyzer.AnalyzerEngine") as mock_engine:
+            with patch(
+                "cloakpivot.core.analyzer.NlpEngineProvider"
+            ) as mock_nlp_provider:
                 # Mock the NLP engine provider and engine
                 mock_nlp_engine = Mock()
-                mock_nlp_provider.return_value.create_engine.return_value = mock_nlp_engine
+                mock_nlp_provider.return_value.create_engine.return_value = (
+                    mock_nlp_engine
+                )
 
                 # Mock the analyzer engine
                 mock_instance = Mock()
@@ -51,15 +55,14 @@ class TestAnalyzerEngineWrapper:
 
     def test_configuration_from_policy(self):
         """Test analyzer configuration from MaskingPolicy."""
-        policy = MaskingPolicy(
-            locale="es",
-            thresholds={"PHONE_NUMBER": 0.8}
-        )
+        policy = MaskingPolicy(locale="es", thresholds={"PHONE_NUMBER": 0.8})
 
         analyzer = AnalyzerEngineWrapper.from_policy(policy)
 
         assert analyzer.config.language == "es"
-        assert analyzer.config.min_confidence == 0.8  # Minimum threshold from policy thresholds
+        assert (
+            analyzer.config.min_confidence == 0.8
+        )  # Minimum threshold from policy thresholds
 
     def test_custom_recognizer_configuration(self):
         """Test custom recognizer configuration."""
@@ -67,7 +70,7 @@ class TestAnalyzerEngineWrapper:
             language="en",
             enabled_recognizers=["PHONE_NUMBER", "EMAIL_ADDRESS"],
             disabled_recognizers=["PERSON"],
-            min_confidence=0.7
+            min_confidence=0.7,
         )
 
         analyzer = AnalyzerEngineWrapper(config=config)
@@ -87,8 +90,13 @@ class TestRecognizerRegistry:
 
         enabled = registry.get_enabled_recognizers()
         expected = {
-            "PHONE_NUMBER", "EMAIL_ADDRESS", "CREDIT_CARD",
-            "US_SSN", "PERSON", "URL", "IP_ADDRESS"
+            "PHONE_NUMBER",
+            "EMAIL_ADDRESS",
+            "CREDIT_CARD",
+            "US_SSN",
+            "PERSON",
+            "URL",
+            "IP_ADDRESS",
         }
 
         assert expected.issubset(set(enabled))
@@ -149,14 +157,15 @@ class TestAnalyzerConfig:
         assert config.min_confidence == 0.8
 
         # Invalid confidence range
-        with pytest.raises(ValueError, match="min_confidence must be between 0.0 and 1.0"):
+        with pytest.raises(
+            ValueError, match="min_confidence must be between 0.0 and 1.0"
+        ):
             AnalyzerConfig(min_confidence=1.5)
 
     def test_from_policy_conversion(self):
         """Test creating config from MaskingPolicy."""
         policy = MaskingPolicy(
-            locale="fr",
-            thresholds={"PHONE_NUMBER": 0.9, "EMAIL_ADDRESS": 0.7}
+            locale="fr", thresholds={"PHONE_NUMBER": 0.9, "EMAIL_ADDRESS": 0.7}
         )
 
         config = AnalyzerConfig.from_policy(policy)
@@ -178,7 +187,9 @@ class TestEntityDetectionResult:
         mock_result.end = 22
         mock_result.score = 0.95
 
-        detection = EntityDetectionResult.from_presidio_result(mock_result, "555-123-4567")
+        detection = EntityDetectionResult.from_presidio_result(
+            mock_result, "555-123-4567"
+        )
 
         assert detection.entity_type == "PHONE_NUMBER"
         assert detection.start == 10
@@ -191,7 +202,9 @@ class TestEntityDetectionResult:
         results = [
             EntityDetectionResult("EMAIL", 20, 35, 0.8, "test@example.com"),
             EntityDetectionResult("PHONE", 10, 22, 0.9, "555-123-4567"),
-            EntityDetectionResult("EMAIL", 20, 35, 0.7, "test@example.com"),  # Same position, lower confidence
+            EntityDetectionResult(
+                "EMAIL", 20, 35, 0.7, "test@example.com"
+            ),  # Same position, lower confidence
         ]
 
         sorted_results = sorted(results)
@@ -226,14 +239,12 @@ class TestBackwardCompatibility:
         assert analyzer.config.min_confidence == 0.5  # Default confidence
 
         # New attribute should exist but default behavior preserved
-        assert hasattr(analyzer, 'use_singleton')
+        assert hasattr(analyzer, "use_singleton")
 
     def test_analyzer_wrapper_with_config_unchanged(self):
         """Test that AnalyzerEngineWrapper with config works as before."""
         config = AnalyzerConfig(
-            language="es",
-            min_confidence=0.7,
-            nlp_engine_name="spacy"
+            language="es", min_confidence=0.7, nlp_engine_name="spacy"
         )
 
         analyzer = AnalyzerEngineWrapper(config)
@@ -245,8 +256,7 @@ class TestBackwardCompatibility:
     def test_from_policy_method_unchanged(self):
         """Test that from_policy class method works as before."""
         policy = MaskingPolicy(
-            locale="en",
-            thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
+            locale="en", thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
         )
 
         analyzer = AnalyzerEngineWrapper.from_policy(policy)
@@ -259,11 +269,11 @@ class TestBackwardCompatibility:
         analyzer = AnalyzerEngineWrapper()
 
         # These methods should exist and have same signatures
-        assert hasattr(analyzer, 'is_initialized')
-        assert hasattr(analyzer, 'from_policy')
-        assert hasattr(analyzer, '_get_spacy_model_name')
-        assert hasattr(analyzer, '_initialize_engine')
-        assert hasattr(analyzer, 'analyze_text')
+        assert hasattr(analyzer, "is_initialized")
+        assert hasattr(analyzer, "from_policy")
+        assert hasattr(analyzer, "_get_spacy_model_name")
+        assert hasattr(analyzer, "_initialize_engine")
+        assert hasattr(analyzer, "analyze_text")
 
     def test_analyzer_properties_unchanged(self):
         """Test that analyzer properties work as before."""
@@ -299,5 +309,5 @@ class TestBackwardCompatibility:
 
         # They should be different instances when old way explicitly disables singleton
         # (though this might not be immediately testable without actual initialization)
-        assert hasattr(old_analyzer, 'use_singleton')
+        assert hasattr(old_analyzer, "use_singleton")
         assert old_analyzer.use_singleton is False

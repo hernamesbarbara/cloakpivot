@@ -5,11 +5,12 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TextIO
+from typing import TYPE_CHECKING, Any, Protocol, TextIO, cast
 
 import click
 
 from cloakpivot import __version__
+from cloakpivot.core.types import DoclingDocument
 
 from .batch import batch
 
@@ -18,17 +19,19 @@ ERROR_MASK_ARGS = (
     "Must specify either --out for masked output or --cloakmap for CloakMap output"
 )
 
+
+class DocDocumentLike(Protocol):
+    name: str
+    texts: Any
+    tables: Any
+
+
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
 
     from cloakpivot.core.detection import DocumentAnalysisResult
     from cloakpivot.core.policies import MaskingPolicy
     from cloakpivot.masking.engine import MaskingResult
-
-    try:
-        from docling_core.types import DoclingDocument
-    except ImportError:
-        DoclingDocument = None  # type: ignore
 
 
 @click.group()
@@ -37,7 +40,7 @@ if TYPE_CHECKING:
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all non-error output")
 @click.option(
     "--config",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Configuration file path",
 )
 @click.pass_context
@@ -104,9 +107,7 @@ def _load_config_file(ctx: click.Context, config_path: Path) -> None:
         raise click.ClickException(f"Failed to load configuration file: {e}") from e
 
 
-def _validate_mask_arguments(
-    output_path: Path | None, cloakmap: Path | None
-) -> None:
+def _validate_mask_arguments(output_path: Path | None, cloakmap: Path | None) -> None:
     """Validate mask command arguments."""
     if not output_path and not cloakmap:
         raise click.ClickException(ERROR_MASK_ARGS)
@@ -126,9 +127,7 @@ def _set_default_paths(
     return output_path, cloakmap
 
 
-def _try_enhanced_policy_loading(
-    policy: Path, verbose: bool
-) -> MaskingPolicy | None:
+def _try_enhanced_policy_loading(policy: Path, verbose: bool) -> MaskingPolicy | None:
     """Try to load policy using enhanced policy loader."""
     try:
         from cloakpivot.core.policy_loader import PolicyLoader
@@ -197,7 +196,7 @@ def _load_masking_policy(policy: Path | None, verbose: bool) -> MaskingPolicy:
 
 
 def _perform_entity_detection(
-    document: DoclingDocument,
+    document: DocDocumentLike,
     masking_policy: MaskingPolicy,
     verbose: bool,
     quiet: bool = False,
@@ -209,17 +208,18 @@ def _perform_entity_detection(
         click.echo("🔍 Detecting PII entities")
 
     detection_pipeline = EntityDetectionPipeline()
+    doc_dl = cast("DoclingDocument", document)
 
     if not quiet:
         with click.progressbar(
             length=1, label="Analyzing document for PII"
         ) as progress:
             detection_result = detection_pipeline.analyze_document(
-                document, masking_policy
+                doc_dl, masking_policy
             )
             progress.update(1)
     else:
-        detection_result = detection_pipeline.analyze_document(document, masking_policy)
+        detection_result = detection_pipeline.analyze_document(doc_dl, masking_policy)
 
     if verbose and not quiet:
         click.echo(f"✓ Detected {detection_result.total_entities} entities")
@@ -254,7 +254,7 @@ def _prepare_entities_for_masking(
 
 
 def _perform_masking(
-    document: DoclingDocument,
+    document: DocDocumentLike,
     entities: list[RecognizerResult],
     masking_policy: MaskingPolicy,
     verbose: bool,
@@ -265,14 +265,15 @@ def _perform_masking(
 
     masking_engine = MaskingEngine()
     text_extractor = TextExtractor()
-    text_segments = text_extractor.extract_text_segments(document)
+    doc_dl = cast("DoclingDocument", document)
+    text_segments = text_extractor.extract_text_segments(doc_dl)
 
     if verbose:
         click.echo(f"📝 Extracted {len(text_segments)} text segments")
 
     with click.progressbar(length=1, label="Masking PII entities") as progress:
         masking_result = masking_engine.mask_document(
-            document=document,
+            document=doc_dl,
             entities=entities,
             policy=masking_policy,
             text_segments=text_segments,
@@ -319,20 +320,18 @@ def _save_cloakmap(
 
 
 @cli.command()
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("input_path", type=click.Path(exists=True))
 @click.option(
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path or format (lexical, markdown, html)",
 )
-@click.option(
-    "--cloakmap", type=click.Path(path_type=Path), help="Path to save the CloakMap file"
-)
+@click.option("--cloakmap", type=click.Path(), help="Path to save the CloakMap file")
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to masking policy file",
 )
 @click.option(
@@ -383,6 +382,12 @@ def mask(
         from cloakpivot.document.processor import DocumentProcessor
         from cloakpivot.masking.engine import MaskingEngine
 
+        # Convert string paths to Path objects
+        input_path = Path(input_path)
+        output_path = Path(output_path) if output_path else None
+        cloakmap = Path(cloakmap) if cloakmap else None
+        policy = Path(policy) if policy else None
+
         if verbose:
             click.echo(f"🔍 Loading document: {input_path}")
 
@@ -405,11 +410,14 @@ def mask(
 
             # Detect input document format for round-trip preservation
             from cloakpivot.formats.serialization import CloakPivotSerializer
+
             format_serializer = CloakPivotSerializer()
             detected_input_format = format_serializer.detect_format(input_path)
 
             if verbose:
-                click.echo(f"📋 Detected input format: {detected_input_format or 'unknown'}")
+                click.echo(
+                    f"📋 Detected input format: {detected_input_format or 'unknown'}"
+                )
 
             progress.update(1)
 
@@ -562,18 +570,18 @@ def mask(
 
 
 @cli.command()
-@click.argument("masked_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("masked_path", type=click.Path(exists=True))
 @click.option(
     "--cloakmap",
     required=True,
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to the CloakMap file",
 )
 @click.option(
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path or format",
 )
 @click.option(
@@ -603,6 +611,11 @@ def unmask(
         from cloakpivot.core.cloakmap import CloakMap
         from cloakpivot.document.processor import DocumentProcessor
         from cloakpivot.unmasking.engine import UnmaskingEngine
+
+        # Convert string paths to Path objects
+        masked_path = Path(masked_path)
+        cloakmap = Path(cloakmap)
+        output_path = Path(output_path) if output_path else None
 
         if verbose:
             click.echo(f"🔓 Loading masked document: {masked_path}")
@@ -707,12 +720,18 @@ def unmask(
                     if original_format:
                         output_format = original_format
                         if verbose:
-                            click.echo(f"🔄 Restoring to original format: {original_format}")
+                            click.echo(
+                                f"🔄 Restoring to original format: {original_format}"
+                            )
                     else:
                         # Fallback to detecting from file extension or default to lexical
-                        output_format = serializer.detect_format(output_path) or "lexical"
+                        output_format = (
+                            serializer.detect_format(output_path) or "lexical"
+                        )
                         if verbose:
-                            click.echo(f"⚠️  No original format found, using: {output_format}")
+                            click.echo(
+                                f"⚠️  No original format found, using: {output_format}"
+                            )
 
                     result = serializer.serialize_document(
                         unmasking_result.restored_document, output_format
@@ -922,7 +941,7 @@ policy_composition:
 
 
 @policy.command("validate")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 @click.option(
     "--verbose", "-v", is_flag=True, help="Show detailed validation information"
 )
@@ -1000,7 +1019,6 @@ def policy_template(template_name: str, output: TextIO) -> None:
     except FileNotFoundError:
         # Fall back to reading from file system if package resource doesn't work
 
-
         template_file = (
             Path(__file__).parent.parent
             / "policies"
@@ -1026,7 +1044,7 @@ def policy_template(template_name: str, output: TextIO) -> None:
 
 
 @policy.command("test")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 @click.option("--text", "-t", help="Test text to analyze with the policy")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed analysis results")
 def policy_test(policy_file: Path, text: str | None, verbose: bool) -> None:
@@ -1089,7 +1107,7 @@ def policy_test(policy_file: Path, text: str | None, verbose: bool) -> None:
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output file path (default: interactive_policy.yaml)",
 )
 @click.option(
@@ -1119,8 +1137,10 @@ def policy_create(
         if verbose:
             click.echo("🎯 Starting interactive policy creation")
 
-        # Set default output path if not specified
-        if not output:
+        # Convert string path to Path object and set default if not specified
+        if output:
+            output = Path(output)
+        else:
             output = Path("interactive_policy.yaml")
 
         # Check if output file exists and warn user
@@ -1185,12 +1205,12 @@ def policy_create(
             strategy_params["algorithm"] = click.prompt(
                 "Hash algorithm", type=click.Choice(["sha256", "md5"]), default="sha256"
             )
-            strategy_params["truncate"] = click.prompt(
-                "Truncate hash to length", type=int, default=8
+            strategy_params["truncate"] = int(
+                click.prompt("Truncate hash to length", default="8")
             )
         elif default_strategy == "partial":
-            strategy_params["visible_chars"] = click.prompt(
-                "Number of visible characters", type=int, default=3
+            strategy_params["visible_chars"] = int(
+                click.prompt("Number of visible characters", default="3")
             )
             strategy_params["position"] = click.prompt(
                 "Position of visible chars",
@@ -1242,12 +1262,12 @@ def policy_create(
                             type=click.Choice(["sha256", "md5"]),
                             default="sha256",
                         )
-                        entity_params["truncate"] = click.prompt(
-                            "  Truncate hash to length", type=int, default=8
+                        entity_params["truncate"] = int(
+                            click.prompt("  Truncate hash to length", default="8")
                         )
                     elif entity_strategy == "partial":
-                        entity_params["visible_chars"] = click.prompt(
-                            "  Number of visible characters", type=int, default=3
+                        entity_params["visible_chars"] = int(
+                            click.prompt("  Number of visible characters", default="3")
                         )
                         entity_params["position"] = click.prompt(
                             "  Position of visible chars",
@@ -1255,10 +1275,11 @@ def policy_create(
                             default="start",
                         )
 
-                    threshold = click.prompt(
-                        f"  Confidence threshold for {entity_type} (0.0-1.0)",
-                        type=float,
-                        default=0.8,
+                    threshold = float(
+                        click.prompt(
+                            f"  Confidence threshold for {entity_type} (0.0-1.0)",
+                            default="0.8",
+                        )
                     )
 
                     per_entity[entity_type] = {
@@ -1437,7 +1458,7 @@ min_entity_length: 2
 
 
 @policy.command("info")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 def policy_info(policy_file: Path) -> None:
     """Show detailed information about a policy file.
 
@@ -1511,12 +1532,12 @@ def diagnostics() -> None:
 
 
 @diagnostics.command("analyze")
-@click.argument("masked_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("masked_file", type=click.Path(exists=True))
+@click.argument("cloakmap_file", type=click.Path(exists=True))
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path for diagnostic report",
 )
 @click.option(
@@ -1747,7 +1768,7 @@ def diagnostics_analyze(
 
 
 @diagnostics.command("summary")
-@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("cloakmap_file", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
 def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) -> None:
@@ -1853,7 +1874,7 @@ def format() -> None:
 
 
 @format.command("convert")
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("input_path", type=click.Path(exists=True))
 @click.option(
     "--to",
     "target_format",
@@ -1865,7 +1886,7 @@ def format() -> None:
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output file path (auto-generated if not specified)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
@@ -1948,7 +1969,7 @@ def format_convert(
 
 
 @format.command("detect")
-@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("file_path", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed format information")
 @click.pass_context
 def format_detect(ctx: click.Context, file_path: Path, verbose: bool) -> None:
@@ -2045,22 +2066,22 @@ def format_list(verbose: bool) -> None:
 
 
 @cli.command()
-@click.argument("doc1", type=click.Path(exists=True, path_type=Path))
-@click.argument("doc2", type=click.Path(exists=True, path_type=Path))
+@click.argument("doc1", type=click.Path(exists=True))
+@click.argument("doc2", type=click.Path(exists=True))
 @click.option(
     "--cloakmap1",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="CloakMap for first document (for masking strategy analysis)",
 )
 @click.option(
     "--cloakmap2",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="CloakMap for second document (for masking strategy analysis)",
 )
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path for diff report (default: diff_report.html)",
 )
 @click.option(
@@ -2105,6 +2126,13 @@ def diff(
         import json
 
         verbose = verbose or ctx.obj.get("verbose", False)
+
+        # Convert string paths to Path objects
+        doc1 = Path(doc1)
+        doc2 = Path(doc2)
+        cloakmap1 = Path(cloakmap1) if cloakmap1 else None
+        cloakmap2 = Path(cloakmap2) if cloakmap2 else None
+        output = Path(output) if output else None
 
         if verbose:
             click.echo("📊 Comparing documents")
@@ -2260,7 +2288,7 @@ def diff(
 
 def _generate_text_diff_report(
     diff_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,
@@ -2309,7 +2337,7 @@ def _generate_text_diff_report(
 def _generate_html_diff_report(
     text1_lines: list[str],
     text2_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,
@@ -2395,7 +2423,7 @@ def _generate_html_diff_report(
 
 def _generate_json_diff_report(
     diff_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,

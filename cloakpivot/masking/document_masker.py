@@ -1,9 +1,8 @@
 """DocumentMasker for applying masked replacements to DoclingDocument structures."""
 
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
-from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
     CodeItem,
     FormulaItem,
@@ -15,6 +14,8 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.anchors import AnchorEntry
 
@@ -120,7 +121,20 @@ class DocumentMasker:
 
         # Handle different node types
         if self._is_text_bearing_node(node_item):
-            self._mask_text_node(node_item, anchors)
+            self._mask_text_node(
+                cast(
+                    Union[
+                        TextItem,
+                        TitleItem,
+                        SectionHeaderItem,
+                        ListItem,
+                        CodeItem,
+                        FormulaItem,
+                    ],
+                    node_item,
+                ),
+                anchors,
+            )
         elif isinstance(node_item, TableItem):
             self._mask_table_node(node_item, node_id, anchors)
         elif isinstance(node_item, KeyValueItem):
@@ -262,7 +276,7 @@ class DocumentMasker:
 
             # Check bounds
             if row_idx >= len(table_data.table_cells) or col_idx >= len(
-                table_data.table_cells[row_idx]
+                cast(Any, table_data.table_cells)[row_idx]
             ):
                 logger.warning(
                     f"Cell coordinates ({row_idx}, {col_idx}) out of bounds "
@@ -271,7 +285,7 @@ class DocumentMasker:
                 continue
 
             # Get the cell and apply masking
-            cell = table_data.table_cells[row_idx][col_idx]
+            cell = cast(Any, table_data.table_cells)[row_idx][col_idx]
             if hasattr(cell, "text") and cell.text:
                 original_text = cell.text
                 modified_text = original_text

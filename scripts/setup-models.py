@@ -24,18 +24,18 @@ except ImportError:
 @dataclass
 class ModelConfig:
     """Configuration for model management and validation."""
-    
+
     # Model size configurations
     model_definitions: Dict[str, List[str]] = None
-    
+
     # Validation settings
     validation_test_text: str = "This is a test document for validation. John Smith works at Microsoft."
     min_pos_tags_required: int = 1
-    
+
     # Timeout and performance settings
     download_timeout_seconds: int = 300  # 5 minutes max per model
     validation_timeout_seconds: int = 30  # 30 seconds max for validation
-    
+
     def __post_init__(self):
         """Initialize default model definitions if not provided."""
         if self.model_definitions is None:
@@ -44,18 +44,18 @@ class ModelConfig:
                 "medium": ["en_core_web_sm", "en_core_web_md"],
                 "large": ["en_core_web_sm", "en_core_web_md", "en_core_web_lg"],
             }
-    
+
     def validate(self) -> None:
         """Validate configuration parameters."""
         if not isinstance(self.model_definitions, dict):
             raise ValueError("model_definitions must be a dictionary")
-        
+
         for size, models in self.model_definitions.items():
             if not isinstance(models, list):
                 raise ValueError(f"Models for size '{size}' must be a list")
             if not models:
                 raise ValueError(f"Models list for size '{size}' cannot be empty")
-        
+
         if self.download_timeout_seconds <= 0:
             raise ValueError("download_timeout_seconds must be positive")
         if self.validation_timeout_seconds <= 0:
@@ -69,7 +69,7 @@ class ModelConfig:
 class ModelManager:
     """Intelligent model download and verification manager with caching awareness."""
 
-    def __init__(self, model_size: str = "small", cache_dir: Optional[str] = None, 
+    def __init__(self, model_size: str = "small", cache_dir: Optional[str] = None,
                  config: Optional[ModelConfig] = None):
         self.model_size = model_size
         self.cache_dir = Path(cache_dir or Path.home() / ".cache" / "spacy")
@@ -262,7 +262,7 @@ class ModelManager:
                 "platform": sys.platform,
             },
         }
-        
+
         # Safely get required models
         try:
             info["required_models"] = self.get_required_models()

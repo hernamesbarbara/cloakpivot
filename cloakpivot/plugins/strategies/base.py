@@ -60,7 +60,7 @@ class BaseStrategyPlugin(BasePlugin):
             version="1.0.0",
             description="Custom strategy plugin",
             author="Unknown",
-            plugin_type="strategy"
+            plugin_type="strategy",
         )
 
     def validate_config(self, config: dict[str, Any]) -> bool:
@@ -79,8 +79,7 @@ class BaseStrategyPlugin(BasePlugin):
         # Base validation - check for common configuration errors
         if not isinstance(config, dict):
             raise PluginValidationError(
-                "Configuration must be a dictionary",
-                plugin_name=self.info.name
+                "Configuration must be a dictionary", plugin_name=self.info.name
             )
 
         # Validate any strategy-specific parameters
@@ -106,13 +105,17 @@ class BaseStrategyPlugin(BasePlugin):
         try:
             self._initialize_strategy()
             self.is_initialized = True
-            self.logger.info(f"Strategy plugin {self.info.name} initialized successfully")
+            self.logger.info(
+                f"Strategy plugin {self.info.name} initialized successfully"
+            )
         except Exception as e:
-            self.logger.error(f"Failed to initialize strategy plugin {self.info.name}: {e}")
+            self.logger.error(
+                f"Failed to initialize strategy plugin {self.info.name}: {e}"
+            )
             raise PluginExecutionError(
                 f"Strategy plugin initialization failed: {e}",
                 plugin_name=self.info.name,
-                original_exception=e
+                original_exception=e,
             ) from e
 
     def _initialize_strategy(self) -> None:
@@ -129,7 +132,9 @@ class BaseStrategyPlugin(BasePlugin):
         try:
             self._cleanup_strategy()
             self.is_initialized = False
-            self.logger.info(f"Strategy plugin {self.info.name} cleaned up successfully")
+            self.logger.info(
+                f"Strategy plugin {self.info.name} cleaned up successfully"
+            )
         except Exception as e:
             self.logger.warning(f"Error during strategy plugin cleanup: {e}")
 
@@ -148,7 +153,7 @@ class BaseStrategyPlugin(BasePlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """
         Apply the custom masking strategy to the input text.
@@ -172,7 +177,7 @@ class BaseStrategyPlugin(BasePlugin):
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """
         Apply strategy with error handling and timing.
@@ -195,19 +200,21 @@ class BaseStrategyPlugin(BasePlugin):
                 execution_time_ms=0.0,
                 metadata={},
                 success=False,
-                error_message="Plugin not initialized"
+                error_message="Plugin not initialized",
             )
 
         start_time = time.perf_counter()
 
         try:
-            result = self.apply_strategy(original_text, entity_type, confidence, context)
+            result = self.apply_strategy(
+                original_text, entity_type, confidence, context
+            )
 
             # Ensure result is valid
             if not isinstance(result, StrategyPluginResult):
                 raise PluginExecutionError(
                     "Strategy plugin must return StrategyPluginResult",
-                    plugin_name=self.info.name
+                    plugin_name=self.info.name,
                 )
 
             # Update timing
@@ -221,8 +228,7 @@ class BaseStrategyPlugin(BasePlugin):
             execution_time = (end_time - start_time) * 1000
 
             self.logger.error(
-                f"Strategy plugin {self.info.name} failed: {e}",
-                exc_info=True
+                f"Strategy plugin {self.info.name} failed: {e}", exc_info=True
             )
 
             return StrategyPluginResult(
@@ -230,7 +236,7 @@ class BaseStrategyPlugin(BasePlugin):
                 execution_time_ms=execution_time,
                 metadata={"error_type": type(e).__name__},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def get_supported_entity_types(self) -> Optional[list[str]]:
@@ -249,8 +255,4 @@ class BaseStrategyPlugin(BasePlugin):
         Returns:
             JSON schema dictionary describing accepted parameters
         """
-        return {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": True
-        }
+        return {"type": "object", "properties": {}, "additionalProperties": True}

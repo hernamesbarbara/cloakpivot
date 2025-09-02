@@ -392,29 +392,41 @@ class CoverageAnalyzer:
         # Validate each anchor entry
         for i, anchor in enumerate(anchor_entries):
             # Check if anchor has required attributes
-            if not hasattr(anchor, 'node_id'):
-                raise ValueError(f"Anchor entry {i} missing required 'node_id' attribute")
-            if not hasattr(anchor, 'entity_type'):
-                raise ValueError(f"Anchor entry {i} missing required 'entity_type' attribute")
-            if not hasattr(anchor, 'start'):
+            if not hasattr(anchor, "node_id"):
+                raise ValueError(
+                    f"Anchor entry {i} missing required 'node_id' attribute"
+                )
+            if not hasattr(anchor, "entity_type"):
+                raise ValueError(
+                    f"Anchor entry {i} missing required 'entity_type' attribute"
+                )
+            if not hasattr(anchor, "start"):
                 raise ValueError(f"Anchor entry {i} missing required 'start' attribute")
-            if not hasattr(anchor, 'end'):
+            if not hasattr(anchor, "end"):
                 raise ValueError(f"Anchor entry {i} missing required 'end' attribute")
 
             # Validate node_id references valid text segment
             if anchor.node_id not in valid_node_ids:
-                raise ValueError(f"Anchor entry {i} references invalid node_id '{anchor.node_id}' - not found in text segments")
+                raise ValueError(
+                    f"Anchor entry {i} references invalid node_id '{anchor.node_id}' - not found in text segments"
+                )
 
             # Validate start/end positions are reasonable
             if not isinstance(anchor.start, int) or not isinstance(anchor.end, int):
-                raise ValueError(f"Anchor entry {i} has non-integer start/end positions")
+                raise ValueError(
+                    f"Anchor entry {i} has non-integer start/end positions"
+                )
 
             if anchor.start < 0 or anchor.end < 0:
                 raise ValueError(f"Anchor entry {i} has negative start/end positions")
 
             if anchor.start >= anchor.end:
-                raise ValueError(f"Anchor entry {i} has invalid range: start {anchor.start} >= end {anchor.end}")
+                raise ValueError(
+                    f"Anchor entry {i} has invalid range: start {anchor.start} >= end {anchor.end}"
+                )
 
             # Validate entity_type is not empty
             if not anchor.entity_type or not isinstance(anchor.entity_type, str):
-                raise ValueError(f"Anchor entry {i} has empty or non-string entity_type")
+                raise ValueError(
+                    f"Anchor entry {i} has empty or non-string entity_type"
+                )

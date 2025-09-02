@@ -31,22 +31,22 @@ def sample_text_segments():
             text="Contact John Doe at john.doe@email.com or 555-123-4567",
             start_offset=0,
             end_offset=54,
-            node_type="TextItem"
+            node_type="TextItem",
         ),
         TextSegment(
             node_id="#/texts/1",
             text="His SSN is 123-45-6789",
             start_offset=55,
             end_offset=77,
-            node_type="TextItem"
+            node_type="TextItem",
         ),
         TextSegment(
             node_id="#/titles/0",
             text="Personal Information",
             start_offset=78,
             end_offset=98,
-            node_type="TitleItem"
-        )
+            node_type="TitleItem",
+        ),
     ]
 
 
@@ -57,7 +57,7 @@ def sample_entities():
         EntityDetectionResult("PERSON", 8, 16, 0.9, "John Doe"),
         EntityDetectionResult("EMAIL_ADDRESS", 20, 37, 0.95, "john.doe@email.com"),
         EntityDetectionResult("PHONE_NUMBER", 41, 53, 0.85, "555-123-4567"),
-        EntityDetectionResult("US_SSN", 11, 23, 0.98, "123-45-6789")
+        EntityDetectionResult("US_SSN", 11, 23, 0.98, "123-45-6789"),
     ]
 
 
@@ -79,8 +79,10 @@ class TestEntityDetectionPipeline:
 
         assert pipeline.analyzer.config.language == "es"
 
-    @patch('cloakpivot.core.detection.TextExtractor')
-    def test_analyze_document(self, mock_extractor_class, mock_analyzer, sample_text_segments, sample_entities):
+    @patch("cloakpivot.core.detection.TextExtractor")
+    def test_analyze_document(
+        self, mock_extractor_class, mock_analyzer, sample_text_segments, sample_entities
+    ):
         """Test document analysis."""
         # Setup mocks
         mock_extractor = Mock()
@@ -88,9 +90,13 @@ class TestEntityDetectionPipeline:
         mock_extractor_class.return_value = mock_extractor
 
         mock_analyzer.analyze_text.side_effect = [
-            [sample_entities[0], sample_entities[1], sample_entities[2]],  # First segment
+            [
+                sample_entities[0],
+                sample_entities[1],
+                sample_entities[2],
+            ],  # First segment
             [sample_entities[3]],  # Second segment
-            []  # Third segment (title)
+            [],  # Third segment (title)
         ]
 
         # Create pipeline
@@ -114,12 +120,14 @@ class TestEntityDetectionPipeline:
         assert "PHONE_NUMBER" in result.entity_breakdown
         assert "US_SSN" in result.entity_breakdown
 
-    def test_analyze_text_segments(self, mock_analyzer, sample_text_segments, sample_entities):
+    def test_analyze_text_segments(
+        self, mock_analyzer, sample_text_segments, sample_entities
+    ):
         """Test analyzing text segments directly."""
         mock_analyzer.analyze_text.side_effect = [
             [sample_entities[0], sample_entities[1]],  # First segment
             [sample_entities[2]],  # Second segment
-            []  # Third segment
+            [],  # Third segment
         ]
 
         pipeline = EntityDetectionPipeline(mock_analyzer)
@@ -137,7 +145,9 @@ class TestEntityDetectionPipeline:
         # Create entities with different confidence levels
         entities = [
             EntityDetectionResult("PERSON", 0, 8, 0.9, "John Doe"),  # Above threshold
-            EntityDetectionResult("PERSON", 10, 18, 0.6, "Jane Smith"),  # Below threshold
+            EntityDetectionResult(
+                "PERSON", 10, 18, 0.6, "Jane Smith"
+            ),  # Below threshold
         ]
 
         mock_analyzer.analyze_text.return_value = entities
@@ -205,19 +215,14 @@ class TestSegmentAnalysisResult:
 
         # Successful result
         success_result = SegmentAnalysisResult(
-            segment=segment,
-            entities=sample_entities[:2],
-            processing_time_ms=123.45
+            segment=segment, entities=sample_entities[:2], processing_time_ms=123.45
         )
 
         assert success_result.success
         assert success_result.entity_count == 2
 
         # Failed result
-        error_result = SegmentAnalysisResult(
-            segment=segment,
-            error="Processing failed"
-        )
+        error_result = SegmentAnalysisResult(segment=segment, error="Processing failed")
 
         assert not error_result.success
         assert error_result.entity_count == 0
@@ -234,20 +239,20 @@ class TestDocumentAnalysisResult:
         success_result1 = SegmentAnalysisResult(
             segment=sample_text_segments[0],
             entities=sample_entities[:2],
-            processing_time_ms=100.0
+            processing_time_ms=100.0,
         )
 
         success_result2 = SegmentAnalysisResult(
             segment=sample_text_segments[1],
             entities=sample_entities[2:],
-            processing_time_ms=150.0
+            processing_time_ms=150.0,
         )
 
         # Add failed segment result
         error_result = SegmentAnalysisResult(
             segment=sample_text_segments[2],
             error="Analysis failed",
-            processing_time_ms=50.0
+            processing_time_ms=50.0,
         )
 
         result.add_segment_result(success_result1)
@@ -259,7 +264,7 @@ class TestDocumentAnalysisResult:
         assert result.total_entities == 4
         assert result.total_processing_time_ms == 300.0
         assert len(result.errors) == 1
-        assert result.success_rate == 2/3  # 2 successful out of 3 segments
+        assert result.success_rate == 2 / 3  # 2 successful out of 3 segments
 
         # Check entity breakdown
         assert result.entity_breakdown["PERSON"] == 1
@@ -272,8 +277,7 @@ class TestDocumentAnalysisResult:
         result = DocumentAnalysisResult("test_document")
 
         success_result = SegmentAnalysisResult(
-            segment=sample_text_segments[0],
-            entities=sample_entities[:2]
+            segment=sample_text_segments[0], entities=sample_entities[:2]
         )
 
         result.add_segment_result(success_result)
@@ -289,7 +293,9 @@ class TestDocumentAnalysisResult:
 class TestAnchorMapping:
     """Test entity to anchor mapping functionality."""
 
-    def test_map_entities_to_anchors(self, mock_analyzer, sample_text_segments, sample_entities):
+    def test_map_entities_to_anchors(
+        self, mock_analyzer, sample_text_segments, sample_entities
+    ):
         """Test mapping entities to document anchors."""
         # Create analysis result
         analysis_result = DocumentAnalysisResult("test_document")
@@ -298,8 +304,10 @@ class TestAnchorMapping:
             segment=sample_text_segments[0],  # start_offset=0, end_offset=54
             entities=[
                 EntityDetectionResult("PERSON", 8, 16, 0.9, "John Doe"),
-                EntityDetectionResult("EMAIL_ADDRESS", 20, 37, 0.95, "john.doe@email.com")
-            ]
+                EntityDetectionResult(
+                    "EMAIL_ADDRESS", 20, 37, 0.95, "john.doe@email.com"
+                ),
+            ],
         )
 
         analysis_result.add_segment_result(segment_result)
@@ -314,9 +322,13 @@ class TestAnchorMapping:
         assert person_anchor.entity_type == "PERSON"
         assert person_anchor.node_id == "#/texts/0"
         assert person_anchor.start == 8  # Relative to segment
-        assert person_anchor.end == 16   # Relative to segment
-        assert person_anchor.metadata["global_start"] == 8  # Global position (segment_start + entity_start)
-        assert person_anchor.metadata["global_end"] == 16   # Global position (segment_start + entity_end)
+        assert person_anchor.end == 16  # Relative to segment
+        assert (
+            person_anchor.metadata["global_start"] == 8
+        )  # Global position (segment_start + entity_start)
+        assert (
+            person_anchor.metadata["global_end"] == 16
+        )  # Global position (segment_start + entity_end)
         assert person_anchor.metadata["original_text"] == "John Doe"
         assert person_anchor.confidence == 0.9
 
@@ -326,20 +338,22 @@ class TestAnchorMapping:
         assert email_anchor.metadata["global_start"] == 20
         assert email_anchor.metadata["global_end"] == 37
 
-    def test_anchor_mapping_with_multiple_segments(self, mock_analyzer, sample_text_segments):
+    def test_anchor_mapping_with_multiple_segments(
+        self, mock_analyzer, sample_text_segments
+    ):
         """Test anchor mapping across multiple segments."""
         analysis_result = DocumentAnalysisResult("test_document")
 
         # First segment: start_offset=0, end_offset=54
         segment1_result = SegmentAnalysisResult(
             segment=sample_text_segments[0],
-            entities=[EntityDetectionResult("PERSON", 8, 16, 0.9, "John Doe")]
+            entities=[EntityDetectionResult("PERSON", 8, 16, 0.9, "John Doe")],
         )
 
         # Second segment: start_offset=55, end_offset=77
         segment2_result = SegmentAnalysisResult(
             segment=sample_text_segments[1],
-            entities=[EntityDetectionResult("US_SSN", 11, 23, 0.98, "123-45-6789")]
+            entities=[EntityDetectionResult("US_SSN", 11, 23, 0.98, "123-45-6789")],
         )
 
         analysis_result.add_segment_result(segment1_result)
@@ -352,11 +366,11 @@ class TestAnchorMapping:
 
         # First anchor should have global position based on first segment
         assert anchors[0].metadata["global_start"] == 8  # 0 + 8
-        assert anchors[0].metadata["global_end"] == 16   # 0 + 16
+        assert anchors[0].metadata["global_end"] == 16  # 0 + 16
 
         # Second anchor should have global position based on second segment
         assert anchors[1].metadata["global_start"] == 66  # 55 + 11
-        assert anchors[1].metadata["global_end"] == 78    # 55 + 23
+        assert anchors[1].metadata["global_end"] == 78  # 55 + 23
 
 
 class TestEntityDetectionPipelineBackwardCompatibility:
@@ -372,7 +386,7 @@ class TestEntityDetectionPipelineBackwardCompatibility:
         assert pipeline.text_extractor is not None
 
         # New attributes should exist
-        assert hasattr(pipeline, '_used_shared_analyzer')
+        assert hasattr(pipeline, "_used_shared_analyzer")
 
     def test_with_provided_analyzer_unchanged(self):
         """Test that providing an analyzer directly works as before."""
@@ -387,8 +401,7 @@ class TestEntityDetectionPipelineBackwardCompatibility:
     def test_from_policy_method_unchanged(self):
         """Test that from_policy method works as before."""
         policy = MaskingPolicy(
-            locale="en",
-            thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
+            locale="en", thresholds={"EMAIL": 0.8, "PHONE_NUMBER": 0.7}
         )
 
         pipeline = EntityDetectionPipeline.from_policy(policy)
@@ -401,10 +414,10 @@ class TestEntityDetectionPipelineBackwardCompatibility:
         pipeline = EntityDetectionPipeline()
 
         # These methods should exist with same signatures
-        assert hasattr(pipeline, 'from_policy')
-        assert hasattr(pipeline, 'analyze_document')
-        assert hasattr(pipeline, 'analyze_text_segments')
-        assert hasattr(pipeline, 'map_entities_to_anchors')
+        assert hasattr(pipeline, "from_policy")
+        assert hasattr(pipeline, "analyze_document")
+        assert hasattr(pipeline, "analyze_text_segments")
+        assert hasattr(pipeline, "map_entities_to_anchors")
 
     def test_shared_analyzer_parameter_optional(self):
         """Test that use_shared_analyzer parameter is optional."""
@@ -447,16 +460,16 @@ class TestEntityDetectionPipelineBackwardCompatibility:
         pipeline = EntityDetectionPipeline()
 
         # All original attributes should exist
-        assert hasattr(pipeline, 'analyzer')
-        assert hasattr(pipeline, 'text_extractor')
+        assert hasattr(pipeline, "analyzer")
+        assert hasattr(pipeline, "text_extractor")
 
         # All original methods should exist
         methods = [
-            'from_policy',
-            'analyze_document',
-            'analyze_text_segments',
-            'map_entities_to_anchors',
-            '_analyze_segment'
+            "from_policy",
+            "analyze_document",
+            "analyze_text_segments",
+            "map_entities_to_anchors",
+            "_analyze_segment",
         ]
 
         for method in methods:
@@ -468,13 +481,13 @@ class TestEntityDetectionPipelineBackwardCompatibility:
         from unittest.mock import patch
 
         # Test with environment variable set to false
-        with patch.dict(os.environ, {'CLOAKPIVOT_USE_SINGLETON': 'false'}):
+        with patch.dict(os.environ, {"CLOAKPIVOT_USE_SINGLETON": "false"}):
             pipeline = EntityDetectionPipeline()
             assert pipeline is not None
             assert pipeline.analyzer is not None
 
         # Test with environment variable set to true
-        with patch.dict(os.environ, {'CLOAKPIVOT_USE_SINGLETON': 'true'}):
+        with patch.dict(os.environ, {"CLOAKPIVOT_USE_SINGLETON": "true"}):
             pipeline = EntityDetectionPipeline()
             assert pipeline is not None
             assert pipeline.analyzer is not None

@@ -38,7 +38,7 @@ def mask_document_with_detection(
     analyzer: AnalyzerEngine = None,
     resolve_conflicts: bool = True,
     timing_log: bool = False,
-    force_new_analyzer: bool = False
+    force_new_analyzer: bool = False,
 ) -> MaskingResult:
     """
     Convenience function that performs entity detection and masking in one step.
@@ -75,10 +75,7 @@ def mask_document_with_detection(
     # Detect entities in each text segment and adjust positions to global coordinates
     all_entities = []
     for segment in text_segments:
-        segment_entities = analyzer.analyze(
-            text=segment.text,
-            language="en"
-        )
+        segment_entities = analyzer.analyze(text=segment.text, language="en")
 
         # Adjust entity positions from segment-relative to global coordinates
         for entity in segment_entities:
@@ -89,7 +86,7 @@ def mask_document_with_detection(
                 start=entity.start + segment.start_offset,
                 end=entity.end + segment.start_offset,
                 score=entity.score,
-                analysis_explanation=entity.analysis_explanation
+                analysis_explanation=entity.analysis_explanation,
             )
             all_entities.append(adjusted_entity)
 
@@ -99,7 +96,7 @@ def mask_document_with_detection(
         document=document,
         entities=all_entities,
         policy=policy,
-        text_segments=text_segments
+        text_segments=text_segments,
     )
 
 
@@ -117,7 +114,7 @@ def create_text_segments_from_document(document: DoclingDocument) -> list[TextSe
             text=text_item.text,
             start_offset=0,
             end_offset=len(text_item.text),
-            node_type="TextItem"
+            node_type="TextItem",
         )
         segments.append(segment)
 
@@ -125,8 +122,7 @@ def create_text_segments_from_document(document: DoclingDocument) -> list[TextSe
 
 
 def detect_entities_in_text_segments(
-    text_segments: list[TextSegment],
-    analyzer: AnalyzerEngine = None
+    text_segments: list[TextSegment], analyzer: AnalyzerEngine = None
 ) -> list[RecognizerResult]:
     """
     Detect entities in text segments.
@@ -143,10 +139,7 @@ def detect_entities_in_text_segments(
 
     all_entities = []
     for segment in text_segments:
-        segment_entities = analyzer.analyze(
-            text=segment.text,
-            language="en"
-        )
+        segment_entities = analyzer.analyze(text=segment.text, language="en")
         all_entities.extend(segment_entities)
 
     return all_entities
@@ -163,14 +156,14 @@ class FastRegexDetector:
         """Initialize the fast regex detector with common PII patterns."""
         self.patterns = {
             "PHONE_NUMBER": [
-                re.compile(r'\b\d{3}-\d{3}-\d{4}\b'),  # 555-123-4567
-                re.compile(r'\b\d{3}\.\d{3}\.\d{4}\b'),  # 555.123.4567
+                re.compile(r"\b\d{3}-\d{3}-\d{4}\b"),  # 555-123-4567
+                re.compile(r"\b\d{3}\.\d{3}\.\d{4}\b"),  # 555.123.4567
             ],
             "EMAIL_ADDRESS": [
-                re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b'),
+                re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"),
             ],
             "SSN": [
-                re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),  # 123-45-6789
+                re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),  # 123-45-6789
             ],
         }
 
@@ -192,7 +185,7 @@ class FastRegexDetector:
                         entity_type=entity_type,
                         start=match.start(),
                         end=match.end(),
-                        score=0.95  # High confidence for regex matches
+                        score=0.95,  # High confidence for regex matches
                     )
                     entities.append(entity)
 
@@ -210,12 +203,7 @@ def create_simple_document(text: str) -> DoclingDocument:
     """
     doc = DoclingDocument(name="test_doc")
 
-    text_item = TextItem(
-        text=text,
-        self_ref="#/texts/0",
-        label="text",
-        orig=text
-    )
+    text_item = TextItem(text=text, self_ref="#/texts/0", label="text", orig=text)
     doc.texts = [text_item]
 
     return doc
@@ -235,10 +223,7 @@ def create_multi_section_document(sections: list[str]) -> DoclingDocument:
     text_items = []
     for i, section_text in enumerate(sections):
         text_item = TextItem(
-            text=section_text,
-            self_ref=f"#/texts/{i}",
-            label="text",
-            orig=section_text
+            text=section_text, self_ref=f"#/texts/{i}", label="text", orig=section_text
         )
         text_items.append(text_item)
 

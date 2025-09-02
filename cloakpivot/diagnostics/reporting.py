@@ -278,19 +278,19 @@ class DiagnosticReporter:
                 </tr>
                 <tr>
                     <td>Total Processing Time</td>
-                    <td>{data.performance.get('total_time_seconds', 0):.2f}s</td>
+                    <td>{data.performance.get("total_time_seconds", 0):.2f}s</td>
                 </tr>
                 <tr>
                     <td>Detection Time</td>
-                    <td>{data.performance.get('detection_time_seconds', 0):.2f}s</td>
+                    <td>{data.performance.get("detection_time_seconds", 0):.2f}s</td>
                 </tr>
                 <tr>
                     <td>Masking Time</td>
-                    <td>{data.performance.get('masking_time_seconds', 0):.2f}s</td>
+                    <td>{data.performance.get("masking_time_seconds", 0):.2f}s</td>
                 </tr>
                 <tr>
                     <td>Throughput</td>
-                    <td>{data.performance.get('throughput_entities_per_second', 0):.1f} entities/sec</td>
+                    <td>{data.performance.get("throughput_entities_per_second", 0):.1f} entities/sec</td>
                 </tr>
             </table>
         </div>"""
@@ -352,7 +352,6 @@ class DiagnosticReporter:
             }}
         }});
     </script>"""
-
 
     def _generate_markdown_report(self, data: ReportData) -> str:
         """Generate Markdown format report."""

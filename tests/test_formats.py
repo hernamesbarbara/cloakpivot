@@ -79,11 +79,19 @@ class TestFormatRegistry:
         registry = FormatRegistry()
 
         # Test specific format indicators
-        assert registry.detect_format_from_path("doc.lexical.json") == SupportedFormat.LEXICAL
-        assert registry.detect_format_from_path("doc.docling.json") == SupportedFormat.DOCLING
+        assert (
+            registry.detect_format_from_path("doc.lexical.json")
+            == SupportedFormat.LEXICAL
+        )
+        assert (
+            registry.detect_format_from_path("doc.docling.json")
+            == SupportedFormat.DOCLING
+        )
 
         # Test extension mappings
-        assert registry.detect_format_from_path("document.md") == SupportedFormat.MARKDOWN
+        assert (
+            registry.detect_format_from_path("document.md") == SupportedFormat.MARKDOWN
+        )
         assert registry.detect_format_from_path("document.html") == SupportedFormat.HTML
 
         # Test unknown formats
@@ -95,10 +103,16 @@ class TestFormatRegistry:
 
         # Test JSON formats
         docling_content = '{"texts": [], "tables": [], "name": "test"}'
-        assert registry.detect_format_from_content(docling_content) == SupportedFormat.DOCLING
+        assert (
+            registry.detect_format_from_content(docling_content)
+            == SupportedFormat.DOCLING
+        )
 
         lexical_content = '{"root": {"children": []}, "version": "1.0"}'
-        assert registry.detect_format_from_content(lexical_content) == SupportedFormat.LEXICAL
+        assert (
+            registry.detect_format_from_content(lexical_content)
+            == SupportedFormat.LEXICAL
+        )
 
         # Test HTML format
         html_content = "<html><body><p>Test</p></body></html>"
@@ -106,7 +120,10 @@ class TestFormatRegistry:
 
         # Test Markdown format
         markdown_content = "# Title\n\n- List item\n\n**Bold text**"
-        assert registry.detect_format_from_content(markdown_content) == SupportedFormat.MARKDOWN
+        assert (
+            registry.detect_format_from_content(markdown_content)
+            == SupportedFormat.MARKDOWN
+        )
 
         # Test unknown content
         unknown_content = "Plain text without clear format indicators"
@@ -180,7 +197,7 @@ class TestCloakPivotSerializer:
         assert serializer is not None
         assert len(serializer.supported_formats) > 0
 
-    @patch('cloakpivot.formats.serialization.FormatRegistry')
+    @patch("cloakpivot.formats.serialization.FormatRegistry")
     def test_serialize_document_success(self, mock_registry_class):
         """Test successful document serialization."""
         # Setup mocks
@@ -189,7 +206,9 @@ class TestCloakPivotSerializer:
         mock_registry.is_format_supported.return_value = True
 
         mock_serializer = Mock()
-        mock_serializer.serialize.return_value = Mock(text="serialized content", metadata={})
+        mock_serializer.serialize.return_value = Mock(
+            text="serialized content", metadata={}
+        )
         mock_registry.get_serializer.return_value = mock_serializer
 
         serializer = CloakPivotSerializer()
@@ -199,7 +218,7 @@ class TestCloakPivotSerializer:
         assert result.format_name == "markdown"
         assert result.size_bytes > 0
 
-    @patch('cloakpivot.formats.serialization.FormatRegistry')
+    @patch("cloakpivot.formats.serialization.FormatRegistry")
     def test_serialize_document_unsupported_format(self, mock_registry_class):
         """Test serialization with unsupported format."""
         mock_registry = Mock()
@@ -232,7 +251,7 @@ class TestCloakPivotSerializer:
 
         assert '<span class="cloak-redacted">' in processed
         assert '<span class="cloak-masked">' in processed
-        assert '<style>' in processed
+        assert "<style>" in processed
 
     def test_detect_format(self):
         """Test format detection."""
@@ -270,7 +289,7 @@ class TestSerializationResult:
             content="test content",
             format_name="markdown",
             size_bytes=100,
-            metadata={"test": "data"}
+            metadata={"test": "data"},
         )
 
         assert result.content == "test content"
@@ -287,10 +306,12 @@ class TestSerializationResult:
             content="# Test Content\n\nThis is test content.",
             format_name="markdown",
             size_bytes=35,
-            metadata={}
+            metadata={},
         )
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as tmp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".md"
+        ) as tmp_file:
             tmp_path = Path(tmp_file.name)
 
         try:
@@ -298,7 +319,7 @@ class TestSerializationResult:
 
             # Verify file was created and contains correct content
             assert tmp_path.exists()
-            content = tmp_path.read_text(encoding='utf-8')
+            content = tmp_path.read_text(encoding="utf-8")
             assert content == result.content
 
         finally:

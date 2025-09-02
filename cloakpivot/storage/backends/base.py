@@ -52,7 +52,7 @@ class StorageMetadata:
         cloakmap: CloakMap,
         backend_type: str,
         content_bytes: bytes,
-        **backend_metadata: Any
+        **backend_metadata: Any,
     ) -> "StorageMetadata":
         """Create metadata from a CloakMap and its serialized content."""
         content_hash = hashlib.sha256(content_bytes).hexdigest()
@@ -162,7 +162,7 @@ class StorageBackend(ABC):
         key: str,
         cloakmap: CloakMap,
         metadata: dict[str, Any] | None = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """
         Save a CloakMap to storage.
@@ -240,10 +240,7 @@ class StorageBackend(ABC):
 
     @abstractmethod
     def list_keys(
-        self,
-        prefix: str | None = None,
-        limit: int | None = None,
-        **kwargs: Any
+        self, prefix: str | None = None, limit: int | None = None, **kwargs: Any
     ) -> list[str]:
         """
         List CloakMap keys in storage.
@@ -281,10 +278,7 @@ class StorageBackend(ABC):
         pass
 
     def list_metadata(
-        self,
-        prefix: str | None = None,
-        limit: int | None = None,
-        **kwargs: Any
+        self, prefix: str | None = None, limit: int | None = None, **kwargs: Any
     ) -> list[StorageMetadata]:
         """
         List metadata for all CloakMaps matching criteria.
@@ -313,12 +307,7 @@ class StorageBackend(ABC):
 
         return metadata
 
-    def copy(
-        self,
-        source_key: str,
-        dest_key: str,
-        **kwargs: Any
-    ) -> StorageMetadata:
+    def copy(self, source_key: str, dest_key: str, **kwargs: Any) -> StorageMetadata:
         """
         Copy a CloakMap to a new key.
 
@@ -336,12 +325,7 @@ class StorageBackend(ABC):
         cloakmap = self.load(source_key, **kwargs)
         return self.save(dest_key, cloakmap, **kwargs)
 
-    def move(
-        self,
-        source_key: str,
-        dest_key: str,
-        **kwargs: Any
-    ) -> StorageMetadata:
+    def move(self, source_key: str, dest_key: str, **kwargs: Any) -> StorageMetadata:
         """
         Move a CloakMap to a new key.
 
@@ -377,7 +361,7 @@ class StorageBackend(ABC):
             raise ValueError("Key too long (max 1024 characters)")
 
         # Check for potentially problematic characters
-        invalid_chars = set('\x00\r\n')
+        invalid_chars = set("\x00\r\n")
         if any(c in invalid_chars for c in key):
             raise ValueError("Key contains invalid characters")
 
@@ -395,8 +379,10 @@ class StorageBackend(ABC):
                 "status": "healthy",
                 "backend_type": self.backend_type,
                 "timestamp": datetime.utcnow().isoformat(),
-                "config": {k: "***" if "key" in k.lower() or "secret" in k.lower()
-                          else v for k, v in self.config.items()},
+                "config": {
+                    k: "***" if "key" in k.lower() or "secret" in k.lower() else v
+                    for k, v in self.config.items()
+                },
             }
         except Exception as e:
             return {

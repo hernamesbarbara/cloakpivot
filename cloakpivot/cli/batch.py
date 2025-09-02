@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TextIO
 
 import click
 
@@ -37,7 +37,9 @@ def _validate_patterns(patterns: list[str]) -> list[str]:
     return validated_patterns
 
 
-def _load_masking_policy(policy_file: Optional[Path], verbose: bool) -> Optional[MaskingPolicy]:
+def _load_masking_policy(
+    policy_file: Optional[Path], verbose: bool
+) -> Optional[MaskingPolicy]:
     """Load masking policy from file if specified."""
     if not policy_file:
         return None
@@ -85,71 +87,67 @@ def _load_masking_policy(policy_file: Optional[Path], verbose: bool) -> Optional
 @batch.command()
 @click.argument("patterns", nargs=-1, required=True)
 @click.option(
-    "--out-dir", "-o",
-    type=click.Path(path_type=Path),
+    "--out-dir",
+    "-o",
+    type=click.Path(),
     required=True,
-    help="Output directory for masked documents"
+    help="Output directory for masked documents",
 )
 @click.option(
     "--cloakmap-dir",
-    type=click.Path(path_type=Path),
-    help="Directory for CloakMap files (default: same as output directory)"
+    type=click.Path(),
+    help="Directory for CloakMap files (default: same as output directory)",
 )
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
-    help="Path to masking policy file"
+    type=click.Path(exists=True),
+    help="Path to masking policy file",
 )
 @click.option(
     "--format",
     "output_format",
     type=click.Choice(["lexical", "docling", "markdown", "html"]),
     default="lexical",
-    help="Output format (default: lexical)"
+    help="Output format (default: lexical)",
 )
 @click.option(
-    "--max-workers", "-w",
+    "--max-workers",
+    "-w",
     type=int,
     default=4,
-    help="Maximum number of worker threads (default: 4)"
+    help="Maximum number of worker threads (default: 4)",
 )
 @click.option(
-    "--max-files",
-    type=int,
-    help="Maximum number of files to process in this batch"
+    "--max-files", type=int, help="Maximum number of files to process in this batch"
 )
 @click.option(
     "--max-retries",
     type=int,
     default=2,
-    help="Maximum retry attempts for failed files (default: 2)"
+    help="Maximum retry attempts for failed files (default: 2)",
 )
-@click.option(
-    "--overwrite",
-    is_flag=True,
-    help="Overwrite existing output files"
-)
+@click.option("--overwrite", is_flag=True, help="Overwrite existing output files")
 @click.option(
     "--preserve-structure",
     is_flag=True,
     default=True,
-    help="Preserve directory structure in output (default: enabled)"
+    help="Preserve directory structure in output (default: enabled)",
 )
 @click.option(
     "--throttle-delay",
     type=float,
     default=0.0,
-    help="Delay between file operations in seconds (default: 0.0)"
+    help="Delay between file operations in seconds (default: 0.0)",
 )
 @click.option(
     "--max-memory",
     type=float,
-    help="Maximum memory usage in MB (will cancel batch if exceeded)"
+    help="Maximum memory usage in MB (will cancel batch if exceeded)",
 )
 @click.option(
     "--validate/--no-validate",
     default=True,
-    help="Validate outputs after processing (default: enabled)"
+    help="Validate outputs after processing (default: enabled)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
@@ -198,15 +196,16 @@ def mask(
         if not cloakmap_dir:
             cloakmap_dir = out_dir
 
-        # Load policy if specified
-        masking_policy = _load_masking_policy(policy, verbose)
+        # Load policy if specified (convert to Path if needed)
+        policy_path = Path(policy) if policy else None
+        masking_policy = _load_masking_policy(policy_path, verbose)
 
         # Create configuration
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=pattern_list,
-            output_directory=out_dir,
-            cloakmap_directory=cloakmap_dir,
+            output_directory=Path(out_dir),
+            cloakmap_directory=Path(cloakmap_dir),
             max_workers=max_workers,
             max_files_per_batch=max_files,
             max_retries=max_retries,
@@ -241,7 +240,9 @@ def mask(
                 click.echo(f"⚠️  {result.failed_files} files failed processing:")
                 for file_result in result.file_results:
                     if file_result.error:
-                        click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
+                        click.echo(
+                            f"   • {file_result.file_path.name}: {file_result.error}"
+                        )
 
             if result.success_rate < 100.0:
                 raise click.ClickException("Batch processing completed with failures")
@@ -250,11 +251,13 @@ def mask(
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
             import sys
+
             sys.exit(130)  # SIGINT
 
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Batch masking failed: {e}") from e
 
@@ -263,48 +266,44 @@ def mask(
 @click.argument("patterns", nargs=-1, required=True)
 @click.option(
     "--cloakmap-dir",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     required=True,
-    help="Directory containing CloakMap files"
+    help="Directory containing CloakMap files",
 )
 @click.option(
-    "--out-dir", "-o",
-    type=click.Path(path_type=Path),
+    "--out-dir",
+    "-o",
+    type=click.Path(),
     required=True,
-    help="Output directory for restored documents"
+    help="Output directory for restored documents",
 )
 @click.option(
-    "--max-workers", "-w",
+    "--max-workers",
+    "-w",
     type=int,
     default=4,
-    help="Maximum number of worker threads (default: 4)"
+    help="Maximum number of worker threads (default: 4)",
 )
 @click.option(
-    "--max-files",
-    type=int,
-    help="Maximum number of files to process in this batch"
+    "--max-files", type=int, help="Maximum number of files to process in this batch"
 )
 @click.option(
     "--max-retries",
     type=int,
     default=2,
-    help="Maximum retry attempts for failed files (default: 2)"
+    help="Maximum retry attempts for failed files (default: 2)",
 )
-@click.option(
-    "--overwrite",
-    is_flag=True,
-    help="Overwrite existing output files"
-)
+@click.option("--overwrite", is_flag=True, help="Overwrite existing output files")
 @click.option(
     "--preserve-structure",
     is_flag=True,
     default=True,
-    help="Preserve directory structure in output (default: enabled)"
+    help="Preserve directory structure in output (default: enabled)",
 )
 @click.option(
     "--verify-integrity/--no-verify",
     default=True,
-    help="Verify CloakMap integrity before unmasking (default: enabled)"
+    help="Verify CloakMap integrity before unmasking (default: enabled)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
@@ -343,8 +342,8 @@ def unmask(
         config = BatchConfig(
             operation_type=BatchOperationType.UNMASK,
             input_patterns=pattern_list,
-            output_directory=out_dir,
-            cloakmap_directory=cloakmap_dir,
+            output_directory=Path(out_dir),
+            cloakmap_directory=Path(cloakmap_dir),
             max_workers=max_workers,
             max_files_per_batch=max_files,
             max_retries=max_retries,
@@ -374,7 +373,9 @@ def unmask(
                 click.echo(f"⚠️  {result.failed_files} files failed processing:")
                 for file_result in result.file_results:
                     if file_result.error:
-                        click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
+                        click.echo(
+                            f"   • {file_result.file_path.name}: {file_result.error}"
+                        )
 
             if result.success_rate < 100.0:
                 raise click.ClickException("Batch processing completed with failures")
@@ -383,11 +384,13 @@ def unmask(
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
             import sys
+
             sys.exit(130)  # SIGINT
 
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Batch unmasking failed: {e}") from e
 
@@ -395,30 +398,30 @@ def unmask(
 @batch.command()
 @click.argument("patterns", nargs=-1, required=True)
 @click.option(
-    "--out-dir", "-o",
-    type=click.Path(path_type=Path),
-    help="Output directory for analysis results (optional)"
+    "--out-dir",
+    "-o",
+    type=click.Path(),
+    help="Output directory for analysis results (optional)",
 )
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
-    help="Path to masking policy file for analysis configuration"
+    type=click.Path(exists=True),
+    help="Path to masking policy file for analysis configuration",
 )
 @click.option(
-    "--max-workers", "-w",
+    "--max-workers",
+    "-w",
     type=int,
     default=4,
-    help="Maximum number of worker threads (default: 4)"
+    help="Maximum number of worker threads (default: 4)",
 )
 @click.option(
-    "--max-files",
-    type=int,
-    help="Maximum number of files to process in this batch"
+    "--max-files", type=int, help="Maximum number of files to process in this batch"
 )
 @click.option(
     "--summary-only",
     is_flag=True,
-    help="Show only summary statistics, don't save detailed analysis files"
+    help="Show only summary statistics, don't save detailed analysis files",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
@@ -453,14 +456,15 @@ def analyze(
         # Validate inputs
         pattern_list = _validate_patterns(list(patterns))
 
-        # Load policy if specified
-        masking_policy = _load_masking_policy(policy, verbose)
+        # Load policy if specified (convert to Path if needed)
+        policy_path = Path(policy) if policy else None
+        masking_policy = _load_masking_policy(policy_path, verbose)
 
         # Create configuration
         config = BatchConfig(
             operation_type=BatchOperationType.ANALYZE,
             input_patterns=pattern_list,
-            output_directory=out_dir if not summary_only else None,
+            output_directory=Path(out_dir) if out_dir and not summary_only else None,
             max_workers=max_workers,
             max_files_per_batch=max_files,
             masking_policy=masking_policy,
@@ -491,28 +495,35 @@ def analyze(
             click.echo(f"Total entities found: {result.total_entities_processed}")
             click.echo(f"Success rate: {result.success_rate:.1f}%")
             click.echo(f"Processing time: {result.duration_ms / 1000:.1f} seconds")
-            click.echo(f"Throughput: {result.throughput_files_per_second:.1f} files/sec")
+            click.echo(
+                f"Throughput: {result.throughput_files_per_second:.1f} files/sec"
+            )
 
             # Show entity breakdown if we have detailed results
             if result.file_results:
-
                 if verbose:
                     click.echo("\n📋 Per-File Results:")
                     for file_result in result.file_results[:10]:  # Show first 10
-                        status_icon = "✅" if file_result.status.value == "completed" else "❌"
+                        status_icon = (
+                            "✅" if file_result.status.value == "completed" else "❌"
+                        )
                         click.echo(
                             f"   {status_icon} {file_result.file_path.name}: "
                             f"{file_result.entities_processed} entities"
                         )
                     if len(result.file_results) > 10:
-                        click.echo(f"   ... and {len(result.file_results) - 10} more files")
+                        click.echo(
+                            f"   ... and {len(result.file_results) - 10} more files"
+                        )
 
             # Report failures
             if result.failed_files > 0:
                 click.echo(f"\n⚠️  Failed Files ({result.failed_files}):")
                 for file_result in result.file_results:
                     if file_result.error:
-                        click.echo(f"   • {file_result.file_path.name}: {file_result.error}")
+                        click.echo(
+                            f"   • {file_result.file_path.name}: {file_result.error}"
+                        )
 
                 raise click.ClickException("Batch processing completed with failures")
 
@@ -520,11 +531,13 @@ def analyze(
             click.echo("\n🛑 Batch analysis cancelled by user")
             processor.cancel()
             import sys
+
             sys.exit(130)  # SIGINT
 
     except Exception as e:
         if verbose:
             import traceback
+
             click.echo(f"Error details:\n{traceback.format_exc()}")
         raise click.ClickException(f"Batch analysis failed: {e}") from e
 
@@ -535,15 +548,16 @@ def analyze(
     "output_format",
     type=click.Choice(["json", "yaml", "text"]),
     default="text",
-    help="Output format for the sample configuration (default: text)"
+    help="Output format for the sample configuration (default: text)",
 )
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.File("w"),
     default="-",
-    help="Output file (default: stdout)"
+    help="Output file (default: stdout)",
 )
-def config_sample(output_format: str, output) -> None:
+def config_sample(output_format: str, output: TextIO) -> None:
     """Generate a sample batch processing configuration.
 
     This command generates example configurations showing all available

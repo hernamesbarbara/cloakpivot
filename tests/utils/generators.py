@@ -16,26 +16,19 @@ class DocumentGenerator:
 
     @staticmethod
     def generate_simple_document(
-        text: str,
-        name: Optional[str] = None
+        text: str, name: Optional[str] = None
     ) -> DoclingDocument:
         """Generate a simple document with single text item."""
         doc_name = name or f"test_doc_{random.randint(1000, 9999)}"
         doc = DoclingDocument(name=doc_name)
 
-        text_item = TextItem(
-            text=text,
-            self_ref="#/texts/0",
-            label="text",
-            orig=text
-        )
+        text_item = TextItem(text=text, self_ref="#/texts/0", label="text", orig=text)
         doc.texts = [text_item]
         return doc
 
     @staticmethod
     def generate_multi_section_document(
-        sections: list[str],
-        name: Optional[str] = None
+        sections: list[str], name: Optional[str] = None
     ) -> DoclingDocument:
         """Generate document with multiple text sections."""
         doc_name = name or f"multi_doc_{random.randint(1000, 9999)}"
@@ -44,10 +37,7 @@ class DocumentGenerator:
         text_items = []
         for i, section in enumerate(sections):
             text_item = TextItem(
-                text=section,
-                self_ref=f"#/texts/{i}",
-                label="text",
-                orig=section
+                text=section, self_ref=f"#/texts/{i}", label="text", orig=section
             )
             text_items.append(text_item)
 
@@ -56,15 +46,22 @@ class DocumentGenerator:
 
     @staticmethod
     def generate_document_with_pii(
-        pii_types: list[str],
-        name: Optional[str] = None
+        pii_types: list[str], name: Optional[str] = None
     ) -> tuple[DoclingDocument, dict[str, list[str]]]:
         """Generate document containing specified PII types and return locations."""
         pii_patterns = {
             "PHONE_NUMBER": ["555-123-4567", "(555) 987-6543", "555.234.5678"],
-            "EMAIL_ADDRESS": ["john@example.com", "alice.smith@company.org", "user123@test.net"],
+            "EMAIL_ADDRESS": [
+                "john@example.com",
+                "alice.smith@company.org",
+                "user123@test.net",
+            ],
             "US_SSN": ["123-45-6789", "987-65-4321", "555-44-3333"],
-            "CREDIT_CARD": ["4532-1234-5678-9012", "5555-4444-3333-2222", "378282246310005"],
+            "CREDIT_CARD": [
+                "4532-1234-5678-9012",
+                "5555-4444-3333-2222",
+                "378282246310005",
+            ],
             "PERSON": ["John Smith", "Alice Johnson", "Bob Wilson", "Mary Davis"],
             "LOCATION": ["New York", "123 Main Street", "San Francisco, CA"],
             "US_DRIVER_LICENSE": ["DL123456789", "D123-456-789-012", "AB1234567"],
@@ -79,14 +76,18 @@ class DocumentGenerator:
                 pii_locations[pii_type] = values
 
                 for value in values:
-                    text_parts.append(f"The {pii_type.lower().replace('_', ' ')} is {value}.")
+                    text_parts.append(
+                        f"The {pii_type.lower().replace('_', ' ')} is {value}."
+                    )
 
         # Add some non-PII text
-        text_parts.extend([
-            "This is additional context text.",
-            "Processing should handle this document correctly.",
-            "End of document content."
-        ])
+        text_parts.extend(
+            [
+                "This is additional context text.",
+                "Processing should handle this document correctly.",
+                "End of document content.",
+            ]
+        )
 
         full_text = " ".join(text_parts)
         document = DocumentGenerator.generate_simple_document(full_text, name)
@@ -99,47 +100,71 @@ class PolicyGenerator:
 
     @staticmethod
     def generate_basic_policy(
-        privacy_level: str = "medium",
-        locale: str = "en"
+        privacy_level: str = "medium", locale: str = "en"
     ) -> MaskingPolicy:
         """Generate a basic masking policy."""
         return MaskingPolicy(
             locale=locale,
             per_entity={
-                "PHONE_NUMBER": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"}),
-                "EMAIL_ADDRESS": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "email"}),
-                "US_SSN": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}),
-                "CREDIT_CARD": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}),
+                "PHONE_NUMBER": Strategy(
+                    kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"}
+                ),
+                "EMAIL_ADDRESS": Strategy(
+                    kind=StrategyKind.SURROGATE, parameters={"format_type": "email"}
+                ),
+                "US_SSN": Strategy(
+                    kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}
+                ),
+                "CREDIT_CARD": Strategy(
+                    kind=StrategyKind.SURROGATE,
+                    parameters={"format_type": "credit_card"},
+                ),
             },
             thresholds={
                 "PHONE_NUMBER": 0.7,
                 "EMAIL_ADDRESS": 0.8,
                 "US_SSN": 0.9,
                 "CREDIT_CARD": 0.8,
-            }
+            },
         )
 
     @staticmethod
-    def generate_comprehensive_policy(
-        privacy_level: str = "high"
-    ) -> MaskingPolicy:
+    def generate_comprehensive_policy(privacy_level: str = "high") -> MaskingPolicy:
         """Generate a comprehensive policy covering many entity types."""
         all_entities = [
-            "PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "CREDIT_CARD",
-            "PERSON", "LOCATION", "US_DRIVER_LICENSE", "DATE_TIME",
-            "US_PASSPORT", "US_BANK_NUMBER", "MEDICAL_LICENSE"
+            "PHONE_NUMBER",
+            "EMAIL_ADDRESS",
+            "US_SSN",
+            "CREDIT_CARD",
+            "PERSON",
+            "LOCATION",
+            "US_DRIVER_LICENSE",
+            "DATE_TIME",
+            "US_PASSPORT",
+            "US_BANK_NUMBER",
+            "MEDICAL_LICENSE",
         ]
 
         # Use reversible surrogate strategies for testing
-        strategy = Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "custom"})
+        strategy = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"format_type": "custom"}
+        )
 
         per_entity = dict.fromkeys(all_entities, strategy)
 
         # Special strategies for specific types - use surrogate for reversible testing
-        per_entity["PHONE_NUMBER"] = Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"})
-        per_entity["EMAIL_ADDRESS"] = Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "email"})
-        per_entity["US_SSN"] = Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"})
-        per_entity["CREDIT_CARD"] = Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"})
+        per_entity["PHONE_NUMBER"] = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"}
+        )
+        per_entity["EMAIL_ADDRESS"] = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"format_type": "email"}
+        )
+        per_entity["US_SSN"] = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}
+        )
+        per_entity["CREDIT_CARD"] = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}
+        )
 
         # Lower thresholds for high privacy
         base_threshold = 0.5 if privacy_level == "high" else 0.7
@@ -150,16 +175,12 @@ class PolicyGenerator:
         for entity_type in sensitive_types:
             thresholds[entity_type] = min(base_threshold + 0.2, 0.9)
 
-        return MaskingPolicy(
-            locale="en",
-            per_entity=per_entity,
-            thresholds=thresholds
-        )
+        return MaskingPolicy(locale="en", per_entity=per_entity, thresholds=thresholds)
 
     @staticmethod
     def generate_custom_policy(
         entity_strategies: dict[str, StrategyKind],
-        thresholds: Optional[dict[str, float]] = None
+        thresholds: Optional[dict[str, float]] = None,
     ) -> MaskingPolicy:
         """Generate a custom policy with specified strategies."""
         per_entity = {}
@@ -178,20 +199,20 @@ class PolicyGenerator:
                     "EMAIL_ADDRESS": "email",
                     "US_SSN": "ssn",
                     "CREDIT_CARD": "credit_card",
-                    "PERSON": "name"
+                    "PERSON": "name",
                 }
                 parameters = {"format_type": format_types.get(entity_type, "custom")}
 
-            per_entity[entity_type] = Strategy(kind=strategy_kind, parameters=parameters)
+            per_entity[entity_type] = Strategy(
+                kind=strategy_kind, parameters=parameters
+            )
 
         default_thresholds = dict.fromkeys(entity_strategies.keys(), 0.7)
         if thresholds:
             default_thresholds.update(thresholds)
 
         return MaskingPolicy(
-            locale="en",
-            per_entity=per_entity,
-            thresholds=default_thresholds
+            locale="en", per_entity=per_entity, thresholds=default_thresholds
         )
 
 
@@ -202,20 +223,21 @@ class EntityGenerator:
     def generate_entities_for_text(
         text: str,
         entity_types: list[str],
-        confidence_range: tuple[float, float] = (0.7, 0.95)
+        confidence_range: tuple[float, float] = (0.7, 0.95),
     ) -> list[RecognizerResult]:
         """Generate synthetic entities for given text."""
         entities = []
 
         # Simple pattern matching for common entity types
         patterns = {
-            "PHONE_NUMBER": r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b|\(\d{3}\)\s*\d{3}[-.\s]?\d{4}',
-            "EMAIL_ADDRESS": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            "US_SSN": r'\b\d{3}-\d{2}-\d{4}\b',
-            "CREDIT_CARD": r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
+            "PHONE_NUMBER": r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b|\(\d{3}\)\s*\d{3}[-.\s]?\d{4}",
+            "EMAIL_ADDRESS": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            "US_SSN": r"\b\d{3}-\d{2}-\d{4}\b",
+            "CREDIT_CARD": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
         }
 
         import re
+
         for entity_type in entity_types:
             if entity_type in patterns:
                 pattern = patterns[entity_type]
@@ -227,7 +249,7 @@ class EntityGenerator:
                         entity_type=entity_type,
                         start=match.start(),
                         end=match.end(),
-                        score=confidence
+                        score=confidence,
                     )
                     entities.append(entity)
 
@@ -235,12 +257,17 @@ class EntityGenerator:
 
     @staticmethod
     def generate_overlapping_entities(
-        text_length: int,
-        num_entities: int = 5
+        text_length: int, num_entities: int = 5
     ) -> list[RecognizerResult]:
         """Generate overlapping entities for edge case testing."""
         entities = []
-        entity_types = ["PERSON", "LOCATION", "ORGANIZATION", "PHONE_NUMBER", "EMAIL_ADDRESS"]
+        entity_types = [
+            "PERSON",
+            "LOCATION",
+            "ORGANIZATION",
+            "PHONE_NUMBER",
+            "EMAIL_ADDRESS",
+        ]
 
         for _i in range(num_entities):
             # Create somewhat overlapping ranges
@@ -252,7 +279,7 @@ class EntityGenerator:
                 entity_type=random.choice(entity_types),
                 start=start,
                 end=end,
-                score=random.uniform(0.6, 0.95)
+                score=random.uniform(0.6, 0.95),
             )
             entities.append(entity)
 
@@ -264,9 +291,7 @@ class TextGenerator:
 
     @staticmethod
     def generate_text_with_pii_density(
-        word_count: int,
-        pii_density: float = 0.1,
-        pii_types: Optional[list[str]] = None
+        word_count: int, pii_density: float = 0.1, pii_types: Optional[list[str]] = None
     ) -> str:
         """Generate text with specified PII density."""
         if pii_types is None:
@@ -281,10 +306,44 @@ class TextGenerator:
 
         # Generate base words
         base_words = [
-            "the", "and", "is", "to", "of", "in", "it", "you", "that", "he",
-            "was", "for", "on", "are", "as", "with", "his", "they", "at", "be",
-            "this", "have", "from", "or", "one", "had", "but", "not", "what",
-            "all", "were", "we", "when", "your", "can", "said", "there", "each"
+            "the",
+            "and",
+            "is",
+            "to",
+            "of",
+            "in",
+            "it",
+            "you",
+            "that",
+            "he",
+            "was",
+            "for",
+            "on",
+            "are",
+            "as",
+            "with",
+            "his",
+            "they",
+            "at",
+            "be",
+            "this",
+            "have",
+            "from",
+            "or",
+            "one",
+            "had",
+            "but",
+            "not",
+            "what",
+            "all",
+            "were",
+            "we",
+            "when",
+            "your",
+            "can",
+            "said",
+            "there",
+            "each",
         ]
 
         words = []
@@ -348,11 +407,13 @@ Employee ID: {employee_id}
             zip_code="10001",
             start_date="2023-01-15",
             department="Engineering",
-            employee_id="EMP001234"
+            employee_id="EMP001234",
         )
 
 
-def generate_test_suite_data(num_documents: int = 10) -> list[tuple[DoclingDocument, MaskingPolicy]]:
+def generate_test_suite_data(
+    num_documents: int = 10,
+) -> list[tuple[DoclingDocument, MaskingPolicy]]:
     """Generate a comprehensive test suite with varied documents and policies."""
     test_data = []
 
@@ -361,19 +422,25 @@ def generate_test_suite_data(num_documents: int = 10) -> list[tuple[DoclingDocum
         if i % 3 == 0:
             # Simple document
             text = TextGenerator.generate_text_with_pii_density(50, 0.2)
-            document = DocumentGenerator.generate_simple_document(text, f"simple_doc_{i}")
+            document = DocumentGenerator.generate_simple_document(
+                text, f"simple_doc_{i}"
+            )
         elif i % 3 == 1:
             # Structured document
             text = TextGenerator.generate_structured_content()
-            document = DocumentGenerator.generate_simple_document(text, f"structured_doc_{i}")
+            document = DocumentGenerator.generate_simple_document(
+                text, f"structured_doc_{i}"
+            )
         else:
             # Multi-section document
             sections = [
                 TextGenerator.generate_text_with_pii_density(30, 0.15),
                 TextGenerator.generate_text_with_pii_density(40, 0.25),
-                TextGenerator.generate_structured_content()
+                TextGenerator.generate_structured_content(),
             ]
-            document = DocumentGenerator.generate_multi_section_document(sections, f"multi_doc_{i}")
+            document = DocumentGenerator.generate_multi_section_document(
+                sections, f"multi_doc_{i}"
+            )
 
         # Vary the policies
         privacy_levels = ["low", "medium", "high"]

@@ -20,6 +20,7 @@ def test_package_imports() -> None:
 def test_cli_import() -> None:
     """Test that CLI module can be imported and has expected functions."""
     from cloakpivot.cli import cli, main
+
     assert callable(main)
     assert callable(cli)
 
@@ -27,5 +28,6 @@ def test_cli_import() -> None:
 def test_version_consistency() -> None:
     """Test that version is consistent across package."""
     import cloakpivot
+
     assert isinstance(cloakpivot.__version__, str)
     assert len(cloakpivot.__version__.split(".")) == 3

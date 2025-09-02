@@ -509,7 +509,7 @@ class SecurityMetadata:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
-        result = {
+        result: dict[str, Any] = {
             "algorithm": self.algorithm,
             "key_id": self.key_id,
         }
@@ -902,7 +902,7 @@ class KeyRotationManager:
         file_pattern = str(directory / pattern)
         files = glob(file_pattern)
 
-        results = {
+        results: dict[str, Any] = {
             "total_files": len(files),
             "processed": 0,
             "succeeded": 0,
@@ -1014,7 +1014,7 @@ class SecurityValidator:
             Detailed validation results
         """
 
-        results = {
+        results: dict[str, Any] = {
             "valid": True,
             "security_level": "none",
             "errors": [],
@@ -1068,7 +1068,9 @@ class SecurityValidator:
 
         return results
 
-    def _validate_structure(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_structure(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate CloakMap structure."""
         try:
             # Check version compatibility
@@ -1089,7 +1091,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Structure validation error: {e}")
 
-    def _validate_anchors(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_anchors(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Validate anchors with security considerations."""
         try:
             from .anchors import AnchorIndex
@@ -1124,7 +1126,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Anchor validation error: {e}")
 
-    def _validate_signature(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_signature(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate CloakMap signature."""
         if not cloakmap.is_signed:
             results["warnings"].append("CloakMap is not signed")
@@ -1157,7 +1161,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Signature validation error: {e}")
 
-    def _validate_encryption(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_encryption(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate encryption metadata."""
         if not cloakmap.is_encrypted:
             results["warnings"].append("CloakMap is not encrypted")
@@ -1180,7 +1186,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Encryption validation error: {e}")
 
-    def _detect_tampering(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _detect_tampering(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Detect signs of tampering."""
         try:
             # Check for timestamp anomalies
@@ -1212,7 +1218,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Tampering detection error: {e}")
 
-    def _check_key_availability(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _check_key_availability(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Check if required keys are available."""
         try:
             required_keys = set()
@@ -1240,7 +1248,7 @@ class SecurityValidator:
         except Exception as e:
             results["warnings"].append(f"Key availability check failed: {e}")
 
-    def _assess_security_level(self, results: dict) -> None:
+    def _assess_security_level(self, results: dict[str, Any]) -> None:
         """Assess overall security level."""
         if results["errors"]:
             results["security_level"] = "compromised"
@@ -1265,7 +1273,7 @@ def create_default_key_manager() -> KeyManager:
     Returns:
         CompositeKeyManager with environment and file sources
     """
-    managers = [EnvironmentKeyManager()]
+    managers: list[KeyManager] = [EnvironmentKeyManager()]
 
     # Try to add file manager if key directory exists
     possible_key_dirs = [

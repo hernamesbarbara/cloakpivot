@@ -91,7 +91,7 @@ class ValidationError(CloakPivotError):
         field_name: Optional[str] = None,
         expected_type: Optional[str] = None,
         actual_value: Optional[Any] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if field_name:
@@ -114,7 +114,7 @@ class ProcessingError(CloakPivotError):
         message: str,
         document_path: Optional[str] = None,
         processing_stage: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if document_path:
@@ -135,7 +135,7 @@ class DetectionError(CloakPivotError):
         message: str,
         entity_type: Optional[str] = None,
         confidence_threshold: Optional[float] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if entity_type:
@@ -156,7 +156,7 @@ class MaskingError(CloakPivotError):
         message: str,
         strategy_type: Optional[str] = None,
         entity_count: Optional[int] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if strategy_type:
@@ -178,7 +178,7 @@ class UnmaskingError(CloakPivotError):
         cloakmap_version: Optional[str] = None,
         anchor_count: Optional[int] = None,
         failed_anchors: Optional[list[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if cloakmap_version:
@@ -201,7 +201,7 @@ class PolicyError(CloakPivotError):
         message: str,
         policy_file: Optional[str] = None,
         policy_version: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if policy_file:
@@ -223,7 +223,7 @@ class IntegrityError(CloakPivotError):
         expected_hash: Optional[str] = None,
         actual_hash: Optional[str] = None,
         corruption_type: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if expected_hash:
@@ -249,7 +249,7 @@ class PartialProcessingError(CloakPivotError):
         successful_operations: int,
         failed_operations: int,
         failures: list[dict[str, Any]],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         self.add_context("total_operations", total_operations)
@@ -270,7 +270,7 @@ class ConfigurationError(ValidationError):
         message: str,
         config_file: Optional[str] = None,
         config_section: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if config_file:
@@ -292,7 +292,7 @@ class DependencyError(CloakPivotError):
         dependency_name: Optional[str] = None,
         required_version: Optional[str] = None,
         installed_version: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
         if dependency_name:

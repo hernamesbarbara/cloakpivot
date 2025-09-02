@@ -16,13 +16,13 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.loaders import (
-    get_presidio_analyzer,
-    get_detection_pipeline,
-    get_cache_info,
-    clear_all_caches
-)
 from cloakpivot.core.performance import get_profiler
+from cloakpivot.loaders import (
+    clear_all_caches,
+    get_cache_info,
+    get_detection_pipeline,
+    get_presidio_analyzer,
+)
 
 # Add scripts directory to path for importing validation module
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -47,7 +47,9 @@ class TestPerformanceValidation:
         elapsed_ms = (time.time() - start_time) * 1000
 
         # All should be same instance (singleton)
-        assert all(a is analyzers[0] for a in analyzers), "Singleton pattern not working"
+        assert all(a is analyzers[0] for a in analyzers), (
+            "Singleton pattern not working"
+        )
 
         # Should be very fast after first initialization
         assert elapsed_ms < 1000, f"Singleton retrieval too slow: {elapsed_ms:.2f}ms"
@@ -95,16 +97,23 @@ class TestPerformanceValidation:
 
         avg_time = sum(times) / len(times)
         # Allow some flexibility for CI environments
-        assert avg_time < 200, f"Entity detection too slow: {avg_time:.2f}ms (target: <100ms, allowing <200ms in tests)"
+        assert avg_time < 200, (
+            f"Entity detection too slow: {avg_time:.2f}ms (target: <100ms, allowing <200ms in tests)"
+        )
 
     def test_parallel_execution_setup(self) -> None:
         """Validate parallel execution configuration is working."""
         # Check that pytest-xdist is properly configured (if installed)
         try:
-            result = subprocess.run([
-                sys.executable, "-c",
-                "import pytest_xdist; print('pytest-xdist available')"
-            ], capture_output=True, text=True)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import pytest_xdist; print('pytest-xdist available')",
+                ],
+                capture_output=True,
+                text=True,
+            )
 
             if result.returncode == 0:
                 assert "pytest-xdist available" in result.stdout
@@ -154,7 +163,9 @@ class TestPerformanceValidation:
         measurements = {}
 
         # Test analyzer initialization measurement
-        measurements["analyzer_initialization"] = validator._measure_analyzer_initialization()
+        measurements["analyzer_initialization"] = (
+            validator._measure_analyzer_initialization()
+        )
 
         # Test entity detection measurement
         measurements["entity_detection"] = validator._measure_entity_detection_speed()
@@ -163,17 +174,29 @@ class TestPerformanceValidation:
         measurements["cache_hit_rate"] = validator._measure_cache_hit_rate()
 
         # Verify all measurements are reasonable
-        assert measurements["analyzer_initialization"] > 0, "Analyzer initialization time should be positive"
-        assert measurements["analyzer_initialization"] < 5000, "Analyzer initialization should be < 5 seconds"
+        assert measurements["analyzer_initialization"] > 0, (
+            "Analyzer initialization time should be positive"
+        )
+        assert measurements["analyzer_initialization"] < 5000, (
+            "Analyzer initialization should be < 5 seconds"
+        )
 
-        assert measurements["entity_detection"] > 0, "Entity detection time should be positive"
-        assert measurements["entity_detection"] < 1000, "Entity detection should be < 1 second"
+        assert measurements["entity_detection"] > 0, (
+            "Entity detection time should be positive"
+        )
+        assert measurements["entity_detection"] < 1000, (
+            "Entity detection should be < 1 second"
+        )
 
-        assert 0 <= measurements["cache_hit_rate"] <= 100, "Cache hit rate should be a percentage"
+        assert 0 <= measurements["cache_hit_rate"] <= 100, (
+            "Cache hit rate should be a percentage"
+        )
 
     def test_validation_script_execution(self) -> None:
         """Test that the validation script can be executed successfully."""
-        script_path = Path(__file__).parent.parent / "scripts" / "final_performance_validation.py"
+        script_path = (
+            Path(__file__).parent.parent / "scripts" / "final_performance_validation.py"
+        )
 
         if not script_path.exists():
             pytest.skip("Final performance validation script not found")
@@ -182,16 +205,21 @@ class TestPerformanceValidation:
         # to avoid recursive pytest calls
         # Check for pytest execution by looking for pytest in sys.modules or running processes
         pytest_running = (
-            os.getenv('CI') or
-            os.getenv('PYTEST_CURRENT_TEST') or
-            'pytest' in sys.modules or
-            any('pytest' in str(frame.f_code.co_filename) for frame in sys._current_frames().values())
+            os.getenv("CI")
+            or os.getenv("PYTEST_CURRENT_TEST")
+            or "pytest" in sys.modules
+            or any(
+                "pytest" in str(frame.f_code.co_filename)
+                for frame in sys._current_frames().values()
+            )
         )
         if pytest_running:
-            pytest.skip("Skipping validation script test to avoid recursive pytest calls")
+            pytest.skip(
+                "Skipping validation script test to avoid recursive pytest calls"
+            )
 
         # Create a temporary baseline file for testing
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             baseline_data = {
                 "measurements": {
                     "analyzer_cold_start": {
@@ -199,7 +227,7 @@ class TestPerformanceValidation:
                     },
                     "small_text_analysis": {
                         "results": {"mean": 150.0}  # 150ms baseline
-                    }
+                    },
                 }
             }
             json.dump(baseline_data, f)
@@ -207,26 +235,42 @@ class TestPerformanceValidation:
 
         try:
             # Create temporary output files
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as report_f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".md", delete=False
+            ) as report_f:
                 report_file = report_f.name
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as json_f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as json_f:
                 json_file = json_f.name
 
             # Set environment variable to prevent the script from running tests
             env = os.environ.copy()
-            env['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = 'true'
+            env["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = "true"
 
             # Run the script with a short timeout
-            result = subprocess.run([
-                sys.executable, str(script_path),
-                "--baseline", baseline_file,
-                "--output", report_file,
-                "--json-output", json_file,
-                "--verbose"
-            ], capture_output=True, text=True, timeout=60, env=env)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(script_path),
+                    "--baseline",
+                    baseline_file,
+                    "--output",
+                    report_file,
+                    "--json-output",
+                    json_file,
+                    "--verbose",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env=env,
+            )
 
             # Script should complete (though some targets might not be met in test environment)
-            assert result.returncode in [0, 1], f"Script failed with code {result.returncode}: {result.stderr}"
+            assert result.returncode in [0, 1], (
+                f"Script failed with code {result.returncode}: {result.stderr}"
+            )
 
             # Check that output files were created
             assert Path(report_file).exists(), "Validation report should be created"
@@ -235,7 +279,9 @@ class TestPerformanceValidation:
             # Verify JSON output structure
             with open(json_file) as f:
                 json_data = json.load(f)
-                assert "validation_results" in json_data, "JSON should contain validation results"
+                assert "validation_results" in json_data, (
+                    "JSON should contain validation results"
+                )
                 assert "timestamp" in json_data, "JSON should contain timestamp"
 
         except subprocess.TimeoutExpired:
@@ -264,14 +310,16 @@ class TestPerformanceValidation:
             target_value=50.0,
             target_unit="% reduction",
             baseline_value=100.0,
-            current_value=40.0
+            current_value=40.0,
         )
 
         # Should show 60% improvement
         assert reduction_target.improvement_pct == 60.0, (
             f"Expected 60% improvement, got {reduction_target.improvement_pct}"
         )
-        assert reduction_target.target_met is True, "Target should be met with 60% improvement vs 50% target"
+        assert reduction_target.target_met is True, (
+            "Target should be met with 60% improvement vs 50% target"
+        )
 
         # Test absolute target
         absolute_target = PerformanceTarget(
@@ -279,10 +327,12 @@ class TestPerformanceValidation:
             description="<100ms execution time",
             target_value=100.0,
             target_unit="ms",
-            current_value=85.0
+            current_value=85.0,
         )
 
-        assert absolute_target.target_met is True, "Target should be met with 85ms vs <100ms target"
+        assert absolute_target.target_met is True, (
+            "Target should be met with 85ms vs <100ms target"
+        )
 
         # Test unmet target
         unmet_target = PerformanceTarget(
@@ -290,10 +340,12 @@ class TestPerformanceValidation:
             description="<50ms execution time",
             target_value=50.0,
             target_unit="ms",
-            current_value=75.0
+            current_value=75.0,
         )
 
-        assert unmet_target.target_met is False, "Target should not be met with 75ms vs <50ms target"
+        assert unmet_target.target_met is False, (
+            "Target should not be met with 75ms vs <50ms target"
+        )
 
     def test_profiler_integration(self) -> None:
         """Test that the global profiler is working correctly."""
@@ -312,23 +364,23 @@ class TestPerformanceValidation:
     def test_environment_configuration_detection(self) -> None:
         """Test that environment configuration is properly detected."""
         # Test singleton configuration
-        original_singleton = os.environ.get('CLOAKPIVOT_USE_SINGLETON')
+        original_singleton = os.environ.get("CLOAKPIVOT_USE_SINGLETON")
 
         try:
             # Test with singleton enabled
-            os.environ['CLOAKPIVOT_USE_SINGLETON'] = 'true'
-            assert os.getenv('CLOAKPIVOT_USE_SINGLETON', 'true').lower() == 'true'
+            os.environ["CLOAKPIVOT_USE_SINGLETON"] = "true"
+            assert os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
 
             # Test with singleton disabled
-            os.environ['CLOAKPIVOT_USE_SINGLETON'] = 'false'
-            assert os.getenv('CLOAKPIVOT_USE_SINGLETON', 'true').lower() == 'false'
+            os.environ["CLOAKPIVOT_USE_SINGLETON"] = "false"
+            assert os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "false"
 
         finally:
             # Restore original value
             if original_singleton is not None:
-                os.environ['CLOAKPIVOT_USE_SINGLETON'] = original_singleton
-            elif 'CLOAKPIVOT_USE_SINGLETON' in os.environ:
-                del os.environ['CLOAKPIVOT_USE_SINGLETON']
+                os.environ["CLOAKPIVOT_USE_SINGLETON"] = original_singleton
+            elif "CLOAKPIVOT_USE_SINGLETON" in os.environ:
+                del os.environ["CLOAKPIVOT_USE_SINGLETON"]
 
 
 class TestValidationReportGeneration:
@@ -351,7 +403,7 @@ class TestValidationReportGeneration:
                 "target_value": 100.0,
                 "improvement_pct": None,
                 "description": "<100ms average entity detection time",
-                "baseline_value": None
+                "baseline_value": None,
             },
             "cache_hit_rate": {
                 "target_met": False,
@@ -359,14 +411,16 @@ class TestValidationReportGeneration:
                 "target_value": 90.0,
                 "improvement_pct": None,
                 "description": "90%+ cache hit rate for model loading",
-                "baseline_value": None
-            }
+                "baseline_value": None,
+            },
         }
 
         report = validator.generate_validation_report(validation_results)
 
         # Verify report structure
-        assert "# CloakPivot Performance Optimization - Final Validation Report" in report
+        assert (
+            "# CloakPivot Performance Optimization - Final Validation Report" in report
+        )
         assert "## Executive Summary" in report
         assert "## Detailed Results" in report
         assert "## Recommendations" in report
@@ -383,8 +437,8 @@ class TestValidationReportGeneration:
         validator = ComprehensivePerformanceValidator()
 
         # Set environment variable to skip test execution
-        original_env = os.environ.get('CLOAKPIVOT_SKIP_TEST_EXECUTION')
-        os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = 'true'
+        original_env = os.environ.get("CLOAKPIVOT_SKIP_TEST_EXECUTION")
+        os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = "true"
 
         try:
             # Create minimal validation results
@@ -392,18 +446,28 @@ class TestValidationReportGeneration:
         finally:
             # Restore original environment
             if original_env is not None:
-                os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = original_env
+                os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = original_env
             else:
-                os.environ.pop('CLOAKPIVOT_SKIP_TEST_EXECUTION', None)
+                os.environ.pop("CLOAKPIVOT_SKIP_TEST_EXECUTION", None)
 
         # Verify structure
-        assert isinstance(validation_results, dict), "Validation results should be a dictionary"
+        assert isinstance(validation_results, dict), (
+            "Validation results should be a dictionary"
+        )
 
         for target_name, result in validation_results.items():
-            assert "target_met" in result, f"Target {target_name} should have target_met field"
-            assert "current_value" in result, f"Target {target_name} should have current_value field"
-            assert "target_value" in result, f"Target {target_name} should have target_value field"
-            assert "description" in result, f"Target {target_name} should have description field"
+            assert "target_met" in result, (
+                f"Target {target_name} should have target_met field"
+            )
+            assert "current_value" in result, (
+                f"Target {target_name} should have current_value field"
+            )
+            assert "target_value" in result, (
+                f"Target {target_name} should have target_value field"
+            )
+            assert "description" in result, (
+                f"Target {target_name} should have description field"
+            )
 
 
 class TestErrorHandling:
@@ -424,17 +488,17 @@ class TestErrorHandling:
         # Should not raise exception, just log warning
         # Validation should still proceed
         # Set environment variable to skip test execution
-        original_env = os.environ.get('CLOAKPIVOT_SKIP_TEST_EXECUTION')
-        os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = 'true'
+        original_env = os.environ.get("CLOAKPIVOT_SKIP_TEST_EXECUTION")
+        os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = "true"
 
         try:
             validation_results = validator.run_comprehensive_validation()
         finally:
             # Restore original environment
             if original_env is not None:
-                os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = original_env
+                os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = original_env
             else:
-                os.environ.pop('CLOAKPIVOT_SKIP_TEST_EXECUTION', None)
+                os.environ.pop("CLOAKPIVOT_SKIP_TEST_EXECUTION", None)
 
         assert isinstance(validation_results, dict)
 
@@ -448,7 +512,7 @@ class TestErrorHandling:
         validator = ComprehensivePerformanceValidator()
 
         # Create invalid baseline file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("invalid json content")
             invalid_baseline = f.name
 
@@ -458,24 +522,24 @@ class TestErrorHandling:
 
             # Validation should still proceed
             # Set environment variable to skip test execution
-            original_env = os.environ.get('CLOAKPIVOT_SKIP_TEST_EXECUTION')
-            os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = 'true'
+            original_env = os.environ.get("CLOAKPIVOT_SKIP_TEST_EXECUTION")
+            os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = "true"
 
             try:
                 validation_results = validator.run_comprehensive_validation()
             finally:
                 # Restore original environment
                 if original_env is not None:
-                    os.environ['CLOAKPIVOT_SKIP_TEST_EXECUTION'] = original_env
+                    os.environ["CLOAKPIVOT_SKIP_TEST_EXECUTION"] = original_env
                 else:
-                    os.environ.pop('CLOAKPIVOT_SKIP_TEST_EXECUTION', None)
+                    os.environ.pop("CLOAKPIVOT_SKIP_TEST_EXECUTION", None)
 
             assert isinstance(validation_results, dict)
 
         finally:
             os.unlink(invalid_baseline)
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_test_execution_failure_handling(self, mock_run) -> None:
         """Test handling of test execution failures."""
         try:
