@@ -158,3 +158,5 @@ diff_report.txt
 *_report.txt.merge_backups/
 .merge_backups/
 fixture_optimization_report.md
+map.json
+email_masked.json

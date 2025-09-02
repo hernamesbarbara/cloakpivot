@@ -229,8 +229,8 @@ class FormatRegistry:
                 def serialize(self) -> str:
                     import json
 
-                    # Use model_dump() instead of export_to_dict() for complete serialization
-                    result_dict = self.document.model_dump()
+                    # Use model_dump(mode='json') to properly serialize Pydantic types like AnyUrl
+                    result_dict = self.document.model_dump(mode='json')
                     return json.dumps(result_dict, indent=2)
 
             if document is None:
