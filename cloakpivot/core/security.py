@@ -1068,7 +1068,9 @@ class SecurityValidator:
 
         return results
 
-    def _validate_structure(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
+    def _validate_structure(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate CloakMap structure."""
         try:
             # Check version compatibility
@@ -1124,7 +1126,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Anchor validation error: {e}")
 
-    def _validate_signature(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
+    def _validate_signature(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate CloakMap signature."""
         if not cloakmap.is_signed:
             results["warnings"].append("CloakMap is not signed")
@@ -1157,7 +1161,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Signature validation error: {e}")
 
-    def _validate_encryption(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
+    def _validate_encryption(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Validate encryption metadata."""
         if not cloakmap.is_encrypted:
             results["warnings"].append("CloakMap is not encrypted")

@@ -424,7 +424,9 @@ class PolicyLoader:
     ) -> PolicyFileSchema:
         """Merge two policy schemas."""
         # Get composition settings from override policy
-        composition_config = override.policy_composition or PolicyCompositionConfig(merge_strategy="override", validation_level="strict")
+        composition_config = override.policy_composition or PolicyCompositionConfig(
+            merge_strategy="override", validation_level="strict"
+        )
 
         # Create merged policy data
         merged_data = base.model_dump()
@@ -562,7 +564,9 @@ class PolicyLoader:
                 context_rules[context] = context_rule
 
         return MaskingPolicy(
-            default_strategy=default_strategy if default_strategy is not None else Strategy(kind=StrategyKind.REDACT),
+            default_strategy=default_strategy
+            if default_strategy is not None
+            else Strategy(kind=StrategyKind.REDACT),
             per_entity=per_entity,
             thresholds=thresholds,
             locale=schema.locale or "en",
