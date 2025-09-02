@@ -509,7 +509,7 @@ class SecurityMetadata:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
-        result = {
+        result: dict[str, Any] = {
             "algorithm": self.algorithm,
             "key_id": self.key_id,
         }

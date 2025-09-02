@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, Union
 
-import psutil  # type: ignore[import-untyped]
+import psutil
 
 from cloakpivot.core.types import DoclingDocument
 
