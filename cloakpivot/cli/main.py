@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TextIO
+from typing import TYPE_CHECKING, Any, Protocol, TextIO
 
 import click
 
@@ -18,6 +18,13 @@ ERROR_MASK_ARGS = (
     "Must specify either --out for masked output or --cloakmap for CloakMap output"
 )
 
+
+class DocDocumentLike(Protocol):
+    name: str
+    texts: Any
+    tables: Any
+
+
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
 
@@ -26,9 +33,12 @@ if TYPE_CHECKING:
     from cloakpivot.masking.engine import MaskingResult
 
     try:
-        from docling_core.types import DoclingDocument
+        from docling_core.types import DoclingDocument as _DoclingDocument
+
+        DoclingDocument = _DoclingDocument
     except ImportError:
-        DoclingDocument = None  # type: ignore
+        # Fallback for type checking when docling is unavailable
+        DoclingDocument = DocDocumentLike  # type: ignore[assignment]
 
 
 @click.group()
@@ -193,7 +203,7 @@ def _load_masking_policy(policy: Path | None, verbose: bool) -> MaskingPolicy:
 
 
 def _perform_entity_detection(
-    document: DoclingDocument,
+    document: DocDocumentLike,
     masking_policy: MaskingPolicy,
     verbose: bool,
     quiet: bool = False,
@@ -250,7 +260,7 @@ def _prepare_entities_for_masking(
 
 
 def _perform_masking(
-    document: DoclingDocument,
+    document: DocDocumentLike,
     entities: list[RecognizerResult],
     masking_policy: MaskingPolicy,
     verbose: bool,
@@ -2264,7 +2274,7 @@ def diff(
 
 def _generate_text_diff_report(
     diff_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,
@@ -2313,7 +2323,7 @@ def _generate_text_diff_report(
 def _generate_html_diff_report(
     text1_lines: list[str],
     text2_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,
@@ -2399,7 +2409,7 @@ def _generate_html_diff_report(
 
 def _generate_json_diff_report(
     diff_lines: list[str],
-    masking_analysis: dict | None,
+    masking_analysis: dict[str, Any] | None,
     output: Path | None,
     doc1: Path,
     doc2: Path,
@@ -2436,8 +2446,8 @@ def _generate_json_diff_report(
         json.dump(report_data, f, indent=2, default=str)
 
 
-@cli.command(hidden=True)
-@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+@cli.command(hidden=True)  # type: ignore[misc]
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))  # type: ignore[misc]
 def completion(shell: str) -> None:
     """Generate shell completion script.
 
