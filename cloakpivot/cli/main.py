@@ -333,9 +333,7 @@ def _save_cloakmap(
     type=click.Path(),
     help="Output path or format (lexical, markdown, html)",
 )
-@click.option(
-    "--cloakmap", type=click.Path(), help="Path to save the CloakMap file"
-)
+@click.option("--cloakmap", type=click.Path(), help="Path to save the CloakMap file")
 @click.option(
     "--policy",
     type=click.Path(exists=True),
