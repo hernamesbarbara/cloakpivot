@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TextIO
 
 import click
 
@@ -555,7 +555,7 @@ def analyze(
     default="-",
     help="Output file (default: stdout)",
 )
-def config_sample(output_format: str, output) -> None:
+def config_sample(output_format: str, output: TextIO) -> None:
     """Generate a sample batch processing configuration.
 
     This command generates example configurations showing all available

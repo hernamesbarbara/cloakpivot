@@ -725,7 +725,7 @@ class BatchProcessor:
                 "entity_breakdown": detection_result.entity_breakdown,
                 "segment_results": [
                     {
-                        "segment_id": segment.segment.segment_id,
+                        "segment_id": segment.segment.node_id,
                         "start_offset": segment.segment.start_offset,
                         "end_offset": segment.segment.end_offset,
                         "entities": [

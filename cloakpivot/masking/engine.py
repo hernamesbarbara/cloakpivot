@@ -335,6 +335,10 @@ class MaskingEngine:
                 continue
 
         # Use EntityNormalizer to resolve conflicts
+        if self.entity_normalizer is None:
+            raise ValueError(
+                "Entity normalizer is not configured but conflict resolution was attempted"
+            )
         normalization_result = self.entity_normalizer.normalize_entities(
             entity_detection_results
         )

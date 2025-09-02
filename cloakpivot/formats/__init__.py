@@ -5,12 +5,11 @@ with CloakPivot-specific features like format detection, validation, and
 masking-aware serialization.
 """
 
-from .registry import FormatRegistry
+from .registry import FormatRegistry, SupportedFormat
 from .serialization import (
     CloakPivotSerializer,
     SerializationError,
     SerializationResult,
-    SupportedFormat,
 )
 
 __all__ = [

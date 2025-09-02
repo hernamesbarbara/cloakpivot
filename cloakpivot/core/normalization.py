@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from .analyzer import EntityDetectionResult
 
@@ -351,11 +351,8 @@ class EntityNormalizer:
             resolved_entities = self._resolve_by_specificity(group.entities)
         elif self.config.strategy == ConflictResolutionStrategy.FIRST_DETECTED:
             resolved_entities = self._resolve_by_position(group.entities)
-        elif self.config.strategy == ConflictResolutionStrategy.MERGE_ADJACENT:
+        else:  # ConflictResolutionStrategy.MERGE_ADJACENT
             resolved_entities = self._resolve_by_merging(group.entities)
-        else:
-            # Default to confidence-based resolution
-            resolved_entities = self._resolve_by_confidence(group.entities)
 
         return EntityGroup(resolved_entities)
 
@@ -412,7 +409,7 @@ class EntityNormalizer:
         """Resolve conflicts by preferring longest entities."""
         sorted_entities = sorted(entities, key=lambda e: len(e.text), reverse=True)
 
-        result = []
+        result: list[EntityDetectionResult] = []
         for entity in sorted_entities:
             if not any(entity.overlaps_with(existing) for existing in result):
                 result.append(entity)
@@ -432,7 +429,7 @@ class EntityNormalizer:
             ),
         )
 
-        result = []
+        result: list[EntityDetectionResult] = []
         for entity in sorted_entities:
             if not any(entity.overlaps_with(existing) for existing in result):
                 result.append(entity)
@@ -445,7 +442,7 @@ class EntityNormalizer:
         """Resolve conflicts by keeping entities in order of appearance."""
         sorted_entities = sorted(entities, key=lambda e: (e.start, e.end))
 
-        result = []
+        result: list[EntityDetectionResult] = []
         for entity in sorted_entities:
             if not any(entity.overlaps_with(existing) for existing in result):
                 result.append(entity)
@@ -490,7 +487,7 @@ class EntityNormalizer:
                 by_type[entity.entity_type] = []
             by_type[entity.entity_type].append(entity)
 
-        result = []
+        result: list[EntityDetectionResult] = []
 
         for entity_type, type_entities in by_type.items():
             # Sort by position
@@ -610,7 +607,7 @@ class EntityNormalizer:
             for j, entity2 in enumerate(normalized[i + 1 :], i + 1):
                 if entity1.overlaps_with(entity2):
                     validation["no_overlaps"] = False
-                    validation["warnings"].append(
+                    cast(list[str], validation["warnings"]).append(
                         f"Overlap found between entities at indices {i} and {j}"
                     )
 
@@ -630,7 +627,7 @@ class EntityNormalizer:
         if not high_conf_original.issubset(high_conf_normalized):
             validation["high_confidence_preserved"] = False
             missing = high_conf_original - high_conf_normalized
-            validation["warnings"].append(
+            cast(list[str], validation["warnings"]).append(
                 f"High confidence entities were removed: {missing}"
             )
 
