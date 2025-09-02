@@ -395,7 +395,7 @@ class CloakMapValidator:
 class InputValidator:
     """Main validator class that orchestrates all validation checks."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.system_validator = SystemValidator()
         self.document_validator = DocumentValidator()
         self.policy_validator = PolicyValidator()

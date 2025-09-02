@@ -60,12 +60,6 @@ class PerformanceConfig:
 
     def _validate_model_size(self) -> None:
         """Validate and normalize model_size."""
-        if not isinstance(self.model_size, str):
-            logger.warning(
-                f"model_size must be string, got {type(self.model_size)}, using 'small'"
-            )
-            self.model_size = "small"
-            return
 
         self.model_size = self.model_size.lower()
         valid_sizes = {"small", "medium", "large"}
@@ -135,7 +129,7 @@ class PerformanceConfig:
 
             # Singleton behavior
             use_singleton = cls._get_env_bool("CLOAKPIVOT_USE_SINGLETON", True)
-            cache_size = cls._get_env_int("ANALYZER_CACHE_SIZE", 8)
+            cache_size = cls._get_env_int("ANALYZER_CACHE_SIZE", 8) or 8
 
             # Performance tuning
             enable_parallel = cls._get_env_bool("ENABLE_PARALLEL", True)
@@ -143,7 +137,7 @@ class PerformanceConfig:
 
             # Memory optimization
             enable_memory_opt = cls._get_env_bool("MEMORY_OPTIMIZATION", True)
-            gc_frequency = cls._get_env_int("GC_FREQUENCY", 100)
+            gc_frequency = cls._get_env_int("GC_FREQUENCY", 100) or 100
 
             config = cls(
                 model_size=model_size,

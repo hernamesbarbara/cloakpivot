@@ -286,7 +286,7 @@ def get_language_info(language: str) -> Optional[dict[str, Any]]:
     return SUPPORTED_LANGUAGES.get(language)
 
 
-def get_all_model_info() -> dict[str, dict[str, Any]]:
+def get_all_model_info() -> dict[str, Any]:
     """Get comprehensive model information for debugging and documentation.
 
     Returns:

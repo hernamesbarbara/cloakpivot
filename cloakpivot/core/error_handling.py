@@ -67,7 +67,7 @@ class ErrorRecord:
 class ErrorCollector:
     """Collects and categorizes errors during processing operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: list[ErrorRecord] = []
         self.success_count = 0
         self.total_operations = 0
@@ -127,8 +127,8 @@ class ErrorCollector:
 
     def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all recorded errors."""
-        error_types = {}
-        components = {}
+        error_types: dict[str, int] = {}
+        components: dict[str, int] = {}
 
         for error_record in self.errors:
             error_type = type(error_record.error).__name__
@@ -307,7 +307,7 @@ class CircuitBreaker:
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to apply circuit breaker to a function."""
 
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             if self.state == "OPEN":
                 if self._should_attempt_reset():
                     self.state = "HALF_OPEN"
@@ -434,11 +434,11 @@ def with_error_isolation(
     manager: PartialFailureManager,
     component: str = "unknown",
     recoverable: bool = True,
-):
+) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """Decorator to add error isolation to a function."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
-        def wrapper(*args, **kwargs) -> Optional[T]:
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[T]:
             return manager.execute_with_isolation(
                 func, args, kwargs, component, recoverable
             )
@@ -458,7 +458,7 @@ def with_retry(
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         retry_manager = RetryManager(max_retries=max_retries, base_delay=base_delay)
 
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             return retry_manager.execute_with_retry(
                 func, args, kwargs, retryable_exceptions
             )

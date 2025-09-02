@@ -59,7 +59,7 @@ class FormatRegistry:
         ".htm": {SupportedFormat.HTML},
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the format registry."""
         self._provider = SerializerProvider()
         self._custom_serializers: dict[str, type] = {}
@@ -200,7 +200,7 @@ class FormatRegistry:
 
         return None
 
-    def get_serializer(self, format_name: str, document=None):
+    def get_serializer(self, format_name: str, document: Any = None) -> Any:
         """Get a serializer instance for the specified format.
 
         Args:
@@ -223,10 +223,10 @@ class FormatRegistry:
         if format_name == "docling":
             # For docling format, we use the DoclingDocument's native export_to_dict method
             class DoclingSerializer:
-                def __init__(self, document):
+                def __init__(self, document: Any) -> None:
                     self.document = document
 
-                def serialize(self):
+                def serialize(self) -> str:
                     import json
 
                     # Use model_dump() instead of export_to_dict() for complete serialization
