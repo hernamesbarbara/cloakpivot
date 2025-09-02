@@ -29,8 +29,10 @@ def _import_presidio() -> None:
         return  # Already imported
 
     try:
-        from presidio_analyzer import AnalyzerEngine  # type: ignore[import-not-found]
-        from presidio_analyzer import RecognizerResult  # type: ignore[import-not-found]
+        from presidio_analyzer import (
+            AnalyzerEngine,  # type: ignore[import-not-found]
+            RecognizerResult,  # type: ignore[import-not-found]
+        )
         from presidio_analyzer.nlp_engine import (
             NlpEngineProvider,  # type: ignore[import-not-found]
         )

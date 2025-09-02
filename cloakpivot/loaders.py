@@ -10,7 +10,7 @@ import hashlib
 import logging
 from functools import lru_cache
 from threading import Lock
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from .core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from .core.detection import EntityDetectionPipeline
