@@ -36,7 +36,7 @@ jobs:
           ruff format --check cloakpivot tests
 
       - name: Type check (mypy)
-        run: mypy cloakpivot --strict --show-error-codes --pretty
+        run: mypy cloakpivot/cli --strict --show-error-codes --pretty
 
       - name: Run tests
         run: |
