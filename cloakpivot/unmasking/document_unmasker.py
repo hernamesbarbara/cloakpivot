@@ -2,7 +2,7 @@
 
 import hashlib
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from docling_core.types.doc.document import (
     CodeItem,
@@ -18,6 +18,7 @@ from docling_core.types.doc.document import (
 
 from cloakpivot.core.types import DoclingDocument
 
+from ..core.anchors import AnchorEntry
 from ..core.cloakmap import CloakMap
 from .anchor_resolver import ResolvedAnchor
 
@@ -441,7 +442,8 @@ class DocumentUnmasker:
                 continue
 
             # Get the cell and apply unmasking
-            cell = table_data.table_cells[row_idx][col_idx]
+            # Cast to Any to handle Union[RichTableCell, TableCell] indexing
+            cell = cast(Any, table_data.table_cells)[row_idx][col_idx]
             if hasattr(cell, "text") and cell.text:
                 cell_results = self._unmask_cell_text(
                     cell, cell_resolved_anchors, original_content_provider
@@ -528,7 +530,7 @@ class DocumentUnmasker:
                 anchor, original_content_provider
             )
             if original_content is None:
-                original_content = self._generate_placeholder_content(anchor)
+                original_content = self._generate_placeholder_content(resolved_anchor)
 
             # Replace the text
             modified_text = (
@@ -584,7 +586,7 @@ class DocumentUnmasker:
                 anchor, original_content_provider
             )
             if original_content is None:
-                original_content = self._generate_placeholder_content(anchor)
+                original_content = self._generate_placeholder_content(resolved_anchor)
 
             # Replace the text
             modified_text = (
@@ -618,7 +620,7 @@ class DocumentUnmasker:
         return f"#{node_type.lower()}_{id(node_item)}"
 
     def _get_original_content(
-        self, anchor, original_content_provider: Optional[Any]
+        self, anchor: Union[AnchorEntry, ResolvedAnchor], original_content_provider: Optional[Any]
     ) -> Optional[str]:
         """
         Get the original content for an anchor.
@@ -627,29 +629,34 @@ class DocumentUnmasker:
         and finally to placeholder generation.
         """
         # First, try to get original text from anchor metadata
-        if anchor.metadata and "original_text" in anchor.metadata:
-            original_text = anchor.metadata["original_text"]
+        # Handle both AnchorEntry and ResolvedAnchor
+        actual_anchor = anchor.anchor if isinstance(anchor, ResolvedAnchor) else anchor
+        if actual_anchor.metadata and "original_text" in actual_anchor.metadata:
+            original_text = actual_anchor.metadata["original_text"]
             logger.debug(
-                f"Retrieved original text from metadata for {anchor.replacement_id}: '{original_text}'"
+                f"Retrieved original text from metadata for {actual_anchor.replacement_id}: '{original_text}'"
             )
-            return original_text
+            return cast(str, original_text)
 
         # Fallback to content provider if available
+        actual_anchor = anchor.anchor if isinstance(anchor, ResolvedAnchor) else anchor
         if original_content_provider and hasattr(
             original_content_provider, "get_content"
         ):
             try:
-                return original_content_provider.get_content(
-                    anchor.replacement_id, anchor.entity_type
+                result = original_content_provider.get_content(
+                    actual_anchor.replacement_id, actual_anchor.entity_type
                 )
+                return cast(Optional[str], result)
             except Exception as e:
                 logger.warning(
-                    f"Content provider failed for {anchor.replacement_id}: {e}"
+                    f"Content provider failed for {actual_anchor.replacement_id}: {e}"
                 )
 
         # Return None to trigger placeholder generation as last resort
+        actual_anchor = anchor.anchor if isinstance(anchor, ResolvedAnchor) else anchor
         logger.debug(
-            f"No original content found for {anchor.replacement_id}, will use placeholder"
+            f"No original content found for {actual_anchor.replacement_id}, will use placeholder"
         )
         return None
 
@@ -660,7 +667,8 @@ class DocumentUnmasker:
         This creates realistic-looking placeholder content based on entity type.
         In production, this would be replaced with actual content restoration.
         """
-        entity_type = anchor.entity_type.upper()
+        # Access entity_type from the underlying AnchorEntry
+        entity_type = anchor.anchor.entity_type.upper()
 
         # Generate type-appropriate placeholders
         placeholder_map = {
@@ -682,7 +690,7 @@ class DocumentUnmasker:
         placeholder = placeholder_map.get(entity_type, f"[{entity_type}]")
 
         # Try to match the length of the original masked value if reasonable
-        masked_length = len(anchor.masked_value)
+        masked_length = len(anchor.anchor.masked_value)
         if masked_length > len(placeholder) and masked_length <= 50:
             # Pad with realistic characters for the entity type
             if entity_type in ["PHONE_NUMBER", "US_SSN", "CREDIT_CARD"]:
@@ -706,10 +714,10 @@ class DocumentUnmasker:
             computed_checksum = hashlib.sha256(
                 original_content.encode("utf-8")
             ).hexdigest()
-            return bool(computed_checksum == anchor.original_checksum)
+            return bool(computed_checksum == anchor.anchor.original_checksum)
         except Exception as e:
             logger.warning(
-                f"Content verification failed for {anchor.replacement_id}: {e}"
+                f"Content verification failed for {anchor.anchor.replacement_id}: {e}"
             )
             return False
 

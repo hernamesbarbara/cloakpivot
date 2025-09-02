@@ -280,11 +280,8 @@ def _get_cached_analyzer(
         _analyzer_caches[cache_size] = cached_analyzer_func
 
     # Use the cached function
-    return cast(
-        AnalyzerEngineWrapper,
-        _analyzer_caches[cache_size](
-            language, config_hash, min_confidence, nlp_engine_name
-        ),
+    return _analyzer_caches[cache_size](
+        language, config_hash, min_confidence, nlp_engine_name
     )
 
 

@@ -29,15 +29,11 @@ def _import_presidio() -> None:
         return  # Already imported
 
     try:
-        from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
-        from presidio_analyzer import RecognizerResult as _RecognizerResult
+        from presidio_analyzer import AnalyzerEngine  # type: ignore[import-not-found]
+        from presidio_analyzer import RecognizerResult  # type: ignore[import-not-found]
         from presidio_analyzer.nlp_engine import (
-            NlpEngineProvider as _NlpEngineProvider,
+            NlpEngineProvider,  # type: ignore[import-not-found]
         )
-
-        AnalyzerEngine = _AnalyzerEngine
-        RecognizerResult = _RecognizerResult
-        NlpEngineProvider = _NlpEngineProvider
 
     except ImportError as e:
         raise ImportError(
@@ -447,11 +443,11 @@ class AnalyzerEngineWrapper:
                 if NlpEngineProvider is None or AnalyzerEngine is None:
                     raise ImportError("Presidio modules not properly imported")
 
-            nlp_engine_provider = NlpEngineProvider(nlp_configuration=nlp_configuration)  # type: ignore[misc]
+            nlp_engine_provider = NlpEngineProvider(nlp_configuration=nlp_configuration)
             nlp_engine = nlp_engine_provider.create_engine()
 
             # Create analyzer engine
-            self._engine = AnalyzerEngine(  # type: ignore[misc]
+            self._engine = AnalyzerEngine(
                 nlp_engine=nlp_engine, supported_languages=[self.config.language]
             )
 
@@ -546,7 +542,7 @@ class AnalyzerEngineWrapper:
         if not self._engine:
             return list(self.registry.get_enabled_recognizers())
 
-        return self._engine.get_supported_entities(language=self.config.language)
+        return list(self._engine.get_supported_entities(language=self.config.language))
 
     def validate_configuration(self) -> dict[str, Any]:
         """Validate current configuration and return diagnostics.
