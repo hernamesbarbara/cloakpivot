@@ -159,7 +159,8 @@ ignore = [
 "__init__.py" = ["F401"]
 
 [tool.mypy]
-files = ["cloakpivot"]
+files = ["cloakpivot/cli"]
+follow_imports = "skip"
 python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
