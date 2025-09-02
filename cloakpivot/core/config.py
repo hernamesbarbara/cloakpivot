@@ -8,7 +8,7 @@ behavior control, caching configuration, and performance tuning options.
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TextIO, cast
 import click
 
 from cloakpivot import __version__
+from cloakpivot.core.types import DoclingDocument
 
 from .batch import batch
 
@@ -17,9 +18,6 @@ from .batch import batch
 ERROR_MASK_ARGS = (
     "Must specify either --out for masked output or --cloakmap for CloakMap output"
 )
-
-
-from cloakpivot.core.types import DoclingDocument
 
 
 class DocDocumentLike(Protocol):
