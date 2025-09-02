@@ -19,6 +19,9 @@ ERROR_MASK_ARGS = (
 )
 
 
+from cloakpivot.core.types import DoclingDocument
+
+
 class DocDocumentLike(Protocol):
     name: str
     texts: Any
@@ -26,15 +29,11 @@ class DocDocumentLike(Protocol):
 
 
 if TYPE_CHECKING:
-    from docling_core.types import DoclingDocument
     from presidio_analyzer import RecognizerResult
 
     from cloakpivot.core.detection import DocumentAnalysisResult
     from cloakpivot.core.policies import MaskingPolicy
     from cloakpivot.masking.engine import MaskingResult
-
-else:
-    from typing import Any as DoclingDocument
 
 
 @click.group()

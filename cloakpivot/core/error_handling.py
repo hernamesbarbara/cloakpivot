@@ -207,7 +207,7 @@ class PartialFailureManager:
     def execute_with_isolation(
         self,
         operation: Callable[..., T],
-        args: tuple = (),
+        args: tuple[Any, ...] = (),
         kwargs: Optional[dict[str, Any]] = None,
         component: str = "unknown",
         recoverable: bool = True,
@@ -368,9 +368,9 @@ class RetryManager:
     def execute_with_retry(
         self,
         operation: Callable[..., T],
-        args: tuple = (),
+        args: tuple[Any, ...] = (),
         kwargs: Optional[dict[str, Any]] = None,
-        retryable_exceptions: tuple = (Exception,),
+        retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     ) -> T:
         """Execute operation with retry logic."""
         kwargs = kwargs or {}
@@ -451,7 +451,7 @@ def with_error_isolation(
 def with_retry(
     max_retries: int = 3,
     base_delay: float = 1.0,
-    retryable_exceptions: tuple = (Exception,),
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
 ):
     """Decorator to add retry logic to a function."""
 

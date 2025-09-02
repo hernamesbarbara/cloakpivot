@@ -5,20 +5,14 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+# Temporarily mock docling_core import to allow tests to run
+from cloakpivot.core.types import DoclingDocument
+
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
 from .performance import profile_method
 from .policies import MaskingPolicy
-
-# Temporarily mock docling_core import to allow tests to run
-try:
-    from docling_core.types import DoclingDocument
-except ImportError:
-    # Mock DoclingDocument for testing
-    class DoclingDocument:
-        pass
-
 
 logger = logging.getLogger(__name__)
 

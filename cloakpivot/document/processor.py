@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Union, cast
 
-from docling_core.types import DoclingDocument
 from docpivot import load_document
 from docpivot.io.readers.exceptions import (
     FileAccessError,
@@ -13,6 +12,8 @@ from docpivot.io.readers.exceptions import (
     UnsupportedFormatError,
     ValidationError,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.chunking import ChunkedDocumentProcessor
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from docling_core.types import DoclingDocument
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.cloakmap import CloakMap
 from .anchor_resolver import AnchorResolver

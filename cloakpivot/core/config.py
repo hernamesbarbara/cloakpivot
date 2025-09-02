@@ -216,7 +216,7 @@ class PerformanceConfig:
             )
             return default
 
-    def get_model_characteristics(self) -> dict[str, any]:
+    def get_model_characteristics(self) -> dict[str, Any]:
         """Get performance characteristics for current model size.
 
         Returns:
@@ -228,7 +228,7 @@ class PerformanceConfig:
             self.model_size, MODEL_CHARACTERISTICS["small"]
         )
 
-    def to_dict(self) -> dict[str, any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary for serialization."""
         return {
             "model_size": self.model_size,

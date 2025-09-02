@@ -4,7 +4,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
     CodeItem,
     FormulaItem,
@@ -16,6 +15,8 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.anchors import AnchorEntry
 

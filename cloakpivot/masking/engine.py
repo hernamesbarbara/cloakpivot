@@ -8,8 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
-from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.analyzer import EntityDetectionResult
 from ..core.anchors import AnchorEntry

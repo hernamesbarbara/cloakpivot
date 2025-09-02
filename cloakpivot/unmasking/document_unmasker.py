@@ -4,7 +4,6 @@ import hashlib
 import logging
 from typing import Any, Optional, Union
 
-from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import (
     CodeItem,
     FormulaItem,
@@ -16,6 +15,8 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+
+from cloakpivot.core.types import DoclingDocument
 
 from ..core.cloakmap import CloakMap
 from .anchor_resolver import ResolvedAnchor
