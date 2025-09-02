@@ -26,16 +26,14 @@ class DocDocumentLike(Protocol):
 
 
 if TYPE_CHECKING:
+    from docling_core.types import DoclingDocument
     from presidio_analyzer import RecognizerResult
 
     from cloakpivot.core.detection import DocumentAnalysisResult
     from cloakpivot.core.policies import MaskingPolicy
     from cloakpivot.masking.engine import MaskingResult
 
-# Provide a runtime symbol so cast(DoclingDocument, ...) is valid even if docling_core isn't installed.
-try:
-    from docling_core.types import DoclingDocument
-except Exception:  # pragma: no cover
+else:
     from typing import Any as DoclingDocument
 
 
