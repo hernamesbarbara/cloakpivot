@@ -5,6 +5,7 @@ and that baseline measurements produce consistent, meaningful results.
 """
 
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -473,10 +474,12 @@ class TestBaselinePerformanceValidation:
         end = time.perf_counter()
         profiled_time = end - start
 
-        # Profiler overhead should be reasonable (less than 50% overhead)
+        # Profiler overhead should be reasonable (less than 100% overhead in CI)
         overhead_ratio = profiled_time / baseline_time
-        assert overhead_ratio <= 1.5, (
-            f"Profiler overhead too high: {overhead_ratio:.2f}x"
+        # Allow more overhead in CI environments due to resource constraints
+        max_overhead = 2.0 if os.getenv('CI') else 1.5
+        assert overhead_ratio <= max_overhead, (
+            f"Profiler overhead too high: {overhead_ratio:.2f}x (max: {max_overhead}x)"
         )
 
     def test_baseline_measurement_performance(self):
