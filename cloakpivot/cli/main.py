@@ -2446,8 +2446,8 @@ def _generate_json_diff_report(
         json.dump(report_data, f, indent=2, default=str)
 
 
-@cli.command(hidden=True) 
-@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"])) 
+@cli.command(hidden=True)
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
 def completion(shell: str) -> None:
     """Generate shell completion script.
 
