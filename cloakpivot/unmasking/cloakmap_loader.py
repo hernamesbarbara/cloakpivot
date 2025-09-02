@@ -335,7 +335,9 @@ class CloakMapLoader:
                 # Use default key manager if secret key is provided
                 key_manager = create_default_key_manager()
 
-            if not cloakmap.verify_signature(key_manager=key_manager, secret_key=secret_key):
+            if not cloakmap.verify_signature(
+                key_manager=key_manager, secret_key=secret_key
+            ):
                 raise CloakMapLoadError("CloakMap signature verification failed")
 
             logger.info("CloakMap signature verified successfully")
@@ -348,7 +350,9 @@ class CloakMapLoader:
         if secret_key:
             key_manager = create_default_key_manager()
 
-        integrity_result = validate_cloakmap_integrity(cloakmap, key_manager=key_manager, secret_key=secret_key)
+        integrity_result = validate_cloakmap_integrity(
+            cloakmap, key_manager=key_manager, secret_key=secret_key
+        )
 
         if not integrity_result["valid"]:
             error_msg = "CloakMap integrity validation failed: " + "; ".join(

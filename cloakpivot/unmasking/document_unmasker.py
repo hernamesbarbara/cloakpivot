@@ -171,7 +171,19 @@ class DocumentUnmasker:
         # Handle different node types
         if self._is_text_bearing_node(node_item):
             results = self._unmask_text_node(
-                cast(Union[TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem], node_item), resolved_anchors, original_content_provider
+                cast(
+                    Union[
+                        TextItem,
+                        TitleItem,
+                        SectionHeaderItem,
+                        ListItem,
+                        CodeItem,
+                        FormulaItem,
+                    ],
+                    node_item,
+                ),
+                resolved_anchors,
+                original_content_provider,
             )
         elif isinstance(node_item, TableItem):
             results = self._unmask_table_node(
@@ -339,7 +351,9 @@ class DocumentUnmasker:
             )
 
             # Verify original content if possible
-            content_verified = self._verify_original_content(resolved_anchor, original_content)
+            content_verified = self._verify_original_content(
+                resolved_anchor, original_content
+            )
 
             results.append(
                 {

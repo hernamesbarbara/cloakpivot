@@ -121,7 +121,20 @@ class DocumentMasker:
 
         # Handle different node types
         if self._is_text_bearing_node(node_item):
-            self._mask_text_node(cast(Union[TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem], node_item), anchors)
+            self._mask_text_node(
+                cast(
+                    Union[
+                        TextItem,
+                        TitleItem,
+                        SectionHeaderItem,
+                        ListItem,
+                        CodeItem,
+                        FormulaItem,
+                    ],
+                    node_item,
+                ),
+                anchors,
+            )
         elif isinstance(node_item, TableItem):
             self._mask_table_node(node_item, node_id, anchors)
         elif isinstance(node_item, KeyValueItem):

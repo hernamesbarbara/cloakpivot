@@ -1212,7 +1212,9 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Tampering detection error: {e}")
 
-    def _check_key_availability(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
+    def _check_key_availability(
+        self, cloakmap: "CloakMap", results: dict[str, Any]
+    ) -> None:
         """Check if required keys are available."""
         try:
             required_keys = set()
