@@ -1,11 +1,11 @@
 """Enhanced serialization module for CloakPivot with masking-aware formatting."""
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
-
-from docling_core.types import DoclingDocument
+from typing import Any, Protocol
 
 from .registry import FormatRegistry, SupportedFormat
 
@@ -16,7 +16,7 @@ class SerializationError(Exception):
     """Exception raised during serialization operations."""
 
     def __init__(
-        self, message: str, format_name: str, context: Optional[dict[str, Any]] = None
+        self, message: str, format_name: str, context: dict[str, Any] | None = None
     ):
         super().__init__(message)
         self.format_name = format_name
@@ -37,7 +37,7 @@ class SerializationResult:
         """Get size in kilobytes."""
         return self.size_bytes / 1024
 
-    def save_to_file(self, file_path: Union[str, Path]) -> None:
+    def save_to_file(self, file_path: str | Path) -> None:
         """Save serialized content to file.
 
         Args:
@@ -59,7 +59,7 @@ class CloakPivotSerializer:
     for masking-aware serialization, format detection, and enhanced error handling.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the CloakPivot serializer."""
         self._registry = FormatRegistry()
 
@@ -71,7 +71,7 @@ class CloakPivotSerializer:
         return self._registry.list_supported_formats()
 
     def serialize_document(
-        self, document: DoclingDocument, format_name: str, **kwargs: Any
+        self, document: _DocDocumentLike, format_name: str, **kwargs: Any
     ) -> SerializationResult:
         """Serialize a document to the specified format.
 
@@ -252,9 +252,9 @@ class CloakPivotSerializer:
 
     def convert_format(
         self,
-        input_path: Union[str, Path],
+        input_path: str | Path,
         output_format: str,
-        output_path: Optional[Union[str, Path]] = None,
+        output_path: str | Path | None = None,
         **kwargs: Any,
     ) -> SerializationResult:
         """Convert a document from one format to another.
@@ -324,7 +324,7 @@ class CloakPivotSerializer:
                 },
             ) from e
 
-    def detect_format(self, file_path: Union[str, Path]) -> Optional[str]:
+    def detect_format(self, file_path: str | Path) -> str | None:
         """Detect the format of a file.
 
         Args:
@@ -370,3 +370,15 @@ class CloakPivotSerializer:
             "is_text_format": format_name in ["markdown", "md", "html"],
             "is_json_format": format_name in ["lexical", "docling"],
         }
+
+
+class _DocDocumentLike(Protocol):
+    """Minimal protocol for a document used during serialization.
+
+    We avoid importing third-party Docling types directly to keep type checking
+    self-contained and decoupled from external packages.
+    """
+
+    name: str
+    texts: Any
+    tables: Any
