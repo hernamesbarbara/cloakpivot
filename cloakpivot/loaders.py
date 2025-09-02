@@ -263,7 +263,9 @@ def _get_cached_analyzer(
     if cache_size not in _analyzer_caches:
 
         @lru_cache(maxsize=cache_size)
-        def cached_analyzer_func(lang, conf_hash, min_conf, nlp_engine):
+        def cached_analyzer_func(
+            lang: str, conf_hash: Optional[str], min_conf: float, nlp_engine: str
+        ) -> AnalyzerEngineWrapper:
             with _ANALYZER_LOCK:
                 config = AnalyzerConfig(
                     language=lang, min_confidence=min_conf, nlp_engine_name=nlp_engine

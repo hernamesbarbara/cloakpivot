@@ -653,7 +653,7 @@ class DocumentUnmasker:
         )
         return None
 
-    def _generate_placeholder_content(self, anchor) -> str:
+    def _generate_placeholder_content(self, anchor: ResolvedAnchor) -> str:
         """
         Generate placeholder content for testing and demonstration.
 
@@ -694,7 +694,9 @@ class DocumentUnmasker:
 
         return placeholder
 
-    def _verify_original_content(self, anchor, original_content: str) -> bool:
+    def _verify_original_content(
+        self, anchor: ResolvedAnchor, original_content: str
+    ) -> bool:
         """
         Verify that the original content matches the stored checksum.
 
@@ -704,7 +706,7 @@ class DocumentUnmasker:
             computed_checksum = hashlib.sha256(
                 original_content.encode("utf-8")
             ).hexdigest()
-            return computed_checksum == anchor.original_checksum
+            return bool(computed_checksum == anchor.original_checksum)
         except Exception as e:
             logger.warning(
                 f"Content verification failed for {anchor.replacement_id}: {e}"
@@ -748,7 +750,7 @@ class DocumentUnmasker:
         )
 
         # Collect error types
-        error_types = {}
+        error_types: dict[str, int] = {}
         for result in restoration_results:
             if not result.get("success", False) and "error" in result:
                 error = result["error"]

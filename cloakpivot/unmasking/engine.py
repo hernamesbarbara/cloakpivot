@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from cloakpivot.core.types import DoclingDocument
 
@@ -260,7 +260,7 @@ class UnmaskingEngine:
         failed_anchors = resolved_anchors.get("failed", [])
         if failed_anchors:
             integrity_report["valid"] = False
-            integrity_report["issues"].append(
+            cast(list[str], integrity_report["issues"]).append(
                 f"Failed to resolve {len(failed_anchors)} anchors"
             )
 

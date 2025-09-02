@@ -93,7 +93,7 @@ class DocumentAnalysisResult:
         successful = sum(1 for result in self.segment_results if result.success)
         return successful / self.segments_analyzed
 
-    def get_all_entities(self):
+    def get_all_entities(self) -> list[tuple[Any, TextSegment]]:
         """Get all detected entities with their source segments."""
         entities_with_segments = []
 
