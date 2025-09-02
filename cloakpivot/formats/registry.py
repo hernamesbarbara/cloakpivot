@@ -85,7 +85,7 @@ class FormatRegistry:
             # Handle special case formats
             if format_name == "docling":
                 return True  # We handle docling format specially
-            return self._provider.is_format_supported(format_name)
+            return bool(self._provider.is_format_supported(format_name))
         except ValueError:
             return False
 
@@ -99,7 +99,7 @@ class FormatRegistry:
         # Add our special case formats
         if "docling" not in formats:
             formats.append("docling")
-        return formats
+        return list(formats)
 
     def detect_format_from_path(
         self, file_path: Union[str, Path]

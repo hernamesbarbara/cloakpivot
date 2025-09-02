@@ -343,12 +343,8 @@ class CloakMapLoader:
             logger.info("CloakMap signature verified successfully")
 
         # Perform comprehensive integrity validation
-        # Create key manager for integrity validation
-        from ..core.security import KeyManager, create_default_key_manager
-
-        key_manager: Optional[KeyManager] = None
-        if secret_key:
-            key_manager = create_default_key_manager()
+        # Use the key manager from signature verification if it exists,
+        # otherwise integrity validation will create its own if needed
 
         integrity_result = validate_cloakmap_integrity(
             cloakmap, key_manager=key_manager, secret_key=secret_key

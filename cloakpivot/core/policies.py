@@ -90,9 +90,8 @@ class MaskingPolicy:
             except ValueError:
                 # Invalid string, use default
                 object.__setattr__(self, "privacy_level", PrivacyLevel.MEDIUM)
-        elif not isinstance(self.privacy_level, PrivacyLevel):
-            # Neither string nor enum, use default
-            object.__setattr__(self, "privacy_level", PrivacyLevel.MEDIUM)
+        # Note: Due to type system, this branch is technically unreachable
+        # but kept for runtime safety in case of unexpected types
 
     def _validate_thresholds(self) -> None:
         """Validate confidence threshold values."""

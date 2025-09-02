@@ -470,7 +470,7 @@ class StrategyApplicator:
     def _build_deterministic_salt(
         self,
         base_salt: str,
-        per_entity_salt: dict,
+        per_entity_salt: dict[str, Any],
         entity_type: str,
         original_text: str,
     ) -> str:
@@ -680,7 +680,7 @@ class StrategyApplicator:
         position: str,
         deterministic: bool,
         original_text: str,
-    ) -> set:
+    ) -> set[int]:
         """Select which character indices should remain visible."""
         if visible_chars >= total_chars:
             return set(range(total_chars))
@@ -720,7 +720,7 @@ class StrategyApplicator:
         visible_chars: int,
         deterministic: bool,
         original_text: str,
-    ) -> set:
+    ) -> set[int]:
         """Select alternating characters for visibility."""
         if not deterministic:
             # Non-deterministic alternating
@@ -744,7 +744,7 @@ class StrategyApplicator:
         visible_chars: int,
         deterministic: bool,
         original_text: str,
-    ) -> set:
+    ) -> set[int]:
         """Select random characters for visibility."""
         if deterministic:
             # Use text content as seed for deterministic randomness
@@ -903,7 +903,7 @@ class StrategyApplicator:
                 result += char
         return result
 
-    def get_surrogate_quality_metrics(self):
+    def get_surrogate_quality_metrics(self) -> Any:
         """Get quality metrics from the surrogate generator."""
         return self._surrogate_generator.get_quality_metrics()
 

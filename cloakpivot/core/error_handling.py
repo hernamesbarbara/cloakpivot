@@ -452,7 +452,7 @@ def with_retry(
     max_retries: int = 3,
     base_delay: float = 1.0,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
-):
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator to add retry logic to a function."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
@@ -472,7 +472,7 @@ def with_circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: float = 60.0,
     expected_exception: type[Exception] = Exception,
-):
+) -> CircuitBreaker:
     """Decorator to add circuit breaker pattern to a function."""
     breaker = CircuitBreaker(failure_threshold, recovery_timeout, expected_exception)
     return breaker

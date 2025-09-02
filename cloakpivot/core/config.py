@@ -266,7 +266,7 @@ def reset_performance_config() -> None:
 class _ConfigProxy:
     """Proxy object that provides lazy access to performance config."""
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         config = get_performance_config()
         return getattr(config, name)
 

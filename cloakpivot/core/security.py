@@ -521,7 +521,7 @@ class SecurityMetadata:
             result["salt"] = base64.b64encode(self.salt).decode("ascii")
 
         if self.iterations:
-            result["iterations"] = self.iterations
+            result["iterations"] = str(self.iterations)
 
         return result
 
@@ -902,7 +902,7 @@ class KeyRotationManager:
         file_pattern = str(directory / pattern)
         files = glob(file_pattern)
 
-        results = {
+        results: dict[str, Any] = {
             "total_files": len(files),
             "processed": 0,
             "succeeded": 0,
@@ -1014,7 +1014,7 @@ class SecurityValidator:
             Detailed validation results
         """
 
-        results = {
+        results: dict[str, Any] = {
             "valid": True,
             "security_level": "none",
             "errors": [],
@@ -1068,7 +1068,7 @@ class SecurityValidator:
 
         return results
 
-    def _validate_structure(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_structure(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Validate CloakMap structure."""
         try:
             # Check version compatibility
@@ -1089,7 +1089,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Structure validation error: {e}")
 
-    def _validate_anchors(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_anchors(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Validate anchors with security considerations."""
         try:
             from .anchors import AnchorIndex
@@ -1124,7 +1124,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Anchor validation error: {e}")
 
-    def _validate_signature(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_signature(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Validate CloakMap signature."""
         if not cloakmap.is_signed:
             results["warnings"].append("CloakMap is not signed")
@@ -1157,7 +1157,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Signature validation error: {e}")
 
-    def _validate_encryption(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _validate_encryption(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Validate encryption metadata."""
         if not cloakmap.is_encrypted:
             results["warnings"].append("CloakMap is not encrypted")
@@ -1180,7 +1180,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Encryption validation error: {e}")
 
-    def _detect_tampering(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _detect_tampering(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Detect signs of tampering."""
         try:
             # Check for timestamp anomalies

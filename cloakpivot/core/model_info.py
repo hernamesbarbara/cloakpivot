@@ -6,7 +6,7 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -263,7 +263,8 @@ def get_model_recommendations(
 
     except Exception as e:
         logger.error(f"Error generating model recommendations: {e}")
-        recommendations["warnings"].append(f"Error in recommendation: {e}")
+        if isinstance(recommendations["warnings"], list):
+            recommendations["warnings"].append(f"Error in recommendation: {e}")
 
     return recommendations
 
