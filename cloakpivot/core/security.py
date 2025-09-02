@@ -521,7 +521,7 @@ class SecurityMetadata:
             result["salt"] = base64.b64encode(self.salt).decode("ascii")
 
         if self.iterations:
-            result["iterations"] = str(self.iterations)
+            result["iterations"] = self.iterations
 
         return result
 

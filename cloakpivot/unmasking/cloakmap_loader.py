@@ -315,6 +315,11 @@ class CloakMapLoader:
                     f"CloakMap version {cloakmap.version} may not be fully supported"
                 )
 
+        # Initialize key_manager variable (may be used later for integrity validation)
+        from ..core.security import KeyManager, create_default_key_manager
+
+        key_manager: Optional[KeyManager] = None
+
         # Verify signature if requested
         if verify_signature:
             if not cloakmap.is_signed:
@@ -328,9 +333,6 @@ class CloakMapLoader:
                 )
 
             # Create key manager from secret key for signature verification
-            from ..core.security import KeyManager, create_default_key_manager
-
-            key_manager: Optional[KeyManager] = None
             if secret_key:
                 # Use default key manager if secret key is provided
                 key_manager = create_default_key_manager()

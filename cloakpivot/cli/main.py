@@ -1137,8 +1137,10 @@ def policy_create(
         if verbose:
             click.echo("🎯 Starting interactive policy creation")
 
-        # Set default output path if not specified
-        if not output:
+        # Convert string path to Path object and set default if not specified
+        if output:
+            output = Path(output)
+        else:
             output = Path("interactive_policy.yaml")
 
         # Check if output file exists and warn user

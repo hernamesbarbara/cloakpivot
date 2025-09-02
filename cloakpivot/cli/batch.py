@@ -196,8 +196,9 @@ def mask(
         if not cloakmap_dir:
             cloakmap_dir = out_dir
 
-        # Load policy if specified
-        masking_policy = _load_masking_policy(policy, verbose)
+        # Load policy if specified (convert to Path if needed)
+        policy_path = Path(policy) if policy else None
+        masking_policy = _load_masking_policy(policy_path, verbose)
 
         # Create configuration
         config = BatchConfig(
@@ -455,8 +456,9 @@ def analyze(
         # Validate inputs
         pattern_list = _validate_patterns(list(patterns))
 
-        # Load policy if specified
-        masking_policy = _load_masking_policy(policy, verbose)
+        # Load policy if specified (convert to Path if needed)
+        policy_path = Path(policy) if policy else None
+        masking_policy = _load_masking_policy(policy_path, verbose)
 
         # Create configuration
         config = BatchConfig(
