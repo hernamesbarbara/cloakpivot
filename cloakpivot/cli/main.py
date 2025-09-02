@@ -27,6 +27,7 @@ class DocDocumentLike(Protocol):
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
+
     from cloakpivot.core.detection import DocumentAnalysisResult
     from cloakpivot.core.policies import MaskingPolicy
     from cloakpivot.masking.engine import MaskingResult
