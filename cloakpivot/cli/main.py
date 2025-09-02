@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, TextIO
+from typing import TYPE_CHECKING, Any, Protocol, TextIO, cast
 
 import click
 
@@ -27,18 +27,15 @@ class DocDocumentLike(Protocol):
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
-
     from cloakpivot.core.detection import DocumentAnalysisResult
     from cloakpivot.core.policies import MaskingPolicy
     from cloakpivot.masking.engine import MaskingResult
 
-    try:
-        from docling_core.types import DoclingDocument as _DoclingDocument
-
-        DoclingDocument = _DoclingDocument
-    except ImportError:
-        # Fallback for type checking when docling is unavailable
-        DoclingDocument = DocDocumentLike  # type: ignore[assignment]
+# Provide a runtime symbol so cast(DoclingDocument, ...) is valid even if docling_core isn't installed.
+try:
+    from docling_core.types import DoclingDocument
+except Exception:  # pragma: no cover
+    from typing import Any as DoclingDocument
 
 
 @click.group()
@@ -215,17 +212,18 @@ def _perform_entity_detection(
         click.echo("🔍 Detecting PII entities")
 
     detection_pipeline = EntityDetectionPipeline()
+    doc_dl = cast("DoclingDocument", document)
 
     if not quiet:
         with click.progressbar(
             length=1, label="Analyzing document for PII"
         ) as progress:
             detection_result = detection_pipeline.analyze_document(
-                document, masking_policy
+                doc_dl, masking_policy
             )
             progress.update(1)
     else:
-        detection_result = detection_pipeline.analyze_document(document, masking_policy)
+        detection_result = detection_pipeline.analyze_document(doc_dl, masking_policy)
 
     if verbose and not quiet:
         click.echo(f"✓ Detected {detection_result.total_entities} entities")
@@ -271,14 +269,15 @@ def _perform_masking(
 
     masking_engine = MaskingEngine()
     text_extractor = TextExtractor()
-    text_segments = text_extractor.extract_text_segments(document)
+    doc_dl = cast("DoclingDocument", document)
+    text_segments = text_extractor.extract_text_segments(doc_dl)
 
     if verbose:
         click.echo(f"📝 Extracted {len(text_segments)} text segments")
 
     with click.progressbar(length=1, label="Masking PII entities") as progress:
         masking_result = masking_engine.mask_document(
-            document=document,
+            document=doc_dl,
             entities=entities,
             policy=masking_policy,
             text_segments=text_segments,
@@ -1197,12 +1196,12 @@ def policy_create(
             strategy_params["algorithm"] = click.prompt(
                 "Hash algorithm", type=click.Choice(["sha256", "md5"]), default="sha256"
             )
-            strategy_params["truncate"] = click.prompt(
-                "Truncate hash to length", type=int, default=8
+            strategy_params["truncate"] = int(
+                click.prompt("Truncate hash to length", default="8")
             )
         elif default_strategy == "partial":
-            strategy_params["visible_chars"] = click.prompt(
-                "Number of visible characters", type=int, default=3
+            strategy_params["visible_chars"] = int(
+                click.prompt("Number of visible characters", default="3")
             )
             strategy_params["position"] = click.prompt(
                 "Position of visible chars",
@@ -1254,12 +1253,12 @@ def policy_create(
                             type=click.Choice(["sha256", "md5"]),
                             default="sha256",
                         )
-                        entity_params["truncate"] = click.prompt(
-                            "  Truncate hash to length", type=int, default=8
+                        entity_params["truncate"] = int(
+                            click.prompt("  Truncate hash to length", default="8")
                         )
                     elif entity_strategy == "partial":
-                        entity_params["visible_chars"] = click.prompt(
-                            "  Number of visible characters", type=int, default=3
+                        entity_params["visible_chars"] = int(
+                            click.prompt("  Number of visible characters", default="3")
                         )
                         entity_params["position"] = click.prompt(
                             "  Position of visible chars",
@@ -1267,10 +1266,11 @@ def policy_create(
                             default="start",
                         )
 
-                    threshold = click.prompt(
-                        f"  Confidence threshold for {entity_type} (0.0-1.0)",
-                        type=float,
-                        default=0.8,
+                    threshold = float(
+                        click.prompt(
+                            f"  Confidence threshold for {entity_type} (0.0-1.0)",
+                            default="0.8",
+                        )
                     )
 
                     per_entity[entity_type] = {
