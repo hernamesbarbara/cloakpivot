@@ -1212,7 +1212,7 @@ class SecurityValidator:
         except Exception as e:
             results["errors"].append(f"Tampering detection error: {e}")
 
-    def _check_key_availability(self, cloakmap: "CloakMap", results: dict) -> None:
+    def _check_key_availability(self, cloakmap: "CloakMap", results: dict[str, Any]) -> None:
         """Check if required keys are available."""
         try:
             required_keys = set()
@@ -1240,7 +1240,7 @@ class SecurityValidator:
         except Exception as e:
             results["warnings"].append(f"Key availability check failed: {e}")
 
-    def _assess_security_level(self, results: dict) -> None:
+    def _assess_security_level(self, results: dict[str, Any]) -> None:
         """Assess overall security level."""
         if results["errors"]:
             results["security_level"] = "compromised"
@@ -1265,7 +1265,7 @@ def create_default_key_manager() -> KeyManager:
     Returns:
         CompositeKeyManager with environment and file sources
     """
-    managers = [EnvironmentKeyManager()]
+    managers: list[KeyManager] = [EnvironmentKeyManager()]
 
     # Try to add file manager if key directory exists
     possible_key_dirs = [

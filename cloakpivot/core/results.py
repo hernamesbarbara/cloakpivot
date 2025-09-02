@@ -551,7 +551,7 @@ def create_processing_stats(
     entities_found: int = 0,
     entities_masked: int = 0,
     entities_skipped: int = 0,
-    **kwargs,
+    **kwargs: Any,
 ) -> ProcessingStats:
     """
     Create processing statistics with entity counts.

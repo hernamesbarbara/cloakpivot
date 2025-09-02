@@ -160,7 +160,7 @@ class DocumentUnmasker:
         """Apply unmasking to a specific node in the document."""
         logger.debug(f"Unmasking node {node_id} with {len(resolved_anchors)} anchors")
 
-        results = []
+        results: list[Any] = []
 
         # Get the first anchor's node item (they all share the same node)
         if not resolved_anchors:
@@ -171,7 +171,7 @@ class DocumentUnmasker:
         # Handle different node types
         if self._is_text_bearing_node(node_item):
             results = self._unmask_text_node(
-                node_item, resolved_anchors, original_content_provider
+                cast(Union[TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem], node_item), resolved_anchors, original_content_provider
             )
         elif isinstance(node_item, TableItem):
             results = self._unmask_table_node(
@@ -222,7 +222,7 @@ class DocumentUnmasker:
         original_content_provider: Optional[Any],
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a text-bearing node."""
-        results = []
+        results: list[Any] = []
 
         if not hasattr(node_item, "text") or not node_item.text:
             logger.warning("Text node has no text content to unmask")
@@ -250,7 +250,7 @@ class DocumentUnmasker:
 
             if original_content is None:
                 # For now, use placeholder restoration
-                original_content = self._generate_placeholder_content(anchor)
+                original_content = self._generate_placeholder_content(resolved_anchor)
                 logger.debug(
                     f"Using placeholder content for {anchor.replacement_id}: '{original_content}'"
                 )
@@ -339,7 +339,7 @@ class DocumentUnmasker:
             )
 
             # Verify original content if possible
-            content_verified = self._verify_original_content(anchor, original_content)
+            content_verified = self._verify_original_content(resolved_anchor, original_content)
 
             results.append(
                 {
@@ -370,7 +370,7 @@ class DocumentUnmasker:
         original_content_provider: Optional[Any],
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a table node."""
-        results = []
+        results: list[Any] = []
 
         if not hasattr(table_item, "data") or not table_item.data:
             logger.warning("Table item has no data to unmask")
@@ -428,7 +428,7 @@ class DocumentUnmasker:
 
             # Check bounds
             if row_idx >= len(table_data.table_cells) or col_idx >= len(
-                table_data.table_cells[row_idx]
+                cast(Any, table_data.table_cells)[row_idx]
             ):
                 logger.warning(f"Cell coordinates ({row_idx}, {col_idx}) out of bounds")
                 for resolved_anchor in cell_resolved_anchors:
@@ -461,7 +461,7 @@ class DocumentUnmasker:
         original_content_provider: Optional[Any],
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a key-value node."""
-        results = []
+        results: list[Any] = []
         base_node_id = self._get_node_id(kv_item)
 
         # Group anchors by key/value part
@@ -502,7 +502,7 @@ class DocumentUnmasker:
         original_content_provider: Optional[Any],
     ) -> list[dict[str, Any]]:
         """Unmask text content in a table cell."""
-        results = []
+        results: list[Any] = []
         original_text = cell.text
         modified_text = original_text
 
@@ -558,7 +558,7 @@ class DocumentUnmasker:
         part_type: str,
     ) -> list[dict[str, Any]]:
         """Unmask text content in a key-value part."""
-        results = []
+        results: list[Any] = []
         original_text = text_item.text
         modified_text = original_text
 
