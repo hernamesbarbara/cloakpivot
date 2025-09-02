@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all non-error output")
 @click.option(
     "--config",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Configuration file path",
 )
 @click.pass_context
@@ -325,20 +325,20 @@ def _save_cloakmap(
 
 
 @cli.command()
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("input_path", type=click.Path(exists=True))
 @click.option(
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path or format (lexical, markdown, html)",
 )
 @click.option(
-    "--cloakmap", type=click.Path(path_type=Path), help="Path to save the CloakMap file"
+    "--cloakmap", type=click.Path(), help="Path to save the CloakMap file"
 )
 @click.option(
     "--policy",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to masking policy file",
 )
 @click.option(
@@ -571,18 +571,18 @@ def mask(
 
 
 @cli.command()
-@click.argument("masked_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("masked_path", type=click.Path(exists=True))
 @click.option(
     "--cloakmap",
     required=True,
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True),
     help="Path to the CloakMap file",
 )
 @click.option(
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path or format",
 )
 @click.option(
@@ -937,7 +937,7 @@ policy_composition:
 
 
 @policy.command("validate")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 @click.option(
     "--verbose", "-v", is_flag=True, help="Show detailed validation information"
 )
@@ -1040,7 +1040,7 @@ def policy_template(template_name: str, output: TextIO) -> None:
 
 
 @policy.command("test")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 @click.option("--text", "-t", help="Test text to analyze with the policy")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed analysis results")
 def policy_test(policy_file: Path, text: str | None, verbose: bool) -> None:
@@ -1103,7 +1103,7 @@ def policy_test(policy_file: Path, text: str | None, verbose: bool) -> None:
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output file path (default: interactive_policy.yaml)",
 )
 @click.option(
@@ -1451,7 +1451,7 @@ min_entity_length: 2
 
 
 @policy.command("info")
-@click.argument("policy_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("policy_file", type=click.Path(exists=True))
 def policy_info(policy_file: Path) -> None:
     """Show detailed information about a policy file.
 
@@ -1525,12 +1525,12 @@ def diagnostics() -> None:
 
 
 @diagnostics.command("analyze")
-@click.argument("masked_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("masked_file", type=click.Path(exists=True))
+@click.argument("cloakmap_file", type=click.Path(exists=True))
 @click.option(
     "--output",
     "-o",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output path for diagnostic report",
 )
 @click.option(
@@ -1761,7 +1761,7 @@ def diagnostics_analyze(
 
 
 @diagnostics.command("summary")
-@click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("cloakmap_file", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
 def diagnostics_summary(ctx: click.Context, cloakmap_file: Path, verbose: bool) -> None:
@@ -1867,7 +1867,7 @@ def format() -> None:
 
 
 @format.command("convert")
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("input_path", type=click.Path(exists=True))
 @click.option(
     "--to",
     "target_format",
@@ -1879,7 +1879,7 @@ def format() -> None:
     "--out",
     "-o",
     "output_path",
-    type=click.Path(path_type=Path),
+    type=click.Path(),
     help="Output file path (auto-generated if not specified)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
@@ -1962,7 +1962,7 @@ def format_convert(
 
 
 @format.command("detect")
-@click.argument("file_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("file_path", type=click.Path(exists=True))
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed format information")
 @click.pass_context
 def format_detect(ctx: click.Context, file_path: Path, verbose: bool) -> None:
@@ -2446,8 +2446,8 @@ def _generate_json_diff_report(
         json.dump(report_data, f, indent=2, default=str)
 
 
-@cli.command(hidden=True)  # type: ignore[misc]
-@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))  # type: ignore[misc]
+@cli.command(hidden=True) 
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"])) 
 def completion(shell: str) -> None:
     """Generate shell completion script.
 
