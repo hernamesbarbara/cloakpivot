@@ -620,7 +620,9 @@ class DocumentUnmasker:
         return f"#{node_type.lower()}_{id(node_item)}"
 
     def _get_original_content(
-        self, anchor: Union[AnchorEntry, ResolvedAnchor], original_content_provider: Optional[Any]
+        self,
+        anchor: Union[AnchorEntry, ResolvedAnchor],
+        original_content_provider: Optional[Any],
     ) -> Optional[str]:
         """
         Get the original content for an anchor.
