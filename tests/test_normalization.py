@@ -1,6 +1,5 @@
 """Tests for entity normalization and conflict resolution."""
 
-
 import pytest
 
 from cloakpivot.core.analyzer import EntityDetectionResult
@@ -31,7 +30,9 @@ def overlapping_entities():
         EntityDetectionResult("PERSON", 0, 8, 0.9, "John Doe"),
         EntityDetectionResult("PERSON", 2, 10, 0.7, "hn Doe X"),  # Overlaps with first
         EntityDetectionResult("EMAIL_ADDRESS", 15, 32, 0.95, "john@example.com"),
-        EntityDetectionResult("URL", 15, 35, 0.6, "http://john@example.com"),  # Overlaps with email
+        EntityDetectionResult(
+            "URL", 15, 35, 0.6, "http://john@example.com"
+        ),  # Overlaps with email
     ]
 
 
@@ -40,7 +41,9 @@ def adjacent_entities():
     """Create adjacent entities for merging tests."""
     return [
         EntityDetectionResult("PHONE_NUMBER", 0, 12, 0.9, "555-123-4567"),
-        EntityDetectionResult("PHONE_NUMBER", 15, 27, 0.85, "555-987-6543"),  # 3 chars gap
+        EntityDetectionResult(
+            "PHONE_NUMBER", 15, 27, 0.85, "555-987-6543"
+        ),  # 3 chars gap
         EntityDetectionResult("PERSON", 40, 48, 0.8, "John Doe"),
         EntityDetectionResult("PERSON", 50, 60, 0.75, "Jane Smith"),  # 2 chars gap
     ]
@@ -69,7 +72,7 @@ class TestConflictResolutionConfig:
         """Test custom entity priorities."""
         custom_priorities = {
             "CUSTOM_ENTITY": EntityPriority.CRITICAL,
-            "PHONE_NUMBER": EntityPriority.LOW  # Override default
+            "PHONE_NUMBER": EntityPriority.LOW,  # Override default
         }
 
         config = ConflictResolutionConfig(entity_priorities=custom_priorities)
@@ -88,8 +91,8 @@ class TestEntityGroup:
         group = EntityGroup(sample_entities[:2])  # PERSON and EMAIL
 
         assert len(group.entities) == 2
-        assert group.start_pos == 0   # Start of PERSON
-        assert group.end_pos == 37    # End of EMAIL
+        assert group.start_pos == 0  # Start of PERSON
+        assert group.end_pos == 37  # End of EMAIL
 
     def test_add_entity(self, sample_entities):
         """Test adding entities to a group."""
@@ -101,8 +104,8 @@ class TestEntityGroup:
         group.add_entity(sample_entities[1])  # Add EMAIL
 
         assert len(group.entities) == 2
-        assert group.start_pos == 0   # Still starts with PERSON
-        assert group.end_pos == 37    # Now ends with EMAIL
+        assert group.start_pos == 0  # Still starts with PERSON
+        assert group.end_pos == 37  # Now ends with EMAIL
 
     def test_overlap_detection(self, overlapping_entities):
         """Test overlap detection between groups and entities."""
@@ -135,10 +138,14 @@ class TestEntityNormalizer:
         """Test normalizer initialization."""
         normalizer = EntityNormalizer()
 
-        assert normalizer.config.strategy == ConflictResolutionStrategy.HIGHEST_CONFIDENCE
+        assert (
+            normalizer.config.strategy == ConflictResolutionStrategy.HIGHEST_CONFIDENCE
+        )
 
         # Test with custom config
-        config = ConflictResolutionConfig(strategy=ConflictResolutionStrategy.LONGEST_ENTITY)
+        config = ConflictResolutionConfig(
+            strategy=ConflictResolutionStrategy.LONGEST_ENTITY
+        )
         normalizer = EntityNormalizer(config)
 
         assert normalizer.config.strategy == ConflictResolutionStrategy.LONGEST_ENTITY
@@ -166,7 +173,9 @@ class TestEntityNormalizer:
 
     def test_highest_confidence_resolution(self, overlapping_entities):
         """Test conflict resolution by highest confidence."""
-        config = ConflictResolutionConfig(strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE)
+        config = ConflictResolutionConfig(
+            strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE
+        )
         normalizer = EntityNormalizer(config)
 
         result = normalizer.normalize_entities(overlapping_entities)
@@ -176,38 +185,52 @@ class TestEntityNormalizer:
         assert result.conflicts_resolved == 2  # 2 entities removed
 
         # Should keep first PERSON (0.9) over second (0.7)
-        person_entities = [e for e in result.normalized_entities if e.entity_type == "PERSON"]
+        person_entities = [
+            e for e in result.normalized_entities if e.entity_type == "PERSON"
+        ]
         assert len(person_entities) == 1
         assert person_entities[0].confidence == 0.9
 
         # Should keep EMAIL (0.95) over URL (0.6)
-        email_entities = [e for e in result.normalized_entities if e.entity_type == "EMAIL_ADDRESS"]
+        email_entities = [
+            e for e in result.normalized_entities if e.entity_type == "EMAIL_ADDRESS"
+        ]
         assert len(email_entities) == 1
         assert email_entities[0].confidence == 0.95
 
     def test_longest_entity_resolution(self):
         """Test conflict resolution by entity length."""
         entities = [
-            EntityDetectionResult("PERSON", 0, 8, 0.7, "John Doe"),      # 8 chars
-            EntityDetectionResult("PERSON", 2, 15, 0.6, "hn Doe Smith"),  # 13 chars, overlaps
+            EntityDetectionResult("PERSON", 0, 8, 0.7, "John Doe"),  # 8 chars
+            EntityDetectionResult(
+                "PERSON", 2, 15, 0.6, "hn Doe Smith"
+            ),  # 13 chars, overlaps
         ]
 
-        config = ConflictResolutionConfig(strategy=ConflictResolutionStrategy.LONGEST_ENTITY)
+        config = ConflictResolutionConfig(
+            strategy=ConflictResolutionStrategy.LONGEST_ENTITY
+        )
         normalizer = EntityNormalizer(config)
 
         result = normalizer.normalize_entities(entities)
 
         assert len(result.normalized_entities) == 1
-        assert result.normalized_entities[0].text == "hn Doe Smith"  # Longer entity kept
+        assert (
+            result.normalized_entities[0].text == "hn Doe Smith"
+        )  # Longer entity kept
 
     def test_most_specific_resolution(self):
         """Test conflict resolution by entity specificity."""
         entities = [
             EntityDetectionResult("PERSON", 0, 8, 0.8, "John Doe"),
-            EntityDetectionResult("US_SSN", 2, 10, 0.7, "23-45-67"),  # Critical priority, overlaps
+            EntityDetectionResult(
+                "US_SSN", 2, 10, 0.7, "23-45-67"
+            ),  # Critical priority, overlaps
         ]
 
-        config = ConflictResolutionConfig(strategy=ConflictResolutionStrategy.MOST_SPECIFIC)
+        config = ConflictResolutionConfig(
+            strategy=ConflictResolutionStrategy.MOST_SPECIFIC
+        )
         normalizer = EntityNormalizer(config)
 
         result = normalizer.normalize_entities(entities)
@@ -219,19 +242,22 @@ class TestEntityNormalizer:
     def test_merge_adjacent_strategy(self, adjacent_entities):
         """Test merging adjacent entities of same type."""
         config = ConflictResolutionConfig(
-            strategy=ConflictResolutionStrategy.MERGE_ADJACENT,
-            merge_threshold_chars=5
+            strategy=ConflictResolutionStrategy.MERGE_ADJACENT, merge_threshold_chars=5
         )
         normalizer = EntityNormalizer(config)
 
         result = normalizer.normalize_entities(adjacent_entities)
 
         # Should merge adjacent PHONE_NUMBER entities (gap=3, threshold=5)
-        phone_entities = [e for e in result.normalized_entities if e.entity_type == "PHONE_NUMBER"]
+        phone_entities = [
+            e for e in result.normalized_entities if e.entity_type == "PHONE_NUMBER"
+        ]
         assert len(phone_entities) == 1
 
         # Should merge adjacent PERSON entities (gap=2, threshold=5)
-        person_entities = [e for e in result.normalized_entities if e.entity_type == "PERSON"]
+        person_entities = [
+            e for e in result.normalized_entities if e.entity_type == "PERSON"
+        ]
         assert len(person_entities) == 1
 
         # Total should be 2 merged entities
@@ -240,8 +266,12 @@ class TestEntityNormalizer:
     def test_preserve_high_confidence(self):
         """Test preservation of high-confidence entities."""
         entities = [
-            EntityDetectionResult("PERSON", 0, 8, 0.96, "John Doe"),      # Above preserve threshold
-            EntityDetectionResult("PERSON", 2, 10, 0.98, "hn Doe X"),     # Above preserve threshold, overlaps
+            EntityDetectionResult(
+                "PERSON", 0, 8, 0.96, "John Doe"
+            ),  # Above preserve threshold
+            EntityDetectionResult(
+                "PERSON", 2, 10, 0.98, "hn Doe X"
+            ),  # Above preserve threshold, overlaps
         ]
 
         config = ConflictResolutionConfig(preserve_high_confidence=0.95)
@@ -261,11 +291,17 @@ class TestEntityNormalizer:
         assert len(groups) == 2
 
         # First group should have 2 PERSON entities
-        person_group = next(g for g in groups if any(e.entity_type == "PERSON" for e in g.entities))
+        person_group = next(
+            g for g in groups if any(e.entity_type == "PERSON" for e in g.entities)
+        )
         assert len(person_group.entities) == 2
 
         # Second group should have EMAIL and URL
-        email_group = next(g for g in groups if any(e.entity_type == "EMAIL_ADDRESS" for e in g.entities))
+        email_group = next(
+            g
+            for g in groups
+            if any(e.entity_type == "EMAIL_ADDRESS" for e in g.entities)
+        )
         assert len(email_group.entities) == 2
 
     def test_validation(self, overlapping_entities):
@@ -273,7 +309,9 @@ class TestEntityNormalizer:
         normalizer = EntityNormalizer()
         result = normalizer.normalize_entities(overlapping_entities)
 
-        validation = normalizer.validate_normalization(overlapping_entities, result.normalized_entities)
+        validation = normalizer.validate_normalization(
+            overlapping_entities, result.normalized_entities
+        )
 
         assert validation["original_count"] == 4
         assert validation["normalized_count"] == 2
@@ -292,7 +330,7 @@ class TestNormalizationResult:
             normalized_entities=sample_entities,
             conflicts_resolved=2,
             entities_merged=1,
-            entities_removed=0
+            entities_removed=0,
         )
 
         assert result.total_changes == 3  # 2 + 1 + 0
@@ -328,8 +366,12 @@ class TestEdgeCases:
         """Test complex overlapping scenarios."""
         entities = [
             EntityDetectionResult("PERSON", 0, 10, 0.9, "John Smith"),
-            EntityDetectionResult("PERSON", 5, 15, 0.8, "Smith Jane"),   # Overlaps with first
-            EntityDetectionResult("PERSON", 12, 20, 0.85, "Jane Doe"),   # Overlaps with second
+            EntityDetectionResult(
+                "PERSON", 5, 15, 0.8, "Smith Jane"
+            ),  # Overlaps with first
+            EntityDetectionResult(
+                "PERSON", 12, 20, 0.85, "Jane Doe"
+            ),  # Overlaps with second
         ]
 
         normalizer = EntityNormalizer()
@@ -344,12 +386,13 @@ class TestEdgeCases:
         """Test that different entity types are not merged even if adjacent."""
         entities = [
             EntityDetectionResult("PERSON", 0, 8, 0.9, "John Doe"),
-            EntityDetectionResult("PHONE_NUMBER", 10, 22, 0.85, "555-123-4567"),  # Adjacent but different type
+            EntityDetectionResult(
+                "PHONE_NUMBER", 10, 22, 0.85, "555-123-4567"
+            ),  # Adjacent but different type
         ]
 
         config = ConflictResolutionConfig(
-            strategy=ConflictResolutionStrategy.MERGE_ADJACENT,
-            merge_threshold_chars=5
+            strategy=ConflictResolutionStrategy.MERGE_ADJACENT, merge_threshold_chars=5
         )
         normalizer = EntityNormalizer(config)
 

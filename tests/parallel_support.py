@@ -34,9 +34,9 @@ class ParallelTestSupport:
         """Get the number of parallel workers configured."""
         # Check various environment variables that might indicate worker count
         worker_count_vars = [
-            'PYTEST_XDIST_WORKER_COUNT',
-            'PYTEST_WORKERS',
-            'PYTEST_NUM_WORKERS'
+            "PYTEST_XDIST_WORKER_COUNT",
+            "PYTEST_WORKERS",
+            "PYTEST_NUM_WORKERS",
         ]
 
         for var in worker_count_vars:
@@ -51,7 +51,7 @@ class ParallelTestSupport:
     def get_worker_id() -> str:
         """Get current worker ID."""
         # pytest-xdist sets PYTEST_XDIST_WORKER environment variable
-        worker_id = os.getenv('PYTEST_XDIST_WORKER')
+        worker_id = os.getenv("PYTEST_XDIST_WORKER")
         if worker_id:
             return worker_id
 
@@ -60,7 +60,7 @@ class ParallelTestSupport:
             # Try to extract from pytest worker input if available
             return f"worker_{os.getpid()}"
 
-        return 'main'
+        return "main"
 
     @staticmethod
     def setup_worker_environment(worker_id: str | None = None) -> dict[str, str]:
@@ -80,24 +80,24 @@ class ParallelTestSupport:
         # Worker-specific random seeds for reproducibility
         seed = hash(worker_id) & 0x7FFFFFFF  # Ensure positive 32-bit integer
         random.seed(seed)
-        env_vars['PYTEST_WORKER_RANDOM_SEED'] = str(seed)
+        env_vars["PYTEST_WORKER_RANDOM_SEED"] = str(seed)
 
         # Store worker temp directory path but don't create it yet (lazy creation)
-        temp_base = Path(tempfile.gettempdir()) / f'cloakpivot_worker_{worker_id}'
+        temp_base = Path(tempfile.gettempdir()) / f"cloakpivot_worker_{worker_id}"
         worker_temp = str(temp_base)
-        os.environ['WORKER_TEMP_DIR'] = worker_temp
-        env_vars['WORKER_TEMP_DIR'] = worker_temp
+        os.environ["WORKER_TEMP_DIR"] = worker_temp
+        env_vars["WORKER_TEMP_DIR"] = worker_temp
 
         # Worker identification
-        os.environ['PYTEST_CURRENT_WORKER'] = worker_id
-        env_vars['PYTEST_CURRENT_WORKER'] = worker_id
+        os.environ["PYTEST_CURRENT_WORKER"] = worker_id
+        env_vars["PYTEST_CURRENT_WORKER"] = worker_id
 
         return env_vars
 
     @staticmethod
     def get_worker_temp_dir() -> Path:
         """Get the temporary directory for the current worker."""
-        worker_temp = os.getenv('WORKER_TEMP_DIR')
+        worker_temp = os.getenv("WORKER_TEMP_DIR")
         if worker_temp:
             temp_path = Path(worker_temp)
             # Create directory on first access (lazy creation)
@@ -106,17 +106,18 @@ class ParallelTestSupport:
 
         # Fallback: create worker-specific temp dir
         worker_id = ParallelTestSupport.get_worker_id()
-        temp_base = Path(tempfile.gettempdir()) / f'cloakpivot_worker_{worker_id}'
+        temp_base = Path(tempfile.gettempdir()) / f"cloakpivot_worker_{worker_id}"
         temp_base.mkdir(exist_ok=True)
         return temp_base
 
     @staticmethod
     def cleanup_worker_environment() -> None:
         """Clean up worker-specific environment and temporary files."""
-        worker_temp = os.getenv('WORKER_TEMP_DIR')
+        worker_temp = os.getenv("WORKER_TEMP_DIR")
         if worker_temp:
             try:
                 import shutil
+
                 temp_path = Path(worker_temp)
                 if temp_path.exists():
                     shutil.rmtree(temp_path, ignore_errors=True)
@@ -135,15 +136,15 @@ class ParallelTestSupport:
         import multiprocessing
 
         # Respect explicit configuration
-        explicit_workers = os.getenv('PYTEST_WORKERS')
+        explicit_workers = os.getenv("PYTEST_WORKERS")
         if explicit_workers and explicit_workers.isdigit():
             return int(explicit_workers)
 
         cpu_count = multiprocessing.cpu_count()
 
         # Check for resource limits
-        max_workers_str = os.getenv('PYTEST_MAX_WORKERS', '8')
-        min_workers_str = os.getenv('PYTEST_MIN_WORKERS', '1')
+        max_workers_str = os.getenv("PYTEST_MAX_WORKERS", "8")
+        min_workers_str = os.getenv("PYTEST_MIN_WORKERS", "1")
 
         try:
             max_workers = int(max_workers_str)
@@ -160,7 +161,9 @@ class ParallelTestSupport:
         elif cpu_count <= 8:
             optimal = min(4, cpu_count - 1)  # Leave one core free
         else:
-            optimal = min(max_workers, cpu_count // 2)  # Cap at max_workers, use half cores
+            optimal = min(
+                max_workers, cpu_count // 2
+            )  # Cap at max_workers, use half cores
 
         # Apply bounds
         return max(min_workers, min(optimal, max_workers))
@@ -215,6 +218,7 @@ class WorkerResourceManager:
 
         # Remove temporary directories
         import shutil
+
         for temp_dir in self._temp_dirs:
             try:
                 if temp_dir.exists():

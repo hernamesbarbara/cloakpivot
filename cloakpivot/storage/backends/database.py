@@ -82,7 +82,9 @@ class DatabaseStorage(StorageBackend):
 
         database_url = self.config["database_url"]
         if not database_url.startswith(("sqlite://", "postgresql://", "mysql://")):
-            raise ValueError("database_url must start with sqlite://, postgresql://, or mysql://")
+            raise ValueError(
+                "database_url must start with sqlite://, postgresql://, or mysql://"
+            )
 
     @property
     def connection(self):
@@ -127,16 +129,16 @@ class DatabaseStorage(StorageBackend):
                 max_overflow = self.config.get("pool_max_overflow", 10)
 
                 self._pool = psycopg2.pool.ThreadedConnectionPool(
-                    minconn=1,
-                    maxconn=pool_size + max_overflow,
-                    dsn=database_url
+                    minconn=1, maxconn=pool_size + max_overflow, dsn=database_url
                 )
 
                 # Get initial connection from pool
                 return self._pool.getconn()
 
             except ImportError as e:
-                raise ValueError("psycopg2 is required for PostgreSQL storage backend") from e
+                raise ValueError(
+                    "psycopg2 is required for PostgreSQL storage backend"
+                ) from e
 
         else:
             raise ValueError(f"Unsupported database URL: {database_url}")
@@ -184,9 +186,15 @@ class DatabaseStorage(StorageBackend):
             """)
 
             # Create indexes
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_doc_id ON cloakmaps (doc_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_created_at ON cloakmaps (created_at)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_version ON cloakmaps (version)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_doc_id ON cloakmaps (doc_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_created_at ON cloakmaps (created_at)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_version ON cloakmaps (version)"
+            )
 
             conn.commit()
 
@@ -224,9 +232,15 @@ class DatabaseStorage(StorageBackend):
             """)
 
             # Create indexes
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_doc_id ON cloakmaps (doc_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_created_at ON cloakmaps (created_at)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cloakmaps_version ON cloakmaps (version)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_doc_id ON cloakmaps (doc_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_created_at ON cloakmaps (created_at)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_cloakmaps_version ON cloakmaps (version)"
+            )
 
             conn.commit()
 
@@ -235,7 +249,7 @@ class DatabaseStorage(StorageBackend):
         key: str,
         cloakmap: CloakMap,
         metadata: Optional[dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """
         Save a CloakMap to database.
@@ -261,7 +275,7 @@ class DatabaseStorage(StorageBackend):
                 backend_type=self.backend_type,
                 content_bytes=content_bytes,
                 database_url=self.config["database_url"],
-                **(metadata or {})
+                **(metadata or {}),
             )
 
             with self._lock:
@@ -270,19 +284,29 @@ class DatabaseStorage(StorageBackend):
 
                 # Insert/update CloakMap
                 if self.config["database_url"].startswith("sqlite://"):
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT OR REPLACE INTO cloakmaps
                         (key, content, doc_id, version, anchor_count, is_encrypted,
                          content_hash, size_bytes, created_at, modified_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        key, content, cloakmap.doc_id, cloakmap.version,
-                        cloakmap.anchor_count, cloakmap.is_encrypted,
-                        storage_metadata.content_hash, storage_metadata.size_bytes,
-                        storage_metadata.created_at, storage_metadata.modified_at
-                    ))
+                    """,
+                        (
+                            key,
+                            content,
+                            cloakmap.doc_id,
+                            cloakmap.version,
+                            cloakmap.anchor_count,
+                            cloakmap.is_encrypted,
+                            storage_metadata.content_hash,
+                            storage_metadata.size_bytes,
+                            storage_metadata.created_at,
+                            storage_metadata.modified_at,
+                        ),
+                    )
                 else:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO cloakmaps
                         (key, content, doc_id, version, anchor_count, is_encrypted,
                          content_hash, size_bytes, created_at, modified_at)
@@ -296,44 +320,62 @@ class DatabaseStorage(StorageBackend):
                         content_hash = EXCLUDED.content_hash,
                         size_bytes = EXCLUDED.size_bytes,
                         modified_at = EXCLUDED.modified_at
-                    """, (
-                        key, content, cloakmap.doc_id, cloakmap.version,
-                        cloakmap.anchor_count, cloakmap.is_encrypted,
-                        storage_metadata.content_hash, storage_metadata.size_bytes,
-                        storage_metadata.created_at, storage_metadata.modified_at
-                    ))
+                    """,
+                        (
+                            key,
+                            content,
+                            cloakmap.doc_id,
+                            cloakmap.version,
+                            cloakmap.anchor_count,
+                            cloakmap.is_encrypted,
+                            storage_metadata.content_hash,
+                            storage_metadata.size_bytes,
+                            storage_metadata.created_at,
+                            storage_metadata.modified_at,
+                        ),
+                    )
 
                 # Insert/update metadata
                 metadata_json = json.dumps(storage_metadata.to_dict())
 
                 if self.config["database_url"].startswith("sqlite://"):
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT OR REPLACE INTO cloakmap_metadata
                         (key, metadata_json, created_at, modified_at)
                         VALUES (?, ?, ?, ?)
-                    """, (
-                        key, metadata_json, storage_metadata.created_at,
-                        storage_metadata.modified_at
-                    ))
+                    """,
+                        (
+                            key,
+                            metadata_json,
+                            storage_metadata.created_at,
+                            storage_metadata.modified_at,
+                        ),
+                    )
                 else:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO cloakmap_metadata
                         (key, metadata_json, created_at, modified_at)
                         VALUES (%s, %s, %s, %s)
                         ON CONFLICT (key) DO UPDATE SET
                         metadata_json = EXCLUDED.metadata_json,
                         modified_at = EXCLUDED.modified_at
-                    """, (
-                        key, metadata_json, storage_metadata.created_at,
-                        storage_metadata.modified_at
-                    ))
+                    """,
+                        (
+                            key,
+                            metadata_json,
+                            storage_metadata.created_at,
+                            storage_metadata.modified_at,
+                        ),
+                    )
 
                 conn.commit()
 
             return storage_metadata
 
         except Exception as e:
-            if hasattr(conn, 'rollback'):
+            if hasattr(conn, "rollback"):
                 conn.rollback()
             raise ValueError(f"Failed to save CloakMap to database: {e}") from e
 
@@ -354,9 +396,13 @@ class DatabaseStorage(StorageBackend):
                 cursor = conn.cursor()
 
                 if self.config["database_url"].startswith("sqlite://"):
-                    cursor.execute("SELECT content FROM cloakmaps WHERE key = ?", (key,))
+                    cursor.execute(
+                        "SELECT content FROM cloakmaps WHERE key = ?", (key,)
+                    )
                 else:
-                    cursor.execute("SELECT content FROM cloakmaps WHERE key = %s", (key,))
+                    cursor.execute(
+                        "SELECT content FROM cloakmaps WHERE key = %s", (key,)
+                    )
 
                 row = cursor.fetchone()
                 if not row:
@@ -417,15 +463,12 @@ class DatabaseStorage(StorageBackend):
                 return True
 
         except Exception as e:
-            if hasattr(conn, 'rollback'):
+            if hasattr(conn, "rollback"):
                 conn.rollback()
             raise ConnectionError(f"Failed to delete from database: {e}") from e
 
     def list_keys(
-        self,
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
-        **kwargs: Any
+        self, prefix: Optional[str] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> list[str]:
         """
         List CloakMap keys in database.
@@ -491,9 +534,15 @@ class DatabaseStorage(StorageBackend):
 
                 # Try to get from metadata table first
                 if self.config["database_url"].startswith("sqlite://"):
-                    cursor.execute("SELECT metadata_json FROM cloakmap_metadata WHERE key = ?", (key,))
+                    cursor.execute(
+                        "SELECT metadata_json FROM cloakmap_metadata WHERE key = ?",
+                        (key,),
+                    )
                 else:
-                    cursor.execute("SELECT metadata_json FROM cloakmap_metadata WHERE key = %s", (key,))
+                    cursor.execute(
+                        "SELECT metadata_json FROM cloakmap_metadata WHERE key = %s",
+                        (key,),
+                    )
 
                 row = cursor.fetchone()
                 if row:
@@ -502,23 +551,38 @@ class DatabaseStorage(StorageBackend):
 
                 # Fallback to constructing from main table
                 if self.config["database_url"].startswith("sqlite://"):
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT doc_id, version, anchor_count, is_encrypted,
                                content_hash, size_bytes, created_at, modified_at
                         FROM cloakmaps WHERE key = ?
-                    """, (key,))
+                    """,
+                        (key,),
+                    )
                 else:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT doc_id, version, anchor_count, is_encrypted,
                                content_hash, size_bytes, created_at, modified_at
                         FROM cloakmaps WHERE key = %s
-                    """, (key,))
+                    """,
+                        (key,),
+                    )
 
                 row = cursor.fetchone()
                 if not row:
                     raise KeyError(f"CloakMap not found: {key}")
 
-                doc_id, version, anchor_count, is_encrypted, content_hash, size_bytes, created_at, modified_at = row
+                (
+                    doc_id,
+                    version,
+                    anchor_count,
+                    is_encrypted,
+                    content_hash,
+                    size_bytes,
+                    created_at,
+                    modified_at,
+                ) = row
 
                 # Parse timestamps
                 if isinstance(created_at, str):
@@ -557,19 +621,25 @@ class DatabaseStorage(StorageBackend):
                 cursor.execute("SELECT COUNT(*) FROM cloakmaps")
                 count = cursor.fetchone()[0]
 
-            base_result.update({
-                "database_url": self.config["database_url"].split("@")[-1],  # Hide credentials
-                "connection_active": True,
-                "cloakmap_count": count,
-            })
+            base_result.update(
+                {
+                    "database_url": self.config["database_url"].split("@")[
+                        -1
+                    ],  # Hide credentials
+                    "connection_active": True,
+                    "cloakmap_count": count,
+                }
+            )
 
         except Exception as e:
-            base_result.update({
-                "status": "unhealthy",
-                "database_url": self.config.get("database_url", "").split("@")[-1],
-                "connection_active": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            })
+            base_result.update(
+                {
+                    "status": "unhealthy",
+                    "database_url": self.config.get("database_url", "").split("@")[-1],
+                    "connection_active": False,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
 
         return base_result

@@ -28,9 +28,7 @@ class RecognizerPluginRegistry:
         self._active_recognizers: dict[str, BaseRecognizerPlugin] = {}
 
     def register_recognizer_plugin(
-        self,
-        plugin: BaseRecognizerPlugin,
-        config: Optional[dict[str, Any]] = None
+        self, plugin: BaseRecognizerPlugin, config: Optional[dict[str, Any]] = None
     ) -> None:
         """
         Register and initialize a recognizer plugin.
@@ -59,7 +57,7 @@ class RecognizerPluginRegistry:
             logger.error(f"Failed to register recognizer plugin {plugin_name}: {e}")
             raise PluginError(
                 f"Failed to register recognizer plugin {plugin_name}: {e}",
-                plugin_name=plugin_name
+                plugin_name=plugin_name,
             ) from e
 
     def analyze_text(
@@ -67,7 +65,7 @@ class RecognizerPluginRegistry:
         text: str,
         language: str = "en",
         entity_types: Optional[list[str]] = None,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> list[RecognizerPluginResult]:
         """
         Analyze text using all active recognizer plugins.
@@ -90,14 +88,18 @@ class RecognizerPluginRegistry:
             try:
                 # Check if plugin supports the language
                 if not plugin.supports_language(language):
-                    logger.debug(f"Plugin {plugin_name} does not support language {language}")
+                    logger.debug(
+                        f"Plugin {plugin_name} does not support language {language}"
+                    )
                     continue
 
                 # Check if plugin supports requested entity types
                 if entity_types:
                     plugin.get_supported_entity_types()
                     if not any(plugin.supports_entity_type(et) for et in entity_types):
-                        logger.debug(f"Plugin {plugin_name} does not support requested entity types")
+                        logger.debug(
+                            f"Plugin {plugin_name} does not support requested entity types"
+                        )
                         continue
 
                 # Run analysis
@@ -106,7 +108,8 @@ class RecognizerPluginRegistry:
                 # Filter by requested entity types if specified
                 if entity_types:
                     results = [
-                        result for result in results
+                        result
+                        for result in results
                         if result.entity_type in entity_types
                     ]
 
@@ -130,7 +133,7 @@ class RecognizerPluginRegistry:
         plugin_name: str,
         text: str,
         language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> list[RecognizerPluginResult]:
         """
         Analyze text using a specific recognizer plugin.
@@ -150,7 +153,7 @@ class RecognizerPluginRegistry:
         if plugin_name not in self._active_recognizers:
             raise PluginError(
                 f"Recognizer plugin {plugin_name} not found or not active",
-                plugin_name=plugin_name
+                plugin_name=plugin_name,
             )
 
         plugin = self._active_recognizers[plugin_name]
@@ -163,7 +166,7 @@ class RecognizerPluginRegistry:
             raise PluginExecutionError(
                 f"Recognizer plugin {plugin_name} execution failed: {e}",
                 plugin_name=plugin_name,
-                original_exception=e
+                original_exception=e,
             ) from e
 
     def get_active_recognizer_plugins(self) -> dict[str, BaseRecognizerPlugin]:

@@ -17,7 +17,7 @@ class TestFormatPattern:
         pattern = FormatPattern.analyze("555-123-4567")
         assert pattern.original_length == 12
         assert pattern.digit_positions == [0, 1, 2, 4, 5, 6, 8, 9, 10, 11]
-        assert pattern.separator_positions == {3: '-', 7: '-'}
+        assert pattern.separator_positions == {3: "-", 7: "-"}
         assert pattern.character_classes == "DDDSDDDSDDDD"  # D=digit, S=separator
         assert pattern.detected_format == "phone"
 
@@ -26,7 +26,7 @@ class TestFormatPattern:
         pattern = FormatPattern.analyze("123-45-6789")
         assert pattern.original_length == 11
         assert pattern.digit_positions == [0, 1, 2, 4, 5, 7, 8, 9, 10]
-        assert pattern.separator_positions == {3: '-', 6: '-'}
+        assert pattern.separator_positions == {3: "-", 6: "-"}
         assert pattern.character_classes == "DDDSDDSDDDD"
         assert pattern.detected_format == "ssn"
 
@@ -34,8 +34,8 @@ class TestFormatPattern:
         """Test email pattern analysis."""
         pattern = FormatPattern.analyze("user@example.com")
         assert pattern.original_length == 16
-        assert '@' in pattern.special_chars
-        assert '.' in pattern.special_chars
+        assert "@" in pattern.special_chars
+        assert "." in pattern.special_chars
         assert pattern.detected_format == "email"
 
     def test_analyze_credit_card_pattern(self):
@@ -73,8 +73,8 @@ class TestSurrogateGenerator:
 
         # Should preserve format
         assert len(surrogate) == len(original)
-        assert surrogate[3] == '-'
-        assert surrogate[7] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[7] == "-"
         assert all(c.isdigit() for i, c in enumerate(surrogate) if i not in [3, 7])
 
     def test_format_preservation_ssn(self, generator):
@@ -84,8 +84,8 @@ class TestSurrogateGenerator:
 
         # Should preserve format
         assert len(surrogate) == len(original)
-        assert surrogate[3] == '-'
-        assert surrogate[6] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[6] == "-"
         assert all(c.isdigit() for i, c in enumerate(surrogate) if i not in [3, 6])
 
     def test_format_preservation_email(self, generator):
@@ -94,11 +94,11 @@ class TestSurrogateGenerator:
         surrogate = generator.generate_surrogate(original, "EMAIL_ADDRESS")
 
         # Should preserve email structure
-        assert '@' in surrogate
-        assert '.' in surrogate
-        parts = surrogate.split('@')
+        assert "@" in surrogate
+        assert "." in surrogate
+        parts = surrogate.split("@")
         assert len(parts) == 2
-        assert '.' in parts[1]  # Domain should have dot
+        assert "." in parts[1]  # Domain should have dot
 
     def test_different_seeds_produce_different_results(self):
         """Test that different seeds produce different results."""
@@ -158,8 +158,8 @@ class TestSurrogateGenerator:
         surrogate = generator.generate_from_pattern(pattern)
 
         assert len(surrogate) == len(pattern)
-        assert surrogate[3] == '-'
-        assert surrogate[6] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[6] == "-"
         assert surrogate[:3].isalpha()
         assert surrogate[4:6].isalpha()
         assert surrogate[7:].isdigit()
@@ -169,16 +169,18 @@ class TestSurrogateGenerator:
         # Test different entity types produce appropriate formats
         phone_surrogate = generator.generate_surrogate("555-123-4567", "PHONE_NUMBER")
         ssn_surrogate = generator.generate_surrogate("123-45-6789", "US_SSN")
-        email_surrogate = generator.generate_surrogate("user@example.com", "EMAIL_ADDRESS")
+        email_surrogate = generator.generate_surrogate(
+            "user@example.com", "EMAIL_ADDRESS"
+        )
 
         # Each should follow appropriate patterns
-        assert '-' in phone_surrogate
-        assert phone_surrogate.replace('-', '').isdigit()
+        assert "-" in phone_surrogate
+        assert phone_surrogate.replace("-", "").isdigit()
 
-        assert '-' in ssn_surrogate
-        assert ssn_surrogate.replace('-', '').isdigit()
+        assert "-" in ssn_surrogate
+        assert ssn_surrogate.replace("-", "").isdigit()
 
-        assert '@' in email_surrogate and '.' in email_surrogate
+        assert "@" in email_surrogate and "." in email_surrogate
 
 
 class TestSurrogateQualityMetrics:

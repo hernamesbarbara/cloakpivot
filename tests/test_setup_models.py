@@ -19,7 +19,10 @@ if str(scripts_dir) not in sys.path:
 # Import after path modification
 try:
     import importlib.util
-    spec = importlib.util.spec_from_file_location("setup_models", scripts_dir / "setup-models.py")
+
+    spec = importlib.util.spec_from_file_location(
+        "setup_models", scripts_dir / "setup-models.py"
+    )
     setup_models = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(setup_models)
     # Make the module available globally for patching
@@ -41,14 +44,14 @@ class TestModelManager:
     @pytest.fixture
     def mock_spacy_module(self):
         """Mock spaCy module for controlled testing."""
-        with patch('setup_models.spacy') as mock_spacy:
+        with patch("setup_models.spacy") as mock_spacy:
             mock_spacy.__version__ = "3.7.0"
             yield mock_spacy
 
     @pytest.fixture
     def mock_spacy_download(self):
         """Mock spaCy download function."""
-        with patch('setup_models.spacy_download') as mock_download:
+        with patch("setup_models.spacy_download") as mock_download:
             yield mock_download
 
     @pytest.fixture
@@ -63,7 +66,7 @@ class TestModelManager:
         assert manager.model_size == "small"
         assert manager.cache_dir == Path.home() / ".cache" / "spacy"
         assert manager.spacy_models_dir == Path.home() / "spacy_models"
-        assert hasattr(manager, 'start_time')
+        assert hasattr(manager, "start_time")
 
     def test_init_custom_parameters(self, temp_cache_dir):
         """Test ModelManager initialization with custom parameters."""
@@ -129,7 +132,9 @@ class TestModelManager:
 
         assert result is False
 
-    def test_is_model_available_validation_failure(self, model_manager, mock_spacy_module):
+    def test_is_model_available_validation_failure(
+        self, model_manager, mock_spacy_module
+    ):
         """Test model availability check when validation fails."""
         # Mock a model that loads but fails validation
         mock_doc = Mock()
@@ -172,7 +177,9 @@ class TestModelManager:
 
         assert result is False
 
-    def test_is_model_available_unexpected_error(self, model_manager, mock_spacy_module):
+    def test_is_model_available_unexpected_error(
+        self, model_manager, mock_spacy_module
+    ):
         """Test model availability check with unexpected error."""
         mock_spacy_module.load.side_effect = ValueError("Unexpected error")
 
@@ -182,7 +189,7 @@ class TestModelManager:
 
     def test_download_model_already_available(self, model_manager, mock_spacy_download):
         """Test downloading model that's already available."""
-        with patch.object(model_manager, 'is_model_available', return_value=True):
+        with patch.object(model_manager, "is_model_available", return_value=True):
             result = model_manager.download_model("en_core_web_sm")
 
             assert result is True
@@ -190,7 +197,9 @@ class TestModelManager:
 
     def test_download_model_force_download(self, model_manager, mock_spacy_download):
         """Test force downloading model even when available."""
-        with patch.object(model_manager, 'is_model_available', side_effect=[True, True]):
+        with patch.object(
+            model_manager, "is_model_available", side_effect=[True, True]
+        ):
             result = model_manager.download_model("en_core_web_sm", force=True)
 
             assert result is True
@@ -198,7 +207,9 @@ class TestModelManager:
 
     def test_download_model_success(self, model_manager, mock_spacy_download):
         """Test successful model download."""
-        with patch.object(model_manager, 'is_model_available', side_effect=[False, True]):
+        with patch.object(
+            model_manager, "is_model_available", side_effect=[False, True]
+        ):
             result = model_manager.download_model("en_core_web_sm")
 
             assert result is True
@@ -208,14 +219,18 @@ class TestModelManager:
         """Test model download failure."""
         mock_spacy_download.side_effect = Exception("Download failed")
 
-        with patch.object(model_manager, 'is_model_available', return_value=False):
+        with patch.object(model_manager, "is_model_available", return_value=False):
             result = model_manager.download_model("en_core_web_sm")
 
             assert result is False
 
-    def test_download_model_verification_failure(self, model_manager, mock_spacy_download):
+    def test_download_model_verification_failure(
+        self, model_manager, mock_spacy_download
+    ):
         """Test model download with verification failure."""
-        with patch.object(model_manager, 'is_model_available', side_effect=[False, False]):
+        with patch.object(
+            model_manager, "is_model_available", side_effect=[False, False]
+        ):
             result = model_manager.download_model("en_core_web_sm")
 
             assert result is False
@@ -223,15 +238,21 @@ class TestModelManager:
 
     def test_setup_models_cache_hit_verified(self, model_manager):
         """Test setup models with cache hit and successful verification."""
-        with patch.object(model_manager, 'is_model_available', return_value=True):
+        with patch.object(model_manager, "is_model_available", return_value=True):
             result = model_manager.setup_models(cache_hit=True)
 
             assert result is True
 
-    def test_setup_models_cache_hit_verification_failed(self, model_manager, mock_spacy_download):
+    def test_setup_models_cache_hit_verification_failed(
+        self, model_manager, mock_spacy_download
+    ):
         """Test setup models with cache hit but verification failure."""
-        with patch.object(model_manager, 'is_model_available', side_effect=[False, True]):
-            with patch.object(model_manager, 'download_model', return_value=True) as mock_download:
+        with patch.object(
+            model_manager, "is_model_available", side_effect=[False, True]
+        ):
+            with patch.object(
+                model_manager, "download_model", return_value=True
+            ) as mock_download:
                 result = model_manager.setup_models(cache_hit=True)
 
                 assert result is True
@@ -239,28 +260,28 @@ class TestModelManager:
 
     def test_setup_models_fresh_download_success(self, model_manager):
         """Test setup models with fresh download success."""
-        with patch.object(model_manager, 'download_model', return_value=True):
+        with patch.object(model_manager, "download_model", return_value=True):
             result = model_manager.setup_models(cache_hit=False)
 
             assert result is True
 
     def test_setup_models_download_failure(self, model_manager):
         """Test setup models with download failure."""
-        with patch.object(model_manager, 'download_model', return_value=False):
+        with patch.object(model_manager, "download_model", return_value=False):
             result = model_manager.setup_models(cache_hit=False)
 
             assert result is False
 
     def test_setup_models_verify_only_success(self, model_manager):
         """Test setup models in verify-only mode with success."""
-        with patch.object(model_manager, 'is_model_available', return_value=True):
+        with patch.object(model_manager, "is_model_available", return_value=True):
             result = model_manager.setup_models(verify_only=True)
 
             assert result is True
 
     def test_setup_models_verify_only_failure(self, model_manager):
         """Test setup models in verify-only mode with failure."""
-        with patch.object(model_manager, 'is_model_available', return_value=False):
+        with patch.object(model_manager, "is_model_available", return_value=False):
             result = model_manager.setup_models(verify_only=True)
 
             assert result is False
@@ -274,7 +295,9 @@ class TestModelManager:
             # First model succeeds, second fails
             return model_name == "en_core_web_sm"
 
-        with patch.object(model_manager, 'download_model', side_effect=mock_download_side_effect):
+        with patch.object(
+            model_manager, "download_model", side_effect=mock_download_side_effect
+        ):
             result = model_manager.setup_models(cache_hit=False)
 
             assert result is False  # Should fail if any model fails
@@ -294,7 +317,9 @@ class TestModelManager:
         assert info["model_size_config"] == "small"
         assert info["required_models"] == ["en_core_web_sm"]
 
-    def test_get_cache_info_with_available_models(self, model_manager, mock_spacy_module):
+    def test_get_cache_info_with_available_models(
+        self, model_manager, mock_spacy_module
+    ):
         """Test getting cache info with available models."""
         # Mock model loading for cache info
         mock_nlp = Mock()
@@ -305,7 +330,7 @@ class TestModelManager:
 
         mock_spacy_module.load.return_value = mock_nlp
 
-        with patch.object(model_manager, 'is_model_available', return_value=True):
+        with patch.object(model_manager, "is_model_available", return_value=True):
             info = model_manager.get_cache_info()
 
             assert len(info["available_models"]) == 1
@@ -320,7 +345,7 @@ class TestModelManager:
         """Test getting cache info with model loading error."""
         mock_spacy_module.load.side_effect = Exception("Model loading failed")
 
-        with patch.object(model_manager, 'is_model_available', return_value=True):
+        with patch.object(model_manager, "is_model_available", return_value=True):
             info = model_manager.get_cache_info()
 
             assert len(info["available_models"]) == 1
@@ -332,7 +357,11 @@ class TestModelManager:
 
     def test_get_cache_info_enumeration_error(self, model_manager):
         """Test getting cache info with enumeration error."""
-        with patch.object(model_manager, 'get_required_models', side_effect=Exception("Enumeration failed")):
+        with patch.object(
+            model_manager,
+            "get_required_models",
+            side_effect=Exception("Enumeration failed"),
+        ):
             info = model_manager.get_cache_info()
 
             assert "error" in info
@@ -345,7 +374,7 @@ class TestMainFunction:
     @pytest.fixture
     def mock_model_manager(self):
         """Mock ModelManager for testing main function."""
-        with patch('setup_models.ModelManager') as mock_class:
+        with patch("setup_models.ModelManager") as mock_class:
             mock_instance = Mock()
             mock_class.return_value = mock_instance
             yield mock_instance
@@ -358,11 +387,13 @@ class TestMainFunction:
             "spacy_version": "3.7.0",
             "model_size_config": "small",
             "required_models": ["en_core_web_sm"],
-            "available_models": []
+            "available_models": [],
         }
 
-        with patch('sys.argv', ['setup-models.py', '--cache-info']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--cache-info"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -375,12 +406,14 @@ class TestMainFunction:
             "spacy_version": "3.7.0",
             "model_size_config": "small",
             "required_models": ["en_core_web_sm"],
-            "available_models": []
+            "available_models": [],
         }
         mock_model_manager.get_cache_info.return_value = cache_info
 
-        with patch('sys.argv', ['setup-models.py', '--cache-info', '--json-output']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--cache-info", "--json-output"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -389,8 +422,10 @@ class TestMainFunction:
         """Test main function with successful model setup."""
         mock_model_manager.setup_models.return_value = True
 
-        with patch('sys.argv', ['setup-models.py', '--model-size', 'medium']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--model-size", "medium"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -402,8 +437,10 @@ class TestMainFunction:
         """Test main function with failed model setup."""
         mock_model_manager.setup_models.return_value = False
 
-        with patch('sys.argv', ['setup-models.py', '--model-size', 'small']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--model-size", "small"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 1
@@ -412,8 +449,10 @@ class TestMainFunction:
         """Test main function with cache hit true."""
         mock_model_manager.setup_models.return_value = True
 
-        with patch('sys.argv', ['setup-models.py', '--cache-hit', 'true']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--cache-hit", "true"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -425,8 +464,10 @@ class TestMainFunction:
         """Test main function with verify installation flag."""
         mock_model_manager.setup_models.return_value = True
 
-        with patch('sys.argv', ['setup-models.py', '--verify-installation']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--verify-installation"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -439,8 +480,10 @@ class TestMainFunction:
         mock_model_manager.setup_models.return_value = True
         mock_model_manager.get_cache_info.return_value = {"test": "info"}
 
-        with patch('sys.argv', ['setup-models.py', '--json-output']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--json-output"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 0
@@ -449,8 +492,10 @@ class TestMainFunction:
         """Test main function with keyboard interrupt."""
         mock_model_manager.setup_models.side_effect = KeyboardInterrupt()
 
-        with patch('sys.argv', ['setup-models.py']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 130
@@ -459,8 +504,10 @@ class TestMainFunction:
         """Test main function with unexpected error."""
         mock_model_manager.setup_models.side_effect = Exception("Unexpected error")
 
-        with patch('sys.argv', ['setup-models.py']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 1
@@ -469,8 +516,10 @@ class TestMainFunction:
         """Test main function with unexpected error and JSON output."""
         mock_model_manager.setup_models.side_effect = Exception("Unexpected error")
 
-        with patch('sys.argv', ['setup-models.py', '--json-output']):
-            with patch('setup_models.main', wraps=main_function_wrapper(mock_model_manager)) as mock_main:
+        with patch("sys.argv", ["setup-models.py", "--json-output"]):
+            with patch(
+                "setup_models.main", wraps=main_function_wrapper(mock_model_manager)
+            ) as mock_main:
                 result = mock_main()
 
                 assert result == 1
@@ -478,11 +527,14 @@ class TestMainFunction:
 
 def main_function_wrapper(mock_manager):
     """Wrapper function for testing main() with mocked ModelManager."""
+
     def wrapped_main():
         import argparse
 
         parser = argparse.ArgumentParser()
-        parser.add_argument("--model-size", choices=["small", "medium", "large"], default="small")
+        parser.add_argument(
+            "--model-size", choices=["small", "medium", "large"], default="small"
+        )
         parser.add_argument("--cache-hit", type=str, default="false")
         parser.add_argument("--verify-installation", action="store_true")
         parser.add_argument("--cache-info", action="store_true")

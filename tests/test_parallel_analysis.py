@@ -21,10 +21,7 @@ class TestChunkAnalysisResult:
     def test_chunk_analysis_result_creation(self):
         """Test basic ChunkAnalysisResult creation."""
         result = ChunkAnalysisResult(
-            chunk_id="chunk_1",
-            entities=[],
-            processing_time_ms=100.5,
-            chunk_size=1024
+            chunk_id="chunk_1", entities=[], processing_time_ms=100.5, chunk_size=1024
         )
 
         assert result.chunk_id == "chunk_1"
@@ -40,7 +37,7 @@ class TestChunkAnalysisResult:
             entities=[],
             processing_time_ms=50.0,
             chunk_size=512,
-            error="Analysis failed"
+            error="Analysis failed",
         )
 
         assert result.error == "Analysis failed"
@@ -52,10 +49,7 @@ class TestParallelAnalysisResult:
     def test_parallel_analysis_result_creation(self):
         """Test basic ParallelAnalysisResult creation."""
         chunk_result = ChunkAnalysisResult(
-            chunk_id="chunk_1",
-            entities=[],
-            processing_time_ms=100.0,
-            chunk_size=1024
+            chunk_id="chunk_1", entities=[], processing_time_ms=100.0, chunk_size=1024
         )
 
         result = ParallelAnalysisResult(
@@ -65,7 +59,7 @@ class TestParallelAnalysisResult:
             total_chunks=1,
             total_entities=0,
             threads_used=2,
-            performance_stats={}
+            performance_stats={},
         )
 
         assert result.entities == []
@@ -94,9 +88,7 @@ class TestParallelAnalysisEngine:
         """Test engine initialization with custom config."""
         config = AnalyzerConfig(language="es", min_confidence=0.8)
         engine = ParallelAnalysisEngine(
-            analyzer_config=config,
-            max_workers=4,
-            enable_performance_monitoring=False
+            analyzer_config=config, max_workers=4, enable_performance_monitoring=False
         )
 
         assert engine.analyzer_config == config
@@ -141,7 +133,9 @@ class TestParallelAnalysisEngine:
         """Test thread analyzer instance creation."""
         engine = ParallelAnalysisEngine()
 
-        with patch('cloakpivot.core.parallel_analysis.AnalyzerEngineWrapper') as mock_wrapper:
+        with patch(
+            "cloakpivot.core.parallel_analysis.AnalyzerEngineWrapper"
+        ) as mock_wrapper:
             mock_instance = Mock()
             mock_wrapper.return_value = mock_instance
 
@@ -154,7 +148,9 @@ class TestParallelAnalysisEngine:
         """Test thread analyzer instance reuse."""
         engine = ParallelAnalysisEngine()
 
-        with patch('cloakpivot.core.parallel_analysis.AnalyzerEngineWrapper') as mock_wrapper:
+        with patch(
+            "cloakpivot.core.parallel_analysis.AnalyzerEngineWrapper"
+        ) as mock_wrapper:
             mock_instance = Mock()
             mock_wrapper.return_value = mock_instance
 
@@ -171,7 +167,7 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine()
         policy = MaskingPolicy()
 
-        with patch.object(engine.chunked_processor, 'chunk_document', return_value=[]):
+        with patch.object(engine.chunked_processor, "chunk_document", return_value=[]):
             result = engine.analyze_document_parallel(simple_document, policy)
 
             assert result.entities == []
@@ -192,7 +188,7 @@ class TestParallelAnalysisEngine:
             start_offset=0,
             end_offset=100,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
         # Mock chunk analysis result
@@ -203,11 +199,15 @@ class TestParallelAnalysisEngine:
             chunk_id="chunk_1",
             entities=mock_entities,
             processing_time_ms=50.0,
-            chunk_size=100
+            chunk_size=100,
         )
 
-        with patch.object(engine.chunked_processor, 'chunk_document', return_value=[mock_chunk]):
-            with patch.object(engine, '_analyze_chunks_parallel', return_value=[mock_chunk_result]):
+        with patch.object(
+            engine.chunked_processor, "chunk_document", return_value=[mock_chunk]
+        ):
+            with patch.object(
+                engine, "_analyze_chunks_parallel", return_value=[mock_chunk_result]
+            ):
                 result = engine.analyze_document_parallel(simple_document, policy)
 
                 assert len(result.entities) == 1
@@ -223,7 +223,7 @@ class TestParallelAnalysisEngine:
         policy = MaskingPolicy()
 
         with patch(
-            'cloakpivot.core.parallel_analysis.ChunkedDocumentProcessor'
+            "cloakpivot.core.parallel_analysis.ChunkedDocumentProcessor"
         ) as mock_processor_class:
             mock_processor = Mock()
             mock_processor.chunk_document.return_value = []
@@ -244,17 +244,14 @@ class TestParallelAnalysisEngine:
             start_offset=0,
             end_offset=100,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
         mock_result = ChunkAnalysisResult(
-            chunk_id="chunk_1",
-            entities=[],
-            processing_time_ms=50.0,
-            chunk_size=100
+            chunk_id="chunk_1", entities=[], processing_time_ms=50.0, chunk_size=100
         )
 
-        with patch.object(engine, '_analyze_single_chunk', return_value=mock_result):
+        with patch.object(engine, "_analyze_single_chunk", return_value=mock_result):
             results = engine._analyze_chunks_parallel([mock_chunk], policy)
 
             assert len(results) == 1
@@ -270,10 +267,12 @@ class TestParallelAnalysisEngine:
             start_offset=0,
             end_offset=100,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
-        with patch.object(engine, '_analyze_single_chunk', side_effect=Exception("Test error")):
+        with patch.object(
+            engine, "_analyze_single_chunk", side_effect=Exception("Test error")
+        ):
             results = engine._analyze_chunks_parallel([mock_chunk], policy)
 
             assert len(results) == 1
@@ -290,7 +289,7 @@ class TestParallelAnalysisEngine:
             start_offset=10,
             end_offset=110,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
         config = AnalyzerConfig()
@@ -305,9 +304,9 @@ class TestParallelAnalysisEngine:
         mock_analyzer = Mock()
         mock_analyzer.analyze_text.return_value = [mock_detection]
 
-        with patch.object(engine, '_get_thread_analyzer', return_value=mock_analyzer):
+        with patch.object(engine, "_get_thread_analyzer", return_value=mock_analyzer):
             with patch.object(
-                engine.chunked_processor, 'extract_chunk_text', return_value="John Doe"
+                engine.chunked_processor, "extract_chunk_text", return_value="John Doe"
             ):
                 result = engine._analyze_single_chunk(mock_chunk, config)
 
@@ -315,7 +314,7 @@ class TestParallelAnalysisEngine:
                 assert len(result.entities) == 1
                 # Check global offset adjustment
                 assert result.entities[0].start == 15  # 10 + 5
-                assert result.entities[0].end == 23    # 10 + 13
+                assert result.entities[0].end == 23  # 10 + 13
                 assert result.entities[0].entity_type == "PERSON"
                 assert result.entities[0].score == 0.9
                 assert result.error is None
@@ -329,12 +328,14 @@ class TestParallelAnalysisEngine:
             start_offset=0,
             end_offset=100,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
         config = AnalyzerConfig()
 
-        with patch.object(engine.chunked_processor, 'extract_chunk_text', return_value="   "):
+        with patch.object(
+            engine.chunked_processor, "extract_chunk_text", return_value="   "
+        ):
             result = engine._analyze_single_chunk(mock_chunk, config)
 
             assert result.chunk_id == "chunk_1"
@@ -351,12 +352,14 @@ class TestParallelAnalysisEngine:
             start_offset=0,
             end_offset=100,
             segments=[],
-            cross_chunk_segments=[]
+            cross_chunk_segments=[],
         )
 
         config = AnalyzerConfig()
 
-        with patch.object(engine, '_get_thread_analyzer', side_effect=Exception("Analysis error")):
+        with patch.object(
+            engine, "_get_thread_analyzer", side_effect=Exception("Analysis error")
+        ):
             result = engine._analyze_single_chunk(mock_chunk, config)
 
             assert result.chunk_id == "chunk_1"
@@ -445,8 +448,13 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine(enable_performance_monitoring=False)
 
         result = ParallelAnalysisResult(
-            entities=[], chunk_results=[], total_processing_time_ms=0.0,
-            total_chunks=0, total_entities=0, threads_used=0, performance_stats={}
+            entities=[],
+            chunk_results=[],
+            total_processing_time_ms=0.0,
+            total_chunks=0,
+            total_entities=0,
+            threads_used=0,
+            performance_stats={},
         )
 
         recommendations = engine.get_performance_recommendations(result)
@@ -459,9 +467,13 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine(enable_performance_monitoring=True)
 
         result = ParallelAnalysisResult(
-            entities=[], chunk_results=[], total_processing_time_ms=100.0,
-            total_chunks=1, total_entities=0, threads_used=1,
-            performance_stats={"processing_rate_chars_per_second": 5000}
+            entities=[],
+            chunk_results=[],
+            total_processing_time_ms=100.0,
+            total_chunks=1,
+            total_entities=0,
+            threads_used=1,
+            performance_stats={"processing_rate_chars_per_second": 5000},
         )
 
         recommendations = engine.get_performance_recommendations(result)
@@ -473,9 +485,13 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine(enable_performance_monitoring=True)
 
         result = ParallelAnalysisResult(
-            entities=[], chunk_results=[], total_processing_time_ms=100.0,
-            total_chunks=2, total_entities=0, threads_used=2,
-            performance_stats={"failed_chunks": 1}
+            entities=[],
+            chunk_results=[],
+            total_processing_time_ms=100.0,
+            total_chunks=2,
+            total_entities=0,
+            threads_used=2,
+            performance_stats={"failed_chunks": 1},
         )
 
         recommendations = engine.get_performance_recommendations(result)
@@ -484,12 +500,18 @@ class TestParallelAnalysisEngine:
 
     def test_get_performance_recommendations_underutilized_threads(self):
         """Test performance recommendations for underutilized threads."""
-        engine = ParallelAnalysisEngine(max_workers=4, enable_performance_monitoring=True)
+        engine = ParallelAnalysisEngine(
+            max_workers=4, enable_performance_monitoring=True
+        )
 
         result = ParallelAnalysisResult(
-            entities=[], chunk_results=[], total_processing_time_ms=100.0,
-            total_chunks=2, total_entities=0, threads_used=2,
-            performance_stats={}
+            entities=[],
+            chunk_results=[],
+            total_processing_time_ms=100.0,
+            total_chunks=2,
+            total_entities=0,
+            threads_used=2,
+            performance_stats={},
         )
 
         recommendations = engine.get_performance_recommendations(result)
@@ -501,12 +523,16 @@ class TestParallelAnalysisEngine:
         engine = ParallelAnalysisEngine(enable_performance_monitoring=True)
 
         result = ParallelAnalysisResult(
-            entities=[], chunk_results=[], total_processing_time_ms=100.0,
-            total_chunks=2, total_entities=0, threads_used=2,
+            entities=[],
+            chunk_results=[],
+            total_processing_time_ms=100.0,
+            total_chunks=2,
+            total_entities=0,
+            threads_used=2,
             performance_stats={
                 "min_chunk_processing_time_ms": 10.0,
-                "max_chunk_processing_time_ms": 100.0
-            }
+                "max_chunk_processing_time_ms": 100.0,
+            },
         )
 
         recommendations = engine.get_performance_recommendations(result)

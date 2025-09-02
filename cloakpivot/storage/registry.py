@@ -55,25 +55,27 @@ class StorageRegistry:
         self._backends["database"] = DatabaseStorage
 
         # Register common aliases
-        self._aliases.update({
-            "local": "local_filesystem",
-            "file": "local_filesystem",
-            "filesystem": "local_filesystem",
-            "s3": "aws_s3",
-            "gcs": "google_cloud_storage",
-            "google": "google_cloud_storage",
-            "db": "database",
-            "sql": "database",
-            "sqlite": "database",
-            "postgresql": "database",
-            "postgres": "database",
-        })
+        self._aliases.update(
+            {
+                "local": "local_filesystem",
+                "file": "local_filesystem",
+                "filesystem": "local_filesystem",
+                "s3": "aws_s3",
+                "gcs": "google_cloud_storage",
+                "google": "google_cloud_storage",
+                "db": "database",
+                "sql": "database",
+                "sqlite": "database",
+                "postgresql": "database",
+                "postgres": "database",
+            }
+        )
 
     def register_backend(
         self,
         backend_type: str,
         backend_class: type[StorageBackend],
-        aliases: Optional[list[str]] = None
+        aliases: Optional[list[str]] = None,
     ) -> None:
         """
         Register a storage backend type.
@@ -123,8 +125,7 @@ class StorageRegistry:
 
         # Remove aliases that point to this backend
         aliases_to_remove = [
-            alias for alias, target in self._aliases.items()
-            if target == backend_type
+            alias for alias, target in self._aliases.items() if target == backend_type
         ]
         for alias in aliases_to_remove:
             del self._aliases[alias]
@@ -169,9 +170,7 @@ class StorageRegistry:
         return self._backends[resolved_type]
 
     def create_backend(
-        self,
-        backend_type: str,
-        config: Optional[dict[str, Any]] = None
+        self, backend_type: str, config: Optional[dict[str, Any]] = None
     ) -> StorageBackend:
         """
         Create a storage backend instance.
@@ -241,8 +240,7 @@ class StorageRegistry:
 
         # Find aliases for this backend
         aliases = [
-            alias for alias, target in self._aliases.items()
-            if target == resolved_type
+            alias for alias, target in self._aliases.items() if target == resolved_type
         ]
 
         return {
@@ -254,9 +252,7 @@ class StorageRegistry:
         }
 
     def validate_backend(
-        self,
-        backend_type: str,
-        config: Optional[dict[str, Any]] = None
+        self, backend_type: str, config: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         Validate a backend configuration without creating an instance.
@@ -288,7 +284,9 @@ class StorageRegistry:
             results["health_check"] = health
 
             if health.get("status") != "healthy":
-                results["warnings"].append(f"Health check failed: {health.get('error')}")
+                results["warnings"].append(
+                    f"Health check failed: {health.get('error')}"
+                )
 
         except KeyError as e:
             results["valid"] = False
@@ -324,12 +322,12 @@ class StorageRegistry:
 
             # Look for storage backend plugins
             eps = entry_points()
-            if hasattr(eps, 'select'):
+            if hasattr(eps, "select"):
                 # Python 3.10+ style
-                storage_eps = eps.select(group='cloakpivot.storage.backends')
+                storage_eps = eps.select(group="cloakpivot.storage.backends")
             else:
                 # Older style
-                storage_eps = eps.get('cloakpivot.storage.backends', [])
+                storage_eps = eps.get("cloakpivot.storage.backends", [])
 
             for entry_point in storage_eps:
                 try:
@@ -344,7 +342,11 @@ class StorageRegistry:
                 except Exception as e:
                     # Log plugin loading errors but continue
                     import warnings
-                    warnings.warn(f"Failed to load storage backend plugin '{entry_point.name}': {e}", stacklevel=2)
+
+                    warnings.warn(
+                        f"Failed to load storage backend plugin '{entry_point.name}': {e}",
+                        stacklevel=2,
+                    )
 
         except ImportError:
             # Entry points not available
@@ -370,7 +372,7 @@ class StorageRegistry:
                 "healthy": 0,
                 "unhealthy": 0,
                 "failed": 0,
-            }
+            },
         }
 
         for backend_type in self.list_backend_types():
@@ -406,6 +408,7 @@ class StorageRegistry:
 
         if resolved_type == "local_filesystem":
             import tempfile
+
             return {"base_path": tempfile.gettempdir()}
         elif resolved_type == "aws_s3":
             return {"bucket_name": "test-bucket-nonexistent"}
@@ -424,9 +427,11 @@ class StorageRegistry:
 
     def __repr__(self) -> str:
         """Detailed string representation."""
-        return (f"StorageRegistry("
-                f"backends={list(self._backends.keys())}, "
-                f"aliases={list(self._aliases.keys())})")
+        return (
+            f"StorageRegistry("
+            f"backends={list(self._backends.keys())}, "
+            f"aliases={list(self._aliases.keys())})"
+        )
 
 
 # Global registry instance
@@ -460,7 +465,7 @@ def get_storage_registry() -> StorageRegistry:
 def register_backend(
     backend_type: str,
     backend_class: type[StorageBackend],
-    aliases: Optional[list[str]] = None
+    aliases: Optional[list[str]] = None,
 ) -> None:
     """
     Register a storage backend with the global registry.

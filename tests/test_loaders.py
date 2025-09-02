@@ -61,7 +61,9 @@ class TestGenerateConfigHash:
         assert _generate_config_hash(conf_config) != base_hash
 
         # Test nlp_engine_name change
-        nlp_config = AnalyzerConfig(language="en", min_confidence=0.5, nlp_engine_name="transformers")
+        nlp_config = AnalyzerConfig(
+            language="en", min_confidence=0.5, nlp_engine_name="transformers"
+        )
         assert _generate_config_hash(nlp_config) != base_hash
 
 
@@ -117,9 +119,7 @@ class TestGetPresidioAnalyzer:
     def test_custom_parameters(self):
         """Test analyzer created with custom parameters."""
         analyzer = get_presidio_analyzer(
-            language="es",
-            min_confidence=0.7,
-            nlp_engine_name="transformers"
+            language="es", min_confidence=0.7, nlp_engine_name="transformers"
         )
 
         assert analyzer.config.language == "es"
@@ -154,14 +154,20 @@ class TestGetPresidioAnalyzer:
         get_presidio_analyzer()
         cache_info_after_first = get_cache_info()
 
-        assert cache_info_after_first["analyzer"]["misses"] == cache_info_initial["analyzer"]["misses"] + 1
+        assert (
+            cache_info_after_first["analyzer"]["misses"]
+            == cache_info_initial["analyzer"]["misses"] + 1
+        )
         assert cache_info_after_first["analyzer"]["currsize"] == 1
 
         # Second call should be a cache hit
         get_presidio_analyzer()
         cache_info_after_second = get_cache_info()
 
-        assert cache_info_after_second["analyzer"]["hits"] == cache_info_after_first["analyzer"]["hits"] + 1
+        assert (
+            cache_info_after_second["analyzer"]["hits"]
+            == cache_info_after_first["analyzer"]["hits"] + 1
+        )
         assert cache_info_after_second["analyzer"]["currsize"] == 1
 
 
@@ -460,7 +466,9 @@ class TestThreadSafety:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during mixed config test: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during mixed config test: {exceptions}"
+        )
 
         # Validate analyzer results - each confidence should have consistent instances
         analyzer_by_conf = {}
@@ -471,7 +479,9 @@ class TestThreadSafety:
 
         for conf, analyzer_ids in analyzer_by_conf.items():
             assert len(analyzer_ids) == 3, f"Confidence {conf} should have 3 instances"
-            assert len(set(analyzer_ids)) == 1, f"Confidence {conf} should return same cached instance"
+            assert len(set(analyzer_ids)) == 1, (
+                f"Confidence {conf} should return same cached instance"
+            )
 
         # Validate processor results - each chunked setting should have consistent instances
         processor_by_chunked = {}
@@ -482,12 +492,16 @@ class TestThreadSafety:
 
         for chunked, processor_ids in processor_by_chunked.items():
             assert len(processor_ids) == 3, f"Chunked {chunked} should have 3 instances"
-            assert len(set(processor_ids)) == 1, f"Chunked {chunked} should return same cached instance"
+            assert len(set(processor_ids)) == 1, (
+                f"Chunked {chunked} should return same cached instance"
+            )
 
         # Validate pipeline results - all should be same instance
         pipeline_ids = results["pipeline"]
         assert len(pipeline_ids) == 6, "Should have 6 pipeline instances"
-        assert len(set(pipeline_ids)) == 1, "All pipelines should be same cached instance"
+        assert len(set(pipeline_ids)) == 1, (
+            "All pipelines should be same cached instance"
+        )
 
     @pytest.mark.performance
     def test_high_concurrency_stress_test(self):
@@ -512,7 +526,9 @@ class TestThreadSafety:
 
         start_time = time.time()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(stress_worker) for _ in range(thread_count)]
 
             for future in concurrent.futures.as_completed(futures, timeout=15):
@@ -523,7 +539,9 @@ class TestThreadSafety:
         # Validate results
         assert len(exceptions) == 0, f"Exceptions during stress test: {exceptions}"
 
-        expected_total_results = thread_count * iterations_per_thread * 3  # 3 loaders per iteration
+        expected_total_results = (
+            thread_count * iterations_per_thread * 3
+        )  # 3 loaders per iteration
         assert len(results) == expected_total_results
 
         # Group results by type (every 3rd element starting from index 0, 1, 2)
@@ -533,15 +551,21 @@ class TestThreadSafety:
 
         # Each type should return singleton instances
         assert len(set(analyzer_ids)) == 1, "Analyzers should be singleton under stress"
-        assert len(set(processor_ids)) == 1, "Processors should be singleton under stress"
+        assert len(set(processor_ids)) == 1, (
+            "Processors should be singleton under stress"
+        )
         assert len(set(pipeline_ids)) == 1, "Pipelines should be singleton under stress"
 
         # Performance validation
         operations_per_second = expected_total_results / execution_time
-        assert execution_time < 10.0, f"Stress test took too long: {execution_time:.2f}s"
+        assert execution_time < 10.0, (
+            f"Stress test took too long: {execution_time:.2f}s"
+        )
 
-        print(f"Stress test: {thread_count} threads × {iterations_per_thread} iterations "
-              f"completed in {execution_time:.2f}s ({operations_per_second:.1f} ops/sec)")
+        print(
+            f"Stress test: {thread_count} threads × {iterations_per_thread} iterations "
+            f"completed in {execution_time:.2f}s ({operations_per_second:.1f} ops/sec)"
+        )
 
     @pytest.mark.performance
     def test_rapid_cache_clear_and_recreate(self):
@@ -569,7 +593,9 @@ class TestThreadSafety:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during rapid cache clear test: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during rapid cache clear test: {exceptions}"
+        )
         assert len(results) == 15  # 5 threads × 3 iterations each
         assert clear_count == 15  # Should have cleared cache 15 times
 
@@ -635,7 +661,7 @@ class TestCacheManagement:
         for i in range(10):  # More than maxsize of 8
             analyzer = get_presidio_analyzer(
                 language="en",
-                min_confidence=0.1 + (i * 0.01)  # Different confidence for each
+                min_confidence=0.1 + (i * 0.01),  # Different confidence for each
             )
             analyzers.append(analyzer)
 
@@ -662,8 +688,7 @@ class TestMemoryLeakPrevention:
         analyzers = []
         for i in range(maxsize + 2):  # Create 2 more than maxsize
             analyzer = get_presidio_analyzer(
-                language="en",
-                min_confidence=0.1 + (i * 0.01)
+                language="en", min_confidence=0.1 + (i * 0.01)
             )
             analyzers.append(analyzer)
 
@@ -671,7 +696,9 @@ class TestMemoryLeakPrevention:
 
         # Cache should be at maxsize, indicating eviction occurred
         assert cache_info["analyzer"]["currsize"] == maxsize
-        assert cache_info["analyzer"]["misses"] >= maxsize + 2  # At least one miss per creation
+        assert (
+            cache_info["analyzer"]["misses"] >= maxsize + 2
+        )  # At least one miss per creation
 
     def test_cache_info_matches_actual_behavior(self):
         """Test that cache info statistics match actual caching behavior."""

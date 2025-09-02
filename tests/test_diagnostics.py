@@ -30,7 +30,7 @@ def sample_anchor_entries():
             original_text="John Doe",
             masked_value="[PERSON]",
             strategy_used="template",
-            replacement_id="repl_1"
+            replacement_id="repl_1",
         ),
         AnchorEntry.create_from_detection(
             node_id="text_1",
@@ -41,7 +41,7 @@ def sample_anchor_entries():
             original_text="john@example.com",
             masked_value="[EMAIL]",
             strategy_used="template",
-            replacement_id="repl_2"
+            replacement_id="repl_2",
         ),
         AnchorEntry.create_from_detection(
             node_id="text_2",
@@ -52,8 +52,8 @@ def sample_anchor_entries():
             original_text="555-123-4567",
             masked_value="XXX-XXX-4567",
             strategy_used="partial",
-            replacement_id="repl_3"
-        )
+            replacement_id="repl_3",
+        ),
     ]
 
 
@@ -63,7 +63,7 @@ def sample_entities():
     return [
         RecognizerResult(entity_type="PERSON", start=0, end=8, score=0.95),
         RecognizerResult(entity_type="EMAIL_ADDRESS", start=20, end=35, score=0.85),
-        RecognizerResult(entity_type="PHONE_NUMBER", start=50, end=62, score=0.75)
+        RecognizerResult(entity_type="PHONE_NUMBER", start=50, end=62, score=0.75),
     ]
 
 
@@ -77,7 +77,7 @@ def sample_mask_result(sample_anchor_entries):
         version="1.0",
         anchors=sample_anchor_entries,
         created_at=datetime.now(timezone.utc),
-        policy_snapshot=None
+        policy_snapshot=None,
     )
 
     # Create a realistic masked document structure
@@ -85,7 +85,7 @@ def sample_mask_result(sample_anchor_entries):
         "metadata": {
             "document_id": "test_document_001",
             "processed_at": datetime.now(timezone.utc).isoformat(),
-            "format": "json"
+            "format": "json",
         },
         "content": {
             "text": "Hello [PERSON_1] your email [EMAIL_1] and phone [PHONE_1] are masked.",
@@ -93,20 +93,20 @@ def sample_mask_result(sample_anchor_entries):
                 {
                     "node_id": "text_0",
                     "content": "Hello [PERSON_1] your email",
-                    "node_type": "paragraph"
+                    "node_type": "paragraph",
                 },
                 {
                     "node_id": "text_1",
                     "content": "[EMAIL_1] and phone",
-                    "node_type": "paragraph"
+                    "node_type": "paragraph",
                 },
                 {
                     "node_id": "text_2",
                     "content": "[PHONE_1] are masked.",
-                    "node_type": "paragraph"
-                }
-            ]
-        }
+                    "node_type": "paragraph",
+                },
+            ],
+        },
     }
 
     return MaskResult(
@@ -117,42 +117,48 @@ def sample_mask_result(sample_anchor_entries):
             total_entities_found=3,
             entities_masked=3,
             entities_skipped=0,
-            entities_failed=0
+            entities_failed=0,
         ),
         performance=PerformanceMetrics(
             total_time=timedelta(seconds=2.5),
             detection_time=timedelta(seconds=1.0),
             masking_time=timedelta(seconds=1.2),
-            serialization_time=timedelta(seconds=0.3)
-        )
+            serialization_time=timedelta(seconds=0.3),
+        ),
     )
 
 
 class TestDiagnosticsCollector:
     """Test the DiagnosticsCollector class."""
 
-    def test_collect_masking_statistics_basic(self, sample_mask_result, sample_entities):
+    def test_collect_masking_statistics_basic(
+        self, sample_mask_result, sample_entities
+    ):
         """Test basic statistics collection from masking results."""
         collector = DiagnosticsCollector()
 
         stats = collector.collect_masking_statistics(
-            mask_result=sample_mask_result,
-            original_entities=sample_entities
+            mask_result=sample_mask_result, original_entities=sample_entities
         )
 
         assert isinstance(stats, MaskingStatistics)
         assert stats.total_entities_detected == 3
         assert stats.total_entities_masked == 3
         assert stats.masking_success_rate == 1.0
-        assert stats.entity_counts_by_type == {"PERSON": 1, "EMAIL_ADDRESS": 1, "PHONE_NUMBER": 1}
+        assert stats.entity_counts_by_type == {
+            "PERSON": 1,
+            "EMAIL_ADDRESS": 1,
+            "PHONE_NUMBER": 1,
+        }
 
-    def test_collect_masking_statistics_with_confidence_distribution(self, sample_mask_result, sample_entities):
+    def test_collect_masking_statistics_with_confidence_distribution(
+        self, sample_mask_result, sample_entities
+    ):
         """Test confidence distribution calculation."""
         collector = DiagnosticsCollector()
 
         stats = collector.collect_masking_statistics(
-            mask_result=sample_mask_result,
-            original_entities=sample_entities
+            mask_result=sample_mask_result, original_entities=sample_entities
         )
 
         assert "confidence_distribution" in stats.detailed_metrics
@@ -164,13 +170,14 @@ class TestDiagnosticsCollector:
         assert confidence_dist["high"] == 2  # PERSON (0.95) and EMAIL (0.85)
         assert confidence_dist["medium"] == 1  # PHONE (0.75)
 
-    def test_collect_masking_statistics_strategy_breakdown(self, sample_mask_result, sample_entities):
+    def test_collect_masking_statistics_strategy_breakdown(
+        self, sample_mask_result, sample_entities
+    ):
         """Test strategy usage breakdown."""
         collector = DiagnosticsCollector()
 
         stats = collector.collect_masking_statistics(
-            mask_result=sample_mask_result,
-            original_entities=sample_entities
+            mask_result=sample_mask_result, original_entities=sample_entities
         )
 
         assert stats.strategy_usage == {"template": 2, "partial": 1}
@@ -191,14 +198,13 @@ class TestDiagnosticsCollector:
                 total_entities_found=3,
                 entities_masked=0,
                 entities_skipped=1,
-                entities_failed=2
-            )
+                entities_failed=2,
+            ),
         )
 
         collector = DiagnosticsCollector()
         stats = collector.collect_masking_statistics(
-            mask_result=mask_result,
-            original_entities=sample_entities
+            mask_result=mask_result, original_entities=sample_entities
         )
 
         assert stats.total_entities_detected == 3
@@ -225,15 +231,14 @@ class TestDiagnosticsCollector:
         from cloakpivot.core.results import DiagnosticInfo, MaskResult, OperationStatus
 
         diagnostics_with_issues = DiagnosticInfo(
-            warnings=["Warning 1", "Warning 2"],
-            errors=["Error 1"]
+            warnings=["Warning 1", "Warning 2"], errors=["Error 1"]
         )
 
         mask_result = MaskResult(
             status=OperationStatus.SUCCESS,
             masked_document=MagicMock(),
             cloakmap=MagicMock(),
-            diagnostics=diagnostics_with_issues
+            diagnostics=diagnostics_with_issues,
         )
 
         collector = DiagnosticsCollector()
@@ -252,7 +257,7 @@ class TestDiagnosticsCollector:
         report = collector.generate_comprehensive_report(
             mask_result=sample_mask_result,
             original_entities=sample_entities,
-            document_metadata={"name": "test_doc.pdf", "size_bytes": 1024}
+            document_metadata={"name": "test_doc.pdf", "size_bytes": 1024},
         )
 
         # Check report structure
@@ -270,7 +275,7 @@ class TestDiagnosticsCollector:
             masked_document={},
             cloakmap=MagicMock(),
             stats=None,  # Missing stats
-            performance=None
+            performance=None,
         )
 
         stats = collector.collect_masking_statistics(mask_result_no_stats)
@@ -292,7 +297,7 @@ class TestDiagnosticsCollector:
             masked_document={},
             cloakmap=MagicMock(),
             stats=MagicMock(),
-            performance=None  # Missing performance
+            performance=None,  # Missing performance
         )
 
         perf_metrics = collector.collect_performance_metrics(mask_result_no_perf)
@@ -320,7 +325,7 @@ class TestDiagnosticsCollector:
             masked_document={},
             cloakmap=MagicMock(),
             stats=MagicMock(),
-            performance=incomplete_performance
+            performance=incomplete_performance,
         )
 
         perf_metrics = collector.collect_performance_metrics(mask_result)
@@ -343,7 +348,7 @@ class TestMaskingStatistics:
             entities_skipped=1,
             entities_failed=1,
             entity_counts_by_type={"PERSON": 3, "EMAIL": 5},
-            strategy_usage={"redact": 6, "template": 2}
+            strategy_usage={"redact": 6, "template": 2},
         )
 
         assert stats.total_entities_detected == 10
@@ -356,7 +361,7 @@ class TestMaskingStatistics:
         stats = MaskingStatistics(
             total_entities_detected=20,
             total_entities_masked=18,
-            entity_counts_by_type={"PERSON": 8, "EMAIL": 10}
+            entity_counts_by_type={"PERSON": 8, "EMAIL": 10},
         )
 
         coverage = stats.calculate_coverage_percentage()
@@ -368,7 +373,7 @@ class TestMaskingStatistics:
             total_entities_detected=5,
             total_entities_masked=4,
             entity_counts_by_type={"PERSON": 2, "EMAIL": 2},
-            strategy_usage={"redact": 4}
+            strategy_usage={"redact": 4},
         )
 
         result = stats.to_dict()

@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 class SerializationError(Exception):
     """Exception raised during serialization operations."""
 
-    def __init__(self, message: str, format_name: str, context: Optional[dict[str, Any]] = None):
+    def __init__(
+        self, message: str, format_name: str, context: Optional[dict[str, Any]] = None
+    ):
         super().__init__(message)
         self.format_name = format_name
         self.context = context or {}
@@ -44,7 +46,7 @@ class SerializationResult:
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(self.content)
 
         logger.info(f"Serialized content saved to {path} ({self.size_kb:.1f} KB)")
@@ -69,10 +71,7 @@ class CloakPivotSerializer:
         return self._registry.list_supported_formats()
 
     def serialize_document(
-        self,
-        document: DoclingDocument,
-        format_name: str,
-        **kwargs: Any
+        self, document: DoclingDocument, format_name: str, **kwargs: Any
     ) -> SerializationResult:
         """Serialize a document to the specified format.
 
@@ -96,7 +95,7 @@ class CloakPivotSerializer:
             raise SerializationError(
                 f"Unsupported format: {format_name}",
                 format_name=format_name,
-                context={"supported_formats": self.supported_formats}
+                context={"supported_formats": self.supported_formats},
             )
 
         try:
@@ -108,9 +107,9 @@ class CloakPivotSerializer:
             serialized_content = serializer.serialize()
 
             # Handle different return types from docpivot serializers
-            if hasattr(serialized_content, 'text'):
+            if hasattr(serialized_content, "text"):
                 content = serialized_content.text
-                metadata = getattr(serialized_content, 'metadata', {})
+                metadata = getattr(serialized_content, "metadata", {})
             else:
                 content = str(serialized_content)
                 metadata = {}
@@ -122,17 +121,19 @@ class CloakPivotSerializer:
             result = SerializationResult(
                 content=content,
                 format_name=format_name,
-                size_bytes=len(content.encode('utf-8')),
+                size_bytes=len(content.encode("utf-8")),
                 metadata={
                     "document_name": document.name,
                     "document_texts": len(document.texts),
                     "document_tables": len(document.tables),
                     "serializer_metadata": metadata,
-                    **kwargs
-                }
+                    **kwargs,
+                },
             )
 
-            logger.info(f"Successfully serialized document to {format_name} ({result.size_kb:.1f} KB)")
+            logger.info(
+                f"Successfully serialized document to {format_name} ({result.size_kb:.1f} KB)"
+            )
             return result
 
         except Exception as e:
@@ -140,7 +141,7 @@ class CloakPivotSerializer:
             raise SerializationError(
                 f"Failed to serialize document to {format_name}: {e}",
                 format_name=format_name,
-                context={"document_name": document.name, "error": str(e)}
+                context={"document_name": document.name, "error": str(e)},
             ) from e
 
     def _apply_format_specific_processing(self, content: str, format_name: str) -> str:
@@ -212,7 +213,7 @@ class CloakPivotSerializer:
             processed = processed.replace(pattern, replacement)
 
         # Add CSS styles if not already present
-        if '<style>' not in processed and '<span class="cloak-' in processed:
+        if "<style>" not in processed and '<span class="cloak-' in processed:
             css_styles = """
 <style>
 .cloak-redacted {
@@ -242,8 +243,8 @@ class CloakPivotSerializer:
 </style>
 """
             # Insert CSS in the head if present, otherwise at the beginning
-            if '<head>' in processed:
-                processed = processed.replace('<head>', f'<head>{css_styles}')
+            if "<head>" in processed:
+                processed = processed.replace("<head>", f"<head>{css_styles}")
             else:
                 processed = css_styles + processed
 
@@ -254,7 +255,7 @@ class CloakPivotSerializer:
         input_path: Union[str, Path],
         output_format: str,
         output_path: Optional[Union[str, Path]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> SerializationResult:
         """Convert a document from one format to another.
 
@@ -288,7 +289,7 @@ class CloakPivotSerializer:
             raise SerializationError(
                 f"Conversion from {input_format.value} to {output_format} is not supported",
                 format_name=output_format,
-                context={"input_format": input_format.value}
+                context={"input_format": input_format.value},
             )
 
         try:
@@ -319,8 +320,8 @@ class CloakPivotSerializer:
                 format_name=output_format,
                 context={
                     "input_path": str(input_path),
-                    "output_path": str(output_path) if output_path else None
-                }
+                    "output_path": str(output_path) if output_path else None,
+                },
             ) from e
 
     def detect_format(self, file_path: Union[str, Path]) -> Optional[str]:
@@ -336,7 +337,7 @@ class CloakPivotSerializer:
 
         # For ambiguous extensions like .json, prioritize content-based detection
         try:
-            content = path.read_text(encoding='utf-8')
+            content = path.read_text(encoding="utf-8")
             detected = self._registry.detect_format_from_content(content, path)
             if detected:
                 return detected.value

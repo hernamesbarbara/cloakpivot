@@ -55,12 +55,15 @@ class TestObservabilityConfig:
 
     def test_from_env(self):
         """Test loading configuration from environment variables."""
-        with patch.dict('os.environ', {
-            'CLOAKPIVOT_LOG_LEVEL': 'DEBUG',
-            'CLOAKPIVOT_LOG_FORMAT': 'text',
-            'CLOAKPIVOT_METRICS_ENABLED': 'false',
-            'CLOAKPIVOT_PROMETHEUS_PORT': '9091',
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "CLOAKPIVOT_LOG_LEVEL": "DEBUG",
+                "CLOAKPIVOT_LOG_FORMAT": "text",
+                "CLOAKPIVOT_METRICS_ENABLED": "false",
+                "CLOAKPIVOT_PROMETHEUS_PORT": "9091",
+            },
+        ):
             config = ObservabilityConfig.from_env()
 
             assert config.logging.level == "DEBUG"
@@ -281,7 +284,8 @@ class TestMetrics:
 
         # Look for error counter
         error_counters = [
-            key for key in counters.keys()
+            key
+            for key in counters.keys()
             if "error" in key and "failing_function" in key
         ]
         assert len(error_counters) > 0
@@ -351,7 +355,11 @@ class TestHealthChecks:
         result = check.check()
 
         assert result.name == "dependencies"
-        assert result.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED, HealthStatus.UNHEALTHY]
+        assert result.status in [
+            HealthStatus.HEALTHY,
+            HealthStatus.DEGRADED,
+            HealthStatus.UNHEALTHY,
+        ]
         assert "dependencies" in result.details
 
     def test_configuration_check(self):
@@ -385,7 +393,11 @@ class TestHealthChecks:
         status = monitor.get_status()
 
         assert isinstance(status, SystemStatus)
-        assert status.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED, HealthStatus.UNHEALTHY]
+        assert status.status in [
+            HealthStatus.HEALTHY,
+            HealthStatus.DEGRADED,
+            HealthStatus.UNHEALTHY,
+        ]
         assert len(status.checks) >= 1  # At least our test check
         assert status.uptime_seconds >= 0
         assert "platform" in status.system_info
@@ -394,7 +406,9 @@ class TestHealthChecks:
         monitor.remove_check("test_check")
         new_status = monitor.get_status()
 
-        test_checks = [check for check in new_status.checks if check.name == "test_check"]
+        test_checks = [
+            check for check in new_status.checks if check.name == "test_check"
+        ]
         assert len(test_checks) == 0
 
 
@@ -435,8 +449,10 @@ class TestIntegration:
                 # Check health
                 health_status = monitor.get_status()
 
-                trace.log_info("Integration test completed",
-                               health_status=health_status.status.value)
+                trace.log_info(
+                    "Integration test completed",
+                    health_status=health_status.status.value,
+                )
 
         # Verify everything worked
         assert corr_id is not None
@@ -445,7 +461,11 @@ class TestIntegration:
         events = store.get_recent_events()
         assert len(events) >= 3  # counter, gauge, timing
 
-        assert health_status.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED, HealthStatus.UNHEALTHY]
+        assert health_status.status in [
+            HealthStatus.HEALTHY,
+            HealthStatus.DEGRADED,
+            HealthStatus.UNHEALTHY,
+        ]
         assert len(health_status.checks) >= 3  # Default checks
 
     def test_concurrent_operations(self):
@@ -458,8 +478,12 @@ class TestIntegration:
             with correlation_context(f"worker-{worker_id}"):
                 with trace_operation(f"worker_{worker_id}_operation"):
                     for i in range(10):
-                        collector.counter("concurrent_counter", 1.0, {"worker": str(worker_id)})
-                        collector.gauge("concurrent_gauge", float(i), {"worker": str(worker_id)})
+                        collector.counter(
+                            "concurrent_counter", 1.0, {"worker": str(worker_id)}
+                        )
+                        collector.gauge(
+                            "concurrent_gauge", float(i), {"worker": str(worker_id)}
+                        )
                         # No sleep needed - testing concurrency, not timing
 
         # Start multiple workers
@@ -480,9 +504,12 @@ class TestIntegration:
 
         # Should have metrics from all workers
         assert len(counters) >= 5  # One per worker
-        assert len(gauges) >= 5   # One per worker
+        assert len(gauges) >= 5  # One per worker
 
         # Total counter value should be 50 (5 workers * 10 increments)
-        total_counter_value = sum(value for value, labels in counters.values()
-                                  if "concurrent_counter" in list(counters.keys())[0])
+        total_counter_value = sum(
+            value
+            for value, labels in counters.values()
+            if "concurrent_counter" in list(counters.keys())[0]
+        )
         assert total_counter_value >= 50

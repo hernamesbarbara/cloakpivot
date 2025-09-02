@@ -131,7 +131,7 @@ class TestAnchorResolver:
             text="Hello [PHONE] and [EMAIL] in text.",
             self_ref="#/texts/0",
             label="text",
-            orig="Hello [PHONE] and [EMAIL] in text."
+            orig="Hello [PHONE] and [EMAIL] in text.",
         )
 
         doc.texts = [text_item]
@@ -150,7 +150,7 @@ class TestAnchorResolver:
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
             AnchorEntry(
                 node_id="#/texts/0",
@@ -162,7 +162,7 @@ class TestAnchorResolver:
                 replacement_id="repl_email",
                 original_checksum="b" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
         ]
 
@@ -195,14 +195,14 @@ class TestAnchorResolver:
             AnchorEntry(
                 node_id="#/texts/0",
                 start=5,  # Off by 1
-                end=12,   # Off by 1
+                end=12,  # Off by 1
                 entity_type="PHONE_NUMBER",
                 confidence=0.95,
                 masked_value="[PHONE]",
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
         ]
 
@@ -230,7 +230,7 @@ class TestAnchorResolver:
                 replacement_id="repl_test",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
         ]
 
@@ -263,7 +263,7 @@ class TestDocumentUnmasker:
             text="Hello [PHONE] world",
             self_ref="#/texts/0",
             label="text",
-            orig="Hello [PHONE] world"
+            orig="Hello [PHONE] world",
         )
 
         return ResolvedAnchor(
@@ -285,7 +285,7 @@ class TestDocumentUnmasker:
             text="Hello [PHONE] world",
             self_ref="#/texts/0",
             label="text",
-            orig="Hello [PHONE] world"
+            orig="Hello [PHONE] world",
         )
         doc.texts = [text_item]
 
@@ -337,7 +337,9 @@ class TestDocumentUnmasker:
         unmasker = DocumentUnmasker()
 
         doc = DoclingDocument(name="test_doc")
-        cloakmap = CloakMap(version="1.0", doc_id="test_doc", doc_hash="a" * 64, anchors=[])
+        cloakmap = CloakMap(
+            version="1.0", doc_id="test_doc", doc_hash="a" * 64, anchors=[]
+        )
 
         stats = unmasker.apply_unmasking(doc, [], cloakmap)
 
@@ -356,7 +358,7 @@ class TestUnmaskingEngine:
             text="Contact us at [PHONE] or [EMAIL].",
             self_ref="#/texts/0",
             label="text",
-            orig="Contact us at [PHONE] or [EMAIL]."
+            orig="Contact us at [PHONE] or [EMAIL].",
         )
         doc.texts = [text_item]
 
@@ -372,7 +374,7 @@ class TestUnmaskingEngine:
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
             AnchorEntry(
                 node_id="#/texts/0",
@@ -384,7 +386,7 @@ class TestUnmaskingEngine:
                 replacement_id="repl_email",
                 original_checksum="b" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
         ]
 
@@ -467,7 +469,7 @@ class TestUnmaskingEngine:
             text="No masked content here.",
             self_ref="#/texts/0",
             label="text",
-            orig="No masked content here."
+            orig="No masked content here.",
         )
         doc.texts = [text_item]
 
@@ -502,7 +504,7 @@ class TestUnmaskingIntegration:
             text="Call me at [PHONE] or email [EMAIL].",
             self_ref="#/texts/0",
             label="text",
-            orig="Call me at [PHONE] or email [EMAIL]."
+            orig="Call me at [PHONE] or email [EMAIL].",
         )
         doc.texts = [text_item]
 
@@ -553,8 +555,12 @@ class TestUnmaskingIntegration:
         assert "[EMAIL]" not in restored_text
 
         # Should contain placeholder content
-        assert "555-0123" in restored_text or "555" in restored_text  # Phone placeholder
-        assert "example.com" in restored_text or "@" in restored_text  # Email placeholder
+        assert (
+            "555-0123" in restored_text or "555" in restored_text
+        )  # Phone placeholder
+        assert (
+            "example.com" in restored_text or "@" in restored_text
+        )  # Email placeholder
 
     def test_error_handling_workflow(self):
         """Test error handling in the unmasking workflow."""
@@ -564,7 +570,7 @@ class TestUnmaskingIntegration:
             text="This has different content than expected.",
             self_ref="#/texts/0",
             label="text",
-            orig="This has different content than expected."
+            orig="This has different content than expected.",
         )
         doc.texts = [text_item]
 
@@ -580,7 +586,7 @@ class TestUnmaskingIntegration:
                 replacement_id="repl_phone",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template",
+                strategy_used="template",
             ),
         ]
 

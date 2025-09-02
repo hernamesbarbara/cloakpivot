@@ -88,10 +88,12 @@ class HealthCheck(ABC):
 class SystemResourcesCheck(HealthCheck):
     """Check system resource usage."""
 
-    def __init__(self,
-                 memory_threshold: float = 0.9,
-                 disk_threshold: float = 0.9,
-                 cpu_threshold: float = 0.95):
+    def __init__(
+        self,
+        memory_threshold: float = 0.9,
+        disk_threshold: float = 0.9,
+        cpu_threshold: float = 0.95,
+    ):
         super().__init__("system_resources")
         self.memory_threshold = memory_threshold
         self.disk_threshold = disk_threshold
@@ -130,14 +132,18 @@ class SystemResourcesCheck(HealthCheck):
             }
 
             # Determine status
-            if (memory_usage > self.memory_threshold or
-                disk_usage > self.disk_threshold or
-                cpu_usage > self.cpu_threshold):
+            if (
+                memory_usage > self.memory_threshold
+                or disk_usage > self.disk_threshold
+                or cpu_usage > self.cpu_threshold
+            ):
                 status = HealthStatus.UNHEALTHY
                 message = "System resources exceeded thresholds"
-            elif (memory_usage > self.memory_threshold * 0.8 or
-                  disk_usage > self.disk_threshold * 0.8 or
-                  cpu_usage > self.cpu_threshold * 0.8):
+            elif (
+                memory_usage > self.memory_threshold * 0.8
+                or disk_usage > self.disk_threshold * 0.8
+                or cpu_usage > self.cpu_threshold * 0.8
+            ):
                 status = HealthStatus.DEGRADED
                 message = "System resources approaching limits"
             else:
@@ -177,6 +183,7 @@ class DependenciesCheck(HealthCheck):
             # Check Presidio
             try:
                 import presidio_analyzer
+
                 dependencies["presidio_analyzer"] = {
                     "available": True,
                     "version": getattr(presidio_analyzer, "__version__", "unknown"),
@@ -190,6 +197,7 @@ class DependenciesCheck(HealthCheck):
             # Check DocPivot
             try:
                 import docpivot
+
                 dependencies["docpivot"] = {
                     "available": True,
                     "version": getattr(docpivot, "__version__", "unknown"),
@@ -203,6 +211,7 @@ class DependenciesCheck(HealthCheck):
             # Check structlog
             try:
                 import structlog
+
                 dependencies["structlog"] = {
                     "available": True,
                     "version": getattr(structlog, "__version__", "unknown"),
@@ -214,16 +223,21 @@ class DependenciesCheck(HealthCheck):
                 }
 
             # Determine status
-            unavailable = [name for name, info in dependencies.items()
-                          if not info["available"]]
+            unavailable = [
+                name for name, info in dependencies.items() if not info["available"]
+            ]
 
             if unavailable:
                 if "presidio_analyzer" in unavailable or "docpivot" in unavailable:
                     status = HealthStatus.UNHEALTHY
-                    message = f"Critical dependencies unavailable: {', '.join(unavailable)}"
+                    message = (
+                        f"Critical dependencies unavailable: {', '.join(unavailable)}"
+                    )
                 else:
                     status = HealthStatus.DEGRADED
-                    message = f"Optional dependencies unavailable: {', '.join(unavailable)}"
+                    message = (
+                        f"Optional dependencies unavailable: {', '.join(unavailable)}"
+                    )
             else:
                 status = HealthStatus.HEALTHY
                 message = "All dependencies available"
@@ -261,20 +275,32 @@ class ConfigurationCheck(HealthCheck):
             issues = []
 
             # Check logging configuration
-            if config.logging.level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+            if config.logging.level not in [
+                "DEBUG",
+                "INFO",
+                "WARNING",
+                "ERROR",
+                "CRITICAL",
+            ]:
                 issues.append(f"Invalid log level: {config.logging.level}")
 
             # Check Prometheus configuration
             if config.exporters.prometheus.enabled:
                 if not (1 <= config.exporters.prometheus.port <= 65535):
-                    issues.append(f"Invalid Prometheus port: {config.exporters.prometheus.port}")
+                    issues.append(
+                        f"Invalid Prometheus port: {config.exporters.prometheus.port}"
+                    )
 
             # Check StatsD configuration
             if config.exporters.statsd.enabled:
                 if not (1 <= config.exporters.statsd.port <= 65535):
-                    issues.append(f"Invalid StatsD port: {config.exporters.statsd.port}")
+                    issues.append(
+                        f"Invalid StatsD port: {config.exporters.statsd.port}"
+                    )
                 if config.exporters.statsd.protocol not in ["udp", "tcp"]:
-                    issues.append(f"Invalid StatsD protocol: {config.exporters.statsd.protocol}")
+                    issues.append(
+                        f"Invalid StatsD protocol: {config.exporters.statsd.protocol}"
+                    )
 
             # Determine status
             if issues:
@@ -338,16 +364,20 @@ class HealthMonitor:
                     check_results.append(result)
                 except Exception as e:
                     self.logger.error(f"Health check {check.name} failed: {e}")
-                    check_results.append(HealthCheckResult(
-                        name=check.name,
-                        status=HealthStatus.UNHEALTHY,
-                        message=f"Check failed: {e}",
-                    ))
+                    check_results.append(
+                        HealthCheckResult(
+                            name=check.name,
+                            status=HealthStatus.UNHEALTHY,
+                            message=f"Check failed: {e}",
+                        )
+                    )
 
             # Determine overall status
             if any(result.status == HealthStatus.UNHEALTHY for result in check_results):
                 overall_status = HealthStatus.UNHEALTHY
-            elif any(result.status == HealthStatus.DEGRADED for result in check_results):
+            elif any(
+                result.status == HealthStatus.DEGRADED for result in check_results
+            ):
                 overall_status = HealthStatus.DEGRADED
             else:
                 overall_status = HealthStatus.HEALTHY
@@ -377,7 +407,9 @@ class HealthMonitor:
 class HealthHandler(BaseHTTPRequestHandler):
     """HTTP handler for health endpoints."""
 
-    def __init__(self, health_monitor: HealthMonitor, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, health_monitor: HealthMonitor, *args: Any, **kwargs: Any
+    ) -> None:
         self.health_monitor = health_monitor
         super().__init__(*args, **kwargs)
 

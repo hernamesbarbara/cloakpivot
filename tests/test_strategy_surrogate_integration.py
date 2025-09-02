@@ -23,8 +23,8 @@ class TestSurrogateIntegration:
 
         # Should preserve format
         assert len(surrogate) == len(original)
-        assert surrogate[3] == '-'
-        assert surrogate[7] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[7] == "-"
         assert all(c.isdigit() for i, c in enumerate(surrogate) if i not in [3, 7])
         assert surrogate != original
 
@@ -37,8 +37,8 @@ class TestSurrogateIntegration:
 
         # Should preserve format
         assert len(surrogate) == len(original)
-        assert surrogate[3] == '-'
-        assert surrogate[6] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[6] == "-"
         assert all(c.isdigit() for i, c in enumerate(surrogate) if i not in [3, 6])
         assert surrogate != original
 
@@ -50,11 +50,11 @@ class TestSurrogateIntegration:
         surrogate = applicator.apply_strategy(original, "EMAIL_ADDRESS", strategy, 0.95)
 
         # Should preserve email structure
-        assert '@' in surrogate
-        assert '.' in surrogate
-        parts = surrogate.split('@')
+        assert "@" in surrogate
+        assert "." in surrogate
+        parts = surrogate.split("@")
         assert len(parts) == 2
-        assert '.' in parts[1]  # Domain should have dot
+        assert "." in parts[1]  # Domain should have dot
         assert surrogate != original
 
     def test_deterministic_generation(self, applicator):
@@ -72,8 +72,12 @@ class TestSurrogateIntegration:
         """Test that different inputs produce different surrogate outputs."""
         strategy = Strategy(StrategyKind.SURROGATE)
 
-        phone1 = applicator.apply_strategy("555-123-4567", "PHONE_NUMBER", strategy, 0.95)
-        phone2 = applicator.apply_strategy("555-987-6543", "PHONE_NUMBER", strategy, 0.95)
+        phone1 = applicator.apply_strategy(
+            "555-123-4567", "PHONE_NUMBER", strategy, 0.95
+        )
+        phone2 = applicator.apply_strategy(
+            "555-987-6543", "PHONE_NUMBER", strategy, 0.95
+        )
 
         assert phone1 != phone2
         # But both should preserve format
@@ -87,8 +91,8 @@ class TestSurrogateIntegration:
         surrogate = applicator.apply_strategy(original, "CUSTOM", strategy, 0.95)
 
         assert len(surrogate) == len("XXX-XX-9999")
-        assert surrogate[3] == '-'
-        assert surrogate[6] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[6] == "-"
         assert surrogate[:3].isalpha()
         assert surrogate[:3].isupper()
         assert surrogate[4:6].isalpha()
@@ -115,20 +119,26 @@ class TestSurrogateIntegration:
         strategy = Strategy(StrategyKind.SURROGATE)
 
         # Generate surrogate in first document scope
-        result1 = applicator.apply_strategy("555-123-4567", "PHONE_NUMBER", strategy, 0.95)
+        result1 = applicator.apply_strategy(
+            "555-123-4567", "PHONE_NUMBER", strategy, 0.95
+        )
 
         # Reset scope
         applicator.reset_document_scope()
 
         # Generate same surrogate in new document scope (should be same due to deterministic seed)
-        result2 = applicator.apply_strategy("555-123-4567", "PHONE_NUMBER", strategy, 0.95)
+        result2 = applicator.apply_strategy(
+            "555-123-4567", "PHONE_NUMBER", strategy, 0.95
+        )
 
         assert result1 == result2  # Should be same due to deterministic generation
 
     def test_legacy_fallback_compatibility(self, applicator):
         """Test that legacy surrogate generation still works as fallback."""
         # Test with a format that might not be handled by enhanced generator
-        strategy = Strategy(StrategyKind.SURROGATE, {"format_type": "custom", "pattern": "test"})
+        strategy = Strategy(
+            StrategyKind.SURROGATE, {"format_type": "custom", "pattern": "test"}
+        )
         original = "some-unusual-format"
 
         # Should not fail and should produce some output
@@ -144,13 +154,17 @@ class TestSurrogateIntegration:
         original_phone = "555-123-4567"
 
         # Generate with enhanced system (default)
-        enhanced_result = applicator.apply_strategy(original_phone, "PHONE_NUMBER", strategy, 0.95)
+        enhanced_result = applicator.apply_strategy(
+            original_phone, "PHONE_NUMBER", strategy, 0.95
+        )
 
         # Should preserve exact format
         assert len(enhanced_result) == len(original_phone)
-        assert enhanced_result[3] == '-'
-        assert enhanced_result[7] == '-'
-        assert all(c.isdigit() for i, c in enumerate(enhanced_result) if i not in [3, 7])
+        assert enhanced_result[3] == "-"
+        assert enhanced_result[7] == "-"
+        assert all(
+            c.isdigit() for i, c in enumerate(enhanced_result) if i not in [3, 7]
+        )
 
     def test_collision_handling_within_document(self, applicator):
         """Test that the system handles potential collisions within a document scope."""
@@ -160,7 +174,9 @@ class TestSurrogateIntegration:
         surrogates = []
         for i in range(10):
             original = f"555-123-456{i}"
-            surrogate = applicator.apply_strategy(original, "PHONE_NUMBER", strategy, 0.95)
+            surrogate = applicator.apply_strategy(
+                original, "PHONE_NUMBER", strategy, 0.95
+            )
             surrogates.append(surrogate)
 
         # All should be unique (very high probability with good RNG)
@@ -172,22 +188,28 @@ class TestSurrogateIntegration:
         pattern_strategy = Strategy(StrategyKind.SURROGATE, {"pattern": "999-999-9999"})
         original = "555-123-4567"
 
-        surrogate = applicator.apply_strategy(original, "PHONE_NUMBER", pattern_strategy, 0.95)
+        surrogate = applicator.apply_strategy(
+            original, "PHONE_NUMBER", pattern_strategy, 0.95
+        )
 
         # Should follow the explicit pattern
         assert len(surrogate) == 12
-        assert surrogate[3] == '-'
-        assert surrogate[7] == '-'
+        assert surrogate[3] == "-"
+        assert surrogate[7] == "-"
         assert all(c.isdigit() for i, c in enumerate(surrogate) if i not in [3, 7])
 
     def test_error_handling_with_fallback(self, applicator):
         """Test error handling and fallback to legacy generation."""
         # Create a strategy that might cause issues
-        problematic_strategy = Strategy(StrategyKind.SURROGATE, {"invalid_param": "test"})
+        problematic_strategy = Strategy(
+            StrategyKind.SURROGATE, {"invalid_param": "test"}
+        )
         original = "test-input"
 
         # Should not raise exception and should produce output
-        result = applicator.apply_strategy(original, "UNKNOWN", problematic_strategy, 0.95)
+        result = applicator.apply_strategy(
+            original, "UNKNOWN", problematic_strategy, 0.95
+        )
 
         assert isinstance(result, str)
         assert len(result) > 0

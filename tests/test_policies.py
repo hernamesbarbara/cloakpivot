@@ -43,7 +43,7 @@ class TestMaskingPolicy:
             seed="test-seed",
             allow_list={"allowed@example.com"},
             deny_list={"secret@example.com"},
-            min_entity_length=3
+            min_entity_length=3,
         )
 
         assert policy.default_strategy == phone_strategy
@@ -71,10 +71,14 @@ class TestMaskingPolicy:
             MaskingPolicy(thresholds={"PHONE": "invalid"})
 
         # Out of range threshold
-        with pytest.raises(ValueError, match="Threshold for PHONE must be between 0.0 and 1.0"):
+        with pytest.raises(
+            ValueError, match="Threshold for PHONE must be between 0.0 and 1.0"
+        ):
             MaskingPolicy(thresholds={"PHONE": -0.1})
 
-        with pytest.raises(ValueError, match="Threshold for EMAIL must be between 0.0 and 1.0"):
+        with pytest.raises(
+            ValueError, match="Threshold for EMAIL must be between 0.0 and 1.0"
+        ):
             MaskingPolicy(thresholds={"EMAIL": 1.1})
 
     def test_locale_validation(self) -> None:
@@ -112,27 +116,35 @@ class TestMaskingPolicy:
         MaskingPolicy(min_entity_length=5)
 
         # Invalid lengths
-        with pytest.raises(ValueError, match="min_entity_length must be a non-negative integer"):
+        with pytest.raises(
+            ValueError, match="min_entity_length must be a non-negative integer"
+        ):
             MaskingPolicy(min_entity_length=-1)
 
-        with pytest.raises(ValueError, match="min_entity_length must be a non-negative integer"):
+        with pytest.raises(
+            ValueError, match="min_entity_length must be a non-negative integer"
+        ):
             MaskingPolicy(min_entity_length="invalid")  # type: ignore
 
     def test_context_rules_validation(self) -> None:
         """Test context rules validation."""
         # Valid context rules
-        MaskingPolicy(context_rules={
-            "heading": {"enabled": False},
-            "table": {"threshold": 0.9},
-            "footer": {"strategy": Strategy(StrategyKind.REDACT)}
-        })
+        MaskingPolicy(
+            context_rules={
+                "heading": {"enabled": False},
+                "table": {"threshold": 0.9},
+                "footer": {"strategy": Strategy(StrategyKind.REDACT)},
+            }
+        )
 
         # Invalid context type
         with pytest.raises(ValueError, match="Unknown context type 'invalid'"):
             MaskingPolicy(context_rules={"invalid": {}})
 
         # Invalid rule structure
-        with pytest.raises(ValueError, match="Context rules for 'heading' must be a dictionary"):
+        with pytest.raises(
+            ValueError, match="Context rules for 'heading' must be a dictionary"
+        ):
             MaskingPolicy(context_rules={"heading": "invalid"})
 
         # Invalid rule key
@@ -141,7 +153,10 @@ class TestMaskingPolicy:
 
     def test_callback_validation(self) -> None:
         """Test custom callback validation."""
-        def valid_callback(original_text: str, entity_type: str, confidence: float) -> str:
+
+        def valid_callback(
+            original_text: str, entity_type: str, confidence: float
+        ) -> str:
             return "masked"
 
         def invalid_callback(text: str) -> str:  # Wrong signature
@@ -151,7 +166,9 @@ class TestMaskingPolicy:
         MaskingPolicy(custom_callbacks={"PHONE": valid_callback})
 
         # Invalid callback type
-        with pytest.raises(ValueError, match="custom_callbacks must be a dictionary or None"):
+        with pytest.raises(
+            ValueError, match="custom_callbacks must be a dictionary or None"
+        ):
             MaskingPolicy(custom_callbacks="invalid")  # type: ignore
 
         # Non-callable callback
@@ -169,7 +186,7 @@ class TestMaskingPolicy:
 
         policy = MaskingPolicy(
             default_strategy=default_strategy,
-            per_entity={"PHONE_NUMBER": phone_strategy}
+            per_entity={"PHONE_NUMBER": phone_strategy},
         )
 
         # Entity-specific strategy
@@ -185,9 +202,7 @@ class TestMaskingPolicy:
 
         policy = MaskingPolicy(
             default_strategy=default_strategy,
-            context_rules={
-                "heading": {"strategy": context_strategy}
-            }
+            context_rules={"heading": {"strategy": context_strategy}},
         )
 
         # Context-specific strategy
@@ -199,7 +214,7 @@ class TestMaskingPolicy:
         # Disabled context returns redact strategy (no-op behavior handled at higher level)
         disabled_policy = MaskingPolicy(
             default_strategy=default_strategy,
-            context_rules={"heading": {"enabled": False}}
+            context_rules={"heading": {"enabled": False}},
         )
         disabled_strategy = disabled_policy.get_strategy_for_entity("PHONE", "heading")
         assert disabled_strategy.kind == StrategyKind.REDACT
@@ -208,9 +223,7 @@ class TestMaskingPolicy:
         """Test threshold retrieval for entities."""
         policy = MaskingPolicy(
             thresholds={"PHONE_NUMBER": 0.8},
-            context_rules={
-                "heading": {"threshold": 0.9}
-            }
+            context_rules={"heading": {"threshold": 0.9}},
         )
 
         # Entity-specific threshold
@@ -228,7 +241,7 @@ class TestMaskingPolicy:
             thresholds={"PHONE": 0.8},
             allow_list={"allowed@example.com"},
             deny_list={"secret@example.com"},
-            min_entity_length=3
+            min_entity_length=3,
         )
 
         # Should mask based on confidence
@@ -247,7 +260,10 @@ class TestMaskingPolicy:
 
     def test_get_custom_callback(self) -> None:
         """Test custom callback retrieval."""
-        def test_callback(original_text: str, entity_type: str, confidence: float) -> str:
+
+        def test_callback(
+            original_text: str, entity_type: str, confidence: float
+        ) -> str:
             return "custom"
 
         policy = MaskingPolicy(custom_callbacks={"PHONE": test_callback})
@@ -296,7 +312,7 @@ class TestMaskingPolicy:
             seed="test",
             allow_list={"allowed"},
             deny_list={"denied"},
-            min_entity_length=2
+            min_entity_length=2,
         )
 
         data = policy.to_dict()
@@ -322,7 +338,7 @@ class TestMaskingPolicy:
             "seed": "test",
             "allow_list": ["allowed"],
             "deny_list": ["denied"],
-            "min_entity_length": 2
+            "min_entity_length": 2,
         }
 
         policy = MaskingPolicy.from_dict(data)

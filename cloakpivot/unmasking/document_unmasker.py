@@ -255,7 +255,9 @@ class DocumentUnmasker:
 
             # Search for the masked value in the current state of the text
             masked_value = anchor.masked_value
-            position = modified_text.rfind(masked_value)  # Search from end for reverse processing
+            position = modified_text.rfind(
+                masked_value
+            )  # Search from end for reverse processing
 
             if position == -1:
                 # Try a forward search as fallback
@@ -263,10 +265,11 @@ class DocumentUnmasker:
 
             if position == -1:
                 # Try pattern matching for common masking patterns (asterisks)
-                if masked_value and all(c == '*' for c in masked_value):
+                if masked_value and all(c == "*" for c in masked_value):
                     # Look for any sequence of asterisks that might be part of this mask
                     import re
-                    asterisk_pattern = r'\*+'
+
+                    asterisk_pattern = r"\*+"
                     matches = list(re.finditer(asterisk_pattern, modified_text))
 
                     # Find the best match (prefer longer sequences, but accept shorter ones too)
@@ -307,7 +310,7 @@ class DocumentUnmasker:
             else:
                 # Found partial match - find where the asterisks end
                 end_pos = position
-                while end_pos < len(modified_text) and modified_text[end_pos] == '*':
+                while end_pos < len(modified_text) and modified_text[end_pos] == "*":
                     end_pos += 1
 
                 logger.debug(
@@ -625,7 +628,9 @@ class DocumentUnmasker:
         # First, try to get original text from anchor metadata
         if anchor.metadata and "original_text" in anchor.metadata:
             original_text = anchor.metadata["original_text"]
-            logger.debug(f"Retrieved original text from metadata for {anchor.replacement_id}: '{original_text}'")
+            logger.debug(
+                f"Retrieved original text from metadata for {anchor.replacement_id}: '{original_text}'"
+            )
             return original_text
 
         # Fallback to content provider if available
@@ -642,7 +647,9 @@ class DocumentUnmasker:
                 )
 
         # Return None to trigger placeholder generation as last resort
-        logger.debug(f"No original content found for {anchor.replacement_id}, will use placeholder")
+        logger.debug(
+            f"No original content found for {anchor.replacement_id}, will use placeholder"
+        )
         return None
 
     def _generate_placeholder_content(self, anchor) -> str:

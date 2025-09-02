@@ -24,7 +24,7 @@ class TestAnchorEntry:
             original_checksum="a" * 64,
             checksum_salt="dGVzdA==",  # base64 encoded "test"
             strategy_used="template",
-            timestamp=timestamp
+            timestamp=timestamp,
         )
 
         assert anchor.node_id == "p1"
@@ -52,7 +52,7 @@ class TestAnchorEntry:
             replacement_id="repl_123",
             original_checksum="a" * 64,
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template"
+            strategy_used="template",
         )
         after_creation = datetime.utcnow()
 
@@ -72,7 +72,7 @@ class TestAnchorEntry:
             replacement_id="repl_123",
             original_checksum="a" * 64,
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template"
+            strategy_used="template",
         )
 
         with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
@@ -82,33 +82,67 @@ class TestAnchorEntry:
         """Test position validation."""
         # Valid positions
         AnchorEntry(
-            node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=0,
+            end=10,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Invalid start position
-        with pytest.raises(ValueError, match="start position must be a non-negative integer"):
+        with pytest.raises(
+            ValueError, match="start position must be a non-negative integer"
+        ):
             AnchorEntry(
-                node_id="p1", start=-1, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=-1,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Invalid end position
-        with pytest.raises(ValueError, match="end position must be a non-negative integer"):
+        with pytest.raises(
+            ValueError, match="end position must be a non-negative integer"
+        ):
             AnchorEntry(
-                node_id="p1", start=10, end=-1, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=10,
+                end=-1,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # End <= start
-        with pytest.raises(ValueError, match="end position must be greater than start position"):
+        with pytest.raises(
+            ValueError, match="end position must be greater than start position"
+        ):
             AnchorEntry(
-                node_id="p1", start=10, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=10,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
     def test_confidence_validation(self) -> None:
@@ -116,32 +150,60 @@ class TestAnchorEntry:
         # Valid confidence values
         for conf in [0.0, 0.5, 1.0]:
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=conf,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=conf,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Invalid confidence type
         with pytest.raises(ValueError, match="confidence must be a number"):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence="high",  # type: ignore
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence="high",  # type: ignore
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Out of range confidence
         with pytest.raises(ValueError, match="confidence must be between 0.0 and 1.0"):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=-0.1,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=-0.1,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         with pytest.raises(ValueError, match="confidence must be between 0.0 and 1.0"):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=1.1,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=1.1,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
     def test_checksum_validation(self) -> None:
@@ -149,66 +211,130 @@ class TestAnchorEntry:
         # Valid checksum (64-char hex)
         valid_checksum = "a1b2c3d4e5f6" + "0" * 52
         AnchorEntry(
-            node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl", original_checksum=valid_checksum,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=0,
+            end=10,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl",
+            original_checksum=valid_checksum,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Invalid checksum length
-        with pytest.raises(ValueError, match="original_checksum should be a 64-character SHA-256 hex string"):
+        with pytest.raises(
+            ValueError,
+            match="original_checksum should be a 64-character SHA-256 hex string",
+        ):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="short",
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="short",
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Invalid hex characters
-        with pytest.raises(ValueError, match="original_checksum must contain only hexadecimal characters"):
+        with pytest.raises(
+            ValueError,
+            match="original_checksum must contain only hexadecimal characters",
+        ):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="g" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="g" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
     def test_id_validation(self) -> None:
         """Test ID field validation."""
         # Valid IDs
         AnchorEntry(
-            node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=0,
+            end=10,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Empty node_id
         with pytest.raises(ValueError, match="node_id must be a non-empty string"):
             AnchorEntry(
-                node_id="", start=0, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Empty replacement_id
-        with pytest.raises(ValueError, match="replacement_id must be a non-empty string"):
+        with pytest.raises(
+            ValueError, match="replacement_id must be a non-empty string"
+        ):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="PHONE", confidence=0.5,
-                masked_value="masked", replacement_id="", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="PHONE",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
         # Empty entity_type
         with pytest.raises(ValueError, match="entity_type must be a non-empty string"):
             AnchorEntry(
-                node_id="p1", start=0, end=10, entity_type="", confidence=0.5,
-                masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-                checksum_salt="dGVzdA==", strategy_used="template"
+                node_id="p1",
+                start=0,
+                end=10,
+                entity_type="",
+                confidence=0.5,
+                masked_value="masked",
+                replacement_id="repl",
+                original_checksum="a" * 64,
+                checksum_salt="dGVzdA==",
+                strategy_used="template",
             )
 
     def test_properties(self) -> None:
         """Test computed properties."""
         anchor = AnchorEntry(
-            node_id="p1", start=10, end=25, entity_type="PHONE", confidence=0.5,
-            masked_value="[PHONE]", replacement_id="repl", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=10,
+            end=25,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="[PHONE]",
+            replacement_id="repl",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         assert anchor.span_length == 15  # 25 - 10
@@ -227,7 +353,7 @@ class TestAnchorEntry:
             confidence=0.5,
             original_text=original_text,
             masked_value="[PHONE]",
-            strategy_used="template"
+            strategy_used="template",
         )
 
         # Correct text should verify
@@ -239,30 +365,58 @@ class TestAnchorEntry:
     def test_overlaps_with(self) -> None:
         """Test overlap detection."""
         anchor1 = AnchorEntry(
-            node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl1", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=10,
+            end=20,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl1",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Same node, overlapping ranges
         anchor2_overlap = AnchorEntry(
-            node_id="p1", start=15, end=25, entity_type="EMAIL", confidence=0.5,
-            masked_value="masked", replacement_id="repl2", original_checksum="b" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=15,
+            end=25,
+            entity_type="EMAIL",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl2",
+            original_checksum="b" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Same node, non-overlapping ranges
         anchor3_no_overlap = AnchorEntry(
-            node_id="p1", start=25, end=30, entity_type="NAME", confidence=0.5,
-            masked_value="masked", replacement_id="repl3", original_checksum="c" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=25,
+            end=30,
+            entity_type="NAME",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl3",
+            original_checksum="c" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         # Different node
         anchor4_diff_node = AnchorEntry(
-            node_id="p2", start=10, end=20, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl4", original_checksum="d" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p2",
+            start=10,
+            end=20,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl4",
+            original_checksum="d" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         assert anchor1.overlaps_with(anchor2_overlap)
@@ -272,9 +426,16 @@ class TestAnchorEntry:
     def test_contains_position(self) -> None:
         """Test position containment check."""
         anchor = AnchorEntry(
-            node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template"
+            node_id="p1",
+            start=10,
+            end=20,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
         )
 
         assert anchor.contains_position(10)  # Start position
@@ -287,10 +448,17 @@ class TestAnchorEntry:
     def test_with_metadata(self) -> None:
         """Test metadata addition."""
         anchor = AnchorEntry(
-            node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.5,
-            masked_value="masked", replacement_id="repl", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template",
-            metadata={"existing": "value"}
+            node_id="p1",
+            start=10,
+            end=20,
+            entity_type="PHONE",
+            confidence=0.5,
+            masked_value="masked",
+            replacement_id="repl",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
+            metadata={"existing": "value"},
         )
 
         updated = anchor.with_metadata(new_key="new_value", another="value")
@@ -299,16 +467,29 @@ class TestAnchorEntry:
         assert "new_key" not in anchor.metadata
 
         # Updated has merged metadata
-        expected_metadata = {"existing": "value", "new_key": "new_value", "another": "value"}
+        expected_metadata = {
+            "existing": "value",
+            "new_key": "new_value",
+            "another": "value",
+        }
         assert updated.metadata == expected_metadata
 
     def test_serialization(self) -> None:
         """Test to_dict and from_dict serialization."""
         timestamp = datetime(2023, 1, 1, 12, 0, 0)
         anchor = AnchorEntry(
-            node_id="p1", start=10, end=20, entity_type="PHONE", confidence=0.95,
-            masked_value="[PHONE]", replacement_id="repl_123", original_checksum="a" * 64,
-            checksum_salt="dGVzdA==", strategy_used="template", timestamp=timestamp, metadata={"test": "value"}
+            node_id="p1",
+            start=10,
+            end=20,
+            entity_type="PHONE",
+            confidence=0.95,
+            masked_value="[PHONE]",
+            replacement_id="repl_123",
+            original_checksum="a" * 64,
+            checksum_salt="dGVzdA==",
+            strategy_used="template",
+            timestamp=timestamp,
+            metadata={"test": "value"},
         )
 
         # Serialize to dict
@@ -325,7 +506,7 @@ class TestAnchorEntry:
             "checksum_salt": "dGVzdA==",
             "strategy_used": "template",
             "timestamp": "2023-01-01T12:00:00",
-            "metadata": {"test": "value"}
+            "metadata": {"test": "value"},
         }
         assert data == expected_data
 
@@ -373,7 +554,7 @@ class TestAnchorEntry:
             original_text=original_text,
             masked_value="[PHONE]",
             strategy_used="template",
-            metadata={"source": "presidio"}
+            metadata={"source": "presidio"},
         )
 
         assert anchor.node_id == "p1"
@@ -426,8 +607,15 @@ class TestAnchorIndex:
 
         # Duplicate replacement_id should raise error
         duplicate = AnchorEntry.create_from_detection(
-            "p3", 0, 10, "OTHER", 0.5, "text", "masked", "redact",
-            replacement_id=self.anchor1.replacement_id
+            "p3",
+            0,
+            10,
+            "OTHER",
+            0.5,
+            "text",
+            "masked",
+            "redact",
+            replacement_id=self.anchor1.replacement_id,
         )
 
         with pytest.raises(ValueError, match="Duplicate replacement_id"):

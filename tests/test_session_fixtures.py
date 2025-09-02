@@ -13,7 +13,7 @@ def test_shared_document_processor_exists(shared_document_processor):
 
     assert isinstance(shared_document_processor, DocumentProcessor)
     # DocumentProcessor should be properly initialized
-    assert hasattr(shared_document_processor, '_stats')
+    assert hasattr(shared_document_processor, "_stats")
 
 
 def test_shared_detection_pipeline_exists(shared_detection_pipeline):
@@ -22,8 +22,8 @@ def test_shared_detection_pipeline_exists(shared_detection_pipeline):
 
     assert isinstance(shared_detection_pipeline, EntityDetectionPipeline)
     # Pipeline should have analyzer configured
-    assert hasattr(shared_detection_pipeline, 'analyzer')
-    assert hasattr(shared_detection_pipeline, 'text_extractor')
+    assert hasattr(shared_detection_pipeline, "analyzer")
+    assert hasattr(shared_detection_pipeline, "text_extractor")
 
 
 def test_performance_profiler_exists(performance_profiler):
@@ -70,18 +70,20 @@ def test_detection_pipeline_functionality(shared_detection_pipeline, sample_docu
     from cloakpivot.document.extractor import TextSegment
 
     segment = TextSegment(
-        node_id='#/test/0',
+        node_id="#/test/0",
         text=sample_documents["small_text"],
         start_offset=0,
         end_offset=len(sample_documents["small_text"]),
-        node_type="TextItem"
+        node_type="TextItem",
     )
 
     # Use the shared pipeline to detect entities in sample text
     results = shared_detection_pipeline.analyze_text_segments([segment])
 
     assert isinstance(results, list)  # Should return a list of results
-    assert len(results) >= 0  # Should return results (may be empty if no entities detected)
+    assert (
+        len(results) >= 0
+    )  # Should return results (may be empty if no entities detected)
 
 
 def test_performance_profiler_integration(performance_profiler, sample_documents):

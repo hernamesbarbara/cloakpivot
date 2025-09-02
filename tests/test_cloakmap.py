@@ -25,7 +25,7 @@ class TestCloakMapCreation:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         assert cloakmap.version == "1.0"
@@ -50,7 +50,7 @@ class TestCloakMapCreation:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         crypto_metadata = {"algorithm": "AES-256", "key_id": "key1"}
@@ -65,7 +65,7 @@ class TestCloakMapCreation:
             policy_snapshot=policy_snapshot,
             crypto=crypto_metadata,
             signature="sig123",
-            metadata=metadata
+            metadata=metadata,
         )
 
         assert len(cloakmap.anchors) == 1
@@ -82,7 +82,7 @@ class TestCloakMapCreation:
                 doc_id="doc123",
                 doc_hash="hash123",
                 anchors=[],
-                policy_snapshot={}
+                policy_snapshot={},
             )
 
     def test_invalid_doc_id_raises_error(self):
@@ -93,7 +93,7 @@ class TestCloakMapCreation:
                 doc_id="",
                 doc_hash="hash123",
                 anchors=[],
-                policy_snapshot={}
+                policy_snapshot={},
             )
 
     def test_invalid_doc_hash_raises_error(self):
@@ -104,7 +104,7 @@ class TestCloakMapCreation:
                 doc_id="doc123",
                 doc_hash="",
                 anchors=[],
-                policy_snapshot={}
+                policy_snapshot={},
             )
 
 
@@ -124,7 +124,7 @@ class TestCloakMapProperties:
                 replacement_id="repl1",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="redact"
+                strategy_used="redact",
             ),
             AnchorEntry(
                 node_id="node2",
@@ -136,7 +136,7 @@ class TestCloakMapProperties:
                 replacement_id="repl2",
                 original_checksum="b" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry(
                 node_id="node3",
@@ -148,8 +148,8 @@ class TestCloakMapProperties:
                 replacement_id="repl3",
                 original_checksum="c" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="redact"
-            )
+                strategy_used="redact",
+            ),
         ]
 
         self.cloakmap = CloakMap(
@@ -158,7 +158,7 @@ class TestCloakMapProperties:
             doc_hash="hash123",
             anchors=self.anchors,
             policy_snapshot={},
-            signature="test_signature"
+            signature="test_signature",
         )
 
     def test_anchor_count(self):
@@ -180,7 +180,7 @@ class TestCloakMapProperties:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
         assert unsigned_map.is_signed is False
 
@@ -194,7 +194,7 @@ class TestCloakMapProperties:
             doc_hash="hash123",
             anchors=[],
             policy_snapshot={},
-            crypto={"algorithm": "AES-256"}
+            crypto={"algorithm": "AES-256"},
         )
         assert encrypted_map.is_encrypted is True
 
@@ -209,7 +209,7 @@ class TestCloakMapStatistics:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         stats = cloakmap.get_stats()
@@ -233,7 +233,7 @@ class TestCloakMapStatistics:
                 replacement_id="repl1",
                 original_checksum="a" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="redact"
+                strategy_used="redact",
             ),
             AnchorEntry(
                 node_id="node2",
@@ -245,8 +245,8 @@ class TestCloakMapStatistics:
                 replacement_id="repl2",
                 original_checksum="b" * 64,
                 checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="template"
-            )
+                strategy_used="template",
+            ),
         ]
 
         cloakmap = CloakMap(
@@ -254,7 +254,7 @@ class TestCloakMapStatistics:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=anchors,
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         stats = cloakmap.get_stats()
@@ -283,7 +283,7 @@ class TestCloakMapSerialization:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         cloakmap = CloakMap(
@@ -294,7 +294,7 @@ class TestCloakMapSerialization:
             policy_snapshot={"strategy": "redact"},
             crypto={"algorithm": "AES-256"},
             signature="sig123",
-            metadata={"source": "test"}
+            metadata={"source": "test"},
         )
 
         data = cloakmap.to_dict()
@@ -328,14 +328,14 @@ class TestCloakMapSerialization:
                     "checksum_salt": "dGVzdA==",
                     "strategy_used": "redact",
                     "metadata": {},
-                    "created_at": "2023-01-01T00:00:00"
+                    "created_at": "2023-01-01T00:00:00",
                 }
             ],
             "policy_snapshot": {"strategy": "redact"},
             "crypto": {"algorithm": "AES-256"},
             "signature": "sig123",
             "metadata": {"source": "test"},
-            "created_at": "2023-01-01T00:00:00"
+            "created_at": "2023-01-01T00:00:00",
         }
 
         cloakmap = CloakMap.from_dict(data)
@@ -362,7 +362,7 @@ class TestCloakMapSerialization:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         original = CloakMap(
@@ -373,7 +373,7 @@ class TestCloakMapSerialization:
             policy_snapshot={"strategy": "redact"},
             crypto={"algorithm": "AES-256"},
             signature="sig123",
-            metadata={"source": "test"}
+            metadata={"source": "test"},
         )
 
         # Convert to dict and back
@@ -401,7 +401,7 @@ class TestCloakMapFileOperations:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={"strategy": "redact"}
+            policy_snapshot={"strategy": "redact"},
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -426,7 +426,7 @@ class TestCloakMapFileOperations:
             doc_hash="hash123",
             anchors=[],
             policy_snapshot={"strategy": "redact"},
-            metadata={"source": "test"}
+            metadata={"source": "test"},
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -457,7 +457,7 @@ class TestCloakMapSignatures:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"
@@ -474,7 +474,7 @@ class TestCloakMapSignatures:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"
@@ -489,7 +489,7 @@ class TestCloakMapSignatures:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"
@@ -505,7 +505,7 @@ class TestCloakMapSignatures:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         assert cloakmap.verify_signature(secret_key="any_key") is False
@@ -526,7 +526,7 @@ class TestMergeCloakMaps:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         anchor2 = AnchorEntry(
@@ -539,7 +539,7 @@ class TestMergeCloakMaps:
             replacement_id="repl2",
             original_checksum="1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template"
+            strategy_used="template",
         )
 
         map1 = CloakMap(
@@ -547,7 +547,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[anchor1],
-            policy_snapshot={"strategy": "redact"}
+            policy_snapshot={"strategy": "redact"},
         )
 
         map2 = CloakMap(
@@ -555,7 +555,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[anchor2],
-            policy_snapshot={"strategy": "redact"}
+            policy_snapshot={"strategy": "redact"},
         )
 
         merged = merge_cloakmaps([map1, map2])
@@ -574,7 +574,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         map2 = CloakMap(
@@ -582,10 +582,12 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
-        with pytest.raises(ValueError, match="Cannot merge CloakMaps with different versions"):
+        with pytest.raises(
+            ValueError, match="Cannot merge CloakMaps with different versions"
+        ):
             merge_cloakmaps([map1, map2])
 
     def test_merge_different_documents_raises_error(self):
@@ -595,7 +597,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         map2 = CloakMap(
@@ -603,10 +605,12 @@ class TestMergeCloakMaps:
             doc_id="doc456",
             doc_hash="hash456",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
-        with pytest.raises(ValueError, match="Cannot merge CloakMaps from different documents"):
+        with pytest.raises(
+            ValueError, match="Cannot merge CloakMaps from different documents"
+        ):
             merge_cloakmaps([map1, map2])
 
     def test_merge_overlapping_anchors_raises_error(self):
@@ -621,7 +625,7 @@ class TestMergeCloakMaps:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         anchor2 = AnchorEntry(
@@ -634,7 +638,7 @@ class TestMergeCloakMaps:
             replacement_id="repl2",
             original_checksum="1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="template"
+            strategy_used="template",
         )
 
         map1 = CloakMap(
@@ -642,7 +646,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[anchor1],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         map2 = CloakMap(
@@ -650,7 +654,7 @@ class TestMergeCloakMaps:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[anchor2],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         with pytest.raises(ValueError, match="Anchor overlap detected"):
@@ -672,7 +676,7 @@ class TestValidateCloakMapIntegrity:
             replacement_id="repl1",
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         cloakmap = CloakMap(
@@ -680,7 +684,7 @@ class TestValidateCloakMapIntegrity:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[anchor],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         result = validate_cloakmap_integrity(cloakmap)
@@ -703,7 +707,7 @@ class TestValidateCloakMapIntegrity:
             replacement_id="repl1",  # Duplicate ID
             original_checksum="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         anchor2 = AnchorEntry(
@@ -716,7 +720,7 @@ class TestValidateCloakMapIntegrity:
             replacement_id="repl1",  # Duplicate ID
             original_checksum="1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
             checksum_salt="dGVzdA==",  # base64 encoded "test"
-            strategy_used="redact"
+            strategy_used="redact",
         )
 
         with pytest.raises(ValueError, match="duplicate replacement_id: repl1"):
@@ -725,7 +729,7 @@ class TestValidateCloakMapIntegrity:
                 doc_id="doc123",
                 doc_hash="hash123",
                 anchors=[anchor1, anchor2],
-                policy_snapshot={}
+                policy_snapshot={},
             )
 
     def test_validate_signed_cloakmap_with_key(self):
@@ -735,7 +739,7 @@ class TestValidateCloakMapIntegrity:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"
@@ -753,7 +757,7 @@ class TestValidateCloakMapIntegrity:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"
@@ -763,7 +767,9 @@ class TestValidateCloakMapIntegrity:
         result = validate_cloakmap_integrity(signed_map, secret_key=wrong_key)
 
         # The new validation function may still report as valid at top level but have signature errors
-        assert any("Signature verification failed" in error for error in result["errors"])
+        assert any(
+            "Signature verification failed" in error for error in result["errors"]
+        )
 
     def test_validate_signed_cloakmap_without_key(self):
         """Test validation of signed CloakMap without providing key."""
@@ -772,7 +778,7 @@ class TestValidateCloakMapIntegrity:
             doc_id="doc123",
             doc_hash="hash123",
             anchors=[],
-            policy_snapshot={}
+            policy_snapshot={},
         )
 
         secret_key = "test_secret_key"

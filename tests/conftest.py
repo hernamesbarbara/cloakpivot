@@ -95,7 +95,7 @@ settings.register_profile(
     suppress_health_check=[
         # Suppress health checks that can slow down CI
         # These are generally safe to ignore for property testing in CI
-    ]
+    ],
 )
 
 settings.register_profile(
@@ -108,7 +108,7 @@ settings.register_profile(
     "comprehensive",
     max_examples=100,
     deadline=30000,  # 30 seconds
-    verbosity=Verbosity.verbose
+    verbosity=Verbosity.verbose,
 )
 
 
@@ -124,8 +124,8 @@ def worker_id(request) -> str:
     """Get the worker ID for xdist parallel execution."""
     # Primary method: Check for xdist worker input from pytest-xdist
     # When running with pytest -n auto, each worker process gets a unique workerid
-    if hasattr(request.config, 'workerinput'):
-        return request.config.workerinput['workerid']
+    if hasattr(request.config, "workerinput"):
+        return request.config.workerinput["workerid"]
 
     # Fallback method: Use parallel support utility for non-xdist environments
     # This handles cases where tests are run without pytest-xdist but may still need worker identification
@@ -137,7 +137,7 @@ def shared_temp_dir(worker_id: str) -> Path:
     """Worker-specific temporary directory for parallel execution."""
     # Use worker resource manager for cleanup tracking
     resource_manager = get_worker_resource_manager()
-    temp_dir = resource_manager.create_temp_dir(f'shared_temp_{worker_id}_')
+    temp_dir = resource_manager.create_temp_dir(f"shared_temp_{worker_id}_")
 
     yield temp_dir
 
@@ -173,7 +173,7 @@ def simple_document(sample_text_with_pii: str) -> DoclingDocument:
         text=sample_text_with_pii,
         self_ref="#/texts/0",
         label="text",
-        orig=sample_text_with_pii
+        orig=sample_text_with_pii,
     )
     doc.texts = [text_item]
     return doc
@@ -189,7 +189,7 @@ def complex_document() -> DoclingDocument:
         text="Employee Information Report",
         self_ref="#/texts/0",
         label="text",
-        orig="Employee Information Report"
+        orig="Employee Information Report",
     )
 
     # Content with PII
@@ -197,14 +197,14 @@ def complex_document() -> DoclingDocument:
         text="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543",
         self_ref="#/texts/1",
         label="text",
-        orig="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543"
+        orig="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543",
     )
 
     content2 = TextItem(
         text="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876",
         self_ref="#/texts/2",
         label="text",
-        orig="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876"
+        orig="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876",
     )
 
     doc.texts = [header, content1, content2]
@@ -215,30 +215,10 @@ def complex_document() -> DoclingDocument:
 def detected_entities() -> list[RecognizerResult]:
     """Sample detected PII entities for testing."""
     return [
-        RecognizerResult(
-            entity_type="PHONE_NUMBER",
-            start=20,
-            end=32,
-            score=0.95
-        ),
-        RecognizerResult(
-            entity_type="EMAIL_ADDRESS",
-            start=36,
-            end=56,
-            score=0.88
-        ),
-        RecognizerResult(
-            entity_type="US_SSN",
-            start=71,
-            end=82,
-            score=0.92
-        ),
-        RecognizerResult(
-            entity_type="CREDIT_CARD",
-            start=102,
-            end=121,
-            score=0.85
-        ),
+        RecognizerResult(entity_type="PHONE_NUMBER", start=20, end=32, score=0.95),
+        RecognizerResult(entity_type="EMAIL_ADDRESS", start=36, end=56, score=0.88),
+        RecognizerResult(entity_type="US_SSN", start=71, end=82, score=0.92),
+        RecognizerResult(entity_type="CREDIT_CARD", start=102, end=121, score=0.85),
     ]
 
 
@@ -248,17 +228,25 @@ def basic_masking_policy() -> MaskingPolicy:
     return MaskingPolicy(
         locale="en",
         per_entity={
-            "PHONE_NUMBER": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"}),
-            "EMAIL_ADDRESS": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "email"}),
-            "US_SSN": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}),
-            "CREDIT_CARD": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}),
+            "PHONE_NUMBER": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "phone"}
+            ),
+            "EMAIL_ADDRESS": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "email"}
+            ),
+            "US_SSN": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}
+            ),
+            "CREDIT_CARD": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}
+            ),
         },
         thresholds={
             "PHONE_NUMBER": 0.7,
             "EMAIL_ADDRESS": 0.8,
             "US_SSN": 0.9,
             "CREDIT_CARD": 0.8,
-        }
+        },
     )
 
 
@@ -268,12 +256,30 @@ def strict_masking_policy() -> MaskingPolicy:
     return MaskingPolicy(
         locale="en",
         per_entity={
-            "PHONE_NUMBER": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
-            "EMAIL_ADDRESS": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
-            "US_SSN": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
-            "CREDIT_CARD": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
-            "PERSON": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
-            "LOCATION": Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256", "truncate": 8}),
+            "PHONE_NUMBER": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
+            "EMAIL_ADDRESS": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
+            "US_SSN": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
+            "CREDIT_CARD": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
+            "PERSON": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
+            "LOCATION": Strategy(
+                kind=StrategyKind.HASH,
+                parameters={"algorithm": "sha256", "truncate": 8},
+            ),
         },
         thresholds={
             "PHONE_NUMBER": 0.5,
@@ -282,7 +288,7 @@ def strict_masking_policy() -> MaskingPolicy:
             "CREDIT_CARD": 0.7,
             "PERSON": 0.8,
             "LOCATION": 0.7,
-        }
+        },
     )
 
 
@@ -357,7 +363,7 @@ def simple_text_segments(sample_text_with_pii: str) -> list[TextSegment]:
             text=sample_text_with_pii,
             start_offset=0,
             end_offset=len(sample_text_with_pii),
-            node_type="TextItem"
+            node_type="TextItem",
         )
     ]
 
@@ -371,22 +377,22 @@ def complex_text_segments() -> list[TextSegment]:
             text="Employee Information Report",
             start_offset=0,
             end_offset=27,
-            node_type="TextItem"
+            node_type="TextItem",
         ),
         TextSegment(
             node_id="#/texts/1",
             text="Employee: Alice Smith, SSN: 987-65-4321, Phone: 555-987-6543",
             start_offset=0,
             end_offset=60,
-            node_type="TextItem"
+            node_type="TextItem",
         ),
         TextSegment(
             node_id="#/texts/2",
             text="Emergency Contact: Bob Johnson at bob.johnson@company.com or 555-123-9876",
             start_offset=0,
             end_offset=73,
-            node_type="TextItem"
-        )
+            node_type="TextItem",
+        ),
     ]
 
 
@@ -403,7 +409,7 @@ def large_document(sample_text_with_pii: str) -> DoclingDocument:
             text=f"Section {i}: {sample_text_with_pii}",
             self_ref=f"#/texts/{i}",
             label="text",
-            orig=f"Section {i}: {sample_text_with_pii}"
+            orig=f"Section {i}: {sample_text_with_pii}",
         )
         text_items.append(text_item)
 
@@ -416,7 +422,8 @@ def _get_privacy_levels():
     """Get privacy levels based on test execution mode."""
     # Check if we're running in fast mode (default) or slow mode
     import os
-    fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
+
+    fast_mode = os.environ.get("PYTEST_FAST_MODE", "1") == "1"
 
     if fast_mode:
         return ["medium"]  # Single representative value for fast runs
@@ -427,7 +434,8 @@ def _get_privacy_levels():
 def _get_strategy_kinds():
     """Get strategy kinds based on test execution mode."""
     import os
-    fast_mode = os.environ.get('PYTEST_FAST_MODE', '1') == '1'
+
+    fast_mode = os.environ.get("PYTEST_FAST_MODE", "1") == "1"
 
     if fast_mode:
         return [StrategyKind.TEMPLATE]  # Single representative strategy for fast runs
@@ -460,13 +468,15 @@ def privacy_level_slow(request) -> str:
     return request.param
 
 
-@pytest.fixture(params=[
-    StrategyKind.TEMPLATE,
-    StrategyKind.REDACT,
-    StrategyKind.HASH,
-    StrategyKind.SURROGATE,
-    StrategyKind.PARTIAL,
-])
+@pytest.fixture(
+    params=[
+        StrategyKind.TEMPLATE,
+        StrategyKind.REDACT,
+        StrategyKind.HASH,
+        StrategyKind.SURROGATE,
+        StrategyKind.PARTIAL,
+    ]
+)
 def strategy_kind_slow(request) -> StrategyKind:
     """Parametrized strategy kind for slow comprehensive strategy testing."""
     return request.param
@@ -483,6 +493,7 @@ def masking_engine():
     through separate input documents and policies.
     """
     from cloakpivot.masking.engine import MaskingEngine
+
     return MaskingEngine()
 
 
@@ -492,11 +503,21 @@ def benchmark_policy() -> MaskingPolicy:
     return MaskingPolicy(
         locale="en",
         per_entity={
-            "PHONE_NUMBER": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PHONE]"}),
-            "EMAIL_ADDRESS": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"}),
-            "US_SSN": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}),
-            "CREDIT_CARD": Strategy(kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}),
-            "PERSON": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PERSON]"}),
+            "PHONE_NUMBER": Strategy(
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[PHONE]"}
+            ),
+            "EMAIL_ADDRESS": Strategy(
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"}
+            ),
+            "US_SSN": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "ssn"}
+            ),
+            "CREDIT_CARD": Strategy(
+                kind=StrategyKind.SURROGATE, parameters={"format_type": "credit_card"}
+            ),
+            "PERSON": Strategy(
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[PERSON]"}
+            ),
         },
         thresholds={
             "PHONE_NUMBER": 0.7,
@@ -504,7 +525,7 @@ def benchmark_policy() -> MaskingPolicy:
             "US_SSN": 0.8,
             "CREDIT_CARD": 0.7,
             "PERSON": 0.8,
-        }
+        },
     )
 
 
@@ -527,24 +548,14 @@ def shared_analyzer(parallel_shared_analyzer):
 def pytest_configure(config):
     """Configure pytest with custom markers and parallel execution settings."""
     # Add custom markers
-    config.addinivalue_line(
-        "markers", "unit: marks tests as unit tests"
-    )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "e2e: marks tests as end-to-end tests"
-    )
+    config.addinivalue_line("markers", "unit: marks tests as unit tests")
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "e2e: marks tests as end-to-end tests")
     config.addinivalue_line(
         "markers", "golden: marks tests as golden file regression tests"
     )
-    config.addinivalue_line(
-        "markers", "performance: marks tests as performance tests"
-    )
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow running tests"
-    )
+    config.addinivalue_line("markers", "performance: marks tests as performance tests")
+    config.addinivalue_line("markers", "slow: marks tests as slow running tests")
     config.addinivalue_line(
         "markers", "property: marks tests as property-based tests using Hypothesis"
     )
@@ -563,47 +574,48 @@ def _configure_parallel_execution(config):
         return
 
     # Check if parallel execution is already configured via command line
-    numprocesses_option = config.getoption('--numprocesses', default=None)
-    dist_option = config.getoption('--dist', default=None)
+    numprocesses_option = config.getoption("--numprocesses", default=None)
+    dist_option = config.getoption("--dist", default=None)
 
     # If -n/--numprocesses not specified, set optimal worker count
-    if numprocesses_option is None and not hasattr(config.option, 'numprocesses'):
+    if numprocesses_option is None and not hasattr(config.option, "numprocesses"):
         worker_count = ParallelTestSupport.get_optimal_worker_count()
         if worker_count > 1:
             config.option.numprocesses = worker_count
 
             # Set distribution strategy if not specified
             if dist_option is None:
-                config.option.dist = os.getenv('PYTEST_DIST', 'loadfile')
+                config.option.dist = os.getenv("PYTEST_DIST", "loadfile")
 
 
 def pytest_collection_modifyitems(config, items):
     """Optimize test distribution for better parallel performance."""
+
     # Sort tests by estimated execution time (longest first) for better load balancing
     def get_test_weight(item):
         """Estimate test execution time based on markers and name."""
         weight = 1  # Base weight
 
         # Performance tests are typically longer
-        if item.get_closest_marker('performance'):
+        if item.get_closest_marker("performance"):
             weight += 10
 
         # Integration tests are usually slower than unit tests
-        if item.get_closest_marker('integration'):
+        if item.get_closest_marker("integration"):
             weight += 5
-        elif item.get_closest_marker('e2e'):
+        elif item.get_closest_marker("e2e"):
             weight += 15
 
         # Property-based tests can be variable
-        if item.get_closest_marker('property'):
+        if item.get_closest_marker("property"):
             weight += 3
 
         # Tests with 'slow' marker
-        if item.get_closest_marker('slow'):
+        if item.get_closest_marker("slow"):
             weight += 8
 
         # Golden file tests might be slower due to file I/O
-        if item.get_closest_marker('golden'):
+        if item.get_closest_marker("golden"):
             weight += 2
 
         return weight
@@ -625,6 +637,7 @@ def pytest_sessionstart(session):
     else:
         try:
             from tests.utils.masking_helpers import set_test_shared_analyzer
+
             shared_analyzer = AnalyzerEngine()
             set_test_shared_analyzer(shared_analyzer)
         except ImportError:
@@ -633,6 +646,7 @@ def pytest_sessionstart(session):
         except Exception as e:
             # Log unexpected errors but don't fail test setup
             import logging
+
             logging.warning(f"Failed to setup shared analyzer: {e}")
 
 
@@ -641,6 +655,7 @@ def pytest_sessionfinish(session, exitstatus):
     # Clear shared analyzer
     try:
         from tests.utils.masking_helpers import clear_test_shared_analyzer
+
         clear_test_shared_analyzer()
     except ImportError:
         pass
@@ -690,11 +705,13 @@ def shared_detection_pipeline(shared_analyzer):
     except AttributeError as e:
         # Wrapper doesn't support direct engine assignment, create pipeline normally
         import logging
+
         logging.debug(f"Direct analyzer assignment failed: {e}")
         pipeline = EntityDetectionPipeline()
     except (TypeError, ValueError) as e:
         # Pipeline creation failed with wrapper, try without analyzer parameter
         import logging
+
         logging.debug(f"Pipeline creation with wrapper failed: {e}")
         pipeline = EntityDetectionPipeline()
 
@@ -727,54 +744,65 @@ def performance_profiler(worker_id: str):
 
             # Create reports directory with proper error handling
             try:
-                os.makedirs('test_reports', exist_ok=True)
+                os.makedirs("test_reports", exist_ok=True)
             except PermissionError:
                 import logging
+
                 logging.warning("Permission denied creating test_reports directory")
                 return
             except OSError as e:
                 import logging
+
                 logging.warning(f"Failed to create test_reports directory: {e}")
                 return
 
-            timestamp = datetime.now().isoformat().replace(':', '-')  # Safe for filenames
+            timestamp = (
+                datetime.now().isoformat().replace(":", "-")
+            )  # Safe for filenames
 
             # Convert stats to JSON-serializable format with error handling
             serializable_stats = {}
             try:
                 for op_name, op_stats in stats.items():
                     serializable_stats[op_name] = {
-                        'operation': op_stats.operation,
-                        'total_calls': op_stats.total_calls,
-                        'total_duration_ms': op_stats.total_duration_ms,
-                        'average_duration_ms': op_stats.average_duration_ms,
-                        'min_duration_ms': op_stats.min_duration_ms,
-                        'max_duration_ms': op_stats.max_duration_ms,
-                        'success_rate': op_stats.success_rate,
-                        'failure_count': op_stats.failure_count
+                        "operation": op_stats.operation,
+                        "total_calls": op_stats.total_calls,
+                        "total_duration_ms": op_stats.total_duration_ms,
+                        "average_duration_ms": op_stats.average_duration_ms,
+                        "min_duration_ms": op_stats.min_duration_ms,
+                        "max_duration_ms": op_stats.max_duration_ms,
+                        "success_rate": op_stats.success_rate,
+                        "failure_count": op_stats.failure_count,
                     }
             except (AttributeError, TypeError) as e:
                 import logging
+
                 logging.warning(f"Failed to serialize performance stats: {e}")
                 return
 
             # Write metrics file with specific error handling
-            filename = f'test_reports/performance_metrics_{worker_id}_{timestamp}.json'
+            filename = f"test_reports/performance_metrics_{worker_id}_{timestamp}.json"
             try:
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(filename, "w", encoding="utf-8") as f:
                     json.dump(serializable_stats, f, indent=2, ensure_ascii=False)
             except PermissionError:
                 import logging
+
                 logging.warning(f"Permission denied writing to {filename}")
             except OSError as e:
                 import logging
-                logging.warning(f"Failed to write performance metrics file {filename}: {e}")
+
+                logging.warning(
+                    f"Failed to write performance metrics file {filename}: {e}"
+                )
             except json.JSONEncodeError as e:
                 import logging
+
                 logging.warning(f"Failed to JSON encode performance metrics: {e}")
     except Exception as e:
         # Catch-all for unexpected errors during teardown - should not fail the test
         import logging
+
         logging.warning(f"Unexpected error in performance profiler teardown: {e}")
 
 
@@ -800,18 +828,9 @@ def performance_test_configs() -> dict[str, AnalyzerConfig]:
     """Various analyzer configurations for performance testing."""
 
     return {
-        "minimal": AnalyzerConfig(
-            language="en",
-            min_confidence=0.7
-        ),
-        "standard": AnalyzerConfig(
-            language="en",
-            min_confidence=0.5
-        ),
-        "comprehensive": AnalyzerConfig(
-            language="en",
-            min_confidence=0.3
-        )
+        "minimal": AnalyzerConfig(language="en", min_confidence=0.7),
+        "standard": AnalyzerConfig(language="en", min_confidence=0.5),
+        "comprehensive": AnalyzerConfig(language="en", min_confidence=0.3),
     }
 
 
@@ -847,5 +866,6 @@ def sample_documents() -> dict[str, str]:
 
         This document contains synthetic PII data for testing purposes only.
         All information is fake and used for validation of masking operations.
-        """ * 3  # Simulate larger document
+        """
+        * 3,  # Simulate larger document
     }

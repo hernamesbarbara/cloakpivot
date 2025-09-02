@@ -27,7 +27,7 @@ class TestBatchConfig:
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf"],
-            output_directory=Path("./output")
+            output_directory=Path("./output"),
         )
 
         assert config.operation_type == BatchOperationType.MASK
@@ -95,7 +95,7 @@ class TestBatchFileItem:
             file_path=file_path,
             output_path=output_path,
             cloakmap_path=cloakmap_path,
-            file_size_bytes=1024
+            file_size_bytes=1024,
         )
 
         assert item.file_path == file_path
@@ -114,7 +114,7 @@ class TestBatchFileItem:
             status=BatchStatus.FAILED,
             error="File not found",
             processing_time_ms=250.5,
-            entities_processed=0
+            entities_processed=0,
         )
 
         assert item.status == BatchStatus.FAILED
@@ -134,7 +134,7 @@ class TestBatchResult:
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf"],
-            output_directory=Path("./output")
+            output_directory=Path("./output"),
         )
 
         result = BatchResult(
@@ -147,13 +147,15 @@ class TestBatchResult:
             failed_files=2,
             skipped_files=0,
             total_processing_time_ms=8000.0,
-            total_entities_processed=150
+            total_entities_processed=150,
         )
 
         # Test calculated properties
         assert result.duration_ms == pytest.approx(10500.0, rel=1e-3)
         assert result.success_rate == 80.0  # 8/10 * 100
-        assert result.throughput_files_per_second == pytest.approx(0.762, rel=1e-2)  # 8 successful / 10.5 seconds
+        assert result.throughput_files_per_second == pytest.approx(
+            0.762, rel=1e-2
+        )  # 8 successful / 10.5 seconds
 
     def test_batch_result_zero_files(self):
         """Test BatchResult with zero files."""
@@ -172,7 +174,7 @@ class TestBatchResult:
             failed_files=0,
             skipped_files=0,
             total_processing_time_ms=0.0,
-            total_entities_processed=0
+            total_entities_processed=0,
         )
 
         assert result.success_rate == 0.0
@@ -236,7 +238,7 @@ class TestDefaultProgressCallback:
             failed_files=2,
             skipped_files=0,
             total_processing_time_ms=4000.0,
-            total_entities_processed=100
+            total_entities_processed=100,
         )
 
         callback.on_batch_complete(result)
@@ -257,7 +259,7 @@ class TestBatchProcessor:
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf"],
-            output_directory=Path("./output")
+            output_directory=Path("./output"),
         )
 
         processor = BatchProcessor(config)
@@ -268,13 +270,13 @@ class TestBatchProcessor:
         assert processor.error_handler is not None
         assert processor._is_cancelled is False
 
-    @patch('glob.glob')
+    @patch("glob.glob")
     def test_discover_files(self, mock_glob):
         """Test file discovery functionality."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf", "data/*.json"],
-            output_directory=Path("./output")
+            output_directory=Path("./output"),
         )
 
         # Mock glob results
@@ -284,9 +286,10 @@ class TestBatchProcessor:
         ]
 
         # Mock Path.is_file() and Path.stat()
-        with patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'stat') as mock_stat:
-
+        with (
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "stat") as mock_stat,
+        ):
             mock_stat.return_value.st_size = 1024
 
             processor = BatchProcessor(config)
@@ -300,21 +303,22 @@ class TestBatchProcessor:
             assert all(f.output_path is not None for f in files)
             assert all(f.cloakmap_path is not None for f in files)
 
-    @patch('glob.glob')
+    @patch("glob.glob")
     def test_discover_files_with_limit(self, mock_glob):
         """Test file discovery with file limit."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf"],
             output_directory=Path("./output"),
-            max_files_per_batch=2
+            max_files_per_batch=2,
         )
 
         mock_glob.return_value = ["file1.pdf", "file2.pdf", "file3.pdf", "file4.pdf"]
 
-        with patch.object(Path, 'is_file', return_value=True), \
-             patch.object(Path, 'stat') as mock_stat:
-
+        with (
+            patch.object(Path, "is_file", return_value=True),
+            patch.object(Path, "stat") as mock_stat,
+        ):
             mock_stat.return_value.st_size = 1024
 
             processor = BatchProcessor(config)
@@ -329,7 +333,7 @@ class TestBatchProcessor:
             input_patterns=["*.pdf"],
             output_directory=Path("/output"),
             preserve_directory_structure=True,
-            output_format="lexical"
+            output_format="lexical",
         )
 
         processor = BatchProcessor(config)
@@ -348,7 +352,7 @@ class TestBatchProcessor:
             input_patterns=["*.pdf"],
             output_directory=Path("/output"),
             preserve_directory_structure=False,
-            output_format="docling"
+            output_format="docling",
         )
 
         processor = BatchProcessor(config)
@@ -399,19 +403,17 @@ class TestBatchProcessor:
             operation_type=BatchOperationType.MASK,
             input_patterns=["*.pdf"],
             output_directory=Path("/output"),
-            overwrite_existing=False
+            overwrite_existing=False,
         )
 
         processor = BatchProcessor(config)
 
         # Create test file items
         file1 = BatchFileItem(
-            file_path=Path("/data/file1.pdf"),
-            output_path=Path("/output/file1.json")
+            file_path=Path("/data/file1.pdf"), output_path=Path("/output/file1.json")
         )
         file2 = BatchFileItem(
-            file_path=Path("/data/file2.pdf"),
-            output_path=Path("/output/file2.json")
+            file_path=Path("/data/file2.pdf"), output_path=Path("/output/file2.json")
         )
 
         files = [file1, file2]
@@ -420,7 +422,7 @@ class TestBatchProcessor:
         def mock_exists(path_instance):
             return "file1" in str(path_instance)
 
-        with patch.object(Path, 'exists', mock_exists):
+        with patch.object(Path, "exists", mock_exists):
             filtered_files = processor._filter_existing_files(files)
 
             assert len(filtered_files) == 1
@@ -458,10 +460,16 @@ class TestBatchProcessorIntegration:
             input_dir.mkdir()
 
             # Create sample input files
-            (input_dir / "doc1.json").write_text('{"text": "John Doe lives at 123 Main St."}')
-            (input_dir / "doc2.json").write_text('{"text": "Contact: jane@example.com or (555) 123-4567"}')
+            (input_dir / "doc1.json").write_text(
+                '{"text": "John Doe lives at 123 Main St."}'
+            )
+            (input_dir / "doc2.json").write_text(
+                '{"text": "Contact: jane@example.com or (555) 123-4567"}'
+            )
             (input_dir / "subdir").mkdir()
-            (input_dir / "subdir" / "doc3.json").write_text('{"text": "SSN: 123-45-6789"}')
+            (input_dir / "subdir" / "doc3.json").write_text(
+                '{"text": "SSN: 123-45-6789"}'
+            )
 
             # Create output directories
             output_dir = workspace / "output"
@@ -470,17 +478,17 @@ class TestBatchProcessorIntegration:
             cloakmap_dir.mkdir()
 
             yield {
-                'workspace': workspace,
-                'input_dir': input_dir,
-                'output_dir': output_dir,
-                'cloakmap_dir': cloakmap_dir,
+                "workspace": workspace,
+                "input_dir": input_dir,
+                "output_dir": output_dir,
+                "cloakmap_dir": cloakmap_dir,
             }
 
     def test_process_batch_empty_patterns(self, temp_workspace):
         """Test batch processing with patterns that match no files."""
         config = BatchConfig(
             operation_type=BatchOperationType.ANALYZE,
-            input_patterns=[str(temp_workspace['input_dir'] / "*.nonexistent")],
+            input_patterns=[str(temp_workspace["input_dir"] / "*.nonexistent")],
         )
 
         processor = BatchProcessor(config)
@@ -491,15 +499,17 @@ class TestBatchProcessorIntegration:
         assert result.successful_files == 0
         assert result.failed_files == 0
 
-    @patch('cloakpivot.core.batch.BatchProcessor._process_mask_operation')
-    @patch('cloakpivot.core.batch.BatchProcessor._create_output_directories')
-    def test_process_batch_mock_operations(self, mock_create_dirs, mock_mask_op, temp_workspace):
+    @patch("cloakpivot.core.batch.BatchProcessor._process_mask_operation")
+    @patch("cloakpivot.core.batch.BatchProcessor._create_output_directories")
+    def test_process_batch_mock_operations(
+        self, mock_create_dirs, mock_mask_op, temp_workspace
+    ):
         """Test batch processing with mocked operations."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
-            input_patterns=[str(temp_workspace['input_dir'] / "**/*.json")],
-            output_directory=temp_workspace['output_dir'],
-            cloakmap_directory=temp_workspace['cloakmap_dir'],
+            input_patterns=[str(temp_workspace["input_dir"] / "**/*.json")],
+            output_directory=temp_workspace["output_dir"],
+            cloakmap_directory=temp_workspace["cloakmap_dir"],
             max_workers=1,  # Single worker for predictable testing
         )
 
@@ -526,13 +536,13 @@ class TestBatchProcessorIntegration:
         # Check that mask operation was called for each file
         assert mock_mask_op.call_count == 3
 
-    @patch('cloakpivot.core.batch.BatchProcessor._process_mask_operation')
+    @patch("cloakpivot.core.batch.BatchProcessor._process_mask_operation")
     def test_process_batch_with_failures(self, mock_mask_op, temp_workspace):
         """Test batch processing with some file failures."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
-            input_patterns=[str(temp_workspace['input_dir'] / "**/*.json")],
-            output_directory=temp_workspace['output_dir'],
+            input_patterns=[str(temp_workspace["input_dir"] / "**/*.json")],
+            output_directory=temp_workspace["output_dir"],
             max_workers=1,
             max_retries=1,
         )
@@ -548,25 +558,32 @@ class TestBatchProcessorIntegration:
         processor = BatchProcessor(config)
         result = processor.process_batch()
 
-        assert result.status == BatchStatus.COMPLETED  # Batch completes despite individual failures
+        assert (
+            result.status == BatchStatus.COMPLETED
+        )  # Batch completes despite individual failures
         assert result.total_files == 3
         assert result.successful_files == 2  # doc1 and doc3 succeed
-        assert result.failed_files == 1   # doc2 fails
+        assert result.failed_files == 1  # doc2 fails
         assert result.total_entities_processed == 6  # 3 per successful file * 2 files
         assert result.success_rate == pytest.approx(66.67, rel=1e-2)
 
         # Check that failed file has error information
-        failed_files = [f for f in result.file_results if f.status == BatchStatus.FAILED]
+        failed_files = [
+            f for f in result.file_results if f.status == BatchStatus.FAILED
+        ]
         assert len(failed_files) == 1
-        assert failed_files[0].error is not None and "Simulated processing error" in failed_files[0].error
+        assert (
+            failed_files[0].error is not None
+            and "Simulated processing error" in failed_files[0].error
+        )
 
-    @patch('cloakpivot.core.batch.BatchProcessor._process_mask_operation')
+    @patch("cloakpivot.core.batch.BatchProcessor._process_mask_operation")
     def test_process_batch_with_retries(self, mock_mask_op, temp_workspace):
         """Test batch processing retry mechanism."""
         config = BatchConfig(
             operation_type=BatchOperationType.MASK,
-            input_patterns=[str(temp_workspace['input_dir'] / "doc1.json")],
-            output_directory=temp_workspace['output_dir'],
+            input_patterns=[str(temp_workspace["input_dir"] / "doc1.json")],
+            output_directory=temp_workspace["output_dir"],
             max_workers=1,
             max_retries=2,
             retry_delay_seconds=0.01,  # Very short delay for testing
@@ -591,7 +608,9 @@ class TestBatchProcessorIntegration:
         assert result.total_files == 1
         assert result.successful_files == 1  # Eventually succeeds
         assert result.failed_files == 0
-        assert mock_mask_op.call_count == 2  # Called twice (first failure, then success)
+        assert (
+            mock_mask_op.call_count == 2
+        )  # Called twice (first failure, then success)
 
 
 if __name__ == "__main__":

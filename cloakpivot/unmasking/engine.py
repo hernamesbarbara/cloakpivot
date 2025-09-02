@@ -103,7 +103,9 @@ class UnmaskingEngine:
 
         # Handle empty CloakMap case - if no anchors exist, return document unchanged
         if not cloakmap_obj.anchors:
-            logger.warning("CloakMap contains no anchors - returning document unchanged")
+            logger.warning(
+                "CloakMap contains no anchors - returning document unchanged"
+            )
             return UnmaskingResult(
                 restored_document=self._copy_document(masked_document),
                 cloakmap=cloakmap_obj,

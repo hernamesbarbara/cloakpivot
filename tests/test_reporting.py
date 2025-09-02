@@ -31,7 +31,11 @@ def sample_report_data():
         entities_failed=1,
         entity_counts_by_type={"PERSON": 3, "EMAIL_ADDRESS": 3, "PHONE_NUMBER": 2},
         strategy_usage={"template": 6, "partial": 2},
-        confidence_statistics={"min_confidence": 0.6, "max_confidence": 0.95, "mean_confidence": 0.82}
+        confidence_statistics={
+            "min_confidence": 0.6,
+            "max_confidence": 0.95,
+            "mean_confidence": 0.82,
+        },
     )
 
     coverage = CoverageMetrics(
@@ -40,11 +44,11 @@ def sample_report_data():
         overall_coverage_rate=0.6,
         section_coverage=[
             DocumentSection("paragraph", 3, 2, 6),
-            DocumentSection("heading", 2, 1, 2)
+            DocumentSection("heading", 2, 1, 2),
         ],
         entity_distribution={"PERSON": 3, "EMAIL_ADDRESS": 3, "PHONE_NUMBER": 2},
         entity_density=1.6,
-        coverage_gaps=[{"node_id": "gap1", "type": "paragraph"}]
+        coverage_gaps=[{"node_id": "gap1", "type": "paragraph"}],
     )
 
     performance = {
@@ -52,7 +56,7 @@ def sample_report_data():
         "detection_time_seconds": 1.2,
         "masking_time_seconds": 1.8,
         "serialization_time_seconds": 0.5,
-        "throughput_entities_per_second": 2.29
+        "throughput_entities_per_second": 2.29,
     }
 
     diagnostics = {
@@ -60,7 +64,7 @@ def sample_report_data():
         "error_count": 1,
         "warnings": ["Warning about low confidence entity", "Performance warning"],
         "errors": ["Failed to mask complex entity"],
-        "has_issues": True
+        "has_issues": True,
     }
 
     return ReportData(
@@ -69,7 +73,10 @@ def sample_report_data():
         performance=performance,
         diagnostics=diagnostics,
         document_metadata={"name": "test_doc.pdf", "size_bytes": 2048},
-        recommendations=["Review low confidence entities", "Optimize policy for better coverage"]
+        recommendations=[
+            "Review low confidence entities",
+            "Optimize policy for better coverage",
+        ],
     )
 
 
@@ -86,8 +93,7 @@ class TestDiagnosticReporter:
         reporter = DiagnosticReporter()
 
         json_report = reporter.generate_report(
-            data=sample_report_data,
-            format=ReportFormat.JSON
+            data=sample_report_data, format=ReportFormat.JSON
         )
 
         # Should be valid JSON
@@ -112,8 +118,7 @@ class TestDiagnosticReporter:
         reporter = DiagnosticReporter()
 
         html_report = reporter.generate_report(
-            data=sample_report_data,
-            format=ReportFormat.HTML
+            data=sample_report_data, format=ReportFormat.HTML
         )
 
         # Should contain HTML structure
@@ -125,7 +130,9 @@ class TestDiagnosticReporter:
         # Should contain key information
         assert "CloakPivot Diagnostic Report" in html_report
         assert "10" in html_report  # total entities
-        assert "60.0%" in html_report or "0.6" in html_report  # coverage rate (flexible format)
+        assert (
+            "60.0%" in html_report or "0.6" in html_report
+        )  # coverage rate (flexible format)
         assert "3.5" in html_report  # total time
 
     def test_generate_markdown_report(self, sample_report_data):
@@ -133,8 +140,7 @@ class TestDiagnosticReporter:
         reporter = DiagnosticReporter()
 
         md_report = reporter.generate_report(
-            data=sample_report_data,
-            format=ReportFormat.MARKDOWN
+            data=sample_report_data, format=ReportFormat.MARKDOWN
         )
 
         # Should contain Markdown structure
@@ -155,9 +161,7 @@ class TestDiagnosticReporter:
         output_file = tmp_path / "test_report.json"
 
         reporter.save_report(
-            data=sample_report_data,
-            output_path=output_file,
-            format=ReportFormat.JSON
+            data=sample_report_data, output_path=output_file, format=ReportFormat.JSON
         )
 
         # File should exist
@@ -202,8 +206,7 @@ class TestDiagnosticReporter:
         reporter = DiagnosticReporter()
 
         html_report = reporter.generate_report(
-            data=sample_report_data,
-            format=ReportFormat.HTML
+            data=sample_report_data, format=ReportFormat.HTML
         )
 
         # Should include Chart.js for visualizations
@@ -220,7 +223,7 @@ class TestDiagnosticReporter:
             performance={},
             diagnostics={},
             document_metadata={},
-            recommendations=[]
+            recommendations=[],
         )
 
         reporter = DiagnosticReporter()
@@ -244,7 +247,7 @@ class TestReportData:
             performance={"total_time_seconds": 2.0},
             diagnostics={"warning_count": 1},
             document_metadata={"name": "test.pdf"},
-            recommendations=["Improve detection"]
+            recommendations=["Improve detection"],
         )
 
         assert data.statistics.total_entities_detected == 5
@@ -259,7 +262,7 @@ class TestReportData:
             performance={"time": 1.5},
             diagnostics={"errors": []},
             document_metadata={"size": 1024},
-            recommendations=["Test rec"]
+            recommendations=["Test rec"],
         )
 
         result = data.to_dict()
@@ -297,7 +300,7 @@ class TestReportingIntegration:
             masked_document=MagicMock(),
             cloakmap=MagicMock(),
             stats=ProcessingStats(total_entities_found=5, entities_masked=4),
-            performance=PerformanceMetrics()
+            performance=PerformanceMetrics(),
         )
         mask_result.cloakmap.anchors = []
         mask_result.cloakmap.entity_count_by_type = {"PERSON": 2, "EMAIL": 2}
@@ -308,9 +311,9 @@ class TestReportingIntegration:
             mask_result=mask_result,
             original_entities=[
                 RecognizerResult(entity_type="PERSON", start=0, end=5, score=0.9),
-                RecognizerResult(entity_type="EMAIL", start=10, end=25, score=0.8)
+                RecognizerResult(entity_type="EMAIL", start=10, end=25, score=0.8),
             ],
-            document_metadata={"name": "integration_test.pdf"}
+            document_metadata={"name": "integration_test.pdf"},
         )
 
         # Convert to ReportData format and generate reports
@@ -320,7 +323,7 @@ class TestReportingIntegration:
             performance=comprehensive_report["performance"],
             diagnostics=comprehensive_report["diagnostics"],
             document_metadata=comprehensive_report["document_metadata"],
-            recommendations=[]
+            recommendations=[],
         )
 
         reporter = DiagnosticReporter()

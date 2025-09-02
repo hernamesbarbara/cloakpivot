@@ -47,9 +47,7 @@ class LoggingConfig(BaseModel):
     level: str = Field(default="INFO", description="Log level")
     format: str = Field(default="json", description="Log format (json or text)")
     enable_tracing: bool = Field(default=True, description="Enable distributed tracing")
-    enable_correlation: bool = Field(
-        default=True, description="Enable correlation IDs"
-    )
+    enable_correlation: bool = Field(default=True, description="Enable correlation IDs")
     output: str = Field(default="stdout", description="Log output (stdout or file)")
     file_path: str | None = Field(default=None, description="Log file path")
 

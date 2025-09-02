@@ -80,7 +80,9 @@ class AnchorResolver:
     """
 
     # Configuration for anchor resolution
-    MAX_POSITION_DRIFT = 100  # Maximum characters to search around expected position (increased)
+    MAX_POSITION_DRIFT = (
+        100  # Maximum characters to search around expected position (increased)
+    )
     MIN_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence to accept resolution (lowered)
     FUZZY_SEARCH_WINDOW = 20  # Characters to search in each direction (increased)
 

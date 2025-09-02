@@ -69,7 +69,9 @@ class TestStrategy:
         Strategy(StrategyKind.TEMPLATE, {"template": "[PHONE]"})
 
         # Missing template
-        with pytest.raises(ValueError, match="Template strategy requires 'template' parameter"):
+        with pytest.raises(
+            ValueError, match="Template strategy requires 'template' parameter"
+        ):
             Strategy(StrategyKind.TEMPLATE, {})
 
         # Invalid template type
@@ -101,27 +103,38 @@ class TestStrategy:
         Strategy(StrategyKind.PARTIAL, {"visible_chars": 2, "position": "start"})
 
         # Missing visible_chars
-        with pytest.raises(ValueError, match="Partial strategy requires 'visible_chars' parameter"):
+        with pytest.raises(
+            ValueError, match="Partial strategy requires 'visible_chars' parameter"
+        ):
             Strategy(StrategyKind.PARTIAL, {})
 
         # Invalid visible_chars
-        with pytest.raises(ValueError, match="visible_chars must be a non-negative integer"):
+        with pytest.raises(
+            ValueError, match="visible_chars must be a non-negative integer"
+        ):
             Strategy(StrategyKind.PARTIAL, {"visible_chars": -1})
 
         # Invalid position
-        with pytest.raises(ValueError, match="Position must be 'start', 'end', 'middle', or 'random'"):
+        with pytest.raises(
+            ValueError, match="Position must be 'start', 'end', 'middle', or 'random'"
+        ):
             Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "invalid"})
 
     def test_custom_validation(self) -> None:
         """Test custom strategy parameter validation."""
-        def test_callback(original_text: str, entity_type: str, confidence: float) -> str:
+
+        def test_callback(
+            original_text: str, entity_type: str, confidence: float
+        ) -> str:
             return "masked"
 
         # Valid parameters
         Strategy(StrategyKind.CUSTOM, {"callback": test_callback})
 
         # Missing callback
-        with pytest.raises(ValueError, match="Custom strategy requires 'callback' parameter"):
+        with pytest.raises(
+            ValueError, match="Custom strategy requires 'callback' parameter"
+        ):
             Strategy(StrategyKind.CUSTOM, {})
 
         # Invalid callback
@@ -145,7 +158,11 @@ class TestStrategy:
         assert original.parameters == {"algorithm": "sha256"}
 
         # Updated has merged parameters
-        assert updated.parameters == {"algorithm": "sha256", "salt": "test", "truncate": 8}
+        assert updated.parameters == {
+            "algorithm": "sha256",
+            "salt": "test",
+            "truncate": 8,
+        }
 
 
 class TestPredefinedStrategies:

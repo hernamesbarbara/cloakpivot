@@ -1,6 +1,5 @@
 """Tests for the MaskingEngine core functionality."""
 
-
 import pytest
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
@@ -26,7 +25,7 @@ class TestMaskingEngine:
             text="Call me at 555-123-4567 or email john@example.com",
             self_ref="#/texts/0",
             label="text",
-            orig="Call me at 555-123-4567 or email john@example.com"
+            orig="Call me at 555-123-4567 or email john@example.com",
         )
         doc.texts = [text_item]
 
@@ -36,29 +35,23 @@ class TestMaskingEngine:
     def detected_entities(self) -> list[RecognizerResult]:
         """Create sample detected PII entities."""
         return [
-            RecognizerResult(
-                entity_type="PHONE_NUMBER",
-                start=11,
-                end=23,
-                score=0.95
-            ),
-            RecognizerResult(
-                entity_type="EMAIL_ADDRESS",
-                start=33,
-                end=49,
-                score=0.88
-            )
+            RecognizerResult(entity_type="PHONE_NUMBER", start=11, end=23, score=0.95),
+            RecognizerResult(entity_type="EMAIL_ADDRESS", start=33, end=49, score=0.88),
         ]
 
     @pytest.fixture
     def basic_policy(self) -> MaskingPolicy:
         """Create a basic masking policy."""
         return MaskingPolicy(
-            default_strategy=Strategy(StrategyKind.TEMPLATE, {"template": "[REDACTED]"}),
+            default_strategy=Strategy(
+                StrategyKind.TEMPLATE, {"template": "[REDACTED]"}
+            ),
             per_entity={
                 "PHONE_NUMBER": PHONE_TEMPLATE,
-                "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"})
-            }
+                "EMAIL_ADDRESS": Strategy(
+                    StrategyKind.TEMPLATE, {"template": "[EMAIL]"}
+                ),
+            },
         )
 
     @pytest.fixture
@@ -70,7 +63,7 @@ class TestMaskingEngine:
                 text="Call me at 555-123-4567 or email john@example.com",
                 start_offset=0,
                 end_offset=49,
-                node_type="TextItem"
+                node_type="TextItem",
             )
         ]
 
@@ -89,7 +82,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=detected_entities,
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         # Should return MaskingResult
@@ -117,7 +110,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=detected_entities,
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         cloakmap = result.cloakmap
@@ -126,14 +119,18 @@ class TestMaskingEngine:
         assert len(cloakmap.anchors) == 2
 
         # Check phone number anchor
-        phone_anchor = next(a for a in cloakmap.anchors if a.entity_type == "PHONE_NUMBER")
+        phone_anchor = next(
+            a for a in cloakmap.anchors if a.entity_type == "PHONE_NUMBER"
+        )
         assert phone_anchor.start == 11
         assert phone_anchor.end == 23
         assert phone_anchor.masked_value == "[PHONE]"
         assert phone_anchor.node_id == "#/texts/0"
 
         # Check email anchor
-        email_anchor = next(a for a in cloakmap.anchors if a.entity_type == "EMAIL_ADDRESS")
+        email_anchor = next(
+            a for a in cloakmap.anchors if a.entity_type == "EMAIL_ADDRESS"
+        )
         assert email_anchor.start == 33
         assert email_anchor.end == 49
         assert email_anchor.masked_value == "[EMAIL]"
@@ -149,7 +146,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=detected_entities,
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         cloakmap_json = result.cloakmap.to_json()
@@ -176,7 +173,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=detected_entities,
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         masked_doc = result.masked_document
@@ -188,9 +185,7 @@ class TestMaskingEngine:
         # Node references should be preserved
         assert masked_doc.texts[0].self_ref == simple_document.texts[0].self_ref
 
-    def test_empty_entities_list(
-        self, simple_document, basic_policy, text_segments
-    ):
+    def test_empty_entities_list(self, simple_document, basic_policy, text_segments):
         """Test masking with no detected entities."""
         engine = MaskingEngine()
 
@@ -198,7 +193,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=[],
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         # Document should be unchanged
@@ -213,7 +208,9 @@ class TestMaskingEngine:
         """Test handling of overlapping entity detections."""
         overlapping_entities = [
             RecognizerResult(entity_type="PHONE_NUMBER", start=11, end=23, score=0.95),
-            RecognizerResult(entity_type="US_DRIVER_LICENSE", start=15, end=25, score=0.70)  # Overlaps
+            RecognizerResult(
+                entity_type="US_DRIVER_LICENSE", start=15, end=25, score=0.70
+            ),  # Overlaps
         ]
 
         engine = MaskingEngine()
@@ -224,7 +221,7 @@ class TestMaskingEngine:
                 document=simple_document,
                 entities=overlapping_entities,
                 policy=basic_policy,
-                text_segments=text_segments
+                text_segments=text_segments,
             )
 
     def test_unique_replacement_ids(
@@ -237,7 +234,7 @@ class TestMaskingEngine:
             document=simple_document,
             entities=detected_entities,
             policy=basic_policy,
-            text_segments=text_segments
+            text_segments=text_segments,
         )
 
         replacement_ids = [anchor.replacement_id for anchor in result.cloakmap.anchors]

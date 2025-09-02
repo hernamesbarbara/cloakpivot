@@ -35,7 +35,7 @@ class TestBaselineConfiguration:
             description="Test scenario",
             iterations=10,
             target_max_ms=100.0,
-            test_func="test_function"
+            test_func="test_function",
         )
 
         assert config.description == "Test scenario"
@@ -49,19 +49,13 @@ class TestBaselineConfiguration:
         # Test invalid iterations
         with pytest.raises(ValueError, match="iterations must be positive"):
             ScenarioConfig(
-                description="Test",
-                iterations=0,
-                target_max_ms=100.0,
-                test_func="test"
+                description="Test", iterations=0, target_max_ms=100.0, test_func="test"
             )
 
         # Test invalid target time
         with pytest.raises(ValueError, match="target_max_ms must be positive"):
             ScenarioConfig(
-                description="Test",
-                iterations=5,
-                target_max_ms=0.0,
-                test_func="test"
+                description="Test", iterations=5, target_max_ms=0.0, test_func="test"
             )
 
     def test_default_config_creation(self):
@@ -125,7 +119,9 @@ class TestPerformanceProfilerIntegration:
         # Check that profiling captured the operation
         stats = profiler.get_operation_stats("test_operation")
         assert stats.total_calls == 1
-        assert stats.total_duration_ms >= 15  # Should be at least 15ms (allowing for timing variance)
+        assert (
+            stats.total_duration_ms >= 15
+        )  # Should be at least 15ms (allowing for timing variance)
 
     def test_profiler_context_manager(self):
         """Test PerformanceProfiler context manager."""
@@ -164,7 +160,9 @@ class TestPerformanceProfilerIntegration:
                 profiling_captured = True
                 break
 
-        assert profiling_captured, f"No analyzer profiling found in operations: {list(all_stats.keys())}"
+        assert profiling_captured, (
+            f"No analyzer profiling found in operations: {list(all_stats.keys())}"
+        )
 
 
 class TestBaselineMeasurement:
@@ -172,6 +170,7 @@ class TestBaselineMeasurement:
 
     def test_basic_timing_measurement(self):
         """Test basic timing measurement functionality."""
+
         def measure_operation(iterations: int = 5) -> dict[str, float]:
             times = []
             for _ in range(iterations):
@@ -186,7 +185,7 @@ class TestBaselineMeasurement:
                 "std_dev": statistics.stdev(times) if len(times) > 1 else 0.0,
                 "min": min(times),
                 "max": max(times),
-                "count": len(times)
+                "count": len(times),
             }
 
         results = measure_operation(10)
@@ -199,6 +198,7 @@ class TestBaselineMeasurement:
 
     def test_analyzer_cold_start_measurement(self):
         """Test analyzer cold start measurement."""
+
         def measure_analyzer_cold_start(iterations: int = 3) -> dict[str, float]:
             times = []
 
@@ -217,7 +217,7 @@ class TestBaselineMeasurement:
                 "mean": statistics.mean(times),
                 "min": min(times),
                 "max": max(times),
-                "count": len(times)
+                "count": len(times),
             }
 
         results = measure_analyzer_cold_start(2)  # Use small number for test speed
@@ -246,7 +246,7 @@ class TestBaselineMeasurement:
             return {
                 "mean": statistics.mean(times),
                 "min": min(times),
-                "max": max(times)
+                "max": max(times),
             }
 
         results = measure_warm_analysis(3)
@@ -268,7 +268,7 @@ class TestBaselineReporting:
                 "python_version": "3.11.0",
                 "platform": "test_platform",
                 "cpu_count": 4,
-                "memory_gb": 8.0
+                "memory_gb": 8.0,
             },
             "measurements": {
                 "test_scenario": {
@@ -281,10 +281,10 @@ class TestBaselineReporting:
                         "std_dev": 5.0,
                         "min": 45.0,
                         "max": 58.0,
-                        "count": 5
-                    }
+                        "count": 5,
+                    },
                 }
-            }
+            },
         }
 
         # Validate report structure
@@ -327,7 +327,7 @@ class TestBaselineReporting:
                 "results": {
                     "mean": 150.0  # 150ms current baseline
                 }
-            }
+            },
         }
 
         # Validate against PRD targets
@@ -345,11 +345,7 @@ class TestBaselineReporting:
         """Test that baseline reports can be serialized to JSON."""
         report = {
             "timestamp": "2025-01-01T00:00:00Z",
-            "measurements": {
-                "test": {
-                    "results": {"mean": 123.45, "count": 10}
-                }
-            }
+            "measurements": {"test": {"results": {"mean": 123.45, "count": 10}}},
         }
 
         # Should serialize without errors
@@ -402,7 +398,7 @@ class TestBaselineScriptIntegration:
                 "analyzer_cold_start",
                 "analyzer_warm_start",
                 "small_text_analysis",
-                "medium_text_analysis"
+                "medium_text_analysis",
             ]
 
             for scenario in required_scenarios:
@@ -428,6 +424,7 @@ class TestBaselinePerformanceValidation:
 
     def test_measurement_repeatability(self):
         """Test that measurements are reasonably repeatable."""
+
         def simple_measurement() -> float:
             start = time.perf_counter()
             time.sleep(0.005)  # 5ms operation
@@ -446,6 +443,7 @@ class TestBaselinePerformanceValidation:
 
     def test_profiler_overhead(self):
         """Test that profiler overhead is minimal."""
+
         def test_operation():
             # Simple operation
             result = sum(range(1000))
@@ -462,7 +460,7 @@ class TestBaselinePerformanceValidation:
         profiler = PerformanceProfiler(
             enable_memory_tracking=False,
             enable_detailed_logging=False,
-            auto_report_threshold_ms=10000.0  # High threshold to avoid logging overhead
+            auto_report_threshold_ms=10000.0,  # High threshold to avoid logging overhead
         )
 
         @profiler.timing_decorator("test_op")
@@ -477,7 +475,9 @@ class TestBaselinePerformanceValidation:
 
         # Profiler overhead should be reasonable (less than 50% overhead)
         overhead_ratio = profiled_time / baseline_time
-        assert overhead_ratio <= 1.5, f"Profiler overhead too high: {overhead_ratio:.2f}x"
+        assert overhead_ratio <= 1.5, (
+            f"Profiler overhead too high: {overhead_ratio:.2f}x"
+        )
 
     def test_baseline_measurement_performance(self):
         """Test that baseline measurement itself doesn't take too long."""
@@ -494,4 +494,6 @@ class TestBaselinePerformanceValidation:
         total_time = (end_time - start_time) * 1000
 
         # Baseline measurement should complete reasonably quickly
-        assert total_time <= 10000, f"Baseline measurement took too long: {total_time}ms"
+        assert total_time <= 10000, (
+            f"Baseline measurement took too long: {total_time}ms"
+        )

@@ -26,7 +26,9 @@ class TestFixtureIsolation:
         """Verify simple_document fixture is immutable and reusable."""
         original_name = simple_document.name
         original_text_count = len(simple_document.texts)
-        original_first_text = simple_document.texts[0].text if simple_document.texts else ""
+        original_first_text = (
+            simple_document.texts[0].text if simple_document.texts else ""
+        )
 
         # Verify document structure doesn't change
         assert simple_document.name == original_name
@@ -47,7 +49,9 @@ class TestFixtureIsolation:
     def test_detected_entities_immutable(self, detected_entities):
         """Verify detected_entities fixture is immutable and reusable."""
         original_count = len(detected_entities)
-        original_first_type = detected_entities[0].entity_type if detected_entities else None
+        original_first_type = (
+            detected_entities[0].entity_type if detected_entities else None
+        )
 
         # Verify entities don't change
         assert len(detected_entities) == original_count
@@ -61,13 +65,16 @@ class TestFixtureIsolation:
 
         # Test basic functionality works consistently
         from cloakpivot.masking.engine import MaskingEngine
+
         assert isinstance(masking_engine, MaskingEngine)
 
 
 class TestFixtureStateConsistency:
     """Test that session fixtures maintain consistent state across tests."""
 
-    def test_policies_maintain_configuration(self, basic_masking_policy, strict_masking_policy):
+    def test_policies_maintain_configuration(
+        self, basic_masking_policy, strict_masking_policy
+    ):
         """Verify policy fixtures maintain their configuration."""
         # Basic policy should have reversible strategies
         assert basic_masking_policy.locale == "en"
@@ -82,7 +89,9 @@ class TestFixtureStateConsistency:
         strict_phone_strategy = strict_masking_policy.per_entity["PHONE_NUMBER"]
         assert basic_phone_strategy.kind != strict_phone_strategy.kind
 
-    def test_text_segments_consistency(self, simple_text_segments, complex_text_segments):
+    def test_text_segments_consistency(
+        self, simple_text_segments, complex_text_segments
+    ):
         """Verify text segment fixtures maintain consistent structure."""
         # Simple segments
         assert len(simple_text_segments) >= 1
@@ -92,7 +101,9 @@ class TestFixtureStateConsistency:
         assert len(complex_text_segments) >= 1
         assert all(segment.node_type == "TextItem" for segment in complex_text_segments)
 
-    def test_path_fixtures_exist(self, test_files_dir, golden_files_dir, sample_policies_dir):
+    def test_path_fixtures_exist(
+        self, test_files_dir, golden_files_dir, sample_policies_dir
+    ):
         """Verify path fixtures point to valid directories."""
         assert test_files_dir.name == "fixtures"
         assert golden_files_dir.name == "golden_files"
@@ -117,7 +128,9 @@ class TestFixturePerformanceValidation:
         # Should be the exact same object for session scope
         assert engine1 is engine2
 
-    def test_document_fixtures_reusable(self, simple_document, complex_document, large_document):
+    def test_document_fixtures_reusable(
+        self, simple_document, complex_document, large_document
+    ):
         """Verify document fixtures are properly created and reusable."""
         # Verify all documents are valid
         assert simple_document.name == "test_document"
@@ -146,14 +159,18 @@ class TestRegressionPrevention:
         assert simple_document.texts
         assert basic_masking_policy.per_entity
 
-    def test_existing_test_compatibility_detection(self, sample_text_with_pii, detected_entities):
+    def test_existing_test_compatibility_detection(
+        self, sample_text_with_pii, detected_entities
+    ):
         """Verify entity detection workflow still works with optimized fixtures."""
         assert sample_text_with_pii
         assert detected_entities
         assert len(detected_entities) > 0
         assert all(isinstance(entity, RecognizerResult) for entity in detected_entities)
 
-    def test_policy_fixture_compatibility(self, basic_masking_policy, strict_masking_policy, benchmark_policy):
+    def test_policy_fixture_compatibility(
+        self, basic_masking_policy, strict_masking_policy, benchmark_policy
+    ):
         """Verify all policy fixtures work together."""
         policies = [basic_masking_policy, strict_masking_policy, benchmark_policy]
 
@@ -171,7 +188,9 @@ class TestRegressionPrevention:
 class TestFixturePerformanceImpact:
     """Performance tests to measure fixture optimization impact."""
 
-    def test_fixture_setup_performance(self, masking_engine, simple_document, basic_masking_policy):
+    def test_fixture_setup_performance(
+        self, masking_engine, simple_document, basic_masking_policy
+    ):
         """Measure time for accessing optimized fixtures."""
         import time
 
@@ -188,7 +207,9 @@ class TestFixturePerformanceImpact:
         access_time = end_time - start_time
 
         # Session fixtures should be very fast to access (< 1ms typically)
-        assert access_time < 0.01, f"Fixture access took {access_time:.4f}s, expected < 0.01s"
+        assert access_time < 0.01, (
+            f"Fixture access took {access_time:.4f}s, expected < 0.01s"
+        )
 
     def test_multiple_fixture_access_consistent(self, masking_engine):
         """Test multiple accesses to session fixtures are consistent."""
@@ -207,4 +228,6 @@ class TestFixturePerformanceImpact:
 
         # Session fixture access should be consistently fast
         assert max_time < 0.001, f"Slowest access: {max_time:.6f}s"
-        assert (max_time - min_time) < 0.0005, f"Access time variance: {max_time - min_time:.6f}s"
+        assert (max_time - min_time) < 0.0005, (
+            f"Access time variance: {max_time - min_time:.6f}s"
+        )

@@ -24,7 +24,7 @@ from .parallel_support import (
     teardown_parallel_test_environment,
 )
 
-PYTEST_XDIST_AVAILABLE = importlib.util.find_spec('pytest_xdist') is not None
+PYTEST_XDIST_AVAILABLE = importlib.util.find_spec("pytest_xdist") is not None
 
 
 class TestParallelTestSupport:
@@ -43,7 +43,11 @@ class TestParallelTestSupport:
     def test_get_worker_count_default(self) -> None:
         """Test default worker count detection."""
         # Clear environment variables
-        for var in ['PYTEST_XDIST_WORKER_COUNT', 'PYTEST_WORKERS', 'PYTEST_NUM_WORKERS']:
+        for var in [
+            "PYTEST_XDIST_WORKER_COUNT",
+            "PYTEST_WORKERS",
+            "PYTEST_NUM_WORKERS",
+        ]:
             if var in os.environ:
                 del os.environ[var]
 
@@ -53,11 +57,11 @@ class TestParallelTestSupport:
 
     def test_get_worker_count_from_env(self) -> None:
         """Test worker count from environment variables."""
-        with patch.dict(os.environ, {'PYTEST_WORKERS': '4'}):
+        with patch.dict(os.environ, {"PYTEST_WORKERS": "4"}):
             count = ParallelTestSupport.get_worker_count()
             assert count == 4
 
-        with patch.dict(os.environ, {'PYTEST_XDIST_WORKER_COUNT': '8'}):
+        with patch.dict(os.environ, {"PYTEST_XDIST_WORKER_COUNT": "8"}):
             count = ParallelTestSupport.get_worker_count()
             assert count == 8
 
@@ -69,46 +73,48 @@ class TestParallelTestSupport:
 
         # Should be 'main' in single-threaded mode
         if not PYTEST_XDIST_AVAILABLE or ParallelTestSupport.is_main_worker():
-            assert worker_id == 'main'
+            assert worker_id == "main"
 
     def test_setup_worker_environment(self) -> None:
         """Test worker environment setup."""
         # Test with explicit worker ID
-        env_vars = ParallelTestSupport.setup_worker_environment('test_worker')
+        env_vars = ParallelTestSupport.setup_worker_environment("test_worker")
 
-        assert 'PYTEST_WORKER_RANDOM_SEED' in env_vars
-        assert 'WORKER_TEMP_DIR' in env_vars
-        assert 'PYTEST_CURRENT_WORKER' in env_vars
+        assert "PYTEST_WORKER_RANDOM_SEED" in env_vars
+        assert "WORKER_TEMP_DIR" in env_vars
+        assert "PYTEST_CURRENT_WORKER" in env_vars
 
-        assert env_vars['PYTEST_CURRENT_WORKER'] == 'test_worker'
-        assert os.environ['PYTEST_CURRENT_WORKER'] == 'test_worker'
+        assert env_vars["PYTEST_CURRENT_WORKER"] == "test_worker"
+        assert os.environ["PYTEST_CURRENT_WORKER"] == "test_worker"
 
         # Check temp directory path was configured (but not created yet due to lazy creation)
-        temp_dir = Path(env_vars['WORKER_TEMP_DIR'])
+        temp_dir = Path(env_vars["WORKER_TEMP_DIR"])
         assert not temp_dir.exists()  # Should not exist until first access
 
         # Access the temp dir to trigger lazy creation
         actual_temp_dir = ParallelTestSupport.get_worker_temp_dir()
         assert actual_temp_dir.exists()
         assert actual_temp_dir.is_dir()
-        assert str(actual_temp_dir) == env_vars['WORKER_TEMP_DIR']
+        assert str(actual_temp_dir) == env_vars["WORKER_TEMP_DIR"]
 
         # Cleanup
         import shutil
+
         shutil.rmtree(actual_temp_dir, ignore_errors=True)
 
     def test_get_worker_temp_dir(self) -> None:
         """Test worker-specific temporary directory creation."""
         # Setup environment first
-        ParallelTestSupport.setup_worker_environment('test_temp_worker')
+        ParallelTestSupport.setup_worker_environment("test_temp_worker")
 
         temp_dir = ParallelTestSupport.get_worker_temp_dir()
         assert isinstance(temp_dir, Path)
         assert temp_dir.exists()
-        assert 'test_temp_worker' in str(temp_dir)
+        assert "test_temp_worker" in str(temp_dir)
 
         # Cleanup
         import shutil
+
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_is_parallel_execution(self) -> None:
@@ -117,7 +123,7 @@ class TestParallelTestSupport:
         assert isinstance(result, bool)
 
         # Mock parallel execution
-        with patch('tests.parallel_support.is_xdist_worker', return_value=True):
+        with patch("tests.parallel_support.is_xdist_worker", return_value=True):
             assert ParallelTestSupport.is_parallel_execution()
 
     def test_get_optimal_worker_count(self) -> None:
@@ -130,11 +136,13 @@ class TestParallelTestSupport:
         assert count <= 8  # Should be capped at 8
 
         # Test with explicit configuration
-        with patch.dict(os.environ, {'PYTEST_WORKERS': '3'}):
+        with patch.dict(os.environ, {"PYTEST_WORKERS": "3"}):
             assert ParallelTestSupport.get_optimal_worker_count() == 3
 
         # Test with resource limits
-        with patch.dict(os.environ, {'PYTEST_MAX_WORKERS': '2', 'PYTEST_MIN_WORKERS': '1'}):
+        with patch.dict(
+            os.environ, {"PYTEST_MAX_WORKERS": "2", "PYTEST_MIN_WORKERS": "1"}
+        ):
             count = ParallelTestSupport.get_optimal_worker_count()
             assert 1 <= count <= 2
 
@@ -144,27 +152,27 @@ class TestWorkerResourceManager:
 
     def test_initialization(self) -> None:
         """Test resource manager initialization."""
-        manager = WorkerResourceManager('test_manager')
-        assert manager.worker_id == 'test_manager'
+        manager = WorkerResourceManager("test_manager")
+        assert manager.worker_id == "test_manager"
         assert len(manager._temp_dirs) == 0
         assert len(manager._cleanup_callbacks) == 0
 
     def test_create_temp_dir(self) -> None:
         """Test temporary directory creation."""
-        manager = WorkerResourceManager('test_create_temp')
+        manager = WorkerResourceManager("test_create_temp")
 
         # Setup worker environment for this test
-        ParallelTestSupport.setup_worker_environment('test_create_temp')
+        ParallelTestSupport.setup_worker_environment("test_create_temp")
 
-        temp_dir = manager.create_temp_dir('test_prefix_')
+        temp_dir = manager.create_temp_dir("test_prefix_")
 
         assert isinstance(temp_dir, Path)
         assert temp_dir.exists()
-        assert 'test_prefix_' in str(temp_dir)
+        assert "test_prefix_" in str(temp_dir)
         assert len(manager._temp_dirs) == 1
 
         # Create another temp dir
-        temp_dir2 = manager.create_temp_dir('another_')
+        temp_dir2 = manager.create_temp_dir("another_")
         assert len(manager._temp_dirs) == 2
         assert temp_dir != temp_dir2
 
@@ -175,7 +183,7 @@ class TestWorkerResourceManager:
 
     def test_register_cleanup(self) -> None:
         """Test cleanup callback registration."""
-        manager = WorkerResourceManager('test_cleanup')
+        manager = WorkerResourceManager("test_cleanup")
 
         callback_called = []
 
@@ -191,7 +199,7 @@ class TestWorkerResourceManager:
 
     def test_cleanup_with_exception(self) -> None:
         """Test cleanup handles exceptions gracefully."""
-        manager = WorkerResourceManager('test_exception')
+        manager = WorkerResourceManager("test_exception")
 
         def failing_callback() -> None:
             raise RuntimeError("Test exception")
@@ -256,8 +264,7 @@ class TestParallelSessionFixtures:
 
         # Should be functional
         result = parallel_shared_analyzer.analyze(
-            text="John Doe's phone is 555-123-4567",
-            language="en"
+            text="John Doe's phone is 555-123-4567", language="en"
         )
         assert isinstance(result, list)
 
@@ -269,8 +276,7 @@ class TestParallelSessionFixtures:
 
         # Should work the same as parallel_shared_analyzer
         result = shared_analyzer.analyze(
-            text="Test user at test@example.com",
-            language="en"
+            text="Test user at test@example.com", language="en"
         )
         assert isinstance(result, list)
 
@@ -294,7 +300,9 @@ class TestParallelPerformance:
         # Content should be unique to this worker
         assert worker_id in test_file.read_text()
 
-    def test_analyzer_instance_isolation(self, parallel_shared_analyzer, worker_id) -> None:
+    def test_analyzer_instance_isolation(
+        self, parallel_shared_analyzer, worker_id
+    ) -> None:
         """Test that analyzer instances don't interfere between workers."""
         # Each worker should have its own analyzer
         analyzer = parallel_shared_analyzer
@@ -302,16 +310,16 @@ class TestParallelPerformance:
         # Analyzer should be functional
         results = analyzer.analyze(
             text=f"Worker {worker_id} testing John Doe at john@example.com",
-            language="en"
+            language="en",
         )
 
         assert isinstance(results, list)
         # Should detect some entities in the test text
         if results:  # May be empty depending on available recognizers
             for result in results:
-                assert hasattr(result, 'entity_type')
-                assert hasattr(result, 'start')
-                assert hasattr(result, 'end')
+                assert hasattr(result, "entity_type")
+                assert hasattr(result, "start")
+                assert hasattr(result, "end")
 
     @pytest.mark.slow
     def test_concurrent_analysis_performance(self, shared_analyzer) -> None:
@@ -322,7 +330,7 @@ class TestParallelPerformance:
             "John Doe lives at john.doe@example.com and his phone is 555-123-4567",
             "Jane Smith can be reached at jane.smith@company.org or (555) 987-6543",
             "Contact Bob Johnson at bob.johnson@email.com, SSN: 123-45-6789",
-            "Alice Williams, phone: 555-111-2222, credit card: 4532-1234-5678-9012"
+            "Alice Williams, phone: 555-111-2222, credit card: 4532-1234-5678-9012",
         ]
 
         def analyze_text(text: str) -> list:
@@ -352,30 +360,37 @@ class TestParallelPropertyTests:
     @pytest.mark.parametrize("worker_count", [1, 2, 4])
     def test_worker_count_scaling(self, worker_count) -> None:
         """Test that worker count configuration works correctly."""
-        with patch.dict(os.environ, {'PYTEST_WORKERS': str(worker_count)}):
+        with patch.dict(os.environ, {"PYTEST_WORKERS": str(worker_count)}):
             detected_count = ParallelTestSupport.get_worker_count()
             assert detected_count == worker_count
 
-    @pytest.mark.parametrize("worker_id", ['worker_1', 'worker_2', 'main', 'gw0', 'gw1'])
+    @pytest.mark.parametrize(
+        "worker_id", ["worker_1", "worker_2", "main", "gw0", "gw1"]
+    )
     def test_worker_environment_setup_consistency(self, worker_id) -> None:
         """Test worker environment setup for different worker IDs."""
         env_vars = ParallelTestSupport.setup_worker_environment(worker_id)
 
         # Should always set these variables
-        required_vars = ['PYTEST_WORKER_RANDOM_SEED', 'WORKER_TEMP_DIR', 'PYTEST_CURRENT_WORKER']
+        required_vars = [
+            "PYTEST_WORKER_RANDOM_SEED",
+            "WORKER_TEMP_DIR",
+            "PYTEST_CURRENT_WORKER",
+        ]
         for var in required_vars:
             assert var in env_vars
             assert env_vars[var] is not None
 
         # Worker ID should be preserved
-        assert env_vars['PYTEST_CURRENT_WORKER'] == worker_id
+        assert env_vars["PYTEST_CURRENT_WORKER"] == worker_id
 
         # Temp directory should be worker-specific
-        temp_dir = Path(env_vars['WORKER_TEMP_DIR'])
+        temp_dir = Path(env_vars["WORKER_TEMP_DIR"])
         assert worker_id in str(temp_dir)
 
         # Cleanup
         import shutil
+
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -394,7 +409,7 @@ def test_complete_parallel_flow(shared_analyzer, shared_temp_dir, worker_id) -> 
     # 3. Analyzer should be functional
     results = shared_analyzer.analyze(
         text="Integration test for worker {worker_id}: contact@example.com",
-        language="en"
+        language="en",
     )
     assert isinstance(results, list)
 
@@ -406,10 +421,10 @@ def test_complete_parallel_flow(shared_analyzer, shared_temp_dir, worker_id) -> 
         "worker_id": worker_id,
         "temp_dir": str(shared_temp_dir),
         "analysis_results": len(results),
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
-    with open(test_file, 'w') as f:
+    with open(test_file, "w") as f:
         json.dump(test_data, f)
 
     # Verify file was created correctly

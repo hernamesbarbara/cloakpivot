@@ -67,7 +67,7 @@ class TestEntityConflictResolution:
         ]
 
         return [
-            EntityDetectionResult.from_presidio_result(r, base_text[r.start:r.end])
+            EntityDetectionResult.from_presidio_result(r, base_text[r.start : r.end])
             for r in presidio_results
         ]
 
@@ -78,13 +78,19 @@ class TestEntityConflictResolution:
 
         presidio_results = [
             # Sequential phone number parts that should merge
-            RecognizerResult(entity_type="PHONE_NUMBER", start=19, end=22, score=0.80),  # "555"
-            RecognizerResult(entity_type="PHONE_NUMBER", start=23, end=26, score=0.85),  # "123"
-            RecognizerResult(entity_type="PHONE_NUMBER", start=27, end=31, score=0.90),  # "4567"
+            RecognizerResult(
+                entity_type="PHONE_NUMBER", start=19, end=22, score=0.80
+            ),  # "555"
+            RecognizerResult(
+                entity_type="PHONE_NUMBER", start=23, end=26, score=0.85
+            ),  # "123"
+            RecognizerResult(
+                entity_type="PHONE_NUMBER", start=27, end=31, score=0.90
+            ),  # "4567"
         ]
 
         return [
-            EntityDetectionResult.from_presidio_result(r, base_text[r.start:r.end])
+            EntityDetectionResult.from_presidio_result(r, base_text[r.start : r.end])
             for r in presidio_results
         ]
 
@@ -94,9 +100,15 @@ class TestEntityConflictResolution:
         return MaskingPolicy(
             default_strategy=Strategy(kind=StrategyKind.REDACT),
             per_entity={
-                "PHONE_NUMBER": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PHONE]"}),
-                "EMAIL_ADDRESS": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"}),
-                "PERSON": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PERSON]"}),
+                "PHONE_NUMBER": Strategy(
+                    kind=StrategyKind.TEMPLATE, parameters={"template": "[PHONE]"}
+                ),
+                "EMAIL_ADDRESS": Strategy(
+                    kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"}
+                ),
+                "PERSON": Strategy(
+                    kind=StrategyKind.TEMPLATE, parameters={"template": "[PERSON]"}
+                ),
             },
         )
 
@@ -104,7 +116,7 @@ class TestEntityConflictResolution:
         """Test conflict resolution based on confidence scores."""
         config = ConflictResolutionConfig(
             strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE,
-            merge_threshold_chars=0  # Only resolve actual overlaps, not adjacent entities
+            merge_threshold_chars=0,  # Only resolve actual overlaps, not adjacent entities
         )
         normalizer = EntityNormalizer(config)
 
@@ -115,11 +127,15 @@ class TestEntityConflictResolution:
         assert result.conflicts_resolved == 1
 
         # Verify highest confidence entity was kept (PERSON vs ORGANIZATION overlap)
-        person_entities = [e for e in result.normalized_entities if e.entity_type == "PERSON"]
-        org_entities = [e for e in result.normalized_entities if e.entity_type == "ORGANIZATION"]
+        person_entities = [
+            e for e in result.normalized_entities if e.entity_type == "PERSON"
+        ]
+        org_entities = [
+            e for e in result.normalized_entities if e.entity_type == "ORGANIZATION"
+        ]
 
         assert len(person_entities) == 1  # PERSON kept (higher confidence)
-        assert len(org_entities) == 0     # ORGANIZATION removed (lower confidence)
+        assert len(org_entities) == 0  # ORGANIZATION removed (lower confidence)
 
     def test_priority_based_resolution(self, overlapping_entities):
         """Test conflict resolution based on entity type priorities."""
@@ -130,7 +146,7 @@ class TestEntityConflictResolution:
                 "PERSON": EntityPriority.HIGH,
                 "ORGANIZATION": EntityPriority.MEDIUM,
                 "LOCATION": EntityPriority.LOW,
-            }
+            },
         )
         normalizer = EntityNormalizer(config)
 
@@ -143,8 +159,7 @@ class TestEntityConflictResolution:
     def test_adjacent_entity_merging(self, adjacent_entities):
         """Test merging of adjacent entities of the same type."""
         config = ConflictResolutionConfig(
-            strategy=ConflictResolutionStrategy.MERGE_ADJACENT,
-            merge_threshold_chars=2
+            strategy=ConflictResolutionStrategy.MERGE_ADJACENT, merge_threshold_chars=2
         )
         normalizer = EntityNormalizer(config)
 
@@ -155,7 +170,7 @@ class TestEntityConflictResolution:
         merged_entity = result.normalized_entities[0]
         assert merged_entity.entity_type == "PHONE_NUMBER"
         assert merged_entity.start == 19  # Start of first entity
-        assert merged_entity.end == 31    # End of last entity
+        assert merged_entity.end == 31  # End of last entity
         assert merged_entity.confidence == 0.90  # Highest confidence
 
     def test_masking_engine_integration(
@@ -193,8 +208,10 @@ class TestEntityConflictResolution:
         # Verify overlaps were resolved
         anchor_positions = [(a.start, a.end) for a in result.cloakmap.anchors]
         for i, (start1, end1) in enumerate(anchor_positions):
-            for start2, end2 in anchor_positions[i + 1:]:
-                assert not (start1 < end2 and start2 < end1), f"Overlapping anchors: ({start1}, {end1}) and ({start2}, {end2})"
+            for start2, end2 in anchor_positions[i + 1 :]:
+                assert not (start1 < end2 and start2 < end1), (
+                    f"Overlapping anchors: ({start1}, {end1}) and ({start2}, {end2})"
+                )
 
     def test_deterministic_resolution(self, overlapping_entities):
         """Test that conflict resolution produces deterministic results."""
@@ -225,15 +242,18 @@ class TestEntityConflictResolution:
         high_conf_entities = overlapping_entities.copy()
         base_text = "Call John Smith at 555-123-4567 or email john.smith@example.com in New York"
         presidio_result = RecognizerResult(
-            entity_type="ORGANIZATION", start=10, end=15, score=0.98  # Very high confidence
+            entity_type="ORGANIZATION",
+            start=10,
+            end=15,
+            score=0.98,  # Very high confidence
         )
         high_conf_entities[1] = EntityDetectionResult.from_presidio_result(
-            presidio_result, base_text[presidio_result.start:presidio_result.end]
+            presidio_result, base_text[presidio_result.start : presidio_result.end]
         )
 
         config = ConflictResolutionConfig(
             strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE,
-            preserve_high_confidence=0.97
+            preserve_high_confidence=0.97,
         )
         normalizer = EntityNormalizer(config)
 
@@ -255,8 +275,7 @@ class TestEntityConflictResolution:
         result = normalizer.normalize_entities(overlapping_entities)
 
         validation = normalizer.validate_normalization(
-            original=overlapping_entities,
-            normalized=result.normalized_entities
+            original=overlapping_entities, normalized=result.normalized_entities
         )
 
         # Should pass all validation checks
@@ -267,6 +286,7 @@ class TestEntityConflictResolution:
     def test_conflict_resolution_logging(self, overlapping_entities, caplog):
         """Test that conflict resolution produces appropriate log messages."""
         import logging
+
         caplog.set_level(logging.DEBUG)
 
         config = ConflictResolutionConfig(
@@ -293,7 +313,7 @@ class TestErrorConditions:
                 start=10,
                 end=5,  # End before start
                 confidence=0.8,
-                text="invalid"
+                text="invalid",
             )
 
     def test_invalid_confidence_score(self):
@@ -305,7 +325,7 @@ class TestErrorConditions:
                 start=0,
                 end=5,
                 confidence=1.5,  # > 1.0
-                text="test"
+                text="test",
             )
 
     def test_empty_entity_list_normalization(self):
@@ -319,11 +339,7 @@ class TestErrorConditions:
     def test_single_entity_normalization(self):
         """Test normalization with single entity (no conflicts possible)."""
         entity = EntityDetectionResult(
-            entity_type="PERSON",
-            start=0,
-            end=4,
-            confidence=0.9,
-            text="John"
+            entity_type="PERSON", start=0, end=4, confidence=0.9, text="John"
         )
 
         normalizer = EntityNormalizer()
@@ -337,26 +353,33 @@ class TestErrorConditions:
         """Test configuration parameter validation."""
         # Test invalid preserve_high_confidence
         config = ConflictResolutionConfig(preserve_high_confidence=1.5)
-        assert config.preserve_high_confidence == 1.5  # Should not raise during construction
+        assert (
+            config.preserve_high_confidence == 1.5
+        )  # Should not raise during construction
 
         # Test invalid merge_threshold_chars
         config = ConflictResolutionConfig(merge_threshold_chars=-1)
-        assert config.merge_threshold_chars == -1  # Should not raise during construction
+        assert (
+            config.merge_threshold_chars == -1
+        )  # Should not raise during construction
 
     def test_complex_multi_type_merging(self):
         """Test merging scenarios with multiple different entity types."""
         entities = [
             EntityDetectionResult("PERSON", 0, 4, 0.9, "John"),
-            EntityDetectionResult("PERSON", 5, 10, 0.8, "Smith"),  # Adjacent PERSON entities
+            EntityDetectionResult(
+                "PERSON", 5, 10, 0.8, "Smith"
+            ),  # Adjacent PERSON entities
             EntityDetectionResult("PHONE_NUMBER", 15, 25, 0.95, "555-123-45"),
-            EntityDetectionResult("PHONE_NUMBER", 25, 27, 0.9, "67"),  # Adjacent PHONE parts
+            EntityDetectionResult(
+                "PHONE_NUMBER", 25, 27, 0.9, "67"
+            ),  # Adjacent PHONE parts
             EntityDetectionResult("EMAIL", 30, 40, 0.85, "john@email"),
             EntityDetectionResult("EMAIL", 40, 44, 0.8, ".com"),  # Adjacent EMAIL parts
         ]
 
         config = ConflictResolutionConfig(
-            strategy=ConflictResolutionStrategy.MERGE_ADJACENT,
-            merge_threshold_chars=1
+            strategy=ConflictResolutionStrategy.MERGE_ADJACENT, merge_threshold_chars=1
         )
         normalizer = EntityNormalizer(config)
         result = normalizer.normalize_entities(entities)
@@ -377,7 +400,7 @@ class TestErrorConditions:
                 start=i * 10,
                 end=i * 10 + 5,
                 confidence=0.5 + (i % 50) / 100,  # Varying confidence
-                text=f"test{i}"
+                text=f"test{i}",
             )
             entities.append(entity)
 
@@ -418,9 +441,15 @@ class TestErrorConditions:
         ]
         # Create entities with problematic bounds
         problematic_entities = [
-            RecognizerResult(entity_type="PERSON", start=-5, end=10, score=0.9),  # Negative start
-            RecognizerResult(entity_type="PHONE", start=500, end=600, score=0.8),  # Beyond text
-            RecognizerResult(entity_type="EMAIL", start=10, end=8, score=0.7),     # Invalid range
+            RecognizerResult(
+                entity_type="PERSON", start=-5, end=10, score=0.9
+            ),  # Negative start
+            RecognizerResult(
+                entity_type="PHONE", start=500, end=600, score=0.8
+            ),  # Beyond text
+            RecognizerResult(
+                entity_type="EMAIL", start=10, end=8, score=0.7
+            ),  # Invalid range
         ]
 
         engine = MaskingEngine(resolve_conflicts=True)

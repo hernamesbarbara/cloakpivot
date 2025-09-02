@@ -46,7 +46,7 @@ class TestProcessingStats:
             total_entities_found=20,
             entities_masked=15,
             entities_skipped=3,
-            entities_failed=2
+            entities_failed=2,
         )
 
         assert stats.total_entities_found == 20
@@ -57,24 +57,15 @@ class TestProcessingStats:
     def test_success_rate_property(self):
         """Test success_rate computed property."""
         # Perfect success
-        stats1 = ProcessingStats(
-            total_entities_found=10,
-            entities_masked=10
-        )
+        stats1 = ProcessingStats(total_entities_found=10, entities_masked=10)
         assert stats1.success_rate == 1.0
 
         # Partial success
-        stats2 = ProcessingStats(
-            total_entities_found=10,
-            entities_masked=8
-        )
+        stats2 = ProcessingStats(total_entities_found=10, entities_masked=8)
         assert stats2.success_rate == 0.8
 
         # No entities found
-        stats3 = ProcessingStats(
-            total_entities_found=0,
-            entities_masked=0
-        )
+        stats3 = ProcessingStats(total_entities_found=0, entities_masked=0)
         assert stats3.success_rate == 1.0  # 100% success when no entities to process
 
 
@@ -100,7 +91,7 @@ class TestPerformanceMetrics:
             masking_time=timedelta(seconds=3),
             serialization_time=timedelta(seconds=2),
             memory_peak_mb=256.5,
-            throughput_mb_per_sec=10.2
+            throughput_mb_per_sec=10.2,
         )
 
         assert metrics.total_time == timedelta(seconds=10)
@@ -112,9 +103,7 @@ class TestPerformanceMetrics:
 
     def test_total_time_seconds_property(self):
         """Test total_time_seconds computed property."""
-        metrics = PerformanceMetrics(
-            total_time=timedelta(seconds=10, milliseconds=500)
-        )
+        metrics = PerformanceMetrics(total_time=timedelta(seconds=10, milliseconds=500))
 
         assert metrics.total_time_seconds == 10.5
 
@@ -125,7 +114,7 @@ class TestPerformanceMetrics:
             total_time=timedelta(seconds=10),
             detection_time=timedelta(seconds=5),
             masking_time=timedelta(seconds=3),
-            serialization_time=timedelta(seconds=2)
+            serialization_time=timedelta(seconds=2),
         )
         assert metrics1.efficiency_ratio == 1.0  # (5+3+2)/10
 
@@ -134,7 +123,7 @@ class TestPerformanceMetrics:
             total_time=timedelta(seconds=10),
             detection_time=timedelta(seconds=3),
             masking_time=timedelta(seconds=2),
-            serialization_time=timedelta(seconds=1)
+            serialization_time=timedelta(seconds=1),
         )
         assert metrics2.efficiency_ratio == 0.6  # (3+2+1)/10
 
@@ -160,11 +149,7 @@ class TestDiagnosticInfo:
         errors = ["Failed to process entity"]
         debug_info = {"memory_usage": "256MB", "cpu_time": "5.2s"}
 
-        diag = DiagnosticInfo(
-            warnings=warnings,
-            errors=errors,
-            debug_info=debug_info
-        )
+        diag = DiagnosticInfo(warnings=warnings, errors=errors, debug_info=debug_info)
 
         assert diag.warnings == warnings
         assert diag.errors == errors
@@ -190,10 +175,7 @@ class TestDiagnosticInfo:
 
     def test_issue_count_property(self):
         """Test issue_count computed property."""
-        diag = DiagnosticInfo(
-            warnings=["Warning1", "Warning2"],
-            errors=["Error1"]
-        )
+        diag = DiagnosticInfo(warnings=["Warning1", "Warning2"], errors=["Error1"])
 
         assert diag.issue_count == 3  # 2 warnings + 1 error
 
@@ -203,10 +185,7 @@ class TestMaskResult:
 
     def test_create_minimal_mask_result(self):
         """Test creating minimal MaskResult."""
-        stats = ProcessingStats(
-            total_entities_found=5,
-            entities_masked=5
-        )
+        stats = ProcessingStats(total_entities_found=5, entities_masked=5)
 
         metrics = PerformanceMetrics(
             total_time=timedelta(seconds=5),
@@ -214,7 +193,7 @@ class TestMaskResult:
             masking_time=timedelta(seconds=2),
             serialization_time=timedelta(seconds=1),
             memory_peak_mb=128.0,
-            throughput_mb_per_sec=200.0
+            throughput_mb_per_sec=200.0,
         )
 
         cloakmap = CloakMap("1.0", "doc1", "hash1", [], {})
@@ -227,7 +206,7 @@ class TestMaskResult:
             output_file_path=Path("masked.txt"),
             cloakmap_file_path=Path("mapping.json"),
             stats=stats,
-            performance=metrics
+            performance=metrics,
         )
 
         assert result.status == OperationStatus.SUCCESS
@@ -240,9 +219,7 @@ class TestMaskResult:
     def test_create_full_mask_result(self):
         """Test creating full MaskResult with all fields."""
         stats = ProcessingStats(
-            total_entities_found=10,
-            entities_masked=8,
-            entities_skipped=2
+            total_entities_found=10, entities_masked=8, entities_skipped=2
         )
 
         metrics = PerformanceMetrics(
@@ -251,12 +228,11 @@ class TestMaskResult:
             masking_time=timedelta(seconds=4),
             serialization_time=timedelta(seconds=2),
             memory_peak_mb=256.0,
-            throughput_mb_per_sec=204.8
+            throughput_mb_per_sec=204.8,
         )
 
         diag = DiagnosticInfo(
-            warnings=["Low confidence entity"],
-            debug_info={"model_version": "1.0"}
+            warnings=["Low confidence entity"], debug_info={"model_version": "1.0"}
         )
 
         cloakmap = CloakMap("1.0", "doc1", "hash1", [], {})
@@ -271,7 +247,7 @@ class TestMaskResult:
             stats=stats,
             performance=metrics,
             diagnostics=diag,
-            metadata={"policy": "strict"}
+            metadata={"policy": "strict"},
         )
 
         assert result.status == OperationStatus.PARTIAL
@@ -286,15 +262,15 @@ class TestUnmaskResult:
         """Test creating minimal UnmaskResult."""
         stats = ProcessingStats(
             total_entities_found=5,
-            entities_masked=5  # In unmasking context, this represents restored entities
+            entities_masked=5,  # In unmasking context, this represents restored entities
         )
 
         metrics = PerformanceMetrics(
             total_time=timedelta(seconds=3),
-            masking_time=timedelta(seconds=2),    # Time to restore entities
+            masking_time=timedelta(seconds=2),  # Time to restore entities
             serialization_time=timedelta(seconds=1),
             memory_peak_mb=64.0,
-            throughput_mb_per_sec=333.3
+            throughput_mb_per_sec=333.3,
         )
 
         cloakmap = CloakMap("1.0", "doc1", "hash1", [], {})
@@ -307,7 +283,7 @@ class TestUnmaskResult:
             output_file_path=Path("restored.txt"),
             cloakmap_file_path=Path("mapping.json"),
             restored_stats=stats,
-            performance=metrics
+            performance=metrics,
         )
 
         assert result.status == OperationStatus.SUCCESS
@@ -321,7 +297,7 @@ class TestUnmaskResult:
         """Test entities_restored computed property."""
         stats = ProcessingStats(
             total_entities_found=10,
-            entities_masked=8  # This represents restored entities in unmask context
+            entities_masked=8,  # This represents restored entities in unmask context
         )
 
         cloakmap = CloakMap("1.0", "doc1", "hash1", [], {})
@@ -330,7 +306,7 @@ class TestUnmaskResult:
             status=OperationStatus.PARTIAL,
             unmasked_document="restored content",
             cloakmap=cloakmap,
-            restored_stats=stats
+            restored_stats=stats,
         )
 
         assert result.entities_restored == 8
@@ -346,7 +322,7 @@ class TestBatchResult:
             status=OperationStatus.SUCCESS,
             individual_results=[],
             failed_files=[],
-            total_processing_time=timedelta(seconds=0)
+            total_processing_time=timedelta(seconds=0),
         )
 
         assert result.status == OperationStatus.SUCCESS
@@ -364,8 +340,9 @@ class TestBatchResult:
             MaskResult(
                 status=OperationStatus.SUCCESS,
                 masked_document="content",
-                cloakmap=cloakmap
-            ) for _ in range(5)
+                cloakmap=cloakmap,
+            )
+            for _ in range(5)
         ]
 
         # All successful
@@ -374,7 +351,7 @@ class TestBatchResult:
             status=OperationStatus.SUCCESS,
             individual_results=successful_results,
             failed_files=[],
-            total_processing_time=timedelta(seconds=10)
+            total_processing_time=timedelta(seconds=10),
         )
         assert result1.success_rate == 1.0
 
@@ -383,8 +360,9 @@ class TestBatchResult:
             MaskResult(
                 status=OperationStatus.SUCCESS,
                 masked_document="content",
-                cloakmap=cloakmap
-            ) for _ in range(8)
+                cloakmap=cloakmap,
+            )
+            for _ in range(8)
         ]
 
         # Partial success
@@ -393,7 +371,7 @@ class TestBatchResult:
             status=OperationStatus.PARTIAL,
             individual_results=partial_successful_results,
             failed_files=["file1.txt", "file2.txt"],
-            total_processing_time=timedelta(seconds=20)
+            total_processing_time=timedelta(seconds=20),
         )
         assert result2.success_rate == 0.8
 
@@ -403,7 +381,7 @@ class TestBatchResult:
             status=OperationStatus.SUCCESS,
             individual_results=[],
             failed_files=[],
-            total_processing_time=timedelta(seconds=0)
+            total_processing_time=timedelta(seconds=0),
         )
         assert result3.success_rate == 1.0  # 100% when no files to process
 
@@ -421,7 +399,7 @@ class TestUtilityFunctions:
             end_time=end_time,
             entity_detection=timedelta(seconds=2.0),
             masking=timedelta(seconds=2.5),
-            serialization=timedelta(seconds=0.5)
+            serialization=timedelta(seconds=0.5),
         )
 
         assert metrics.total_time == timedelta(seconds=5)
@@ -438,7 +416,7 @@ class TestUtilityFunctions:
             entities_masked=4,
             entities_skipped=1,
             bytes_processed=2048,
-            entity_confidences=entity_confidences
+            entity_confidences=entity_confidences,
         )
 
         assert stats.total_entities_found == 5
@@ -453,7 +431,7 @@ class TestUtilityFunctions:
             entities_masked=0,
             entities_skipped=0,
             bytes_processed=0,
-            entity_confidences=[]
+            entity_confidences=[],
         )
 
         assert stats.total_entities_found == 0

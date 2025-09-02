@@ -22,7 +22,7 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
     def __init__(
         self,
         seed: Optional[str] = None,
-        strategy_registry: Optional[StrategyPluginRegistry] = None
+        strategy_registry: Optional[StrategyPluginRegistry] = None,
     ) -> None:
         """
         Initialize the plugin-aware strategy applicator.
@@ -104,7 +104,7 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
                 original_text=original_text,
                 entity_type=entity_type,
                 confidence=confidence,
-                context={"plugin_config": plugin_config}
+                context={"plugin_config": plugin_config},
             )
 
             if result.success:
@@ -114,7 +114,9 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
                 )
                 return result.masked_text
             else:
-                error_msg = f"Plugin strategy {plugin_name} failed: {result.error_message}"
+                error_msg = (
+                    f"Plugin strategy {plugin_name} failed: {result.error_message}"
+                )
                 logger.warning(error_msg)
                 return self._apply_fallback_strategy(
                     original_text, entity_type, strategy, confidence, error_msg
@@ -160,16 +162,14 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
                 original_text, entity_type, primary_strategy, confidence
             )
         except Exception as e:
-                logger.error(f"Fallback strategy also failed: {e}")
+            logger.error(f"Fallback strategy also failed: {e}")
 
         # Ultimate fallback - simple redaction
         logger.warning(f"Using ultimate fallback (redaction) for {entity_type}")
         return "*" * len(original_text)
 
     def register_strategy_plugin_with_config(
-        self,
-        plugin: Any,
-        config: Optional[dict[str, Any]] = None
+        self, plugin: Any, config: Optional[dict[str, Any]] = None
     ) -> None:
         """
         Register a strategy plugin with configuration.
@@ -186,9 +186,7 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
         return self.strategy_registry.list_strategy_plugins()
 
     def supports_entity_type_with_plugin(
-        self,
-        plugin_name: str,
-        entity_type: str
+        self, plugin_name: str, entity_type: str
     ) -> bool:
         """
         Check if a plugin supports a given entity type.
@@ -202,7 +200,9 @@ class PluginAwareStrategyApplicator(StrategyApplicator):
         """
         return self.strategy_registry.supports_entity_type(plugin_name, entity_type)
 
-    def get_plugin_parameters_schema(self, plugin_name: str) -> Optional[dict[str, Any]]:
+    def get_plugin_parameters_schema(
+        self, plugin_name: str
+    ) -> Optional[dict[str, Any]]:
         """
         Get parameter schema for a strategy plugin.
 

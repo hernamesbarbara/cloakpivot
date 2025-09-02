@@ -45,7 +45,7 @@ class TestRoundTripFidelity:
         document: DoclingDocument,
         policy: MaskingPolicy,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ) -> tuple[DoclingDocument, DoclingDocument, float]:
         """Perform complete round-trip and return results with timing."""
         start_time = time.time()
@@ -57,13 +57,16 @@ class TestRoundTripFidelity:
 
         # Unmask document
         unmask_result = unmasking_engine.unmask_document(
-            mask_result.masked_document,
-            mask_result.cloakmap
+            mask_result.masked_document, mask_result.cloakmap
         )
 
         processing_time = time.time() - start_time
 
-        return mask_result.masked_document, unmask_result.restored_document, processing_time
+        return (
+            mask_result.masked_document,
+            unmask_result.restored_document,
+            processing_time,
+        )
 
     @pytest.mark.integration
     def test_simple_document_round_trip(
@@ -71,7 +74,7 @@ class TestRoundTripFidelity:
         simple_document: DoclingDocument,
         basic_masking_policy: MaskingPolicy,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity with simple document."""
         masked_doc, unmasked_doc, processing_time = self.perform_round_trip(
@@ -91,7 +94,7 @@ class TestRoundTripFidelity:
         complex_document: DoclingDocument,
         strict_masking_policy: MaskingPolicy,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity with complex multi-section document."""
         masked_doc, unmasked_doc, processing_time = self.perform_round_trip(
@@ -110,16 +113,14 @@ class TestRoundTripFidelity:
 
     @pytest.mark.integration
     def test_privacy_level_round_trip_fast(
-        self,
-        masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        self, masking_engine: MaskingEngine, unmasking_engine: UnmaskingEngine
     ):
         """Test round-trip fidelity with single representative privacy level for fast runs."""
         privacy_level = "medium"  # Representative level for fast testing
         # Generate test document with PII
         document, pii_locations = DocumentGenerator.generate_document_with_pii(
             ["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"],
-            f"privacy_test_{privacy_level}"
+            f"privacy_test_{privacy_level}",
         )
 
         # Create policy for privacy level
@@ -139,30 +140,28 @@ class TestRoundTripFidelity:
 
     @pytest.mark.integration
     def test_strategy_specific_round_trip_fast(
-        self,
-        masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        self, masking_engine: MaskingEngine, unmasking_engine: UnmaskingEngine
     ):
         """Test round-trip fidelity with single representative strategy for fast runs."""
-        strategy_kind = StrategyKind.TEMPLATE  # Representative strategy for fast testing
+        strategy_kind = (
+            StrategyKind.TEMPLATE
+        )  # Representative strategy for fast testing
         # Create document with specific entity type
         entity_map = {
             StrategyKind.TEMPLATE: "PHONE_NUMBER",
             StrategyKind.REDACT: "PERSON",
             StrategyKind.HASH: "EMAIL_ADDRESS",
-            StrategyKind.SURROGATE: "US_SSN"
+            StrategyKind.SURROGATE: "US_SSN",
         }
 
         entity_type = entity_map[strategy_kind]
         document, _ = DocumentGenerator.generate_document_with_pii(
-            [entity_type],
-            f"strategy_test_{strategy_kind.value}"
+            [entity_type], f"strategy_test_{strategy_kind.value}"
         )
 
         # Create policy with specific strategy
         policy = PolicyGenerator.generate_custom_policy(
-            {entity_type: strategy_kind},
-            {entity_type: 0.5}
+            {entity_type: strategy_kind}, {entity_type: 0.5}
         )
 
         # Perform round-trip
@@ -179,7 +178,7 @@ class TestRoundTripFidelity:
         large_document: DoclingDocument,
         basic_masking_policy: MaskingPolicy,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity with large document."""
         masked_doc, unmasked_doc, processing_time = self.perform_round_trip(
@@ -202,13 +201,12 @@ class TestRoundTripFidelity:
         self,
         masking_engine: MaskingEngine,
         unmasking_engine: UnmaskingEngine,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test round-trip fidelity with structured content like forms and tables."""
         structured_text = TextGenerator.generate_structured_content()
         document = DocumentGenerator.generate_simple_document(
-            structured_text,
-            "structured_content_test"
+            structured_text, "structured_content_test"
         )
 
         masked_doc, unmasked_doc, processing_time = self.perform_round_trip(
@@ -219,8 +217,8 @@ class TestRoundTripFidelity:
         assert_round_trip_fidelity(document, masked_doc, unmasked_doc, None)
 
         # Verify structure preservation in detail
-        original_lines = structured_text.split('\n')
-        unmasked_lines = unmasked_doc.texts[0].text.split('\n')
+        original_lines = structured_text.split("\n")
+        unmasked_lines = unmasked_doc.texts[0].text.split("\n")
 
         assert len(original_lines) == len(unmasked_lines)
 
@@ -231,14 +229,12 @@ class TestRoundTripFidelity:
                 assert not unmask_line.strip()
 
             # Lines with colons (field labels) should maintain structure
-            if ':' in orig_line and not orig_line.strip().endswith(':'):
-                assert ':' in unmask_line
+            if ":" in orig_line and not orig_line.strip().endswith(":"):
+                assert ":" in unmask_line
 
     @pytest.mark.integration
     def test_multiple_documents_batch_round_trip(
-        self,
-        masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        self, masking_engine: MaskingEngine, unmasking_engine: UnmaskingEngine
     ):
         """Test round-trip fidelity with batch of diverse documents."""
         test_data = generate_test_suite_data(num_documents=5)
@@ -260,40 +256,32 @@ class TestRoundTripFidelity:
         self,
         masking_engine: MaskingEngine,
         unmasking_engine: UnmaskingEngine,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test round-trip fidelity with edge cases."""
         edge_cases = [
-            {
-                "name": "empty_document",
-                "text": ""
-            },
-            {
-                "name": "whitespace_only",
-                "text": "   \n\n   \t\t   \n   "
-            },
+            {"name": "empty_document", "text": ""},
+            {"name": "whitespace_only", "text": "   \n\n   \t\t   \n   "},
             {
                 "name": "special_characters",
-                "text": "Contact: john@example.com 📧 Phone: 555-123-4567 📞 Special chars: !@#$%^&*()_+-=[]{}|;:,.<>?"
+                "text": "Contact: john@example.com 📧 Phone: 555-123-4567 📞 Special chars: !@#$%^&*()_+-=[]{}|;:,.<>?",
             },
             {
                 "name": "unicode_content",
-                "text": "Nom: François Müller, Téléphone: 555-123-4567, Courriel: françois@exemple.com 🌍"
+                "text": "Nom: François Müller, Téléphone: 555-123-4567, Courriel: françois@exemple.com 🌍",
             },
             {
                 "name": "very_long_line",
-                "text": "Contact info: " + "john.doe@company.com " * 100 + "Phone: 555-123-4567 " * 50
+                "text": "Contact info: "
+                + "john.doe@company.com " * 100
+                + "Phone: 555-123-4567 " * 50,
             },
-            {
-                "name": "mixed_line_endings",
-                "text": "Line 1\nLine 2\r\nLine 3\rLine 4"
-            }
+            {"name": "mixed_line_endings", "text": "Line 1\nLine 2\r\nLine 3\rLine 4"},
         ]
 
         for edge_case in edge_cases:
             document = DocumentGenerator.generate_simple_document(
-                edge_case["text"],
-                edge_case["name"]
+                edge_case["text"], edge_case["name"]
             )
 
             try:
@@ -312,7 +300,7 @@ class TestRoundTripFidelity:
         self,
         masking_engine: MaskingEngine,
         unmasking_engine: UnmaskingEngine,
-        basic_masking_policy: MaskingPolicy
+        basic_masking_policy: MaskingPolicy,
     ):
         """Test round-trip fidelity when entities overlap or are adjacent."""
         # Create text with potentially overlapping entities
@@ -323,8 +311,7 @@ class TestRoundTripFidelity:
         """
 
         document = DocumentGenerator.generate_simple_document(
-            overlapping_text,
-            "overlapping_entities_test"
+            overlapping_text, "overlapping_entities_test"
         )
 
         masked_doc, unmasked_doc, processing_time = self.perform_round_trip(
@@ -336,9 +323,7 @@ class TestRoundTripFidelity:
 
     @pytest.mark.integration
     def test_stress_round_trip_batched_fast(
-        self,
-        masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        self, masking_engine: MaskingEngine, unmasking_engine: UnmaskingEngine
     ):
         """Test round-trip fidelity with small batch for fast runs."""
         batch_size = 3  # Small batch size for fast testing
@@ -359,20 +344,22 @@ class TestRoundTripFidelity:
                 total_time += processing_time
 
             except Exception as e:
-                pytest.fail(f"Stress test failed on document '{document.name}': {str(e)}")
+                pytest.fail(
+                    f"Stress test failed on document '{document.name}': {str(e)}"
+                )
 
         # Verify all tests passed
         assert success_count == len(test_data)
 
         # Average performance should be reasonable for smaller batches
         avg_time = total_time / len(test_data)
-        assert avg_time < 5.0, f"Average processing time {avg_time:.2f}s exceeds threshold"
+        assert avg_time < 5.0, (
+            f"Average processing time {avg_time:.2f}s exceeds threshold"
+        )
 
     @pytest.mark.integration
     def test_stress_round_trip_document_variety(
-        self,
-        masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        self, masking_engine: MaskingEngine, unmasking_engine: UnmaskingEngine
     ):
         """Test round-trip fidelity with diverse document types."""
         # Test specific document variety instead of large batch
@@ -382,7 +369,7 @@ class TestRoundTripFidelity:
             # Structured document
             generate_test_suite_data(num_documents=2)[1],
             # Multi-section document
-            generate_test_suite_data(num_documents=3)[2]
+            generate_test_suite_data(num_documents=3)[2],
         ]
 
         for i, (document, policy) in enumerate(test_cases):
@@ -394,7 +381,9 @@ class TestRoundTripFidelity:
                 assert_round_trip_fidelity(document, masked_doc, unmasked_doc, None)
 
                 # Each individual test should be fast
-                assert processing_time < 3.0, f"Document {i} processing time {processing_time:.2f}s too slow"
+                assert processing_time < 3.0, (
+                    f"Document {i} processing time {processing_time:.2f}s too slow"
+                )
 
             except Exception as e:
                 pytest.fail(f"Document variety test failed on case {i}: {str(e)}")
@@ -419,7 +408,7 @@ class TestRoundTripFidelityComprehensive:
         document: DoclingDocument,
         policy: MaskingPolicy,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ) -> tuple[DoclingDocument, DoclingDocument, float]:
         """Perform complete round-trip and return results with timing."""
         start_time = time.time()
@@ -430,31 +419,30 @@ class TestRoundTripFidelityComprehensive:
 
         # Unmask document
         unmask_result = unmasking_engine.unmask_document(
-            mask_result.masked_document,
-            mask_result.cloakmap
+            mask_result.masked_document, mask_result.cloakmap
         )
 
         processing_time = time.time() - start_time
 
-        return mask_result.masked_document, unmask_result.restored_document, processing_time
+        return (
+            mask_result.masked_document,
+            unmask_result.restored_document,
+            processing_time,
+        )
 
     @pytest.mark.integration
-    @pytest.mark.parametrize("privacy_level", [
-        "low",
-        "medium",
-        "high"
-    ])
+    @pytest.mark.parametrize("privacy_level", ["low", "medium", "high"])
     def test_privacy_level_round_trip_comprehensive(
         self,
         privacy_level: str,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity across all privacy levels - comprehensive slow version."""
         # Generate test document with PII
         document, pii_locations = DocumentGenerator.generate_document_with_pii(
             ["PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "PERSON"],
-            f"privacy_test_{privacy_level}"
+            f"privacy_test_{privacy_level}",
         )
 
         # Create policy for privacy level
@@ -473,17 +461,20 @@ class TestRoundTripFidelityComprehensive:
         assert_performance_acceptable(processing_time, 10.0, text_length)
 
     @pytest.mark.integration
-    @pytest.mark.parametrize("strategy_kind", [
-        StrategyKind.TEMPLATE,
-        StrategyKind.REDACT,
-        StrategyKind.HASH,
-        StrategyKind.SURROGATE,
-    ])
+    @pytest.mark.parametrize(
+        "strategy_kind",
+        [
+            StrategyKind.TEMPLATE,
+            StrategyKind.REDACT,
+            StrategyKind.HASH,
+            StrategyKind.SURROGATE,
+        ],
+    )
     def test_strategy_specific_round_trip_comprehensive(
         self,
         strategy_kind: StrategyKind,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity for all masking strategies - comprehensive slow version."""
         # Create document with specific entity type
@@ -491,19 +482,17 @@ class TestRoundTripFidelityComprehensive:
             StrategyKind.TEMPLATE: "PHONE_NUMBER",
             StrategyKind.REDACT: "PERSON",
             StrategyKind.HASH: "EMAIL_ADDRESS",
-            StrategyKind.SURROGATE: "US_SSN"
+            StrategyKind.SURROGATE: "US_SSN",
         }
 
         entity_type = entity_map[strategy_kind]
         document, _ = DocumentGenerator.generate_document_with_pii(
-            [entity_type],
-            f"strategy_test_{strategy_kind.value}"
+            [entity_type], f"strategy_test_{strategy_kind.value}"
         )
 
         # Create policy with specific strategy
         policy = PolicyGenerator.generate_custom_policy(
-            {entity_type: strategy_kind},
-            {entity_type: 0.5}
+            {entity_type: strategy_kind}, {entity_type: 0.5}
         )
 
         # Perform round-trip
@@ -520,7 +509,7 @@ class TestRoundTripFidelityComprehensive:
         self,
         batch_size: int,
         masking_engine: MaskingEngine,
-        unmasking_engine: UnmaskingEngine
+        unmasking_engine: UnmaskingEngine,
     ):
         """Test round-trip fidelity with various batch sizes - comprehensive slow version."""
         # Generate test data batches
@@ -540,11 +529,15 @@ class TestRoundTripFidelityComprehensive:
                 total_time += processing_time
 
             except Exception as e:
-                pytest.fail(f"Stress test failed on document '{document.name}': {str(e)}")
+                pytest.fail(
+                    f"Stress test failed on document '{document.name}': {str(e)}"
+                )
 
         # Verify all tests passed
         assert success_count == len(test_data)
 
         # Average performance should be reasonable
         avg_time = total_time / len(test_data)
-        assert avg_time < 10.0, f"Average processing time {avg_time:.2f}s exceeds threshold"
+        assert avg_time < 10.0, (
+            f"Average processing time {avg_time:.2f}s exceeds threshold"
+        )

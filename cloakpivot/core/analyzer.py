@@ -515,7 +515,7 @@ class AnalyzerEngineWrapper:
             # Convert to our result format
             detection_results = []
             for result in presidio_results:
-                entity_text = text[result.start:result.end]
+                entity_text = text[result.start : result.end]
                 detection = EntityDetectionResult.from_presidio_result(
                     result, entity_text
                 )

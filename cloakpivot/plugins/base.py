@@ -65,7 +65,9 @@ class BasePlugin(ABC):
         self.config = config or {}
         self.plugin_id = str(uuid4())
         self.is_initialized = False
-        self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(
+            f"{self.__class__.__module__}.{self.__class__.__name__}"
+        )
 
     @property
     @abstractmethod
@@ -130,7 +132,7 @@ class BasePlugin(ABC):
             "version": self.info.version,
             "status": "healthy" if self.is_initialized else "not_initialized",
             "config_keys": list(self.config.keys()),
-            "last_check": None  # Could be implemented for periodic health checks
+            "last_check": None,  # Could be implemented for periodic health checks
         }
 
     def __str__(self) -> str:

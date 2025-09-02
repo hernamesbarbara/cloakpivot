@@ -91,24 +91,28 @@ class S3Storage(StorageBackend):
                 # Configure retry strategy
                 config = Config(
                     retries={
-                        'max_attempts': self.config.get('max_retries', 3),
-                        'mode': 'adaptive'
+                        "max_attempts": self.config.get("max_retries", 3),
+                        "mode": "adaptive",
                     }
                 )
 
                 # Build client arguments
-                client_kwargs = {'config': config}
+                client_kwargs = {"config": config}
 
-                if self.config.get('aws_access_key_id'):
-                    client_kwargs['aws_access_key_id'] = self.config['aws_access_key_id']
+                if self.config.get("aws_access_key_id"):
+                    client_kwargs["aws_access_key_id"] = self.config[
+                        "aws_access_key_id"
+                    ]
 
-                if self.config.get('aws_secret_access_key'):
-                    client_kwargs['aws_secret_access_key'] = self.config['aws_secret_access_key']
+                if self.config.get("aws_secret_access_key"):
+                    client_kwargs["aws_secret_access_key"] = self.config[
+                        "aws_secret_access_key"
+                    ]
 
-                if self.config.get('region_name'):
-                    client_kwargs['region_name'] = self.config['region_name']
+                if self.config.get("region_name"):
+                    client_kwargs["region_name"] = self.config["region_name"]
 
-                self._s3_client = boto3.client('s3', **client_kwargs)
+                self._s3_client = boto3.client("s3", **client_kwargs)
 
             except ImportError as e:
                 raise ValueError("boto3 is required for S3 storage backend") from e
@@ -125,16 +129,20 @@ class S3Storage(StorageBackend):
                 # Build resource arguments
                 resource_kwargs = {}
 
-                if self.config.get('aws_access_key_id'):
-                    resource_kwargs['aws_access_key_id'] = self.config['aws_access_key_id']
+                if self.config.get("aws_access_key_id"):
+                    resource_kwargs["aws_access_key_id"] = self.config[
+                        "aws_access_key_id"
+                    ]
 
-                if self.config.get('aws_secret_access_key'):
-                    resource_kwargs['aws_secret_access_key'] = self.config['aws_secret_access_key']
+                if self.config.get("aws_secret_access_key"):
+                    resource_kwargs["aws_secret_access_key"] = self.config[
+                        "aws_secret_access_key"
+                    ]
 
-                if self.config.get('region_name'):
-                    resource_kwargs['region_name'] = self.config['region_name']
+                if self.config.get("region_name"):
+                    resource_kwargs["region_name"] = self.config["region_name"]
 
-                self._s3_resource = boto3.resource('s3', **resource_kwargs)
+                self._s3_resource = boto3.resource("s3", **resource_kwargs)
 
             except ImportError as e:
                 raise ValueError("boto3 is required for S3 storage backend") from e
@@ -159,32 +167,32 @@ class S3Storage(StorageBackend):
     def _build_put_args(self, content_bytes: bytes) -> dict[str, Any]:
         """Build arguments for S3 put operations including encryption."""
         args = {
-            'Body': content_bytes,
-            'ContentType': 'application/json',
+            "Body": content_bytes,
+            "ContentType": "application/json",
         }
 
         # Add storage class
-        storage_class = self.config.get('storage_class', 'STANDARD')
-        args['StorageClass'] = storage_class
+        storage_class = self.config.get("storage_class", "STANDARD")
+        args["StorageClass"] = storage_class
 
         # Add encryption
-        encryption = self.config.get('encryption', {})
+        encryption = self.config.get("encryption", {})
         if encryption:
-            enc_type = encryption.get('type')
+            enc_type = encryption.get("type")
 
-            if enc_type == 'SSE-S3':
-                args['ServerSideEncryption'] = 'AES256'
+            if enc_type == "SSE-S3":
+                args["ServerSideEncryption"] = "AES256"
 
-            elif enc_type == 'SSE-KMS':
-                args['ServerSideEncryption'] = 'aws:kms'
-                if encryption.get('kms_key_id'):
-                    args['SSEKMSKeyId'] = encryption['kms_key_id']
+            elif enc_type == "SSE-KMS":
+                args["ServerSideEncryption"] = "aws:kms"
+                if encryption.get("kms_key_id"):
+                    args["SSEKMSKeyId"] = encryption["kms_key_id"]
 
-            elif enc_type == 'SSE-C':
-                if not encryption.get('customer_key'):
+            elif enc_type == "SSE-C":
+                if not encryption.get("customer_key"):
                     raise ValueError("customer_key required for SSE-C encryption")
-                args['SSECustomerAlgorithm'] = 'AES256'
-                args['SSECustomerKey'] = encryption['customer_key']
+                args["SSECustomerAlgorithm"] = "AES256"
+                args["SSECustomerKey"] = encryption["customer_key"]
 
         return args
 
@@ -193,7 +201,7 @@ class S3Storage(StorageBackend):
         key: str,
         cloakmap: CloakMap,
         metadata: Optional[dict[str, Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """
         Save a CloakMap to S3.
@@ -222,27 +230,23 @@ class S3Storage(StorageBackend):
                 content_bytes=content_bytes,
                 bucket_name=bucket_name,
                 object_key=object_key,
-                **(metadata or {})
+                **(metadata or {}),
             )
 
             # Build put arguments
             put_args = self._build_put_args(content_bytes)
 
             # Upload CloakMap
-            self.s3_client.put_object(
-                Bucket=bucket_name,
-                Key=object_key,
-                **put_args
-            )
+            self.s3_client.put_object(Bucket=bucket_name, Key=object_key, **put_args)
 
             # Upload metadata
-            metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode("utf-8")
+            metadata_content = json.dumps(storage_metadata.to_dict(), indent=2).encode(
+                "utf-8"
+            )
             metadata_put_args = self._build_put_args(metadata_content)
 
             self.s3_client.put_object(
-                Bucket=bucket_name,
-                Key=metadata_key,
-                **metadata_put_args
+                Bucket=bucket_name, Key=metadata_key, **metadata_put_args
             )
 
             return storage_metadata
@@ -251,7 +255,9 @@ class S3Storage(StorageBackend):
             if "NoSuchBucket" in str(e):
                 raise ValueError(f"S3 bucket '{bucket_name}' does not exist") from e
             elif "AccessDenied" in str(e):
-                raise PermissionError(f"Access denied to S3 bucket '{bucket_name}'") from e
+                raise PermissionError(
+                    f"Access denied to S3 bucket '{bucket_name}'"
+                ) from e
             else:
                 raise ConnectionError(f"Failed to save to S3: {e}") from e
 
@@ -271,12 +277,9 @@ class S3Storage(StorageBackend):
             object_key = self._get_object_key(key)
 
             # Get object
-            response = self.s3_client.get_object(
-                Bucket=bucket_name,
-                Key=object_key
-            )
+            response = self.s3_client.get_object(Bucket=bucket_name, Key=object_key)
 
-            content = response['Body'].read().decode('utf-8')
+            content = response["Body"].read().decode("utf-8")
             return CloakMap.from_json(content)
 
         except Exception as e:
@@ -285,7 +288,9 @@ class S3Storage(StorageBackend):
             elif "NoSuchBucket" in str(e):
                 raise ValueError(f"S3 bucket '{bucket_name}' does not exist") from e
             elif "AccessDenied" in str(e):
-                raise PermissionError(f"Access denied to S3 object '{object_key}'") from e
+                raise PermissionError(
+                    f"Access denied to S3 object '{object_key}'"
+                ) from e
             else:
                 raise ValueError(f"Failed to load CloakMap from S3: {e}") from e
 
@@ -295,10 +300,7 @@ class S3Storage(StorageBackend):
             bucket_name = self.config["bucket_name"]
             object_key = self._get_object_key(key)
 
-            self.s3_client.head_object(
-                Bucket=bucket_name,
-                Key=object_key
-            )
+            self.s3_client.head_object(Bucket=bucket_name, Key=object_key)
             return True
 
         except Exception:
@@ -325,14 +327,10 @@ class S3Storage(StorageBackend):
 
             if exists:
                 # Delete both object and metadata
-                delete_objects = [
-                    {'Key': object_key},
-                    {'Key': metadata_key}
-                ]
+                delete_objects = [{"Key": object_key}, {"Key": metadata_key}]
 
                 self.s3_client.delete_objects(
-                    Bucket=bucket_name,
-                    Delete={'Objects': delete_objects}
+                    Bucket=bucket_name, Delete={"Objects": delete_objects}
                 )
 
                 return True
@@ -346,10 +344,7 @@ class S3Storage(StorageBackend):
                 raise ConnectionError(f"Failed to delete from S3: {e}") from e
 
     def list_keys(
-        self,
-        prefix: Optional[str] = None,
-        limit: Optional[int] = None,
-        **kwargs: Any
+        self, prefix: Optional[str] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> list[str]:
         """
         List CloakMap keys in S3.
@@ -378,38 +373,40 @@ class S3Storage(StorageBackend):
             while True:
                 # Build list arguments
                 list_args = {
-                    'Bucket': bucket_name,
-                    'Prefix': s3_prefix,
-                    'MaxKeys': min(1000, limit or 1000)
+                    "Bucket": bucket_name,
+                    "Prefix": s3_prefix,
+                    "MaxKeys": min(1000, limit or 1000),
                 }
 
                 if continuation_token:
-                    list_args['ContinuationToken'] = continuation_token
+                    list_args["ContinuationToken"] = continuation_token
 
                 # List objects
                 response = self.s3_client.list_objects_v2(**list_args)
 
                 # Process objects
-                for obj in response.get('Contents', []):
-                    obj_key = obj['Key']
+                for obj in response.get("Contents", []):
+                    obj_key = obj["Key"]
 
                     # Skip metadata files
-                    if obj_key.endswith('.meta'):
+                    if obj_key.endswith(".meta"):
                         continue
 
                     # Remove object prefix to get clean key
                     if obj_key.startswith(object_prefix):
-                        clean_key = obj_key[len(object_prefix):]
+                        clean_key = obj_key[len(object_prefix) :]
                         keys.append(clean_key)
 
                         if limit and len(keys) >= limit:
                             break
 
                 # Check if we need to continue
-                if not response.get('IsTruncated', False) or (limit and len(keys) >= limit):
+                if not response.get("IsTruncated", False) or (
+                    limit and len(keys) >= limit
+                ):
                     break
 
-                continuation_token = response.get('NextContinuationToken')
+                continuation_token = response.get("NextContinuationToken")
 
             return sorted(keys)
 
@@ -443,10 +440,9 @@ class S3Storage(StorageBackend):
             # Try to load metadata object first
             try:
                 response = self.s3_client.get_object(
-                    Bucket=bucket_name,
-                    Key=metadata_key
+                    Bucket=bucket_name, Key=metadata_key
                 )
-                metadata_content = response['Body'].read().decode('utf-8')
+                metadata_content = response["Body"].read().decode("utf-8")
                 metadata_dict = json.loads(metadata_content)
                 return StorageMetadata.from_dict(metadata_dict)
 
@@ -456,20 +452,19 @@ class S3Storage(StorageBackend):
 
             # Get object metadata via HEAD request
             head_response = self.s3_client.head_object(
-                Bucket=bucket_name,
-                Key=object_key
+                Bucket=bucket_name, Key=object_key
             )
 
             # Load CloakMap to get internal metadata
             cloakmap = self.load(key, **kwargs)
 
             # Create metadata from HEAD response and CloakMap
-            content_length = head_response['ContentLength']
-            last_modified = head_response['LastModified']
+            content_length = head_response["ContentLength"]
+            last_modified = head_response["LastModified"]
 
             # Build minimal content bytes for hash calculation
             content = cloakmap.to_json()
-            content_bytes = content.encode('utf-8')
+            content_bytes = content.encode("utf-8")
 
             metadata = StorageMetadata.from_cloakmap(
                 key=key,
@@ -483,11 +478,13 @@ class S3Storage(StorageBackend):
             # Update with S3-specific metadata
             metadata.size_bytes = content_length
             metadata.modified_at = last_modified.replace(tzinfo=None)
-            metadata.backend_metadata.update({
-                'etag': head_response.get('ETag', '').strip('"'),
-                'storage_class': head_response.get('StorageClass', 'STANDARD'),
-                'server_side_encryption': head_response.get('ServerSideEncryption'),
-            })
+            metadata.backend_metadata.update(
+                {
+                    "etag": head_response.get("ETag", "").strip('"'),
+                    "storage_class": head_response.get("StorageClass", "STANDARD"),
+                    "server_side_encryption": head_response.get("ServerSideEncryption"),
+                }
+            )
 
             return metadata
 
@@ -508,24 +505,25 @@ class S3Storage(StorageBackend):
             self.s3_client.head_bucket(Bucket=bucket_name)
 
             # Try to list objects (limited)
-            self.s3_client.list_objects_v2(
-                Bucket=bucket_name,
-                MaxKeys=1
+            self.s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
+
+            base_result.update(
+                {
+                    "bucket_name": bucket_name,
+                    "bucket_accessible": True,
+                    "can_list": True,
+                }
             )
 
-            base_result.update({
-                "bucket_name": bucket_name,
-                "bucket_accessible": True,
-                "can_list": True,
-            })
-
         except Exception as e:
-            base_result.update({
-                "status": "unhealthy",
-                "bucket_name": self.config.get("bucket_name"),
-                "bucket_accessible": False,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            })
+            base_result.update(
+                {
+                    "status": "unhealthy",
+                    "bucket_name": self.config.get("bucket_name"),
+                    "bucket_accessible": False,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
 
         return base_result

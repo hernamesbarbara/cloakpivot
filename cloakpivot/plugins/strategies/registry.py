@@ -28,9 +28,7 @@ class StrategyPluginRegistry:
         self._active_strategies: dict[str, BaseStrategyPlugin] = {}
 
     def register_strategy_plugin(
-        self,
-        plugin: BaseStrategyPlugin,
-        config: Optional[dict[str, Any]] = None
+        self, plugin: BaseStrategyPlugin, config: Optional[dict[str, Any]] = None
     ) -> None:
         """
         Register and initialize a strategy plugin.
@@ -59,7 +57,7 @@ class StrategyPluginRegistry:
             logger.error(f"Failed to register strategy plugin {plugin_name}: {e}")
             raise PluginError(
                 f"Failed to register strategy plugin {plugin_name}: {e}",
-                plugin_name=plugin_name
+                plugin_name=plugin_name,
             ) from e
 
     def apply_strategy(
@@ -68,7 +66,7 @@ class StrategyPluginRegistry:
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> StrategyPluginResult:
         """
         Apply a custom strategy plugin.
@@ -89,13 +87,15 @@ class StrategyPluginRegistry:
         if plugin_name not in self._active_strategies:
             raise PluginError(
                 f"Strategy plugin {plugin_name} not found or not active",
-                plugin_name=plugin_name
+                plugin_name=plugin_name,
             )
 
         plugin = self._active_strategies[plugin_name]
 
         try:
-            result = plugin.apply_strategy_safe(original_text, entity_type, confidence, context)
+            result = plugin.apply_strategy_safe(
+                original_text, entity_type, confidence, context
+            )
 
             if not result.success:
                 logger.warning(
@@ -109,7 +109,7 @@ class StrategyPluginRegistry:
             raise PluginExecutionError(
                 f"Strategy plugin {plugin_name} execution failed: {e}",
                 plugin_name=plugin_name,
-                original_exception=e
+                original_exception=e,
             ) from e
 
     def get_active_strategy_plugins(self) -> dict[str, BaseStrategyPlugin]:
@@ -147,7 +147,9 @@ class StrategyPluginRegistry:
 
         return entity_type in supported_types
 
-    def get_plugin_parameters_schema(self, plugin_name: str) -> Optional[dict[str, Any]]:
+    def get_plugin_parameters_schema(
+        self, plugin_name: str
+    ) -> Optional[dict[str, Any]]:
         """
         Get parameter schema for a strategy plugin.
 

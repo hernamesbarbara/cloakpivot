@@ -51,7 +51,9 @@ class TestConcurrentAccess:
 
         start_time = time.time()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(worker) for _ in range(thread_count)]
 
             for future in concurrent.futures.as_completed(futures, timeout=30):
@@ -60,18 +62,26 @@ class TestConcurrentAccess:
         execution_time = time.time() - start_time
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during concurrent access: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during concurrent access: {exceptions}"
+        )
         assert len(results) == thread_count * iterations_per_thread
 
         # All should return the same instance (singleton pattern)
         unique_instances = set(results)
-        assert len(unique_instances) == 1, f"Expected 1 unique instance, got {len(unique_instances)}"
+        assert len(unique_instances) == 1, (
+            f"Expected 1 unique instance, got {len(unique_instances)}"
+        )
 
         # Performance validation - should complete in reasonable time
-        assert execution_time < 10.0, f"Stress test took too long: {execution_time:.2f}s"
+        assert execution_time < 10.0, (
+            f"Stress test took too long: {execution_time:.2f}s"
+        )
 
-        print(f"Stress test completed: {thread_count} threads × {iterations_per_thread} iterations "
-              f"in {execution_time:.2f}s ({len(results)/execution_time:.1f} ops/sec)")
+        print(
+            f"Stress test completed: {thread_count} threads × {iterations_per_thread} iterations "
+            f"in {execution_time:.2f}s ({len(results) / execution_time:.1f} ops/sec)"
+        )
 
     @pytest.mark.performance
     def test_stress_processor_concurrent_access(self):
@@ -91,19 +101,25 @@ class TestConcurrentAccess:
             except Exception as e:
                 exceptions.append(e)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(worker) for _ in range(thread_count)]
 
             for future in concurrent.futures.as_completed(futures, timeout=20):
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during concurrent access: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during concurrent access: {exceptions}"
+        )
         assert len(results) == thread_count * iterations_per_thread
 
         # All should return the same instance
         unique_instances = set(results)
-        assert len(unique_instances) == 1, f"Expected 1 unique instance, got {len(unique_instances)}"
+        assert len(unique_instances) == 1, (
+            f"Expected 1 unique instance, got {len(unique_instances)}"
+        )
 
     @pytest.mark.performance
     def test_stress_pipeline_concurrent_access(self):
@@ -123,19 +139,25 @@ class TestConcurrentAccess:
             except Exception as e:
                 exceptions.append(e)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(worker) for _ in range(thread_count)]
 
             for future in concurrent.futures.as_completed(futures, timeout=15):
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during concurrent access: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during concurrent access: {exceptions}"
+        )
         assert len(results) == thread_count * iterations_per_thread
 
         # All should return the same instance
         unique_instances = set(results)
-        assert len(unique_instances) == 1, f"Expected 1 unique instance, got {len(unique_instances)}"
+        assert len(unique_instances) == 1, (
+            f"Expected 1 unique instance, got {len(unique_instances)}"
+        )
 
     @pytest.mark.performance
     def test_mixed_loader_concurrent_access(self):
@@ -169,9 +191,9 @@ class TestConcurrentAccess:
                 exceptions.append(("pipeline", e))
 
         all_workers = (
-            [analyzer_worker] * thread_count_per_loader +
-            [processor_worker] * thread_count_per_loader +
-            [pipeline_worker] * thread_count_per_loader
+            [analyzer_worker] * thread_count_per_loader
+            + [processor_worker] * thread_count_per_loader
+            + [pipeline_worker] * thread_count_per_loader
         )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
@@ -181,13 +203,17 @@ class TestConcurrentAccess:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during mixed concurrent access: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during mixed concurrent access: {exceptions}"
+        )
 
         # Each loader type should return singleton instances
         for loader_type, instance_ids in results.items():
             assert len(instance_ids) == thread_count_per_loader * 5
             unique_instances = set(instance_ids)
-            assert len(unique_instances) == 1, f"{loader_type} violated singleton pattern"
+            assert len(unique_instances) == 1, (
+                f"{loader_type} violated singleton pattern"
+            )
 
 
 class TestConfigurationVariations:
@@ -212,7 +238,9 @@ class TestConfigurationVariations:
 
         def create_analyzer_for_config(lang: str, conf: float, engine: str):
             try:
-                analyzer = get_presidio_analyzer(language=lang, min_confidence=conf, nlp_engine_name=engine)
+                analyzer = get_presidio_analyzer(
+                    language=lang, min_confidence=conf, nlp_engine_name=engine
+                )
                 config_key = (lang, conf, engine)
                 if config_key not in results:
                     results[config_key] = []
@@ -233,16 +261,22 @@ class TestConfigurationVariations:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during config variations: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during config variations: {exceptions}"
+        )
 
         # Should have created distinct instances for each config
-        assert len(results) == len(configs), f"Expected {len(configs)} distinct configs, got {len(results)}"
+        assert len(results) == len(configs), (
+            f"Expected {len(configs)} distinct configs, got {len(results)}"
+        )
 
         # Each config should return singleton instances
         for config_key, instance_ids in results.items():
             assert len(instance_ids) == 10, f"Config {config_key} missing instances"
             unique_instances = set(instance_ids)
-            assert len(unique_instances) == 1, f"Config {config_key} violated singleton pattern"
+            assert len(unique_instances) == 1, (
+                f"Config {config_key} violated singleton pattern"
+            )
 
     @pytest.mark.performance
     def test_concurrent_processor_configurations(self):
@@ -272,14 +306,18 @@ class TestConfigurationVariations:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during processor config variations: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during processor config variations: {exceptions}"
+        )
         assert len(results) == 2  # Should have both True and False configurations
 
         # Each config should return singleton instances
         for chunked_setting, instance_ids in results.items():
             assert len(instance_ids) == 15
             unique_instances = set(instance_ids)
-            assert len(unique_instances) == 1, f"Chunked={chunked_setting} violated singleton pattern"
+            assert len(unique_instances) == 1, (
+                f"Chunked={chunked_setting} violated singleton pattern"
+            )
 
     @pytest.mark.performance
     def test_concurrent_policy_based_pipelines(self):
@@ -306,7 +344,9 @@ class TestConfigurationVariations:
         workers = []
         for i, policy in enumerate(policies):
             for _ in range(8):  # 8 threads per policy
-                workers.append(lambda idx=i, pol=policy: create_pipeline_from_policy(idx, pol))
+                workers.append(
+                    lambda idx=i, pol=policy: create_pipeline_from_policy(idx, pol)
+                )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             futures = [executor.submit(worker) for worker in workers]
@@ -315,13 +355,17 @@ class TestConfigurationVariations:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during policy-based pipeline creation: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during policy-based pipeline creation: {exceptions}"
+        )
         assert len(results) == len(policies) * 8
 
         # Note: Policy-based pipelines create new instances each time by design,
         # but should use cached analyzers internally. We validate no exceptions occurred.
         for policy_index, pipeline_ids in policy_results.items():
-            assert len(pipeline_ids) == 8, f"Policy {policy_index} missing pipeline instances"
+            assert len(pipeline_ids) == 8, (
+                f"Policy {policy_index} missing pipeline instances"
+            )
 
 
 class TestCacheConsistency:
@@ -349,7 +393,9 @@ class TestCacheConsistency:
             except Exception as e:
                 exceptions.append(e)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(worker) for _ in range(thread_count)]
 
             for future in concurrent.futures.as_completed(futures, timeout=15):
@@ -358,14 +404,24 @@ class TestCacheConsistency:
         final_cache_info = get_cache_info()
 
         # Validate no exceptions
-        assert len(exceptions) == 0, f"Exceptions during cache consistency test: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during cache consistency test: {exceptions}"
+        )
 
         # Calculate hit rate
         total_new_accesses = thread_count * iterations_per_thread
-        new_hits = final_cache_info["analyzer"]["hits"] - initial_cache_info["analyzer"]["hits"]
-        new_misses = final_cache_info["analyzer"]["misses"] - initial_cache_info["analyzer"]["misses"]
+        new_hits = (
+            final_cache_info["analyzer"]["hits"]
+            - initial_cache_info["analyzer"]["hits"]
+        )
+        new_misses = (
+            final_cache_info["analyzer"]["misses"]
+            - initial_cache_info["analyzer"]["misses"]
+        )
 
-        assert new_hits == total_new_accesses, f"Expected {total_new_accesses} hits, got {new_hits}"
+        assert new_hits == total_new_accesses, (
+            f"Expected {total_new_accesses} hits, got {new_hits}"
+        )
         assert new_misses == 0, f"Expected 0 new misses, got {new_misses}"
 
         # Hit rate should be 100% since all access same cached instance
@@ -385,7 +441,9 @@ class TestCacheConsistency:
 
         def create_analyzer_for_config(lang: str, confidence: float):
             try:
-                analyzer = get_presidio_analyzer(language=lang, min_confidence=confidence)
+                analyzer = get_presidio_analyzer(
+                    language=lang, min_confidence=confidence
+                )
                 config_key = (lang, confidence)
                 results[config_key].append(id(analyzer))
             except Exception as e:
@@ -404,7 +462,9 @@ class TestCacheConsistency:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, f"Exceptions during cache eviction test: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during cache eviction test: {exceptions}"
+        )
 
         final_cache_info = get_cache_info()
 
@@ -415,7 +475,9 @@ class TestCacheConsistency:
         for config_key, instance_ids in results.items():
             assert len(instance_ids) == 3, f"Config {config_key} missing instances"
             unique_instances = set(instance_ids)
-            assert len(unique_instances) == 1, f"Config {config_key} violated singleton pattern"
+            assert len(unique_instances) == 1, (
+                f"Config {config_key} violated singleton pattern"
+            )
 
 
 class TestDeadlockPrevention:
@@ -447,7 +509,9 @@ class TestDeadlockPrevention:
 
         thread_count = 15
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
             futures = [executor.submit(mixed_operations) for _ in range(thread_count)]
 
             # If there's a deadlock, this will timeout due to pytest-timeout
@@ -477,13 +541,19 @@ class TestDeadlockPrevention:
 
         thread_count = 10
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
-            futures = [executor.submit(rapid_cache_operations) for _ in range(thread_count)]
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
+            futures = [
+                executor.submit(rapid_cache_operations) for _ in range(thread_count)
+            ]
 
             for future in concurrent.futures.as_completed(futures, timeout=8):
                 future.result()
 
-        assert len(exceptions) == 0, f"Exceptions during rapid cache operations: {exceptions}"
+        assert len(exceptions) == 0, (
+            f"Exceptions during rapid cache operations: {exceptions}"
+        )
         assert len(operations_completed) == thread_count
 
 
@@ -515,7 +585,9 @@ class TestPerformanceUnderLoad:
                 except Exception as e:
                     exc_list.append(e)
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=thread_count
+            ) as executor:
                 futures = [executor.submit(worker) for _ in range(thread_count)]
 
                 for future in concurrent.futures.as_completed(futures, timeout=10):
@@ -523,20 +595,30 @@ class TestPerformanceUnderLoad:
 
             execution_time = time.time() - start_time
 
-            assert len(exceptions) == 0, f"Exceptions with {thread_count} threads: {exceptions}"
+            assert len(exceptions) == 0, (
+                f"Exceptions with {thread_count} threads: {exceptions}"
+            )
 
             avg_time_per_thread = execution_time / thread_count
-            performance_results.append((thread_count, execution_time, avg_time_per_thread))
+            performance_results.append(
+                (thread_count, execution_time, avg_time_per_thread)
+            )
 
         # Validate performance scaling
         # Average time per thread should remain reasonable
         for thread_count, total_time, avg_time in performance_results:
-            assert avg_time < 0.1, f"Average time per thread too high: {avg_time:.3f}s with {thread_count} threads"
-            assert total_time < 5.0, f"Total execution time too high: {total_time:.2f}s with {thread_count} threads"
+            assert avg_time < 0.1, (
+                f"Average time per thread too high: {avg_time:.3f}s with {thread_count} threads"
+            )
+            assert total_time < 5.0, (
+                f"Total execution time too high: {total_time:.2f}s with {thread_count} threads"
+            )
 
         print("Performance scaling results:")
         for thread_count, total_time, avg_time in performance_results:
-            print(f"  {thread_count:2d} threads: {total_time:.3f}s total, {avg_time:.4f}s avg/thread")
+            print(
+                f"  {thread_count:2d} threads: {total_time:.3f}s total, {avg_time:.4f}s avg/thread"
+            )
 
     @pytest.mark.performance
     def test_memory_usage_under_load(self):
@@ -558,8 +640,12 @@ class TestPerformanceUnderLoad:
             except Exception as e:
                 exceptions.append(e)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
-            futures = [executor.submit(memory_intensive_worker) for _ in range(thread_count)]
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count
+        ) as executor:
+            futures = [
+                executor.submit(memory_intensive_worker) for _ in range(thread_count)
+            ]
 
             for future in concurrent.futures.as_completed(futures, timeout=20):
                 future.result()
@@ -571,11 +657,17 @@ class TestPerformanceUnderLoad:
         assert len(exceptions) == 0, f"Exceptions during memory test: {exceptions}"
 
         # Memory increase should be reasonable (target: <50MB or <20% increase)
-        assert memory_increase < 50.0, f"Memory increase too high: {memory_increase:.1f}MB"
-        assert memory_increase_percentage < 20.0, f"Memory increase percentage too high: {memory_increase_percentage:.1f}%"
+        assert memory_increase < 50.0, (
+            f"Memory increase too high: {memory_increase:.1f}MB"
+        )
+        assert memory_increase_percentage < 20.0, (
+            f"Memory increase percentage too high: {memory_increase_percentage:.1f}%"
+        )
 
-        print(f"Memory usage: {initial_memory:.1f}MB -> {final_memory:.1f}MB "
-              f"(+{memory_increase:.1f}MB, +{memory_increase_percentage:.1f}%)")
+        print(
+            f"Memory usage: {initial_memory:.1f}MB -> {final_memory:.1f}MB "
+            f"(+{memory_increase:.1f}MB, +{memory_increase_percentage:.1f}%)"
+        )
 
 
 class TestErrorHandlingConcurrency:
@@ -619,14 +711,20 @@ class TestErrorHandlingConcurrency:
                     pass  # Expected for invalid config workers
 
         # Should have successful results from valid workers
-        assert len(successful_results) == 15, f"Expected 15 successful results, got {len(successful_results)}"
+        assert len(successful_results) == 15, (
+            f"Expected 15 successful results, got {len(successful_results)}"
+        )
 
         # Should have caught exceptions from invalid workers
-        assert len(caught_exceptions) == 5, f"Expected 5 caught exceptions, got {len(caught_exceptions)}"
+        assert len(caught_exceptions) == 5, (
+            f"Expected 5 caught exceptions, got {len(caught_exceptions)}"
+        )
 
         # All successful results should be the same instance
         unique_successful = set(successful_results)
-        assert len(unique_successful) == 1, "Successful workers should return same cached instance"
+        assert len(unique_successful) == 1, (
+            "Successful workers should return same cached instance"
+        )
 
     @pytest.mark.performance
     def test_recovery_after_initialization_failure(self):
@@ -678,7 +776,7 @@ def stress_test_loader_function(
     loader_func: Callable[[], Any],
     thread_count: int = 20,
     iterations: int = 10,
-    timeout: int = 10
+    timeout: int = 10,
 ) -> tuple[float, list[int], list[Exception]]:
     """Generic stress test helper for any loader function.
 

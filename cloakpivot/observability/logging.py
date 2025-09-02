@@ -279,7 +279,9 @@ class TraceContext:
             **kwargs,
         )
 
-    def log_error(self, message: str, error: Exception | None = None, **kwargs: Any) -> None:
+    def log_error(
+        self, message: str, error: Exception | None = None, **kwargs: Any
+    ) -> None:
         """Log error message with trace context."""
         log_data = {
             "operation": self.operation,

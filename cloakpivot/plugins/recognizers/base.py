@@ -67,7 +67,7 @@ class BaseRecognizerPlugin(BasePlugin):
             version="1.0.0",
             description="Custom recognizer plugin",
             author="Unknown",
-            plugin_type="recognizer"
+            plugin_type="recognizer",
         )
 
     def validate_config(self, config: dict[str, Any]) -> bool:
@@ -85,32 +85,32 @@ class BaseRecognizerPlugin(BasePlugin):
         """
         if not isinstance(config, dict):
             raise PluginValidationError(
-                "Configuration must be a dictionary",
-                plugin_name=self.info.name
+                "Configuration must be a dictionary", plugin_name=self.info.name
             )
 
         # Validate supported languages
         supported_languages = config.get("supported_languages", ["en"])
         if not isinstance(supported_languages, list):
             raise PluginValidationError(
-                "supported_languages must be a list",
-                plugin_name=self.info.name
+                "supported_languages must be a list", plugin_name=self.info.name
             )
 
         # Validate entity types
         entity_types = config.get("entity_types", [])
         if not isinstance(entity_types, list) or not entity_types:
             raise PluginValidationError(
-                "entity_types must be a non-empty list",
-                plugin_name=self.info.name
+                "entity_types must be a non-empty list", plugin_name=self.info.name
             )
 
         # Validate confidence thresholds
         min_confidence = config.get("min_confidence", 0.0)
-        if not isinstance(min_confidence, (int, float)) or not 0.0 <= min_confidence <= 1.0:
+        if (
+            not isinstance(min_confidence, (int, float))
+            or not 0.0 <= min_confidence <= 1.0
+        ):
             raise PluginValidationError(
                 "min_confidence must be a number between 0.0 and 1.0",
-                plugin_name=self.info.name
+                plugin_name=self.info.name,
             )
 
         return self._validate_recognizer_config(config)
@@ -135,13 +135,17 @@ class BaseRecognizerPlugin(BasePlugin):
         try:
             self._initialize_recognizer()
             self.is_initialized = True
-            self.logger.info(f"Recognizer plugin {self.info.name} initialized successfully")
+            self.logger.info(
+                f"Recognizer plugin {self.info.name} initialized successfully"
+            )
         except Exception as e:
-            self.logger.error(f"Failed to initialize recognizer plugin {self.info.name}: {e}")
+            self.logger.error(
+                f"Failed to initialize recognizer plugin {self.info.name}: {e}"
+            )
             raise PluginExecutionError(
                 f"Recognizer plugin initialization failed: {e}",
                 plugin_name=self.info.name,
-                original_exception=e
+                original_exception=e,
             ) from e
 
     def _initialize_recognizer(self) -> None:
@@ -158,7 +162,9 @@ class BaseRecognizerPlugin(BasePlugin):
         try:
             self._cleanup_recognizer()
             self.is_initialized = False
-            self.logger.info(f"Recognizer plugin {self.info.name} cleaned up successfully")
+            self.logger.info(
+                f"Recognizer plugin {self.info.name} cleaned up successfully"
+            )
         except Exception as e:
             self.logger.warning(f"Error during recognizer plugin cleanup: {e}")
 
@@ -173,10 +179,7 @@ class BaseRecognizerPlugin(BasePlugin):
 
     @abstractmethod
     def analyze_text(
-        self,
-        text: str,
-        language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        self, text: str, language: str = "en", context: Optional[dict[str, Any]] = None
     ) -> list[RecognizerPluginResult]:
         """
         Analyze text for custom PII entities.
@@ -195,10 +198,7 @@ class BaseRecognizerPlugin(BasePlugin):
         pass
 
     def analyze_text_safe(
-        self,
-        text: str,
-        language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        self, text: str, language: str = "en", context: Optional[dict[str, Any]] = None
     ) -> list[RecognizerPluginResult]:
         """
         Analyze text with error handling and timing.
@@ -230,7 +230,7 @@ class BaseRecognizerPlugin(BasePlugin):
             if not isinstance(results, list):
                 raise PluginExecutionError(
                     "Recognizer plugin must return a list of results",
-                    plugin_name=self.info.name
+                    plugin_name=self.info.name,
                 )
 
             # Update timing for all results
@@ -241,23 +241,21 @@ class BaseRecognizerPlugin(BasePlugin):
                 if not isinstance(result, RecognizerPluginResult):
                     raise PluginExecutionError(
                         "All results must be RecognizerPluginResult instances",
-                        plugin_name=self.info.name
+                        plugin_name=self.info.name,
                     )
                 result.execution_time_ms = execution_time
 
             # Filter by minimum confidence
             min_confidence = self.get_config_value("min_confidence", 0.0)
             filtered_results = [
-                result for result in results
-                if result.confidence >= min_confidence
+                result for result in results if result.confidence >= min_confidence
             ]
 
             return filtered_results
 
         except Exception as e:
             self.logger.error(
-                f"Recognizer plugin {self.info.name} failed: {e}",
-                exc_info=True
+                f"Recognizer plugin {self.info.name} failed: {e}", exc_info=True
             )
             return []
 
@@ -335,8 +333,7 @@ class PatternBasedRecognizerPlugin(BaseRecognizerPlugin):
         patterns = config.get("patterns", {})
         if not isinstance(patterns, dict):
             raise PluginValidationError(
-                "patterns must be a dictionary",
-                plugin_name=self.info.name
+                "patterns must be a dictionary", plugin_name=self.info.name
             )
 
         # Validate each pattern
@@ -344,14 +341,14 @@ class PatternBasedRecognizerPlugin(BaseRecognizerPlugin):
             if not isinstance(pattern_list, list):
                 raise PluginValidationError(
                     f"patterns['{entity_type}'] must be a list",
-                    plugin_name=self.info.name
+                    plugin_name=self.info.name,
                 )
 
             for pattern in pattern_list:
                 if not isinstance(pattern, str):
                     raise PluginValidationError(
                         f"Pattern for '{entity_type}' must be a string",
-                        plugin_name=self.info.name
+                        plugin_name=self.info.name,
                     )
 
                 # Test pattern compilation
@@ -360,7 +357,7 @@ class PatternBasedRecognizerPlugin(BaseRecognizerPlugin):
                 except re.error as e:
                     raise PluginValidationError(
                         f"Invalid regex pattern for '{entity_type}': {e}",
-                        plugin_name=self.info.name
+                        plugin_name=self.info.name,
                     ) from e
 
         return True
@@ -376,16 +373,15 @@ class PatternBasedRecognizerPlugin(BaseRecognizerPlugin):
             try:
                 compiled_pattern = re.compile(combined_pattern, re.IGNORECASE)
                 self._compiled_patterns[entity_type] = compiled_pattern
-                self.logger.debug(f"Compiled pattern for {entity_type}: {combined_pattern}")
+                self.logger.debug(
+                    f"Compiled pattern for {entity_type}: {combined_pattern}"
+                )
             except re.error as e:
                 self.logger.error(f"Failed to compile pattern for {entity_type}: {e}")
                 raise
 
     def analyze_text(
-        self,
-        text: str,
-        language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        self, text: str, language: str = "en", context: Optional[dict[str, Any]] = None
     ) -> list[RecognizerPluginResult]:
         """
         Analyze text using compiled regex patterns.
@@ -409,25 +405,24 @@ class PatternBasedRecognizerPlugin(BaseRecognizerPlugin):
                 confidence = self._calculate_confidence(match, entity_type, context)
 
                 if confidence > 0.0:
-                    results.append(RecognizerPluginResult(
-                        entity_type=entity_type,
-                        start=match.start(),
-                        end=match.end(),
-                        confidence=confidence,
-                        text=match.group(),
-                        metadata={
-                            "pattern_based": True,
-                            "recognizer": self.info.name
-                        }
-                    ))
+                    results.append(
+                        RecognizerPluginResult(
+                            entity_type=entity_type,
+                            start=match.start(),
+                            end=match.end(),
+                            confidence=confidence,
+                            text=match.group(),
+                            metadata={
+                                "pattern_based": True,
+                                "recognizer": self.info.name,
+                            },
+                        )
+                    )
 
         return results
 
     def _calculate_confidence(
-        self,
-        match: re.Match[str],
-        entity_type: str,
-        context: Optional[dict[str, Any]]
+        self, match: re.Match[str], entity_type: str, context: Optional[dict[str, Any]]
     ) -> float:
         """
         Calculate confidence score for a pattern match.

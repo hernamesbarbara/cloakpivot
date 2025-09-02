@@ -104,9 +104,7 @@ def _load_config_file(ctx: click.Context, config_path: Path) -> None:
         raise click.ClickException(f"Failed to load configuration file: {e}") from e
 
 
-def _validate_mask_arguments(
-    output_path: Path | None, cloakmap: Path | None
-) -> None:
+def _validate_mask_arguments(output_path: Path | None, cloakmap: Path | None) -> None:
     """Validate mask command arguments."""
     if not output_path and not cloakmap:
         raise click.ClickException(ERROR_MASK_ARGS)
@@ -126,9 +124,7 @@ def _set_default_paths(
     return output_path, cloakmap
 
 
-def _try_enhanced_policy_loading(
-    policy: Path, verbose: bool
-) -> MaskingPolicy | None:
+def _try_enhanced_policy_loading(policy: Path, verbose: bool) -> MaskingPolicy | None:
     """Try to load policy using enhanced policy loader."""
     try:
         from cloakpivot.core.policy_loader import PolicyLoader
@@ -405,11 +401,14 @@ def mask(
 
             # Detect input document format for round-trip preservation
             from cloakpivot.formats.serialization import CloakPivotSerializer
+
             format_serializer = CloakPivotSerializer()
             detected_input_format = format_serializer.detect_format(input_path)
 
             if verbose:
-                click.echo(f"📋 Detected input format: {detected_input_format or 'unknown'}")
+                click.echo(
+                    f"📋 Detected input format: {detected_input_format or 'unknown'}"
+                )
 
             progress.update(1)
 
@@ -707,12 +706,18 @@ def unmask(
                     if original_format:
                         output_format = original_format
                         if verbose:
-                            click.echo(f"🔄 Restoring to original format: {original_format}")
+                            click.echo(
+                                f"🔄 Restoring to original format: {original_format}"
+                            )
                     else:
                         # Fallback to detecting from file extension or default to lexical
-                        output_format = serializer.detect_format(output_path) or "lexical"
+                        output_format = (
+                            serializer.detect_format(output_path) or "lexical"
+                        )
                         if verbose:
-                            click.echo(f"⚠️  No original format found, using: {output_format}")
+                            click.echo(
+                                f"⚠️  No original format found, using: {output_format}"
+                            )
 
                     result = serializer.serialize_document(
                         unmasking_result.restored_document, output_format
@@ -999,7 +1004,6 @@ def policy_template(template_name: str, output: TextIO) -> None:
 
     except FileNotFoundError:
         # Fall back to reading from file system if package resource doesn't work
-
 
         template_file = (
             Path(__file__).parent.parent

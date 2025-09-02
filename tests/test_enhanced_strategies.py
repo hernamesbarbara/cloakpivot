@@ -43,9 +43,7 @@ class TestEnhancedTemplateStrategy:
         ]
 
         for email in test_cases:
-            result = applicator.apply_strategy(
-                email, "EMAIL_ADDRESS", strategy, 0.9
-            )
+            result = applicator.apply_strategy(email, "EMAIL_ADDRESS", strategy, 0.9)
             # Should preserve @ and . structure
             assert "@" in result
             assert "." in result
@@ -64,9 +62,7 @@ class TestEnhancedTemplateStrategy:
         ]
 
         for ssn, _expected_pattern in test_cases:
-            result = applicator.apply_strategy(
-                ssn, "US_SSN", strategy, 0.9
-            )
+            result = applicator.apply_strategy(ssn, "US_SSN", strategy, 0.9)
             assert len(result) == len(ssn)
             if "-" in ssn:
                 assert "-" in result
@@ -74,10 +70,9 @@ class TestEnhancedTemplateStrategy:
     def test_preserve_format_with_template(self):
         """Test format preservation with user templates."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.TEMPLATE, {
-            "template": "[PHONE]",
-            "preserve_format": True
-        })
+        strategy = Strategy(
+            StrategyKind.TEMPLATE, {"template": "[PHONE]", "preserve_format": True}
+        )
 
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
@@ -88,9 +83,9 @@ class TestEnhancedTemplateStrategy:
     def test_template_placeholders(self):
         """Test template placeholder substitution."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.TEMPLATE, {
-            "template": "[{entity_type}:{length}]"
-        })
+        strategy = Strategy(
+            StrategyKind.TEMPLATE, {"template": "[{entity_type}:{length}]"}
+        )
 
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
@@ -104,12 +99,15 @@ class TestEnhancedPartialStrategy:
     def test_format_aware_phone_partial(self):
         """Test format-aware partial masking for phone numbers."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "end",
-            "format_aware": True,
-            "preserve_delimiters": True
-        })
+        strategy = Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 4,
+                "position": "end",
+                "format_aware": True,
+                "preserve_delimiters": True,
+            },
+        )
 
         result = applicator.apply_strategy(
             "555-123-4567", "PHONE_NUMBER", strategy, 0.9
@@ -124,12 +122,15 @@ class TestEnhancedPartialStrategy:
     def test_format_aware_email_partial(self):
         """Test format-aware partial masking for emails."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 3,
-            "position": "start",
-            "format_aware": True,
-            "preserve_delimiters": True
-        })
+        strategy = Strategy(
+            StrategyKind.PARTIAL,
+            {
+                "visible_chars": 3,
+                "position": "start",
+                "format_aware": True,
+                "preserve_delimiters": True,
+            },
+        )
 
         result = applicator.apply_strategy(
             "john@example.com", "EMAIL_ADDRESS", strategy, 0.9
@@ -144,11 +145,10 @@ class TestEnhancedPartialStrategy:
     def test_deterministic_partial_masking(self):
         """Test that partial masking is deterministic."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 4,
-            "position": "random",
-            "deterministic": True
-        })
+        strategy = Strategy(
+            StrategyKind.PARTIAL,
+            {"visible_chars": 4, "position": "random", "deterministic": True},
+        )
 
         # Same input should produce same output
         text = "sensitive-information"
@@ -170,11 +170,14 @@ class TestEnhancedPartialStrategy:
         ]
 
         for position, visible_chars in test_cases:
-            strategy = Strategy(StrategyKind.PARTIAL, {
-                "visible_chars": visible_chars,
-                "position": position,
-                "deterministic": True
-            })
+            strategy = Strategy(
+                StrategyKind.PARTIAL,
+                {
+                    "visible_chars": visible_chars,
+                    "position": position,
+                    "deterministic": True,
+                },
+            )
 
             result = applicator.apply_strategy(text, "TEST", strategy, 0.9)
 
@@ -182,7 +185,7 @@ class TestEnhancedPartialStrategy:
             assert len(result) == len(text)
 
             # Should have correct number of visible characters
-            visible_count = sum(1 for c in result if c != '*')
+            visible_count = sum(1 for c in result if c != "*")
             assert visible_count == min(visible_chars, len(text))
 
 
@@ -192,10 +195,9 @@ class TestEnhancedHashStrategy:
     def test_deterministic_hash_output(self):
         """Test that hash output is deterministic for same input."""
         applicator = StrategyApplicator(seed="test_seed")
-        strategy = Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "salt": "test_salt"
-        })
+        strategy = Strategy(
+            StrategyKind.HASH, {"algorithm": "sha256", "salt": "test_salt"}
+        )
 
         text = "sensitive-data"
         result1 = applicator.apply_strategy(text, "TEST", strategy, 0.9)
@@ -206,18 +208,25 @@ class TestEnhancedHashStrategy:
     def test_per_entity_salt(self):
         """Test per-entity-type salting."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "per_entity_salt": {
-                "PHONE_NUMBER": "phone_salt",
-                "EMAIL_ADDRESS": "email_salt"
+        strategy = Strategy(
+            StrategyKind.HASH,
+            {
+                "algorithm": "sha256",
+                "per_entity_salt": {
+                    "PHONE_NUMBER": "phone_salt",
+                    "EMAIL_ADDRESS": "email_salt",
+                },
+                "truncate": 8,
             },
-            "truncate": 8
-        })
+        )
 
         same_text = "123456789"
-        phone_result = applicator.apply_strategy(same_text, "PHONE_NUMBER", strategy, 0.9)
-        email_result = applicator.apply_strategy(same_text, "EMAIL_ADDRESS", strategy, 0.9)
+        phone_result = applicator.apply_strategy(
+            same_text, "PHONE_NUMBER", strategy, 0.9
+        )
+        email_result = applicator.apply_strategy(
+            same_text, "EMAIL_ADDRESS", strategy, 0.9
+        )
 
         # Same text with different entity types should produce different hashes
         assert phone_result != email_result
@@ -230,11 +239,10 @@ class TestEnhancedHashStrategy:
         formats = ["hex", "base64", "base32"]
 
         for format_type in formats:
-            strategy = Strategy(StrategyKind.HASH, {
-                "algorithm": "sha256",
-                "format_output": format_type,
-                "truncate": 12
-            })
+            strategy = Strategy(
+                StrategyKind.HASH,
+                {"algorithm": "sha256", "format_output": format_type, "truncate": 12},
+            )
 
             result = applicator.apply_strategy(text, "TEST", strategy, 0.9)
 
@@ -248,11 +256,10 @@ class TestEnhancedHashStrategy:
     def test_consistent_length_truncation(self):
         """Test consistent length truncation."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "truncate": 8,
-            "consistent_length": True
-        })
+        strategy = Strategy(
+            StrategyKind.HASH,
+            {"algorithm": "sha256", "truncate": 8, "consistent_length": True},
+        )
 
         # Similar length inputs should have similar hash patterns
         text1 = "test1234"
@@ -266,11 +273,10 @@ class TestEnhancedHashStrategy:
     def test_preserve_format_structure_in_hash(self):
         """Test format structure preservation in hash output."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.HASH, {
-            "algorithm": "sha256",
-            "preserve_format_structure": True,
-            "truncate": 12
-        })
+        strategy = Strategy(
+            StrategyKind.HASH,
+            {"algorithm": "sha256", "preserve_format_structure": True, "truncate": 12},
+        )
 
         # Test with structured input
         text = "123-45-6789"
@@ -295,9 +301,7 @@ class TestStrategyComposition:
         failing_strategy = Strategy(StrategyKind.CUSTOM, {"callback": failing_callback})
 
         # Should fallback gracefully
-        result = applicator.apply_strategy(
-            "test-data", "TEST", failing_strategy, 0.9
-        )
+        result = applicator.apply_strategy("test-data", "TEST", failing_strategy, 0.9)
 
         # Should not raise exception and should return masked value
         assert result is not None
@@ -310,7 +314,7 @@ class TestStrategyComposition:
 
         strategies = [
             Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
-            Strategy(StrategyKind.HASH, {"algorithm": "sha256", "truncate": 8})
+            Strategy(StrategyKind.HASH, {"algorithm": "sha256", "truncate": 8}),
         ]
 
         result = applicator.compose_strategies(
@@ -332,11 +336,10 @@ class TestStrategyComposition:
     def test_special_characters_handling(self):
         """Test handling of special characters in input."""
         applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.PARTIAL, {
-            "visible_chars": 2,
-            "position": "end",
-            "format_aware": True
-        })
+        strategy = Strategy(
+            StrategyKind.PARTIAL,
+            {"visible_chars": 2, "position": "end", "format_aware": True},
+        )
 
         test_inputs = [
             "test@#$%",
