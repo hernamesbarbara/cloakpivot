@@ -477,7 +477,7 @@ class TestBaselinePerformanceValidation:
         # Profiler overhead should be reasonable (less than 100% overhead in CI)
         overhead_ratio = profiled_time / baseline_time
         # Allow more overhead in CI environments due to resource constraints
-        max_overhead = 2.0 if os.getenv('CI') else 1.5
+        max_overhead = 2.0 if os.getenv("CI") else 1.5
         assert overhead_ratio <= max_overhead, (
             f"Profiler overhead too high: {overhead_ratio:.2f}x (max: {max_overhead}x)"
         )
