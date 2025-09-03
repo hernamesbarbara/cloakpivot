@@ -1,0 +1,372 @@
+{
+  "version": "1.0",
+  "doc_id": "email",
+  "doc_hash": "9ecdb07e7d4bd833f2960b181c615210ea7b5fb915373f3c40f4efa59e3f15ed",
+  "anchors": [
+    {
+      "node_id": "#/texts/1",
+      "start": 6,
+      "end": 23,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_1d8a445d6c86",
+      "original_checksum": "a458fcddf90346e6897d6c5222bc64ba4d3120a7edc5d1e271497af178326251",
+      "checksum_salt": "C7WuBZShD+BZING9AdOqkIrKL8bwFiuxqySXBGyaOMs=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.347054",
+      "metadata": {
+        "segment_node_id": "#/texts/1",
+        "segment_node_type": "TextItem",
+        "global_start": 47,
+        "global_end": 64,
+        "original_text": "Cameron MacIntyre"
+      }
+    },
+    {
+      "node_id": "#/texts/1",
+      "start": 25,
+      "end": 44,
+      "entity_type": "EMAIL_ADDRESS",
+      "confidence": 1.0,
+      "masked_value": "[EMAIL]",
+      "replacement_id": "repl_87cd911e6059",
+      "original_checksum": "9fa58e808c30bdd618487a0a3b697d91b65524064b670f25ae39d3f8eeed1fca",
+      "checksum_salt": "NZub57lIoPZi+MaL2X2tpwVtBE40FXKt0ArxrDwr4vs=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.357701",
+      "metadata": {
+        "segment_node_id": "#/texts/1",
+        "segment_node_type": "TextItem",
+        "global_start": 66,
+        "global_end": 85,
+        "original_text": "cameron@example.com"
+      }
+    },
+    {
+      "node_id": "#/texts/2",
+      "start": 6,
+      "end": 31,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_be9aef215820",
+      "original_checksum": "68943a6693928932ff4ff6ed3f8cabab8d5e928b0b367ea9238f9758b89def69",
+      "checksum_salt": "fFzuLe61tLnj9h9eimIfQMmr7JGXTD72lm/SDOYSfyQ=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.368290",
+      "metadata": {
+        "segment_node_id": "#/texts/2",
+        "segment_node_type": "TextItem",
+        "global_start": 94,
+        "global_end": 119,
+        "original_text": "Tuesday, September 2 2025"
+      }
+    },
+    {
+      "node_id": "#/texts/2",
+      "start": 35,
+      "end": 47,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_81d366f10f66",
+      "original_checksum": "e70357c17519503aaacc7a8592643c3894b2eed5f5a2c2ea4b3143631b5bee04",
+      "checksum_salt": "OHORB1DoMOJl/1A0K7uMvx+1n7kUHlzT90IamY71snQ=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.378855",
+      "metadata": {
+        "segment_node_id": "#/texts/2",
+        "segment_node_type": "TextItem",
+        "global_start": 123,
+        "global_end": 135,
+        "original_text": "12:19 PM EDT"
+      }
+    },
+    {
+      "node_id": "#/texts/4",
+      "start": 4,
+      "end": 19,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_5a31bb70bef0",
+      "original_checksum": "6020d04d554802571d42cc48d6c008e49e8b57b79698a7a270ca9f652f6af3bf",
+      "checksum_salt": "DC5rJ9LAhj6U4JV6jDufg76rzNReq1a7ZellohIDUCc=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.389138",
+      "metadata": {
+        "segment_node_id": "#/texts/4",
+        "segment_node_type": "TextItem",
+        "global_start": 192,
+        "global_end": 207,
+        "original_text": "Julian Margaret"
+      }
+    },
+    {
+      "node_id": "#/texts/4",
+      "start": 21,
+      "end": 42,
+      "entity_type": "EMAIL_ADDRESS",
+      "confidence": 1.0,
+      "masked_value": "[EMAIL]",
+      "replacement_id": "repl_36bec173858f",
+      "original_checksum": "761969af9e50daa150a2343ce96fda92778f7f31d102396ee74d4b6ff42f1c1d",
+      "checksum_salt": "gjy8SH7LjtQmoWt4l3XejrnDCsTc9aHbFTIcxVEiYpY=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.399300",
+      "metadata": {
+        "segment_node_id": "#/texts/4",
+        "segment_node_type": "TextItem",
+        "global_start": 209,
+        "global_end": 230,
+        "original_text": "jmargaret@company.com"
+      }
+    },
+    {
+      "node_id": "#/texts/5",
+      "start": 3,
+      "end": 9,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_9e2d2a4e7f68",
+      "original_checksum": "a5eb53f2549eaf3d6cc1b9b0d1af2e6ac4fa2741fbfae3823dc33572c6ff5518",
+      "checksum_salt": "rab3EO+R4PUgJ61q8CeX3tQccRK2WPjkwWjAbgarKUc=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.409521",
+      "metadata": {
+        "segment_node_id": "#/texts/5",
+        "segment_node_type": "TextItem",
+        "global_start": 236,
+        "global_end": 242,
+        "original_text": "Julian"
+      }
+    },
+    {
+      "node_id": "#/texts/8",
+      "start": 0,
+      "end": 7,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_cb62ff3348f6",
+      "original_checksum": "f929e1db37226c2e5e97319a2a44b53898f5a84a736a2986c9a05af4a7a6ec10",
+      "checksum_salt": "NYuDMp99p0FFwfgDIkQHdyKxEo6ke/Vuqd0SVHDfFfI=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.419987",
+      "metadata": {
+        "segment_node_id": "#/texts/8",
+        "segment_node_type": "TextItem",
+        "global_start": 392,
+        "global_end": 399,
+        "original_text": "Cameron"
+      }
+    },
+    {
+      "node_id": "#/texts/9",
+      "start": 28,
+      "end": 39,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_09792f300365",
+      "original_checksum": "881b765cac63a636ed23506bae17aa556a64b74169f20a16a257f0b586c83298",
+      "checksum_salt": "FRf//Fg7fSy/eSV/aItLei3QbhIw7Sg1/FyceGRouxU=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.430208",
+      "metadata": {
+        "segment_node_id": "#/texts/9",
+        "segment_node_type": "TextItem",
+        "global_start": 429,
+        "global_end": 440,
+        "original_text": "3 birthdays"
+      }
+    },
+    {
+      "node_id": "#/texts/14",
+      "start": 0,
+      "end": 7,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_b906997f4e14",
+      "original_checksum": "07c6fba13686ceac35bf906dcb50a2f42b1c10e2a226684555c731f2e42b29b6",
+      "checksum_salt": "VdNBu5tS5H5SZ2+a/Bly5/uBZoPKiesmZE/vbLDFT7k=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.440524",
+      "metadata": {
+        "segment_node_id": "#/texts/14",
+        "segment_node_type": "TextItem",
+        "global_start": 498,
+        "global_end": 505,
+        "original_text": "Johnson"
+      }
+    },
+    {
+      "node_id": "#/texts/15",
+      "start": 0,
+      "end": 10,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_a4c618d5d392",
+      "original_checksum": "6955beb036f451c907ee76c01ba036d0395a95a8996b86011a8a1a31c0b15e14",
+      "checksum_salt": "WRdQVXE0OlTAH7z7J12yQj5rG5oiQxPs/3S8wAlDo+0=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.450650",
+      "metadata": {
+        "segment_node_id": "#/texts/15",
+        "segment_node_type": "TextItem",
+        "global_start": 507,
+        "global_end": 517,
+        "original_text": "1958-04-21"
+      }
+    },
+    {
+      "node_id": "#/texts/17",
+      "start": 0,
+      "end": 6,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_0595e616cd0b",
+      "original_checksum": "cb6d5915e151a42f3ad8ef932d3db2afd230c7f11ba5806d619a1320886ce998",
+      "checksum_salt": "sSTsMl8Vc2n0QioBlFSQLh1MbaOEP9zNYuBo0H31snI=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.460965",
+      "metadata": {
+        "segment_node_id": "#/texts/17",
+        "segment_node_type": "TextItem",
+        "global_start": 527,
+        "global_end": 533,
+        "original_text": "Ashley"
+      }
+    },
+    {
+      "node_id": "#/texts/18",
+      "start": 0,
+      "end": 10,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_e53c3065ce1f",
+      "original_checksum": "85441e27001a8de281b0bedbabdaae737ce98a70946916d400c33eea6f64f10c",
+      "checksum_salt": "+TaheGoyYl6ovgp5K3/xO+SeOkx2iTpcUDRtSB8tXyw=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.471574",
+      "metadata": {
+        "segment_node_id": "#/texts/18",
+        "segment_node_type": "TextItem",
+        "global_start": 535,
+        "global_end": 545,
+        "original_text": "1944-12-22"
+      }
+    },
+    {
+      "node_id": "#/texts/20",
+      "start": 0,
+      "end": 8,
+      "entity_type": "PERSON",
+      "confidence": 0.85,
+      "masked_value": "[NAME]",
+      "replacement_id": "repl_c17c039a189d",
+      "original_checksum": "92a00f9b5b694719d6221295f3dbba4ca2d68292f6633142279e469f0ad2c43b",
+      "checksum_salt": "7advLs3j6uG6YZ9XRx0KOg90QGBmLnQui7Y+jic3qwE=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.481886",
+      "metadata": {
+        "segment_node_id": "#/texts/20",
+        "segment_node_type": "TextItem",
+        "global_start": 554,
+        "global_end": 562,
+        "original_text": "Marjorie"
+      }
+    },
+    {
+      "node_id": "#/texts/21",
+      "start": 0,
+      "end": 10,
+      "entity_type": "DATE_TIME",
+      "confidence": 0.85,
+      "masked_value": "[DATE]",
+      "replacement_id": "repl_ccf1926b498c",
+      "original_checksum": "ca92fdcf6f278f8e69245a33d1c96b80799861cd8e6f1bfb4dc6096c69e69dce",
+      "checksum_salt": "aFHN92vCqHxKAbHZfFuAgauz+Stk/XJ8Og9T1m+5rtk=",
+      "strategy_used": "template",
+      "timestamp": "2025-09-03T17:37:12.492287",
+      "metadata": {
+        "segment_node_id": "#/texts/21",
+        "segment_node_type": "TextItem",
+        "global_start": 564,
+        "global_end": 574,
+        "original_text": "1958-04-21"
+      }
+    }
+  ],
+  "policy_snapshot": {
+    "default_strategy": {
+      "kind": "template",
+      "parameters": {
+        "template": "[REDACTED]"
+      }
+    },
+    "per_entity": {
+      "EMAIL_ADDRESS": {
+        "kind": "template",
+        "parameters": {
+          "template": "[EMAIL]"
+        }
+      },
+      "PERSON": {
+        "kind": "template",
+        "parameters": {
+          "template": "[NAME]"
+        }
+      },
+      "PHONE_NUMBER": {
+        "kind": "template",
+        "parameters": {
+          "template": "[PHONE]"
+        }
+      },
+      "LOCATION": {
+        "kind": "template",
+        "parameters": {
+          "template": "[LOCATION]"
+        }
+      },
+      "DATE_TIME": {
+        "kind": "template",
+        "parameters": {
+          "template": "[DATE]"
+        }
+      },
+      "CREDIT_CARD": {
+        "kind": "template",
+        "parameters": {
+          "template": "[CARD]"
+        }
+      },
+      "US_SSN": {
+        "kind": "partial",
+        "parameters": {
+          "visible_chars": 4,
+          "position": "end"
+        }
+      }
+    },
+    "thresholds": {},
+    "locale": "en",
+    "seed": null,
+    "allow_list": [],
+    "deny_list": [],
+    "context_rules": {},
+    "min_entity_length": 1,
+    "privacy_level": "medium"
+  },
+  "crypto": null,
+  "signature": null,
+  "created_at": "2025-09-03T17:37:12.493024",
+  "metadata": {}
+}
