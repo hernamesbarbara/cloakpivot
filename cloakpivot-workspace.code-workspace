@@ -1,9 +1,12 @@
 {
   "folders": [
-    { "path": "." },
-    { "path": "/Users/hernamesbarbara/code/github/hernamesbarbara/docpivot" }
+    { "path": ".", "name": "cloakpivot" },
+    { "path": "/Users/hernamesbarbara/code/github/hernamesbarbara/docpivot", "name": "docpivot" }
   ],
   "settings": {
-    "python.defaultInterpreterPath": "venv/bin/python"
+    // Use the venv under cloakpivot for files opened from that folder
+    "python.defaultInterpreterPath": "${workspaceFolder:cloakpivot}/venv/bin/python",
+    // Make the terminal auto-activate
+    "python.terminal.activateEnvironment": true
   }
 }

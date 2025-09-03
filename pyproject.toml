@@ -29,6 +29,10 @@ classifiers = [
 ]
 
 dependencies = [
+    "docling>=2.50.0",
+    "docling-core>=2.47.0",
+    "docling-ibm-models>=3.9.1",
+    "docling-parse>=4.2.3",
     "docpivot @ git+https://github.com/hernamesbarbara/docpivot.git@main",
     "presidio-analyzer>=2.2.0",
     "presidio-anonymizer>=2.2.0",
