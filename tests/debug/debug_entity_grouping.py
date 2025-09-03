@@ -3,6 +3,13 @@
 
 import sys
 from pathlib import Path
+
+from cloakpivot.core.normalization import (
+    ConflictResolutionConfig,
+    EntityDetectionResult,
+    EntityNormalizer,
+)
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Test the exact scenario
@@ -35,8 +42,6 @@ for i in range(len(entities_info)):
 # Now test with the actual EntityNormalizer
 print("\n" + "=" * 60)
 print("Testing with EntityNormalizer:")
-
-from cloakpivot.core.normalization import EntityDetectionResult, EntityNormalizer, ConflictResolutionConfig
 
 # Create EntityDetectionResult objects
 detection_results = []
