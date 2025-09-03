@@ -160,3 +160,5 @@ diff_report.txt
 fixture_optimization_report.md
 map.json
 email_masked.json
+temp/
+tmp/
