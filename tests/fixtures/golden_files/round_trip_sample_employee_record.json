@@ -1,0 +1,8 @@
+{
+  "document_name": "sample_employee_record",
+  "original_char_count": 1339,
+  "masked_char_count": 1334,
+  "unmasked_char_count": 1339,
+  "entity_mappings_count": 25,
+  "round_trip_success": true
+}
