@@ -20,6 +20,7 @@ class ScenarioConfig:
         enabled: Whether this scenario should be included in measurements
         metadata: Additional configuration specific to this scenario
     """
+
     description: str
     iterations: int
     target_max_ms: float
@@ -32,7 +33,9 @@ class ScenarioConfig:
         if self.iterations <= 0:
             raise ValueError(f"iterations must be positive, got {self.iterations}")
         if self.target_max_ms <= 0:
-            raise ValueError(f"target_max_ms must be positive, got {self.target_max_ms}")
+            raise ValueError(
+                f"target_max_ms must be positive, got {self.target_max_ms}"
+            )
 
 
 @dataclass
@@ -45,6 +48,7 @@ class BaselineConfig:
         measurement_settings: Global settings for measurement execution
         report_settings: Configuration for report generation
     """
+
     scenarios: dict[str, ScenarioConfig] = field(default_factory=dict)
     system_requirements: dict[str, Any] = field(default_factory=dict)
     measurement_settings: dict[str, Any] = field(default_factory=dict)
@@ -52,7 +56,9 @@ class BaselineConfig:
 
     def get_enabled_scenarios(self) -> dict[str, ScenarioConfig]:
         """Get only the enabled scenarios."""
-        return {name: config for name, config in self.scenarios.items() if config.enabled}
+        return {
+            name: config for name, config in self.scenarios.items() if config.enabled
+        }
 
     def validate(self) -> list[str]:
         """Validate the configuration and return any validation errors."""
@@ -80,10 +86,9 @@ DEFAULT_BASELINE_SCENARIOS = {
         metadata={
             "category": "initialization",
             "priority": "high",
-            "notes": "Measures first-time analyzer creation including model loading"
-        }
+            "notes": "Measures first-time analyzer creation including model loading",
+        },
     ),
-
     "analyzer_warm_start": ScenarioConfig(
         description="Subsequent analyzer initializations (warm start)",
         iterations=10,
@@ -92,10 +97,9 @@ DEFAULT_BASELINE_SCENARIOS = {
         metadata={
             "category": "initialization",
             "priority": "high",
-            "notes": "Measures analyzer reuse performance"
-        }
+            "notes": "Measures analyzer reuse performance",
+        },
     ),
-
     "small_text_analysis": ScenarioConfig(
         description="Analyze small text (<1KB)",
         iterations=100,
@@ -105,10 +109,9 @@ DEFAULT_BASELINE_SCENARIOS = {
             "category": "analysis",
             "priority": "high",
             "text_size_bytes": 500,
-            "notes": "Measures analysis performance on typical small documents"
-        }
+            "notes": "Measures analysis performance on typical small documents",
+        },
     ),
-
     "medium_text_analysis": ScenarioConfig(
         description="Analyze medium text (1-10KB)",
         iterations=50,
@@ -118,10 +121,9 @@ DEFAULT_BASELINE_SCENARIOS = {
             "category": "analysis",
             "priority": "high",
             "text_size_bytes": 5000,
-            "notes": "Measures analysis performance on medium-sized documents"
-        }
+            "notes": "Measures analysis performance on medium-sized documents",
+        },
     ),
-
     "large_text_analysis": ScenarioConfig(
         description="Analyze large text (10-100KB)",
         iterations=20,
@@ -132,10 +134,9 @@ DEFAULT_BASELINE_SCENARIOS = {
             "category": "analysis",
             "priority": "medium",
             "text_size_bytes": 50000,
-            "notes": "Measures analysis performance on large documents"
-        }
+            "notes": "Measures analysis performance on large documents",
+        },
     ),
-
     "pipeline_creation": ScenarioConfig(
         description="Create EntityDetectionPipeline",
         iterations=20,
@@ -144,10 +145,9 @@ DEFAULT_BASELINE_SCENARIOS = {
         metadata={
             "category": "initialization",
             "priority": "medium",
-            "notes": "Measures pipeline setup time"
-        }
+            "notes": "Measures pipeline setup time",
+        },
     ),
-
     "batch_processing": ScenarioConfig(
         description="Process batch of small documents",
         iterations=10,
@@ -158,10 +158,9 @@ DEFAULT_BASELINE_SCENARIOS = {
             "category": "batch",
             "priority": "medium",
             "batch_size": 10,
-            "notes": "Measures batch processing performance"
-        }
+            "notes": "Measures batch processing performance",
+        },
     ),
-
     "memory_usage_analysis": ScenarioConfig(
         description="Memory usage during analysis",
         iterations=5,
@@ -171,9 +170,9 @@ DEFAULT_BASELINE_SCENARIOS = {
         metadata={
             "category": "memory",
             "priority": "low",
-            "notes": "Measures memory consumption patterns"
-        }
-    )
+            "notes": "Measures memory consumption patterns",
+        },
+    ),
 }
 
 # System requirements for valid baseline measurements
@@ -181,11 +180,7 @@ DEFAULT_SYSTEM_REQUIREMENTS = {
     "min_memory_gb": 4,
     "min_cpu_cores": 2,
     "python_version_min": "3.8",
-    "required_packages": [
-        "presidio-analyzer",
-        "spacy",
-        "psutil"
-    ]
+    "required_packages": ["presidio-analyzer", "spacy", "psutil"],
 }
 
 # Default measurement settings
@@ -196,7 +191,7 @@ DEFAULT_MEASUREMENT_SETTINGS = {
     "detailed_logging": False,
     "fail_on_target_miss": False,
     "timeout_per_scenario_s": 300,  # 5 minutes max per scenario
-    "statistical_confidence": 0.95
+    "statistical_confidence": 0.95,
 }
 
 # Default report settings
@@ -206,7 +201,7 @@ DEFAULT_REPORT_SETTINGS = {
     "include_raw_measurements": False,  # Don't include all raw times by default
     "generate_charts": False,  # Disabled until chart generation is implemented
     "output_formats": ["json"],  # Could add "html", "csv" later
-    "decimal_places": 2
+    "decimal_places": 2,
 }
 
 
@@ -220,7 +215,7 @@ def get_default_config() -> BaselineConfig:
         scenarios=DEFAULT_BASELINE_SCENARIOS,
         system_requirements=DEFAULT_SYSTEM_REQUIREMENTS,
         measurement_settings=DEFAULT_MEASUREMENT_SETTINGS,
-        report_settings=DEFAULT_REPORT_SETTINGS
+        report_settings=DEFAULT_REPORT_SETTINGS,
     )
 
 
@@ -228,7 +223,7 @@ def create_custom_config(
     scenarios: Optional[dict[str, ScenarioConfig]] = None,
     system_requirements: Optional[dict[str, Any]] = None,
     measurement_settings: Optional[dict[str, Any]] = None,
-    report_settings: Optional[dict[str, Any]] = None
+    report_settings: Optional[dict[str, Any]] = None,
 ) -> BaselineConfig:
     """Create a custom baseline configuration.
 
@@ -307,7 +302,7 @@ def get_comprehensive_config() -> BaselineConfig:
 PRD_PERFORMANCE_TARGETS = {
     "analyzer_initialization_improvement": 0.8,  # 80% improvement target
     "entity_detection_max_ms": 100,  # <100ms target
-    "test_suite_improvement": 0.5,   # 50% improvement target
+    "test_suite_improvement": 0.5,  # 50% improvement target
     "memory_reduction_target": 0.3,  # 30% memory reduction target
 }
 
@@ -326,14 +321,20 @@ def validate_against_prd_targets(measurements: dict[str, Any]) -> dict[str, bool
     # Check analyzer initialization target (80% improvement)
     if "analyzer_cold_start" in measurements:
         current_time = measurements["analyzer_cold_start"]["results"]["mean"]
-        target_time = current_time * (1 - PRD_PERFORMANCE_TARGETS["analyzer_initialization_improvement"])
-        results["analyzer_initialization_improvement"] = target_time > 100  # Reasonable minimum
+        target_time = current_time * (
+            1 - PRD_PERFORMANCE_TARGETS["analyzer_initialization_improvement"]
+        )
+        results["analyzer_initialization_improvement"] = (
+            target_time > 100
+        )  # Reasonable minimum
 
     # Check entity detection target (<100ms)
     if "small_text_analysis" in measurements:
         current_time = measurements["small_text_analysis"]["results"]["mean"]
         results["entity_detection_max_ms"] = (
-            current_time <= PRD_PERFORMANCE_TARGETS["entity_detection_max_ms"] * 2  # Allow 2x current
+            current_time
+            <= PRD_PERFORMANCE_TARGETS["entity_detection_max_ms"]
+            * 2  # Allow 2x current
         )
 
     return results

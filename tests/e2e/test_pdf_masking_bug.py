@@ -78,17 +78,17 @@ class TestPDFMaskingBug:
 
         # Assert we detected the expected PERSON entities
         person_names = [d["entity_text"] for d in person_detections]
-        assert "Cameron MacIntyre" in person_names, (
-            "Should detect 'Cameron MacIntyre' as PERSON"
-        )
-        assert "Julian Margaret" in person_names, (
-            "Should detect 'Julian Margaret' as PERSON"
-        )
+        assert (
+            "Cameron MacIntyre" in person_names
+        ), "Should detect 'Cameron MacIntyre' as PERSON"
+        assert (
+            "Julian Margaret" in person_names
+        ), "Should detect 'Julian Margaret' as PERSON"
 
         # Note: "inness robins" is NOT detected - this is a known NER limitation
-        assert "inness robins" not in person_names, (
-            "Known issue: 'inness robins' not detected"
-        )
+        assert (
+            "inness robins" not in person_names
+        ), "Known issue: 'inness robins' not detected"
 
         # Print summary for debugging
         print("\n" + "=" * 60)
@@ -205,9 +205,9 @@ class TestPDFMaskingBug:
 
         # Assert that Cameron MacIntyre was masked
         if "Cameron MacIntyre" in from_line_original:
-            assert "Cameron MacIntyre" not in from_line_masked, (
-                "BUG: 'Cameron MacIntyre' was detected but not masked!"
-            )
+            assert (
+                "Cameron MacIntyre" not in from_line_masked
+            ), "BUG: 'Cameron MacIntyre' was detected but not masked!"
             assert (
                 "[NAME]" in from_line_masked
                 or "Cameron MacIntyre" not in from_line_masked

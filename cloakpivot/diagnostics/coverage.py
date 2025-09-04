@@ -360,9 +360,11 @@ class CoverageAnalyzer:
                     {
                         "node_id": segment.node_id,
                         "type": getattr(segment, "node_type", "unknown"),
-                        "text_preview": segment.text[:100] + "..."
-                        if len(segment.text) > 100
-                        else segment.text,
+                        "text_preview": (
+                            segment.text[:100] + "..."
+                            if len(segment.text) > 100
+                            else segment.text
+                        ),
                         "start_offset": segment.start_offset,
                         "end_offset": segment.end_offset,
                     }

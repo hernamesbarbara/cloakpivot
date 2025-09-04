@@ -564,9 +564,11 @@ class PolicyLoader:
                 context_rules[context] = context_rule
 
         return MaskingPolicy(
-            default_strategy=default_strategy
-            if default_strategy is not None
-            else Strategy(kind=StrategyKind.REDACT),
+            default_strategy=(
+                default_strategy
+                if default_strategy is not None
+                else Strategy(kind=StrategyKind.REDACT)
+            ),
             per_entity=per_entity,
             thresholds=thresholds,
             locale=schema.locale or "en",

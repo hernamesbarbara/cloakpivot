@@ -238,16 +238,22 @@ class DiagnosticsCollector:
 
         metrics = {
             "total_time_seconds": total_time,
-            "detection_time_seconds": perf.detection_time.total_seconds()
-            if hasattr(perf, "detection_time") and perf.detection_time is not None
-            else 0.0,
-            "masking_time_seconds": perf.masking_time.total_seconds()
-            if hasattr(perf, "masking_time") and perf.masking_time is not None
-            else 0.0,
-            "serialization_time_seconds": perf.serialization_time.total_seconds()
-            if hasattr(perf, "serialization_time")
-            and perf.serialization_time is not None
-            else 0.0,
+            "detection_time_seconds": (
+                perf.detection_time.total_seconds()
+                if hasattr(perf, "detection_time") and perf.detection_time is not None
+                else 0.0
+            ),
+            "masking_time_seconds": (
+                perf.masking_time.total_seconds()
+                if hasattr(perf, "masking_time") and perf.masking_time is not None
+                else 0.0
+            ),
+            "serialization_time_seconds": (
+                perf.serialization_time.total_seconds()
+                if hasattr(perf, "serialization_time")
+                and perf.serialization_time is not None
+                else 0.0
+            ),
         }
 
         # Calculate throughput if we have timing data and stats

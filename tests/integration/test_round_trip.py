@@ -353,9 +353,9 @@ class TestRoundTripFidelity:
 
         # Average performance should be reasonable for smaller batches
         avg_time = total_time / len(test_data)
-        assert avg_time < 5.0, (
-            f"Average processing time {avg_time:.2f}s exceeds threshold"
-        )
+        assert (
+            avg_time < 5.0
+        ), f"Average processing time {avg_time:.2f}s exceeds threshold"
 
     @pytest.mark.integration
     def test_stress_round_trip_document_variety(
@@ -381,9 +381,9 @@ class TestRoundTripFidelity:
                 assert_round_trip_fidelity(document, masked_doc, unmasked_doc, None)
 
                 # Each individual test should be fast
-                assert processing_time < 3.0, (
-                    f"Document {i} processing time {processing_time:.2f}s too slow"
-                )
+                assert (
+                    processing_time < 3.0
+                ), f"Document {i} processing time {processing_time:.2f}s too slow"
 
             except Exception as e:
                 pytest.fail(f"Document variety test failed on case {i}: {str(e)}")
@@ -538,6 +538,6 @@ class TestRoundTripFidelityComprehensive:
 
         # Average performance should be reasonable
         avg_time = total_time / len(test_data)
-        assert avg_time < 10.0, (
-            f"Average processing time {avg_time:.2f}s exceeds threshold"
-        )
+        assert (
+            avg_time < 10.0
+        ), f"Average processing time {avg_time:.2f}s exceeds threshold"

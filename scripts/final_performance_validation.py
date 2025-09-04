@@ -23,7 +23,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -39,8 +39,7 @@ from cloakpivot.loaders import (  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceTarget:
     """Performance target from PRD."""
+
     name: str
     description: str
     target_value: float
@@ -59,7 +59,9 @@ class PerformanceTarget:
     def improvement_pct(self) -> Optional[float]:
         """Calculate improvement percentage from baseline."""
         if self.baseline_value and self.current_value and self.baseline_value > 0:
-            return (self.baseline_value - self.current_value) / self.baseline_value * 100
+            return (
+                (self.baseline_value - self.current_value) / self.baseline_value * 100
+            )
         return None
 
     @property
@@ -70,14 +72,18 @@ class PerformanceTarget:
 
         # Target interpretation depends on metric type
         if "reduction" in self.description.lower():
-            return bool(self.improvement_pct and self.improvement_pct >= self.target_value)
+            return bool(
+                self.improvement_pct and self.improvement_pct >= self.target_value
+            )
         elif "less than" in self.description.lower() or "<" in self.description:
             return bool(self.current_value <= self.target_value)
         elif "greater than" in self.description.lower() or ">" in self.description:
             return bool(self.current_value >= self.target_value)
         else:
             # Assume improvement target
-            return bool(self.improvement_pct and self.improvement_pct >= self.target_value)
+            return bool(
+                self.improvement_pct and self.improvement_pct >= self.target_value
+            )
 
 
 class ComprehensivePerformanceValidator:
@@ -87,41 +93,41 @@ class ComprehensivePerformanceValidator:
         """Initialize the validator."""
         self.profiler = get_profiler()
         self.targets = self._initialize_targets()
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
-    def _initialize_targets(self) -> Dict[str, PerformanceTarget]:
+    def _initialize_targets(self) -> dict[str, PerformanceTarget]:
         """Initialize PRD performance targets."""
         return {
             "test_suite_reduction": PerformanceTarget(
                 name="test_suite_reduction",
                 description="50% reduction in test suite execution time",
                 target_value=50.0,
-                target_unit="% reduction"
+                target_unit="% reduction",
             ),
             "analyzer_init_reduction": PerformanceTarget(
                 name="analyzer_init_reduction",
                 description="80% reduction in analyzer initialization overhead",
                 target_value=80.0,
-                target_unit="% reduction"
+                target_unit="% reduction",
             ),
             "entity_detection_speed": PerformanceTarget(
                 name="entity_detection_speed",
                 description="<100ms average entity detection time for standard documents",
                 target_value=100.0,
-                target_unit="ms"
+                target_unit="ms",
             ),
             "cache_hit_rate": PerformanceTarget(
                 name="cache_hit_rate",
                 description="90%+ cache hit rate for model loading in CI",
                 target_value=90.0,
-                target_unit="% hit rate"
+                target_unit="% hit rate",
             ),
             "zero_regressions": PerformanceTarget(
                 name="zero_regressions",
                 description="Zero performance regressions detected in production code",
                 target_value=0.0,
-                target_unit="regressions"
-            )
+                target_unit="regressions",
+            ),
         }
 
     def load_baseline_metrics(self, baseline_file: Path) -> None:
@@ -140,24 +146,33 @@ class ComprehensivePerformanceValidator:
             # Map baseline data to targets
             if "analyzer_cold_start" in measurements:
                 cold_start_data = measurements["analyzer_cold_start"]
-                if "results" in cold_start_data and "mean" in cold_start_data["results"]:
-                    self.targets["analyzer_init_reduction"].baseline_value = cold_start_data["results"]["mean"]
+                if (
+                    "results" in cold_start_data
+                    and "mean" in cold_start_data["results"]
+                ):
+                    self.targets["analyzer_init_reduction"].baseline_value = (
+                        cold_start_data["results"]["mean"]
+                    )
 
             if "small_text_analysis" in measurements:
                 detection_data = measurements["small_text_analysis"]
                 if "results" in detection_data and "mean" in detection_data["results"]:
-                    self.targets["entity_detection_speed"].baseline_value = detection_data["results"]["mean"]
+                    self.targets["entity_detection_speed"].baseline_value = (
+                        detection_data["results"]["mean"]
+                    )
 
             # Test suite baseline would come from separate measurement
             # For now, we'll estimate based on typical CI times before optimization
-            self.targets["test_suite_reduction"].baseline_value = 30000.0  # 30 seconds typical
+            self.targets["test_suite_reduction"].baseline_value = (
+                30000.0  # 30 seconds typical
+            )
 
             logger.info(f"Loaded baseline metrics from {baseline_file}")
 
         except Exception as e:
             logger.error(f"Failed to load baseline metrics: {e}")
 
-    def measure_current_performance(self) -> Dict[str, float]:
+    def measure_current_performance(self) -> dict[str, float]:
         """Measure current performance across all key areas."""
         logger.info("Measuring current performance across all key areas...")
         measurements = {}
@@ -166,7 +181,9 @@ class ComprehensivePerformanceValidator:
         measurements["test_execution_time"] = self._measure_test_execution_time()
 
         # Analyzer initialization time
-        measurements["analyzer_initialization"] = self._measure_analyzer_initialization()
+        measurements["analyzer_initialization"] = (
+            self._measure_analyzer_initialization()
+        )
 
         # Entity detection speed
         measurements["entity_detection"] = self._measure_entity_detection_speed()
@@ -184,7 +201,7 @@ class ComprehensivePerformanceValidator:
         logger.info("Measuring test suite execution time...")
 
         # Skip test execution if environment variable is set (to avoid recursive calls)
-        if os.getenv('CLOAKPIVOT_SKIP_TEST_EXECUTION', '').lower() == 'true':
+        if os.getenv("CLOAKPIVOT_SKIP_TEST_EXECUTION", "").lower() == "true":
             logger.info("Skipping test execution (CLOAKPIVOT_SKIP_TEST_EXECUTION=true)")
             return 15000.0  # Return reasonable mock value (15 seconds)
 
@@ -192,13 +209,23 @@ class ComprehensivePerformanceValidator:
 
         try:
             # Run representative test subset (fast tests only)
-            result = subprocess.run([
-                sys.executable, "-m", "pytest", "tests/",
-                "-x", "-q",
-                "-m", "not slow and not e2e",
-                "--tb=no",
-                "--disable-warnings"
-            ], capture_output=True, text=True, timeout=120)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "tests/",
+                    "-x",
+                    "-q",
+                    "-m",
+                    "not slow and not e2e",
+                    "--tb=no",
+                    "--disable-warnings",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
 
             execution_time = (time.time() - start_time) * 1000  # Convert to ms
 
@@ -206,7 +233,9 @@ class ComprehensivePerformanceValidator:
                 logger.info(f"Test execution completed in {execution_time:.1f}ms")
                 return execution_time
             else:
-                logger.warning(f"Some tests failed, but timing is valid: {execution_time:.1f}ms")
+                logger.warning(
+                    f"Some tests failed, but timing is valid: {execution_time:.1f}ms"
+                )
                 return execution_time
 
         except subprocess.TimeoutExpired:
@@ -214,7 +243,7 @@ class ComprehensivePerformanceValidator:
             return 120000.0  # Return timeout value
         except Exception as e:
             logger.error(f"Test execution failed: {e}")
-            return float('inf')
+            return float("inf")
 
     def _measure_analyzer_initialization(self) -> float:
         """Measure analyzer initialization performance with singleton pattern."""
@@ -287,10 +316,10 @@ class ComprehensivePerformanceValidator:
         total_hits = 0
         total_requests = 0
 
-        for cache_name, stats in cache_stats.items():
+        for _cache_name, stats in cache_stats.items():
             if isinstance(stats, dict):
-                hits = stats.get('hits', 0)
-                misses = stats.get('misses', 0)
+                hits = stats.get("hits", 0)
+                misses = stats.get("misses", 0)
                 total_hits += hits
                 total_requests += hits + misses
 
@@ -299,7 +328,8 @@ class ComprehensivePerformanceValidator:
         else:
             # If no cache operations detected, check singleton configuration
             import os
-            if os.getenv('CLOAKPIVOT_USE_SINGLETON', 'true').lower() == 'true':
+
+            if os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true":
                 hit_rate = 95.0  # High cache hit rate with singleton pattern
             else:
                 hit_rate = 20.0  # Low cache hit rate without singleton
@@ -312,19 +342,30 @@ class ComprehensivePerformanceValidator:
         logger.info("Checking for performance regressions...")
 
         # Skip regression detection if environment variable is set (to avoid recursive calls)
-        if os.getenv('CLOAKPIVOT_SKIP_TEST_EXECUTION', '').lower() == 'true':
-            logger.info("Skipping regression detection (CLOAKPIVOT_SKIP_TEST_EXECUTION=true)")
+        if os.getenv("CLOAKPIVOT_SKIP_TEST_EXECUTION", "").lower() == "true":
+            logger.info(
+                "Skipping regression detection (CLOAKPIVOT_SKIP_TEST_EXECUTION=true)"
+            )
             return 0  # Return 0 regressions as mock value
 
         # This would check regression detection system
         # For validation, check if performance regression detection tests exist and pass
         try:
-            result = subprocess.run([
-                sys.executable, "-m", "pytest",
-                "tests/performance/",
-                "-k", "regression",
-                "-v", "--tb=short"
-            ], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "tests/performance/",
+                    "-k",
+                    "regression",
+                    "-v",
+                    "--tb=short",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
 
             if result.returncode == 0:
                 logger.info("No performance regressions detected")
@@ -339,7 +380,9 @@ class ComprehensivePerformanceValidator:
             logger.warning(f"Could not check for regressions: {e}")
             return 0
 
-    def run_comprehensive_validation(self, baseline_file: Optional[Path] = None) -> Dict[str, Any]:
+    def run_comprehensive_validation(
+        self, baseline_file: Optional[Path] = None
+    ) -> dict[str, Any]:
         """Run complete performance validation."""
         logger.info("🚀 Starting comprehensive performance validation...")
 
@@ -352,11 +395,21 @@ class ComprehensivePerformanceValidator:
         current_measurements = self.measure_current_performance()
 
         # Update targets with current measurements
-        self.targets["test_suite_reduction"].current_value = current_measurements["test_execution_time"]
-        self.targets["analyzer_init_reduction"].current_value = current_measurements["analyzer_initialization"]
-        self.targets["entity_detection_speed"].current_value = current_measurements["entity_detection"]
-        self.targets["cache_hit_rate"].current_value = current_measurements["cache_hit_rate"]
-        self.targets["zero_regressions"].current_value = current_measurements["regression_count"]
+        self.targets["test_suite_reduction"].current_value = current_measurements[
+            "test_execution_time"
+        ]
+        self.targets["analyzer_init_reduction"].current_value = current_measurements[
+            "analyzer_initialization"
+        ]
+        self.targets["entity_detection_speed"].current_value = current_measurements[
+            "entity_detection"
+        ]
+        self.targets["cache_hit_rate"].current_value = current_measurements[
+            "cache_hit_rate"
+        ]
+        self.targets["zero_regressions"].current_value = current_measurements[
+            "regression_count"
+        ]
 
         # Validate targets
         validation_results = {}
@@ -367,18 +420,22 @@ class ComprehensivePerformanceValidator:
                 "target_value": target.target_value,
                 "improvement_pct": target.improvement_pct,
                 "description": target.description,
-                "baseline_value": target.baseline_value
+                "baseline_value": target.baseline_value,
             }
 
         return validation_results
 
-    def generate_validation_report(self, validation_results: Dict[str, Any]) -> str:
+    def generate_validation_report(self, validation_results: dict[str, Any]) -> str:
         """Generate comprehensive validation report."""
         report_lines = []
 
-        report_lines.append("# CloakPivot Performance Optimization - Final Validation Report")
+        report_lines.append(
+            "# CloakPivot Performance Optimization - Final Validation Report"
+        )
         report_lines.append("")
-        report_lines.append(f"**Validation Date**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        report_lines.append(
+            f"**Validation Date**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+        )
         report_lines.append("")
 
         # Summary
@@ -386,7 +443,9 @@ class ComprehensivePerformanceValidator:
         met_targets = sum(1 for r in validation_results.values() if r.get("target_met"))
 
         report_lines.append("## Executive Summary")
-        report_lines.append(f"- **Targets Met**: {met_targets}/{total_targets} ({met_targets/total_targets*100:.1f}%)")
+        report_lines.append(
+            f"- **Targets Met**: {met_targets}/{total_targets} ({met_targets/total_targets*100:.1f}%)"
+        )
         report_lines.append("")
 
         if met_targets == total_targets:
@@ -408,25 +467,32 @@ class ComprehensivePerformanceValidator:
 
             report_lines.append(f"### {status} {result['description']}")
 
-            current_val = result.get('current_value', 0)
-            target_val = result.get('target_value', 0)
-            baseline_val = result.get('baseline_value')
+            current_val = result.get("current_value", 0)
+            target_val = result.get("target_value", 0)
+            baseline_val = result.get("baseline_value")
 
             if current_val is not None:
-                unit_display = (target.target_unit
-                                .replace('% reduction', '')
-                                .replace('% hit rate', '%')
-                                .replace('regressions', '')
-                                .strip())
-                report_lines.append(f"- **Current Value**: {current_val:.2f} {unit_display}")
+                unit_display = (
+                    target.target_unit.replace("% reduction", "")
+                    .replace("% hit rate", "%")
+                    .replace("regressions", "")
+                    .strip()
+                )
+                report_lines.append(
+                    f"- **Current Value**: {current_val:.2f} {unit_display}"
+                )
 
-            report_lines.append(f"- **Target Value**: {target_val:.2f} {target.target_unit}")
+            report_lines.append(
+                f"- **Target Value**: {target_val:.2f} {target.target_unit}"
+            )
 
             if baseline_val is not None:
                 report_lines.append(f"- **Baseline Value**: {baseline_val:.2f}")
 
             if result.get("improvement_pct") is not None:
-                report_lines.append(f"- **Improvement**: {result['improvement_pct']:.1f}%")
+                report_lines.append(
+                    f"- **Improvement**: {result['improvement_pct']:.1f}%"
+                )
 
             if result.get("target_met"):
                 report_lines.append("- **Status**: ✅ **TARGET MET**")
@@ -440,8 +506,11 @@ class ComprehensivePerformanceValidator:
         report_lines.append("")
 
         config_vars = [
-            "CLOAKPIVOT_USE_SINGLETON", "MODEL_SIZE", "ANALYZER_CACHE_SIZE",
-            "ENABLE_PARALLEL", "MAX_WORKERS"
+            "CLOAKPIVOT_USE_SINGLETON",
+            "MODEL_SIZE",
+            "ANALYZER_CACHE_SIZE",
+            "ENABLE_PARALLEL",
+            "MAX_WORKERS",
         ]
 
         for var in config_vars:
@@ -454,7 +523,11 @@ class ComprehensivePerformanceValidator:
         report_lines.append("## Recommendations")
         report_lines.append("")
 
-        unmet_targets = [name for name, result in validation_results.items() if not result.get("target_met")]
+        unmet_targets = [
+            name
+            for name, result in validation_results.items()
+            if not result.get("target_met")
+        ]
 
         if not unmet_targets:
             report_lines.append(
@@ -462,11 +535,19 @@ class ComprehensivePerformanceValidator:
             )
             report_lines.append("")
             report_lines.append("**Next Steps:**")
-            report_lines.append("- Monitor performance in production to ensure targets are maintained")
-            report_lines.append("- Continue using performance regression detection in CI/CD")
-            report_lines.append("- Consider more aggressive optimization targets for future improvements")
+            report_lines.append(
+                "- Monitor performance in production to ensure targets are maintained"
+            )
+            report_lines.append(
+                "- Continue using performance regression detection in CI/CD"
+            )
+            report_lines.append(
+                "- Consider more aggressive optimization targets for future improvements"
+            )
         else:
-            report_lines.append(f"⚠️ {len(unmet_targets)} target(s) not met. Further optimization recommended:")
+            report_lines.append(
+                f"⚠️ {len(unmet_targets)} target(s) not met. Further optimization recommended:"
+            )
             report_lines.append("")
 
             for target_name in unmet_targets:
@@ -482,11 +563,17 @@ def main() -> int:
     """Main function to run comprehensive validation."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Final performance validation against PRD targets")
+    parser = argparse.ArgumentParser(
+        description="Final performance validation against PRD targets"
+    )
     parser.add_argument("--baseline", help="Baseline performance file (JSON)")
-    parser.add_argument("--output", default="validation-report.md", help="Output report file")
+    parser.add_argument(
+        "--output", default="validation-report.md", help="Output report file"
+    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--json-output", help="Optional JSON output file for machine processing")
+    parser.add_argument(
+        "--json-output", help="Optional JSON output file for machine processing"
+    )
 
     args = parser.parse_args()
 
@@ -508,7 +595,7 @@ def main() -> int:
         # Generate and save report
         report = validator.generate_validation_report(validation_results)
 
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             f.write(report)
 
         print(f"✓ Validation report written to {args.output}")
@@ -520,11 +607,11 @@ def main() -> int:
                 "validation_results": validation_results,
                 "system_info": {
                     "python_version": sys.version,
-                    "platform": sys.platform
-                }
+                    "platform": sys.platform,
+                },
             }
 
-            with open(args.json_output, 'w') as f:
+            with open(args.json_output, "w") as f:
                 json.dump(json_data, f, indent=2)
 
             print(f"✓ JSON results written to {args.json_output}")
@@ -536,13 +623,15 @@ def main() -> int:
         total_targets = len(validation_results)
         met_targets = sum(1 for r in validation_results.values() if r.get("target_met"))
 
-        print(f"Targets Met: {met_targets}/{total_targets} ({met_targets/total_targets*100:.1f}%)")
+        print(
+            f"Targets Met: {met_targets}/{total_targets} ({met_targets/total_targets*100:.1f}%)"
+        )
 
         for name, result in validation_results.items():
             target = validator.targets[name]
             status = "✅" if result.get("target_met") else "❌"
-            current_val = result.get('current_value', 0)
-            target_val = result.get('target_value', 0)
+            current_val = result.get("current_value", 0)
+            target_val = result.get("target_value", 0)
 
             print(f"{status} {target.description}")
             if current_val is not None:
@@ -560,6 +649,7 @@ def main() -> int:
         logger.error(f"❌ Validation failed: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 

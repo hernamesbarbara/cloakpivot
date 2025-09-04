@@ -44,7 +44,8 @@ class TestBatchCLI:
 
             # Create a sample policy file
             policy_file = workspace / "policy.yaml"
-            policy_file.write_text("""
+            policy_file.write_text(
+                """
 locale: "en"
 default_strategy:
   kind: "redact"
@@ -54,7 +55,8 @@ per_entity:
   PERSON:
     kind: "hash"
     threshold: 0.8
-""")
+"""
+            )
 
             yield {
                 "workspace": workspace,

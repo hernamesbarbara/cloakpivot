@@ -159,7 +159,8 @@ class DatabaseStorage(StorageBackend):
             cursor = conn.cursor()
 
             # Create cloakmaps table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS cloakmaps (
                     key TEXT PRIMARY KEY,
                     content TEXT NOT NULL,
@@ -172,10 +173,12 @@ class DatabaseStorage(StorageBackend):
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
 
             # Create metadata table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS cloakmap_metadata (
                     key TEXT PRIMARY KEY,
                     metadata_json TEXT NOT NULL,
@@ -183,7 +186,8 @@ class DatabaseStorage(StorageBackend):
                     modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (key) REFERENCES cloakmaps (key) ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Create indexes
             cursor.execute(
@@ -205,7 +209,8 @@ class DatabaseStorage(StorageBackend):
             cursor = conn.cursor()
 
             # Create cloakmaps table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS cloakmaps (
                     key TEXT PRIMARY KEY,
                     content TEXT NOT NULL,
@@ -218,10 +223,12 @@ class DatabaseStorage(StorageBackend):
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
 
             # Create metadata table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS cloakmap_metadata (
                     key TEXT PRIMARY KEY,
                     metadata_json TEXT NOT NULL,
@@ -229,7 +236,8 @@ class DatabaseStorage(StorageBackend):
                     modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (key) REFERENCES cloakmaps (key) ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Create indexes
             cursor.execute(

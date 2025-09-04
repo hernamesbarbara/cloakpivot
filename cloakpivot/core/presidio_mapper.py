@@ -37,7 +37,9 @@ class StrategyToOperatorMapper:
 
     def __init__(self) -> None:
         """Initialize the mapper with strategy mapping functions."""
-        self._strategy_mapping: dict[StrategyKind, Callable[[Strategy], OperatorConfig]] = {
+        self._strategy_mapping: dict[
+            StrategyKind, Callable[[Strategy], OperatorConfig]
+        ] = {
             StrategyKind.REDACT: self._map_redact_strategy,
             StrategyKind.TEMPLATE: self._map_template_strategy,
             StrategyKind.HASH: self._map_hash_strategy,
@@ -66,7 +68,9 @@ class StrategyToOperatorMapper:
         try:
             return self._strategy_mapping[strategy.kind](strategy)
         except Exception as e:
-            logger.warning(f"Failed to map strategy {strategy.kind}: {e}. Using fallback.")
+            logger.warning(
+                f"Failed to map strategy {strategy.kind}: {e}. Using fallback."
+            )
             # Fallback to redaction with error logging
             return OperatorConfig("redact", {"redact_char": "*"})
 
@@ -92,7 +96,9 @@ class StrategyToOperatorMapper:
             except Exception as e:
                 logger.warning(f"Failed to map strategy for {entity_type}: {e}")
                 # Use default strategy as fallback
-                operators[entity_type] = self.strategy_to_operator(policy.default_strategy)
+                operators[entity_type] = self.strategy_to_operator(
+                    policy.default_strategy
+                )
 
         # Note: Default strategy is not included in the operators dict as Presidio
         # will use the default_operator parameter in AnonymizerEngine.anonymize()
@@ -112,7 +118,9 @@ class StrategyToOperatorMapper:
         if "preserve_length" in params and not params.get("preserve_length", True):
             # If preserve_length is False, we could potentially use a different approach
             # but Presidio's redact operator always preserves length, so we log this
-            logger.info("preserve_length=False not supported by Presidio redact operator")
+            logger.info(
+                "preserve_length=False not supported by Presidio redact operator"
+            )
 
         return OperatorConfig("redact", operator_params)
 
@@ -157,16 +165,26 @@ class StrategyToOperatorMapper:
             per_entity_salt = params["per_entity_salt"]
             if isinstance(per_entity_salt, dict):
                 # Use the default salt or first available salt
-                salt_value = per_entity_salt.get("default") or next(iter(per_entity_salt.values()), "")
+                salt_value = per_entity_salt.get("default") or next(
+                    iter(per_entity_salt.values()), ""
+                )
                 if salt_value:
                     operator_params["salt"] = salt_value
             logger.info("per_entity_salt simplified to single salt value for Presidio")
 
         # Log unsupported parameters
-        unsupported = ["truncate", "prefix", "format_output", "consistent_length", "preserve_format_structure"]
+        unsupported = [
+            "truncate",
+            "prefix",
+            "format_output",
+            "consistent_length",
+            "preserve_format_structure",
+        ]
         for param in unsupported:
             if param in params:
-                logger.info(f"Hash parameter '{param}' not directly supported by Presidio")
+                logger.info(
+                    f"Hash parameter '{param}' not directly supported by Presidio"
+                )
 
         return OperatorConfig("hash", operator_params)
 
@@ -204,14 +222,21 @@ class StrategyToOperatorMapper:
         operator_params = {
             "masking_char": mask_char,
             "chars_to_mask": chars_to_mask,
-            "from_end": from_end
+            "from_end": from_end,
         }
 
         # Log unsupported parameters
-        unsupported = ["min_length", "format_aware", "preserve_delimiters", "deterministic"]
+        unsupported = [
+            "min_length",
+            "format_aware",
+            "preserve_delimiters",
+            "deterministic",
+        ]
         for param in unsupported:
             if param in params:
-                logger.info(f"Partial parameter '{param}' not directly supported by Presidio")
+                logger.info(
+                    f"Partial parameter '{param}' not directly supported by Presidio"
+                )
 
         return OperatorConfig("mask", operator_params)
 
@@ -226,8 +251,10 @@ class StrategyToOperatorMapper:
         operator_params = {"new_value": fake_value}
 
         # Log note about limited faker integration
-        logger.info("Surrogate strategy mapped to static replacement. "
-                   "For dynamic faker integration, use custom operator.")
+        logger.info(
+            "Surrogate strategy mapped to static replacement. "
+            "For dynamic faker integration, use custom operator."
+        )
 
         return OperatorConfig("replace", operator_params)
 
@@ -254,7 +281,9 @@ class StrategyToOperatorMapper:
         # Simple template generation - could be enhanced with entity type detection
         return "[MASKED]"
 
-    def _generate_surrogate_value(self, format_type: str, params: dict[str, Any]) -> str:
+    def _generate_surrogate_value(
+        self, format_type: str, params: dict[str, Any]
+    ) -> str:
         """Generate surrogate value based on format type."""
         # Static surrogate values - real implementation would use faker
         surrogate_map = {
@@ -264,7 +293,7 @@ class StrategyToOperatorMapper:
             "email": "user@example.com",
             "name": "John Doe",
             "address": "123 Main St, City, State 12345",
-            "custom": "[SURROGATE]"
+            "custom": "[SURROGATE]",
         }
 
         # Check for custom dictionary

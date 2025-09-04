@@ -76,13 +76,7 @@ class TestPolicyFileSchema:
 
     def test_invalid_threshold_range(self):
         """Test validation fails for threshold outside 0-1 range."""
-        data = {
-            "per_entity": {
-                "PERSON": {
-                    "threshold": 1.5  # Invalid: > 1.0
-                }
-            }
-        }
+        data = {"per_entity": {"PERSON": {"threshold": 1.5}}}  # Invalid: > 1.0
 
         with pytest.raises(ValueError):  # Pydantic ValidationError
             PolicyFileSchema(**data)
@@ -104,7 +98,8 @@ class TestPolicyLoader:
 
     def test_load_simple_policy(self):
         """Test loading a simple policy without inheritance."""
-        policy_content = dedent("""
+        policy_content = dedent(
+            """
             version: "1.0"
             name: "simple-policy"
             locale: "en"
@@ -120,7 +115,8 @@ class TestPolicyLoader:
                 parameters:
                   template: "[PERSON]"
                 threshold: 0.8
-        """)
+        """
+        )
 
         policy_file = self.temp_dir / "simple.yaml"
         policy_file.write_text(policy_content)
@@ -137,7 +133,8 @@ class TestPolicyLoader:
     def test_load_policy_with_inheritance(self):
         """Test loading policy that inherits from base template."""
         # Create base policy
-        base_content = dedent("""
+        base_content = dedent(
+            """
             version: "1.0"
             name: "base-policy"
 
@@ -157,13 +154,15 @@ class TestPolicyLoader:
                 parameters:
                   visible_chars: 3
                 threshold: 0.6
-        """)
+        """
+        )
 
         base_file = self.temp_dir / "base.yaml"
         base_file.write_text(base_content)
 
         # Create derived policy
-        derived_content = dedent("""
+        derived_content = dedent(
+            """
             version: "1.0"
             name: "derived-policy"
             extends: "base.yaml"
@@ -176,7 +175,8 @@ class TestPolicyLoader:
                 parameters:
                   algorithm: "sha256"
                 threshold: 0.8
-        """)
+        """
+        )
 
         derived_file = self.temp_dir / "derived.yaml"
         derived_file.write_text(derived_content)
@@ -197,18 +197,22 @@ class TestPolicyLoader:
     def test_circular_inheritance_detection(self):
         """Test detection of circular inheritance."""
         # Create policy A that extends B
-        policy_a = dedent("""
+        policy_a = dedent(
+            """
             version: "1.0"
             extends: "policy_b.yaml"
             name: "policy-a"
-        """)
+        """
+        )
 
         # Create policy B that extends A (circular)
-        policy_b = dedent("""
+        policy_b = dedent(
+            """
             version: "1.0"
             extends: "policy_a.yaml"
             name: "policy-b"
-        """)
+        """
+        )
 
         file_a = self.temp_dir / "policy_a.yaml"
         file_b = self.temp_dir / "policy_b.yaml"
@@ -223,11 +227,13 @@ class TestPolicyLoader:
 
     def test_missing_base_policy_file(self):
         """Test error when base policy file doesn't exist."""
-        derived_content = dedent("""
+        derived_content = dedent(
+            """
             version: "1.0"
             extends: "nonexistent.yaml"
             name: "derived-policy"
-        """)
+        """
+        )
 
         derived_file = self.temp_dir / "derived.yaml"
         derived_file.write_text(derived_content)
@@ -252,12 +258,14 @@ class TestPolicyLoader:
         policy_file = self.temp_dir / "test.yaml"
 
         # Test with invalid strategy kind
-        invalid_content = dedent("""
+        invalid_content = dedent(
+            """
             version: "1.0"
             per_entity:
               PERSON:
                 kind: "invalid_strategy"
-        """)
+        """
+        )
 
         policy_file.write_text(invalid_content)
 
@@ -268,7 +276,8 @@ class TestPolicyLoader:
     def test_complex_inheritance_chain(self):
         """Test multiple levels of inheritance."""
         # Create base policy
-        base_content = dedent("""
+        base_content = dedent(
+            """
             version: "1.0"
             name: "base"
 
@@ -283,10 +292,12 @@ class TestPolicyLoader:
                 parameters:
                   template: "[PERSON]"
                 threshold: 0.5
-        """)
+        """
+        )
 
         # Create intermediate policy
-        intermediate_content = dedent("""
+        intermediate_content = dedent(
+            """
             version: "1.0"
             name: "intermediate"
             extends: "base.yaml"
@@ -300,10 +311,12 @@ class TestPolicyLoader:
                   visible_chars: 3
                   position: "start"
                 threshold: 0.6
-        """)
+        """
+        )
 
         # Create final policy
-        final_content = dedent("""
+        final_content = dedent(
+            """
             version: "1.0"
             name: "final"
             extends: "intermediate.yaml"
@@ -316,7 +329,8 @@ class TestPolicyLoader:
                 parameters:
                   algorithm: "sha256"
                 threshold: 0.8
-        """)
+        """
+        )
 
         base_file = self.temp_dir / "base.yaml"
         intermediate_file = self.temp_dir / "intermediate.yaml"
@@ -344,10 +358,12 @@ class TestPolicyLoader:
 
     def test_policy_caching(self):
         """Test that policies are cached correctly."""
-        policy_content = dedent("""
+        policy_content = dedent(
+            """
             version: "1.0"
             name: "cached-policy"
-        """)
+        """
+        )
 
         policy_file = self.temp_dir / "cached.yaml"
         policy_file.write_text(policy_content)
@@ -365,19 +381,23 @@ class TestPolicyLoader:
         subdir = self.temp_dir / "subdir"
         subdir.mkdir()
 
-        base_content = dedent("""
+        base_content = dedent(
+            """
             version: "1.0"
             name: "base-in-subdir"
 
             default_strategy:
               kind: "redact"
-        """)
+        """
+        )
 
-        derived_content = dedent("""
+        derived_content = dedent(
+            """
             version: "1.0"
             name: "derived-in-subdir"
             extends: "base.yaml"
-        """)
+        """
+        )
 
         base_file = subdir / "base.yaml"
         derived_file = subdir / "derived.yaml"

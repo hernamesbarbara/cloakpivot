@@ -44,7 +44,9 @@ class TestAnalyzerEngineWrapper:
 
                 # Mock the analyzer engine
                 mock_instance = Mock()
-                mock_instance.analyze.return_value = []  # Return empty list for analysis
+                mock_instance.analyze.return_value = (
+                    []
+                )  # Return empty list for analysis
                 mock_engine.return_value = mock_instance
 
                 result = analyzer.analyze_text("test text")

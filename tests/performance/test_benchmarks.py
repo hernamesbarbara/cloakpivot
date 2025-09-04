@@ -266,9 +266,9 @@ class TestPerformanceBenchmarks:
             assert_performance_acceptable(metrics["elapsed_time"], 10.0, text_length)
 
         # Total time across all samples should be reasonable
-        assert total_time < BATCH_TIMEOUT, (
-            f"Total sampling time {total_time:.2f}s too slow"
-        )
+        assert (
+            total_time < BATCH_TIMEOUT
+        ), f"Total sampling time {total_time:.2f}s too slow"
 
     @pytest.mark.performance
     def test_multi_section_document_performance(
@@ -385,9 +385,9 @@ class TestPerformanceBenchmarks:
         low_time = results["low"]["elapsed_time"]
         high_time = results["high"]["elapsed_time"]
 
-        assert high_time < low_time * 3.0, (
-            f"High privacy too slow: {high_time:.3f}s vs {low_time:.3f}s"
-        )
+        assert (
+            high_time < low_time * 3.0
+        ), f"High privacy too slow: {high_time:.3f}s vs {low_time:.3f}s"
 
     @pytest.mark.performance
     def test_batch_processing_performance(
@@ -425,9 +425,9 @@ class TestPerformanceBenchmarks:
             else 0
         )
 
-        assert docs_per_sec > 0.5, (
-            f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
-        )
+        assert (
+            docs_per_sec > 0.5
+        ), f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
         assert_memory_usage_reasonable(
             metrics["peak_memory_mb"], BATCH_MEMORY_LIMIT, total_length
         )  # Increased for batch processing with ML models
@@ -503,9 +503,9 @@ class TestPerformanceBenchmarks:
         memory_growth = final_memory - baseline_memory
 
         # Very conservative check for obvious leaks
-        assert memory_growth < 25.0, (
-            f"Quick memory leak detected: {memory_growth:.1f}MB growth in 5 operations"
-        )
+        assert (
+            memory_growth < 25.0
+        ), f"Quick memory leak detected: {memory_growth:.1f}MB growth in 5 operations"
 
     @pytest.mark.performance
     def test_concurrent_processing_performance(
@@ -601,9 +601,9 @@ class TestPerformanceBenchmarks:
 
         # All strategies should complete in reasonable time
         for strategy_name, metrics in results.items():
-            assert metrics["elapsed_time"] < 5.0, (
-                f"Strategy {strategy_name} too slow: {metrics['elapsed_time']:.3f}s"
-            )
+            assert (
+                metrics["elapsed_time"] < 5.0
+            ), f"Strategy {strategy_name} too slow: {metrics['elapsed_time']:.3f}s"
 
 
 class TestPerformanceRegression:
@@ -873,9 +873,9 @@ class TestPerformanceBenchmarksComprehensive:
             else 0
         )
 
-        assert docs_per_sec > 0.2, (
-            f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
-        )
+        assert (
+            docs_per_sec > 0.2
+        ), f"Batch processing too slow: {docs_per_sec:.2f} docs/sec"
 
         # Scale memory expectations with batch size
         memory_limit = (
