@@ -64,7 +64,9 @@ class AnalysisConfig:
 class CacheAnalyzer:
     """Analyze GitHub Actions cache performance metrics."""
 
-    def __init__(self, github_token: str, repo: str, config: Optional[AnalysisConfig] = None):
+    def __init__(
+        self, github_token: str, repo: str, config: Optional[AnalysisConfig] = None
+    ):
         self.github_token = github_token
         self.repo = repo
         self.config = config or AnalysisConfig()
@@ -110,40 +112,40 @@ class CacheAnalyzer:
 
     def parse_cache_metrics_from_logs(self, logs: str) -> dict:
         """Parse cache performance metrics from workflow logs.
-        
+
         Analyzes GitHub Actions workflow logs to extract cache performance data
         including cache hit/miss status and timing information.
-        
+
         Expected Log Format Patterns:
             Cache hits: Lines containing "cache hit" (case-insensitive) along with:
                 - "cache-spacy": spaCy model cache
-                - "cache-huggingface": HuggingFace transformer cache  
+                - "cache-huggingface": HuggingFace transformer cache
                 - "pip": pip package cache
-                
+
             Timing: Lines containing "Total time:" followed by seconds:
                 - "Model setup complete - Total time: 45.2s"
-                
+
         Args:
             logs (str): Raw workflow log text from GitHub Actions API
-            
+
         Returns:
             dict: Cache metrics with the following structure:
                 {
                     "spacy_cache_hit": bool,
-                    "huggingface_cache_hit": bool, 
+                    "huggingface_cache_hit": bool,
                     "pip_cache_hit": bool,
                     "model_setup_time": Optional[float],  # seconds
-                    "total_job_time": Optional[float],    # seconds  
+                    "total_job_time": Optional[float],    # seconds
                     "cache_restore_time": Optional[float], # seconds
                     "model_download_time": Optional[float] # seconds
                 }
-                
+
         Examples:
             >>> logs = "cache hit detected for spacy models\\nTotal time: 45.2s"
             >>> metrics = analyzer.parse_cache_metrics_from_logs(logs)
             >>> metrics["spacy_cache_hit"]
             True
-            >>> metrics["model_setup_time"] 
+            >>> metrics["model_setup_time"]
             45.2
         """
         metrics = {
@@ -234,25 +236,31 @@ class CacheAnalyzer:
             "analysis_period": {
                 "runs_analyzed": successful_runs,
                 "total_runs": total_runs,
-                "success_rate": (successful_runs / total_runs) * 100
-                if total_runs > 0
-                else 0,
+                "success_rate": (
+                    (successful_runs / total_runs) * 100 if total_runs > 0 else 0
+                ),
             },
             "cache_performance": {
-                "spacy_hit_rate": (cache_hits["spacy"] / successful_runs) * 100
-                if successful_runs > 0
-                else 0,
-                "huggingface_hit_rate": (cache_hits["huggingface"] / successful_runs)
-                * 100
-                if successful_runs > 0
-                else 0,
-                "pip_hit_rate": (cache_hits["pip"] / successful_runs) * 100
-                if successful_runs > 0
-                else 0,
-                "overall_hit_rate": (sum(cache_hits.values()) / (successful_runs * 3))
-                * 100
-                if successful_runs > 0
-                else 0,
+                "spacy_hit_rate": (
+                    (cache_hits["spacy"] / successful_runs) * 100
+                    if successful_runs > 0
+                    else 0
+                ),
+                "huggingface_hit_rate": (
+                    (cache_hits["huggingface"] / successful_runs) * 100
+                    if successful_runs > 0
+                    else 0
+                ),
+                "pip_hit_rate": (
+                    (cache_hits["pip"] / successful_runs) * 100
+                    if successful_runs > 0
+                    else 0
+                ),
+                "overall_hit_rate": (
+                    (sum(cache_hits.values()) / (successful_runs * 3)) * 100
+                    if successful_runs > 0
+                    else 0
+                ),
             },
             "timing_metrics": {},
             "recommendations": [],
@@ -346,8 +354,12 @@ class CacheAnalyzer:
         # Cache performance
         cache = analysis["cache_performance"]
         report.append("\n💾 Cache Performance:")
-        report.append(f"  spaCy models: {cache.get('spacy_hit_rate', 0.0):.1f}% hit rate")
-        report.append(f"  HuggingFace: {cache.get('huggingface_hit_rate', 0.0):.1f}% hit rate")
+        report.append(
+            f"  spaCy models: {cache.get('spacy_hit_rate', 0.0):.1f}% hit rate"
+        )
+        report.append(
+            f"  HuggingFace: {cache.get('huggingface_hit_rate', 0.0):.1f}% hit rate"
+        )
         report.append(f"  Pip packages: {cache.get('pip_hit_rate', 0.0):.1f}% hit rate")
         report.append(f"  Overall: {cache.get('overall_hit_rate', 0.0):.1f}% hit rate")
 

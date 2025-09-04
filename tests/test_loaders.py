@@ -466,9 +466,9 @@ class TestThreadSafety:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, (
-            f"Exceptions during mixed config test: {exceptions}"
-        )
+        assert (
+            len(exceptions) == 0
+        ), f"Exceptions during mixed config test: {exceptions}"
 
         # Validate analyzer results - each confidence should have consistent instances
         analyzer_by_conf = {}
@@ -479,9 +479,9 @@ class TestThreadSafety:
 
         for conf, analyzer_ids in analyzer_by_conf.items():
             assert len(analyzer_ids) == 3, f"Confidence {conf} should have 3 instances"
-            assert len(set(analyzer_ids)) == 1, (
-                f"Confidence {conf} should return same cached instance"
-            )
+            assert (
+                len(set(analyzer_ids)) == 1
+            ), f"Confidence {conf} should return same cached instance"
 
         # Validate processor results - each chunked setting should have consistent instances
         processor_by_chunked = {}
@@ -492,16 +492,16 @@ class TestThreadSafety:
 
         for chunked, processor_ids in processor_by_chunked.items():
             assert len(processor_ids) == 3, f"Chunked {chunked} should have 3 instances"
-            assert len(set(processor_ids)) == 1, (
-                f"Chunked {chunked} should return same cached instance"
-            )
+            assert (
+                len(set(processor_ids)) == 1
+            ), f"Chunked {chunked} should return same cached instance"
 
         # Validate pipeline results - all should be same instance
         pipeline_ids = results["pipeline"]
         assert len(pipeline_ids) == 6, "Should have 6 pipeline instances"
-        assert len(set(pipeline_ids)) == 1, (
-            "All pipelines should be same cached instance"
-        )
+        assert (
+            len(set(pipeline_ids)) == 1
+        ), "All pipelines should be same cached instance"
 
     @pytest.mark.performance
     def test_high_concurrency_stress_test(self):
@@ -551,16 +551,16 @@ class TestThreadSafety:
 
         # Each type should return singleton instances
         assert len(set(analyzer_ids)) == 1, "Analyzers should be singleton under stress"
-        assert len(set(processor_ids)) == 1, (
-            "Processors should be singleton under stress"
-        )
+        assert (
+            len(set(processor_ids)) == 1
+        ), "Processors should be singleton under stress"
         assert len(set(pipeline_ids)) == 1, "Pipelines should be singleton under stress"
 
         # Performance validation
         operations_per_second = expected_total_results / execution_time
-        assert execution_time < 10.0, (
-            f"Stress test took too long: {execution_time:.2f}s"
-        )
+        assert (
+            execution_time < 10.0
+        ), f"Stress test took too long: {execution_time:.2f}s"
 
         print(
             f"Stress test: {thread_count} threads × {iterations_per_thread} iterations "
@@ -593,9 +593,9 @@ class TestThreadSafety:
                 future.result()
 
         # Validate results
-        assert len(exceptions) == 0, (
-            f"Exceptions during rapid cache clear test: {exceptions}"
-        )
+        assert (
+            len(exceptions) == 0
+        ), f"Exceptions during rapid cache clear test: {exceptions}"
         assert len(results) == 15  # 5 threads × 3 iterations each
         assert clear_count == 15  # Should have cleared cache 15 times
 

@@ -298,9 +298,9 @@ class TestPropertyBasedMaskingSlow:
 
         # Performance assertion: should complete within reasonable time
         # This helps identify performance regressions
-        assert processing_time < 10.0, (
-            f"Processing took too long: {processing_time:.2f}s"
-        )
+        assert (
+            processing_time < 10.0
+        ), f"Processing took too long: {processing_time:.2f}s"
 
         # Functional assertions
         assert len(result.masked_document.texts) == len(non_empty_sections)

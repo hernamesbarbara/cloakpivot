@@ -68,6 +68,7 @@ def run_unit_tests(verbose: bool = False, coverage: bool = True) -> int:
 
     if coverage:
         import os
+
         cov_options = [
             "--cov=cloakpivot",
             "--cov-report=term-missing",
@@ -247,6 +248,7 @@ def run_all_fast_tests(verbose: bool = False, coverage: bool = True) -> int:
 
     if coverage:
         import os
+
         cov_options = [
             "--cov=cloakpivot",
             "--cov-report=term-missing",

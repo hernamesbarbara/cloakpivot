@@ -161,9 +161,9 @@ class TestPerformanceProfilerIntegration:
                 profiling_captured = True
                 break
 
-        assert profiling_captured, (
-            f"No analyzer profiling found in operations: {list(all_stats.keys())}"
-        )
+        assert (
+            profiling_captured
+        ), f"No analyzer profiling found in operations: {list(all_stats.keys())}"
 
 
 class TestBaselineMeasurement:
@@ -320,14 +320,10 @@ class TestBaselineReporting:
         # Create mock measurement data
         measurements = {
             "analyzer_cold_start": {
-                "results": {
-                    "mean": 2000.0  # 2 second current baseline
-                }
+                "results": {"mean": 2000.0}  # 2 second current baseline
             },
             "small_text_analysis": {
-                "results": {
-                    "mean": 150.0  # 150ms current baseline
-                }
+                "results": {"mean": 150.0}  # 150ms current baseline
             },
         }
 
@@ -476,11 +472,13 @@ class TestBaselinePerformanceValidation:
 
         # Profiler overhead should be reasonable (less than 100% overhead in CI)
         overhead_ratio = profiled_time / baseline_time
-        # Allow more overhead in CI environments due to resource constraints
-        max_overhead = 2.0 if os.getenv("CI") else 1.5
-        assert overhead_ratio <= max_overhead, (
-            f"Profiler overhead too high: {overhead_ratio:.2f}x (max: {max_overhead}x)"
-        )
+        # Allow more overhead in CI environments or parallel test execution due to resource constraints
+        is_ci = os.getenv("CI") is not None
+        is_parallel = os.getenv("PYTEST_XDIST_WORKER") is not None
+        max_overhead = 2.0 if (is_ci or is_parallel) else 1.5
+        assert (
+            overhead_ratio <= max_overhead
+        ), f"Profiler overhead too high: {overhead_ratio:.2f}x (max: {max_overhead}x)"
 
     def test_baseline_measurement_performance(self):
         """Test that baseline measurement itself doesn't take too long."""
@@ -497,6 +495,6 @@ class TestBaselinePerformanceValidation:
         total_time = (end_time - start_time) * 1000
 
         # Baseline measurement should complete reasonably quickly
-        assert total_time <= 10000, (
-            f"Baseline measurement took too long: {total_time}ms"
-        )
+        assert (
+            total_time <= 10000
+        ), f"Baseline measurement took too long: {total_time}ms"

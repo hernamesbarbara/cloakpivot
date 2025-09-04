@@ -11,7 +11,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 try:
     import spacy
@@ -26,10 +26,12 @@ class ModelConfig:
     """Configuration for model management and validation."""
 
     # Model size configurations
-    model_definitions: Dict[str, List[str]] = None
+    model_definitions: dict[str, list[str]] = None
 
     # Validation settings
-    validation_test_text: str = "This is a test document for validation. John Smith works at Microsoft."
+    validation_test_text: str = (
+        "This is a test document for validation. John Smith works at Microsoft."
+    )
     min_pos_tags_required: int = 1
 
     # Timeout and performance settings
@@ -69,8 +71,12 @@ class ModelConfig:
 class ModelManager:
     """Intelligent model download and verification manager with caching awareness."""
 
-    def __init__(self, model_size: str = "small", cache_dir: Optional[str] = None,
-                 config: Optional[ModelConfig] = None):
+    def __init__(
+        self,
+        model_size: str = "small",
+        cache_dir: Optional[str] = None,
+        config: Optional[ModelConfig] = None,
+    ):
         self.model_size = model_size
         self.cache_dir = Path(cache_dir or Path.home() / ".cache" / "spacy")
         self.spacy_models_dir = Path.home() / "spacy_models"
@@ -78,22 +84,22 @@ class ModelManager:
         self.config.validate()
         self.start_time = time.time()
 
-    def get_required_models(self) -> List[str]:
+    def get_required_models(self) -> list[str]:
         """Get list of models required for current configuration.
-        
+
         Returns the appropriate list of spaCy models based on the configured model size.
         Model size mappings are defined in the ModelConfig.model_definitions dictionary.
-        
+
         Returns:
             List[str]: List of spaCy model names to download and verify.
                       Defaults to ["en_core_web_sm"] if model_size is not recognized.
-                      
+
         Examples:
             >>> manager = ModelManager(model_size="small")
             >>> manager.get_required_models()
             ["en_core_web_sm"]
-            
-            >>> manager = ModelManager(model_size="medium") 
+
+            >>> manager = ModelManager(model_size="medium")
             >>> manager.get_required_models()
             ["en_core_web_sm", "en_core_web_md"]
         """
@@ -121,8 +127,10 @@ class ModelManager:
             # Test POS tagging
             pos_tags = [token.pos_ for token in doc if token.pos_]
             if len(pos_tags) < self.config.min_pos_tags_required:
-                print(f"  ✗ Model {model_name}: POS tagging insufficient "
-                      f"({len(pos_tags)} < {self.config.min_pos_tags_required} required)")
+                print(
+                    f"  ✗ Model {model_name}: POS tagging insufficient "
+                    f"({len(pos_tags)} < {self.config.min_pos_tags_required} required)"
+                )
                 return False
 
             print(f"  ✓ Model {model_name}: All components validated")
@@ -142,7 +150,9 @@ class ModelManager:
             print(f"  ✗ Model {model_name}: Validation cancelled by user")
             raise  # Re-raise to allow proper cleanup
         except Exception as e:
-            print(f"  ✗ Model {model_name}: Unexpected validation error - {type(e).__name__}: {e}")
+            print(
+                f"  ✗ Model {model_name}: Unexpected validation error - {type(e).__name__}: {e}"
+            )
             return False
 
     def download_model(self, model_name: str, force: bool = False) -> bool:
@@ -171,25 +181,35 @@ class ModelManager:
 
         except OSError as e:
             download_time = time.time() - download_start
-            print(f"✗ File system error downloading {model_name} after {download_time:.1f}s: {e}")
+            print(
+                f"✗ File system error downloading {model_name} after {download_time:.1f}s: {e}"
+            )
             return False
         except ImportError as e:
             download_time = time.time() - download_start
-            print(f"✗ Import error downloading {model_name} after {download_time:.1f}s: {e}")
+            print(
+                f"✗ Import error downloading {model_name} after {download_time:.1f}s: {e}"
+            )
             print("  This may indicate missing dependencies or corrupted installation")
             return False
         except PermissionError as e:
             download_time = time.time() - download_start
-            print(f"✗ Permission denied downloading {model_name} after {download_time:.1f}s: {e}")
+            print(
+                f"✗ Permission denied downloading {model_name} after {download_time:.1f}s: {e}"
+            )
             print("  Check write permissions for model cache directory")
             return False
         except KeyboardInterrupt:
             download_time = time.time() - download_start
-            print(f"✗ Download of {model_name} cancelled by user after {download_time:.1f}s")
+            print(
+                f"✗ Download of {model_name} cancelled by user after {download_time:.1f}s"
+            )
             raise  # Re-raise to allow proper cleanup
         except Exception as e:
             download_time = time.time() - download_start
-            print(f"✗ Unexpected error downloading {model_name} after {download_time:.1f}s: {type(e).__name__}: {e}")
+            print(
+                f"✗ Unexpected error downloading {model_name} after {download_time:.1f}s: {type(e).__name__}: {e}"
+            )
             return False
 
     def setup_models(self, cache_hit: bool = False, verify_only: bool = False) -> bool:

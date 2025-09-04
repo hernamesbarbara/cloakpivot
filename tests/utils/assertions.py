@@ -13,17 +13,17 @@ def assert_document_structure_preserved(
 ) -> None:
     """Assert that document structure is preserved after processing."""
     assert original.name == processed.name, "Document name should be preserved"
-    assert len(original.texts) == len(processed.texts), (
-        "Number of text items should be preserved"
-    )
+    assert len(original.texts) == len(
+        processed.texts
+    ), "Number of text items should be preserved"
 
     for orig_item, proc_item in zip(original.texts, processed.texts):
-        assert orig_item.self_ref == proc_item.self_ref, (
-            f"Text item reference should be preserved: {orig_item.self_ref}"
-        )
-        assert orig_item.label == proc_item.label, (
-            f"Text item label should be preserved: {orig_item.label}"
-        )
+        assert (
+            orig_item.self_ref == proc_item.self_ref
+        ), f"Text item reference should be preserved: {orig_item.self_ref}"
+        assert (
+            orig_item.label == proc_item.label
+        ), f"Text item label should be preserved: {orig_item.label}"
 
 
 def assert_entities_detected(
@@ -37,9 +37,9 @@ def assert_entities_detected(
     ]
 
     for expected_type in expected_types:
-        assert expected_type in detected_types, (
-            f"Expected entity type '{expected_type}' not detected"
-        )
+        assert (
+            expected_type in detected_types
+        ), f"Expected entity type '{expected_type}' not detected"
 
 
 def assert_masking_result_valid(result: MaskingResult) -> None:
@@ -55,9 +55,9 @@ def assert_masking_result_valid(result: MaskingResult) -> None:
 
     # Only expect anchors if entities were actually masked
     if entities_masked > 0:
-        assert len(result.cloakmap.anchors) > 0, (
-            f"CloakMap should contain anchors when {entities_masked} entities were masked"
-        )
+        assert (
+            len(result.cloakmap.anchors) > 0
+        ), f"CloakMap should contain anchors when {entities_masked} entities were masked"
     # If no entities were masked, anchors might be empty and that's valid
 
 
@@ -70,15 +70,15 @@ def assert_cloakmap_valid(cloakmap: CloakMap) -> None:
 
     # Validate anchor structure
     for anchor in cloakmap.anchors:
-        assert isinstance(anchor.replacement_id, str), (
-            f"Replacement ID should be string: {anchor.replacement_id}"
-        )
-        assert hasattr(anchor, "masked_value"), (
-            f"Anchor should have masked_value: {anchor}"
-        )
-        assert hasattr(anchor, "entity_type"), (
-            f"Anchor should have entity_type: {anchor}"
-        )
+        assert isinstance(
+            anchor.replacement_id, str
+        ), f"Replacement ID should be string: {anchor.replacement_id}"
+        assert hasattr(
+            anchor, "masked_value"
+        ), f"Anchor should have masked_value: {anchor}"
+        assert hasattr(
+            anchor, "entity_type"
+        ), f"Anchor should have entity_type: {anchor}"
 
 
 def assert_round_trip_fidelity(
@@ -93,9 +93,9 @@ def assert_round_trip_fidelity(
     assert_document_structure_preserved(original, unmasked)
 
     # Original and unmasked should be identical
-    assert len(original.texts) == len(unmasked.texts), (
-        "Text count should match after round-trip"
-    )
+    assert len(original.texts) == len(
+        unmasked.texts
+    ), "Text count should match after round-trip"
 
     for orig_item, unmask_item in zip(original.texts, unmasked.texts):
         assert orig_item.text == unmask_item.text, (
@@ -146,9 +146,9 @@ def assert_policy_applied_correctly(
                 if anchor.entity_type == entity.entity_type
                 and anchor.start <= entity.start <= anchor.end
             ]
-            assert len(matching_anchors) > 0, (
-                f"Entity {entity.entity_type} with score {entity.score} should be masked"
-            )
+            assert (
+                len(matching_anchors) > 0
+            ), f"Entity {entity.entity_type} with score {entity.score} should be masked"
 
 
 def assert_performance_acceptable(
@@ -174,9 +174,9 @@ def assert_performance_acceptable(
 
 def assert_error_handling_robust(exception: Exception, expected_type: type) -> None:
     """Assert that error handling is robust and provides useful information."""
-    assert isinstance(exception, expected_type), (
-        f"Expected exception of type {expected_type}, got {type(exception)}"
-    )
+    assert isinstance(
+        exception, expected_type
+    ), f"Expected exception of type {expected_type}, got {type(exception)}"
     assert str(exception), "Exception should have a descriptive message"
     # Add more specific error message validation as needed
 

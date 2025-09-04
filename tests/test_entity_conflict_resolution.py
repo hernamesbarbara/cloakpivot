@@ -209,9 +209,9 @@ class TestEntityConflictResolution:
         anchor_positions = [(a.start, a.end) for a in result.cloakmap.anchors]
         for i, (start1, end1) in enumerate(anchor_positions):
             for start2, end2 in anchor_positions[i + 1 :]:
-                assert not (start1 < end2 and start2 < end1), (
-                    f"Overlapping anchors: ({start1}, {end1}) and ({start2}, {end2})"
-                )
+                assert not (
+                    start1 < end2 and start2 < end1
+                ), f"Overlapping anchors: ({start1}, {end1}) and ({start2}, {end2})"
 
     def test_deterministic_resolution(self, overlapping_entities):
         """Test that conflict resolution produces deterministic results."""

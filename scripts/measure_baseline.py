@@ -19,15 +19,15 @@ from typing import Any, Optional
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cloakpivot.core.analyzer import AnalyzerEngineWrapper
-from cloakpivot.core.detection import EntityDetectionPipeline
-from cloakpivot.core.performance import PerformanceProfiler, get_profiler
-from cloakpivot.core.policies import MaskingPolicy
+# Project imports (after path setup)
+from cloakpivot.core.analyzer import AnalyzerEngineWrapper  # noqa: E402
+from cloakpivot.core.detection import EntityDetectionPipeline  # noqa: E402
+from cloakpivot.core.performance import PerformanceProfiler, get_profiler  # noqa: E402
+from cloakpivot.core.policies import MaskingPolicy  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -37,32 +37,32 @@ BASELINE_SCENARIOS = {
         "description": "First analyzer initialization",
         "iterations": 5,
         "target_max_ms": 2000,
-        "test_func": "measure_analyzer_cold_start"
+        "test_func": "measure_analyzer_cold_start",
     },
     "analyzer_warm_start": {
         "description": "Subsequent analyzer initializations",
         "iterations": 10,
         "target_max_ms": 500,
-        "test_func": "measure_analyzer_warm_start"
+        "test_func": "measure_analyzer_warm_start",
     },
     "small_text_analysis": {
         "description": "Analyze <1KB text",
         "iterations": 100,
         "target_max_ms": 50,
-        "test_func": "measure_small_text_analysis"
+        "test_func": "measure_small_text_analysis",
     },
     "medium_text_analysis": {
         "description": "Analyze 1-10KB text",
         "iterations": 50,
         "target_max_ms": 200,
-        "test_func": "measure_medium_text_analysis"
+        "test_func": "measure_medium_text_analysis",
     },
     "pipeline_creation": {
         "description": "Create EntityDetectionPipeline",
         "iterations": 20,
         "target_max_ms": 100,
-        "test_func": "measure_pipeline_creation"
-    }
+        "test_func": "measure_pipeline_creation",
+    },
 }
 
 # Test data
@@ -71,7 +71,8 @@ Contact John Doe at john.doe@example.com or call (555) 123-4567.
 His SSN is 123-45-6789 and credit card is 4532-1234-5678-9012.
 """
 
-MEDIUM_TEXT = """
+MEDIUM_TEXT = (
+    """
 Dear Customer,
 
 We are writing to inform you about an important security update regarding your account.
@@ -105,7 +106,9 @@ Thank you for your attention to this matter.
 Sincerely,
 Security Team
 Company Inc.
-""" * 3  # Make it roughly 1-10KB
+"""
+    * 3
+)  # Make it roughly 1-10KB
 
 
 class BaselineMeasurement:
@@ -206,7 +209,9 @@ class BaselineMeasurement:
             times.append(duration_ms)
 
             if i == 0:
-                logger.debug(f"Medium text detected {len(results)} entities, text length: {len(MEDIUM_TEXT)}")
+                logger.debug(
+                    f"Medium text detected {len(results)} entities, text length: {len(MEDIUM_TEXT)}"
+                )
 
         return self._calculate_stats(times)
 
@@ -218,7 +223,7 @@ class BaselineMeasurement:
         policy = MaskingPolicy(
             name="baseline_test",
             entity_types=["EMAIL_ADDRESS", "PHONE_NUMBER", "PERSON"],
-            locale="en"
+            locale="en",
         )
 
         times = []
@@ -250,7 +255,7 @@ class BaselineMeasurement:
             "std_dev": statistics.stdev(times) if len(times) > 1 else 0.0,
             "min": min(times),
             "max": max(times),
-            "count": len(times)
+            "count": len(times),
         }
 
     def run_all_scenarios(self) -> dict[str, Any]:
@@ -273,7 +278,7 @@ class BaselineMeasurement:
                     "description": config["description"],
                     "target_max_ms": config["target_max_ms"],
                     "iterations": config["iterations"],
-                    "results": scenario_results
+                    "results": scenario_results,
                 }
 
                 logger.info(
@@ -288,7 +293,7 @@ class BaselineMeasurement:
                     "description": config["description"],
                     "target_max_ms": config["target_max_ms"],
                     "iterations": config["iterations"],
-                    "error": str(e)
+                    "error": str(e),
                 }
 
         total_time = time.perf_counter() - start_time
@@ -303,7 +308,7 @@ class BaselineMeasurement:
             "system_info": system_info,
             "measurements": measurements,
             "total_measurement_time_s": total_time,
-            "profiler_stats": self._get_profiler_summary()
+            "profiler_stats": self._get_profiler_summary(),
         }
 
         logger.info(f"Baseline measurement completed in {total_time:.1f}s")
@@ -320,7 +325,9 @@ class BaselineMeasurement:
             "platform": platform.platform(),
             "cpu_count": psutil.cpu_count(),
             "memory_gb": round(psutil.virtual_memory().total / (1024**3), 1),
-            "cpu_freq_mhz": round(psutil.cpu_freq().current) if psutil.cpu_freq() else None
+            "cpu_freq_mhz": (
+                round(psutil.cpu_freq().current) if psutil.cpu_freq() else None
+            ),
         }
 
     def _get_profiler_summary(self) -> dict[str, Any]:
@@ -330,13 +337,15 @@ class BaselineMeasurement:
             return {
                 "total_operations": sum(s.total_calls for s in stats.values()),
                 "operation_count": len(stats),
-                "total_time_ms": sum(s.total_duration_ms for s in stats.values())
+                "total_time_ms": sum(s.total_duration_ms for s in stats.values()),
             }
         except Exception:
             return {"error": "Unable to get profiler stats"}
 
 
-def save_baseline_report(report: dict[str, Any], output_dir: str = "benchmarks/baseline_reports") -> str:
+def save_baseline_report(
+    report: dict[str, Any], output_dir: str = "benchmarks/baseline_reports"
+) -> str:
     """Save baseline report to file."""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -346,7 +355,7 @@ def save_baseline_report(report: dict[str, Any], output_dir: str = "benchmarks/b
     filepath = os.path.join(output_dir, filename)
 
     # Save report
-    with open(filepath, 'w') as f:
+    with open(filepath, "w") as f:
         json.dump(report, f, indent=2)
 
     logger.info(f"Baseline report saved to: {filepath}")
@@ -381,7 +390,9 @@ def main():
                 mean_time = results["mean"]
 
                 status = "✅" if mean_time <= target else "⚠️"
-                print(f"{status} {scenario_name}: {mean_time:.1f}ms (target: {target}ms)")
+                print(
+                    f"{status} {scenario_name}: {mean_time:.1f}ms (target: {target}ms)"
+                )
 
         print(f"\nReport saved: {report_path}")
         print(f"Total measurement time: {report['total_measurement_time_s']:.1f}s")

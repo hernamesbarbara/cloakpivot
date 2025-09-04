@@ -26,16 +26,18 @@ class PerformanceBenchmark:
     rounds: int
 
     @classmethod
-    def from_pytest_benchmark(cls, benchmark_data: dict[str, Any]) -> 'PerformanceBenchmark':
+    def from_pytest_benchmark(
+        cls, benchmark_data: dict[str, Any]
+    ) -> "PerformanceBenchmark":
         """Create from pytest-benchmark JSON format."""
-        stats = benchmark_data['stats']
+        stats = benchmark_data["stats"]
         return cls(
-            name=benchmark_data['name'],
-            mean=stats['mean'],
-            stddev=stats['stddev'],
-            min=stats['min'],
-            max=stats['max'],
-            rounds=stats['rounds']
+            name=benchmark_data["name"],
+            mean=stats["mean"],
+            stddev=stats["stddev"],
+            min=stats["min"],
+            max=stats["max"],
+            rounds=stats["rounds"],
         )
 
 
@@ -46,16 +48,25 @@ class PerformanceRegressionAnalyzer:
     PERFORMANCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "critical": {
             "threshold": 0.05,  # 5% threshold
-            "patterns": ["analyzer_initialization", "core_entity_detection", "regression_baseline"]
+            "patterns": [
+                "analyzer_initialization",
+                "core_entity_detection",
+                "regression_baseline",
+            ],
         },
         "important": {
             "threshold": 0.10,  # 10% threshold
-            "patterns": ["pipeline_creation", "document_processing", "masking_engine", "round_trip"]
+            "patterns": [
+                "pipeline_creation",
+                "document_processing",
+                "masking_engine",
+                "round_trip",
+            ],
         },
         "general": {
             "threshold": 0.20,  # 20% threshold
-            "patterns": ["batch_processing", "memory_usage", "concurrent", "strategy"]
-        }
+            "patterns": ["batch_processing", "memory_usage", "concurrent", "strategy"],
+        },
     }
 
     def __init__(self, regression_threshold: float = 0.10):
@@ -82,11 +93,11 @@ class PerformanceRegressionAnalyzer:
         with open(filepath) as f:
             data = json.load(f)
 
-        if 'benchmarks' not in data:
+        if "benchmarks" not in data:
             raise ValueError("Invalid benchmark file format: missing 'benchmarks' key")
 
         benchmarks = {}
-        for benchmark in data['benchmarks']:
+        for benchmark in data["benchmarks"]:
             try:
                 perf_bench = PerformanceBenchmark.from_pytest_benchmark(benchmark)
                 benchmarks[perf_bench.name] = perf_bench
@@ -96,17 +107,20 @@ class PerformanceRegressionAnalyzer:
 
         return benchmarks
 
-    def compare_benchmarks(self, baseline: dict[str, PerformanceBenchmark],
-                          current: dict[str, PerformanceBenchmark]) -> dict[str, dict[str, Any]]:
+    def compare_benchmarks(
+        self,
+        baseline: dict[str, PerformanceBenchmark],
+        current: dict[str, PerformanceBenchmark],
+    ) -> dict[str, dict[str, Any]]:
         """Compare baseline vs current performance with adaptive thresholds."""
         results = {}
 
         for name, current_bench in current.items():
             if name not in baseline:
                 results[name] = {
-                    'status': 'new',
-                    'current_mean': current_bench.mean,
-                    'message': 'New benchmark - no baseline comparison available'
+                    "status": "new",
+                    "current_mean": current_bench.mean,
+                    "message": "New benchmark - no baseline comparison available",
                 }
                 continue
 
@@ -114,67 +128,72 @@ class PerformanceRegressionAnalyzer:
 
             # Calculate percentage change
             if baseline_bench.mean > 0:
-                pct_change = (current_bench.mean - baseline_bench.mean) / baseline_bench.mean
+                pct_change = (
+                    current_bench.mean - baseline_bench.mean
+                ) / baseline_bench.mean
             else:
-                pct_change = float('inf') if current_bench.mean > 0 else 0
+                pct_change = float("inf") if current_bench.mean > 0 else 0
 
             # Get adaptive threshold for this benchmark
             threshold = self._get_threshold_for_benchmark(name)
 
             # Determine status based on adaptive threshold
             if abs(pct_change) < threshold:
-                status = 'stable'
+                status = "stable"
             elif pct_change > threshold:
-                status = 'regression'
+                status = "regression"
             else:
-                status = 'improvement'
+                status = "improvement"
 
             results[name] = {
-                'status': status,
-                'baseline_mean': baseline_bench.mean,
-                'current_mean': current_bench.mean,
-                'change_pct': pct_change * 100,
-                'change_abs': current_bench.mean - baseline_bench.mean,
-                'threshold_used': threshold * 100,  # Convert to percentage
-                'significance': self._calculate_significance(baseline_bench, current_bench)
+                "status": status,
+                "baseline_mean": baseline_bench.mean,
+                "current_mean": current_bench.mean,
+                "change_pct": pct_change * 100,
+                "change_abs": current_bench.mean - baseline_bench.mean,
+                "threshold_used": threshold * 100,  # Convert to percentage
+                "significance": self._calculate_significance(
+                    baseline_bench, current_bench
+                ),
             }
 
         # Check for missing benchmarks in current run
         for name, baseline_bench in baseline.items():
             if name not in current:
                 results[name] = {
-                    'status': 'missing',
-                    'baseline_mean': baseline_bench.mean,
-                    'current_mean': None,
-                    'message': 'Benchmark missing from current run'
+                    "status": "missing",
+                    "baseline_mean": baseline_bench.mean,
+                    "current_mean": None,
+                    "message": "Benchmark missing from current run",
                 }
 
         return results
 
-    def _calculate_significance(self, baseline: PerformanceBenchmark,
-                              current: PerformanceBenchmark) -> str:
+    def _calculate_significance(
+        self, baseline: PerformanceBenchmark, current: PerformanceBenchmark
+    ) -> str:
         """Calculate statistical significance of change using z-score."""
         if baseline.stddev == 0 and current.stddev == 0:
-            return 'uncertain'
+            return "uncertain"
 
         # Use pooled standard deviation for better significance testing
-        pooled_variance = ((baseline.stddev ** 2) + (current.stddev ** 2)) / 2
-        pooled_stddev = pooled_variance ** 0.5
+        pooled_variance = ((baseline.stddev**2) + (current.stddev**2)) / 2
+        pooled_stddev = pooled_variance**0.5
 
         if pooled_stddev == 0:
-            return 'uncertain'
+            return "uncertain"
 
         change_abs = abs(current.mean - baseline.mean)
         z_score = change_abs / pooled_stddev
 
         if z_score > 2.58:  # 99% confidence
-            return 'highly_significant'
+            return "highly_significant"
         elif z_score > 1.96:  # 95% confidence
-            return 'significant'
+            return "significant"
         elif z_score > 1.0:  # Lower confidence
-            return 'likely'
+            return "likely"
         else:
-            return 'uncertain'
+            return "uncertain"
 
     def generate_report(self, comparison_results: dict[str, dict[str, Any]]) -> str:
         """Generate comprehensive markdown report of performance analysis."""
@@ -182,16 +201,26 @@ class PerformanceRegressionAnalyzer:
 
         # Summary statistics
         total_benchmarks = len(comparison_results)
-        regressions = sum(1 for r in comparison_results.values() if r['status'] == 'regression')
-        improvements = sum(1 for r in comparison_results.values() if r['status'] == 'improvement')
-        stable = sum(1 for r in comparison_results.values() if r['status'] == 'stable')
-        new = sum(1 for r in comparison_results.values() if r['status'] == 'new')
-        missing = sum(1 for r in comparison_results.values() if r['status'] == 'missing')
+        regressions = sum(
+            1 for r in comparison_results.values() if r["status"] == "regression"
+        )
+        improvements = sum(
+            1 for r in comparison_results.values() if r["status"] == "improvement"
+        )
+        stable = sum(1 for r in comparison_results.values() if r["status"] == "stable")
+        new = sum(1 for r in comparison_results.values() if r["status"] == "new")
+        missing = sum(
+            1 for r in comparison_results.values() if r["status"] == "missing"
+        )
 
         report_lines.append("### Performance Summary")
         report_lines.append(f"- **Total Benchmarks**: {total_benchmarks}")
-        report_lines.append(f"- **Regressions**: {regressions} {'🔴' if regressions > 0 else '⚪'}")
-        report_lines.append(f"- **Improvements**: {improvements} {'🟢' if improvements > 0 else '⚪'}")
+        report_lines.append(
+            f"- **Regressions**: {regressions} {'🔴' if regressions > 0 else '⚪'}"
+        )
+        report_lines.append(
+            f"- **Improvements**: {improvements} {'🟢' if improvements > 0 else '⚪'}"
+        )
         report_lines.append(f"- **Stable**: {stable} ⚪")
         report_lines.append(f"- **New**: {new} {'🆕' if new > 0 else '⚪'}")
         if missing > 0:
@@ -201,18 +230,23 @@ class PerformanceRegressionAnalyzer:
         # Regression details with severity classification
         if regressions > 0:
             report_lines.append("### 🔴 Performance Regressions")
-            report_lines.append("| Benchmark | Baseline (s) | Current (s) | Change | Threshold | Significance |")
-            report_lines.append("|-----------|--------------|-------------|---------|-----------|--------------|")
+            report_lines.append(
+                "| Benchmark | Baseline (s) | Current (s) | Change | Threshold | Significance |"
+            )
+            report_lines.append(
+                "|-----------|--------------|-------------|---------|-----------|--------------|"
+            )
 
             # Sort regressions by severity (percentage change)
             regression_items = [
-                (name, result) for name, result in comparison_results.items()
-                if result['status'] == 'regression'
+                (name, result)
+                for name, result in comparison_results.items()
+                if result["status"] == "regression"
             ]
-            regression_items.sort(key=lambda x: x[1]['change_pct'], reverse=True)
+            regression_items.sort(key=lambda x: x[1]["change_pct"], reverse=True)
 
             for name, result in regression_items:
-                severity_emoji = "🚨" if result['change_pct'] > 50 else "⚠️"
+                severity_emoji = "🚨" if result["change_pct"] > 50 else "⚠️"
 
                 report_lines.append(
                     f"| {severity_emoji} {name} | {result['baseline_mean']:.4f} | "
@@ -226,15 +260,20 @@ class PerformanceRegressionAnalyzer:
         # Improvements
         if improvements > 0:
             report_lines.append("### 🟢 Performance Improvements")
-            report_lines.append("| Benchmark | Baseline (s) | Current (s) | Change | Threshold | Significance |")
-            report_lines.append("|-----------|--------------|-------------|---------|-----------|--------------|")
+            report_lines.append(
+                "| Benchmark | Baseline (s) | Current (s) | Change | Threshold | Significance |"
+            )
+            report_lines.append(
+                "|-----------|--------------|-------------|---------|-----------|--------------|"
+            )
 
             # Sort improvements by magnitude
             improvement_items = [
-                (name, result) for name, result in comparison_results.items()
-                if result['status'] == 'improvement'
+                (name, result)
+                for name, result in comparison_results.items()
+                if result["status"] == "improvement"
             ]
-            improvement_items.sort(key=lambda x: abs(x[1]['change_pct']), reverse=True)
+            improvement_items.sort(key=lambda x: abs(x[1]["change_pct"]), reverse=True)
 
             for name, result in improvement_items:
                 report_lines.append(
@@ -250,8 +289,9 @@ class PerformanceRegressionAnalyzer:
         if missing > 0:
             report_lines.append("### ⚠️ Missing Benchmarks")
             missing_items = [
-                name for name, result in comparison_results.items()
-                if result['status'] == 'missing'
+                name
+                for name, result in comparison_results.items()
+                if result["status"] == "missing"
             ]
             for name in sorted(missing_items):
                 report_lines.append(f"- {name}")
@@ -261,8 +301,9 @@ class PerformanceRegressionAnalyzer:
         if new > 0:
             report_lines.append("### 🆕 New Benchmarks")
             new_items = [
-                (name, result) for name, result in comparison_results.items()
-                if result['status'] == 'new'
+                (name, result)
+                for name, result in comparison_results.items()
+                if result["status"] == "new"
             ]
             for name, result in sorted(new_items):
                 report_lines.append(f"- {name}: {result['current_mean']:.4f}s")
@@ -271,8 +312,9 @@ class PerformanceRegressionAnalyzer:
         # Overall assessment with specific recommendations
         if regressions > 0:
             severe_regressions = sum(
-                1 for r in comparison_results.values()
-                if r['status'] == 'regression' and r['change_pct'] > 50
+                1
+                for r in comparison_results.values()
+                if r["status"] == "regression" and r["change_pct"] > 50
             )
 
             report_lines.append("### ⚠️ Recommendation")
@@ -295,14 +337,22 @@ class PerformanceRegressionAnalyzer:
             )
         else:
             report_lines.append("### ✅ Recommendation")
-            report_lines.append("No significant performance changes detected. Safe to merge from performance perspective.")
+            report_lines.append(
+                "No significant performance changes detected. Safe to merge from performance perspective."
+            )
 
         # Add methodology note
         report_lines.append("")
         report_lines.append("### 📊 Analysis Details")
-        report_lines.append("- **Thresholds**: Critical (5%), Important (10%), General (20%)")
-        report_lines.append("- **Significance**: Statistical analysis using pooled standard deviation")
-        report_lines.append("- **Categories**: Adaptive thresholds based on benchmark importance")
+        report_lines.append(
+            "- **Thresholds**: Critical (5%), Important (10%), General (20%)"
+        )
+        report_lines.append(
+            "- **Significance**: Statistical analysis using pooled standard deviation"
+        )
+        report_lines.append(
+            "- **Categories**: Adaptive thresholds based on benchmark importance"
+        )
 
         return "\n".join(report_lines)
 
@@ -317,40 +367,38 @@ Examples:
   %(prog)s --baseline baseline.json --current current.json
   %(prog)s --baseline baseline.json --current current.json --threshold 0.15 --output report.md
   %(prog)s --baseline baseline.json --current current.json --json-output
-        """
+        """,
     )
     parser.add_argument(
         "--baseline",
         required=True,
         type=Path,
-        help="Baseline performance JSON file from pytest-benchmark"
+        help="Baseline performance JSON file from pytest-benchmark",
     )
     parser.add_argument(
         "--current",
         required=True,
         type=Path,
-        help="Current performance JSON file from pytest-benchmark"
+        help="Current performance JSON file from pytest-benchmark",
     )
     parser.add_argument(
         "--threshold",
         type=float,
         default=0.10,
-        help="Default regression threshold (default: 0.10 = 10%%)"
+        help="Default regression threshold (default: 0.10 = 10%%)",
     )
     parser.add_argument(
-        "--output",
-        type=Path,
-        help="Output report file (default: stdout)"
+        "--output", type=Path, help="Output report file (default: stdout)"
     )
     parser.add_argument(
         "--json-output",
         action="store_true",
-        help="Output results in JSON format instead of markdown"
+        help="Output results in JSON format instead of markdown",
     )
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
-        help="Exit with error code if regressions are detected"
+        help="Exit with error code if regressions are detected",
     )
 
     args = parser.parse_args()
@@ -368,7 +416,9 @@ Examples:
         print(f"Loaded {len(current_benchmarks)} current benchmarks", file=sys.stderr)
 
         # Perform comparison
-        comparison_results = analyzer.compare_benchmarks(baseline_benchmarks, current_benchmarks)
+        comparison_results = analyzer.compare_benchmarks(
+            baseline_benchmarks, current_benchmarks
+        )
 
         # Generate output
         if args.json_output:
@@ -378,16 +428,20 @@ Examples:
 
         # Write output
         if args.output:
-            with open(args.output, 'w') as f:
+            with open(args.output, "w") as f:
                 f.write(output)
             print(f"Report written to {args.output}", file=sys.stderr)
         else:
             print(output)
 
         # Check for regressions and exit with appropriate code
-        regressions = sum(1 for r in comparison_results.values() if r['status'] == 'regression')
+        regressions = sum(
+            1 for r in comparison_results.values() if r["status"] == "regression"
+        )
         if regressions > 0:
-            print(f"⚠️ {regressions} performance regression(s) detected!", file=sys.stderr)
+            print(
+                f"⚠️ {regressions} performance regression(s) detected!", file=sys.stderr
+            )
             if args.fail_on_regression:
                 sys.exit(1)
         else:
@@ -397,7 +451,10 @@ Examples:
 
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
-        print("Skipping performance regression analysis - baseline not available", file=sys.stderr)
+        print(
+            "Skipping performance regression analysis - baseline not available",
+            file=sys.stderr,
+        )
         return 0  # Don't fail CI if baseline is missing
     except (json.JSONDecodeError, ValueError) as e:
         print(f"Error parsing benchmark data: {e}", file=sys.stderr)

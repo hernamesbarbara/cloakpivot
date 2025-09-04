@@ -207,9 +207,9 @@ class TestFixturePerformanceImpact:
         access_time = end_time - start_time
 
         # Session fixtures should be very fast to access (< 1ms typically)
-        assert access_time < 0.01, (
-            f"Fixture access took {access_time:.4f}s, expected < 0.01s"
-        )
+        assert (
+            access_time < 0.01
+        ), f"Fixture access took {access_time:.4f}s, expected < 0.01s"
 
     def test_multiple_fixture_access_consistent(self, masking_engine):
         """Test multiple accesses to session fixtures are consistent."""
@@ -228,6 +228,6 @@ class TestFixturePerformanceImpact:
 
         # Session fixture access should be consistently fast
         assert max_time < 0.001, f"Slowest access: {max_time:.6f}s"
-        assert (max_time - min_time) < 0.0005, (
-            f"Access time variance: {max_time - min_time:.6f}s"
-        )
+        assert (
+            max_time - min_time
+        ) < 0.0005, f"Access time variance: {max_time - min_time:.6f}s"

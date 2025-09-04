@@ -169,9 +169,9 @@ Email: jane.smith@personal.com"""
 
         # Verify round-trip fidelity
         unmasked_content = unmasked_file.read_text()
-        assert original_content.strip() == unmasked_content.strip(), (
-            "Round-trip should preserve content"
-        )
+        assert (
+            original_content.strip() == unmasked_content.strip()
+        ), "Round-trip should preserve content"
 
     @pytest.mark.e2e
     def test_policy_management_workflow(
@@ -538,9 +538,9 @@ SSN: {i + 1:03d}-{i + 2:02d}-{i + 3:04d}
             # Allow worker temp directories (cloakpivot_worker_*) during parallel execution
             if not temp_file.name.startswith("cloakpivot_worker_"):
                 unexpected_temp_files.append(temp_file)
-        assert len(temp_files_before) == 0, (
-            f"Temporary files found in workspace: {temp_files_before}"
-        )
-        assert len(unexpected_temp_files) == 0, (
-            f"Unexpected CloakPivot temp files found in system temp: {unexpected_temp_files}"
-        )
+        assert (
+            len(temp_files_before) == 0
+        ), f"Temporary files found in workspace: {temp_files_before}"
+        assert (
+            len(unexpected_temp_files) == 0
+        ), f"Unexpected CloakPivot temp files found in system temp: {unexpected_temp_files}"

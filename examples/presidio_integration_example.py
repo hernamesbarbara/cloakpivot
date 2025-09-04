@@ -27,8 +27,7 @@ from cloakpivot.document.extractor import TextSegment
 
 # Configure logging to see detailed information
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 
@@ -36,7 +35,9 @@ def create_sample_text_segments() -> list[TextSegment]:
     """Create sample text segments for demonstration."""
     # Create segments with correct length calculations
     text1 = "John Smith is our lead developer. You can reach him at john.smith@company.com or call 555-123-4567."
-    text2 = "For security purposes, his employee ID is EMP-2023-001 and SSN is 123-45-6789."
+    text2 = (
+        "For security purposes, his employee ID is EMP-2023-001 and SSN is 123-45-6789."
+    )
     text3 = "Personal Information"
     text4 = "Jane Doe works in HR. Contact her at jane.doe@company.com. Phone: 555-987-6543 or 555-987-6544."
 
@@ -47,7 +48,7 @@ def create_sample_text_segments() -> list[TextSegment]:
             start_offset=0,
             end_offset=len(text1),
             node_type="TextItem",
-            metadata={"section": "employee_info"}
+            metadata={"section": "employee_info"},
         ),
         TextSegment(
             node_id="#/texts/1",
@@ -55,7 +56,7 @@ def create_sample_text_segments() -> list[TextSegment]:
             start_offset=len(text1) + 1,  # +1 for separator
             end_offset=len(text1) + 1 + len(text2),
             node_type="TextItem",
-            metadata={"section": "confidential"}
+            metadata={"section": "confidential"},
         ),
         TextSegment(
             node_id="#/headers/0",
@@ -63,7 +64,7 @@ def create_sample_text_segments() -> list[TextSegment]:
             start_offset=len(text1) + 1 + len(text2) + 1,
             end_offset=len(text1) + 1 + len(text2) + 1 + len(text3),
             node_type="TitleItem",
-            metadata={"level": 1}
+            metadata={"level": 1},
         ),
         TextSegment(
             node_id="#/texts/2",
@@ -71,7 +72,7 @@ def create_sample_text_segments() -> list[TextSegment]:
             start_offset=len(text1) + 1 + len(text2) + 1 + len(text3) + 1,
             end_offset=len(text1) + 1 + len(text2) + 1 + len(text3) + 1 + len(text4),
             node_type="TextItem",
-            metadata={"section": "employee_info"}
+            metadata={"section": "employee_info"},
         ),
     ]
     return segments
@@ -79,9 +80,9 @@ def create_sample_text_segments() -> list[TextSegment]:
 
 def demonstrate_basic_analysis():
     """Demonstrate basic PII entity detection."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("1. BASIC PII ENTITY DETECTION")
-    print("="*60)
+    print("=" * 60)
 
     # Create analyzer with default configuration
     analyzer = AnalyzerEngineWrapper()
@@ -96,19 +97,21 @@ def demonstrate_basic_analysis():
     mock_entities = [
         EntityDetectionResult("PERSON", 8, 16, 0.9, "John Doe"),
         EntityDetectionResult("EMAIL_ADDRESS", 20, 37, 0.95, "john.doe@email.com"),
-        EntityDetectionResult("PHONE_NUMBER", 41, 53, 0.85, "555-123-4567")
+        EntityDetectionResult("PHONE_NUMBER", 41, 53, 0.85, "555-123-4567"),
     ]
 
     print(f"Detected {len(mock_entities)} entities:")
     for entity in mock_entities:
-        print(f"  - {entity.entity_type}: '{entity.text}' (confidence: {entity.confidence:.2f})")
+        print(
+            f"  - {entity.entity_type}: '{entity.text}' (confidence: {entity.confidence:.2f})"
+        )
 
 
 def demonstrate_policy_configuration():
     """Demonstrate policy-based configuration."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("2. POLICY-BASED CONFIGURATION")
-    print("="*60)
+    print("=" * 60)
 
     # Create a masking policy with specific requirements
     policy = MaskingPolicy(
@@ -117,18 +120,20 @@ def demonstrate_policy_configuration():
             "PERSON": 0.8,
             "EMAIL_ADDRESS": 0.9,
             "PHONE_NUMBER": 0.7,
-            "US_SSN": 0.95
+            "US_SSN": 0.95,
         },
         per_entity={
             "PERSON": Strategy(StrategyKind.TEMPLATE, {"template": "[NAME]"}),
-            "EMAIL_ADDRESS": Strategy(StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}),
+            "EMAIL_ADDRESS": Strategy(
+                StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}
+            ),
             "PHONE_NUMBER": Strategy(StrategyKind.TEMPLATE, {"template": "[PHONE]"}),
-            "US_SSN": Strategy(StrategyKind.REDACT, {"redact_char": "X"})
+            "US_SSN": Strategy(StrategyKind.REDACT, {"redact_char": "X"}),
         },
         context_rules={
             "heading": {"enabled": False},  # Don't mask PII in headings
-            "table": {"threshold": 0.9}     # Higher threshold for table content
-        }
+            "table": {"threshold": 0.9},  # Higher threshold for table content
+        },
     )
 
     print("Created masking policy with:")
@@ -143,43 +148,59 @@ def demonstrate_policy_configuration():
     # Demonstrate policy filtering
     print("\nPolicy filtering example:")
     entities = [
-        EntityDetectionResult("PERSON", 0, 8, 0.85, "John Doe"),  # Above threshold (0.8)
-        EntityDetectionResult("PERSON", 10, 18, 0.75, "Jane Smith"),  # Below threshold (0.8)
-        EntityDetectionResult("EMAIL_ADDRESS", 20, 37, 0.92, "test@example.com"),  # Above threshold (0.9)
+        EntityDetectionResult(
+            "PERSON", 0, 8, 0.85, "John Doe"
+        ),  # Above threshold (0.8)
+        EntityDetectionResult(
+            "PERSON", 10, 18, 0.75, "Jane Smith"
+        ),  # Below threshold (0.8)
+        EntityDetectionResult(
+            "EMAIL_ADDRESS", 20, 37, 0.92, "test@example.com"
+        ),  # Above threshold (0.9)
     ]
 
     for entity in entities:
-        should_mask = policy.should_mask_entity(entity.text, entity.entity_type, entity.confidence)
+        should_mask = policy.should_mask_entity(
+            entity.text, entity.entity_type, entity.confidence
+        )
         status = "MASK" if should_mask else "SKIP"
         print(f"  - {entity.entity_type} (conf: {entity.confidence:.2f}): {status}")
 
 
 def demonstrate_conflict_resolution():
     """Demonstrate entity conflict resolution."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("3. ENTITY CONFLICT RESOLUTION")
-    print("="*60)
+    print("=" * 60)
 
     # Create overlapping entities to demonstrate conflict resolution
     conflicting_entities = [
         EntityDetectionResult("PERSON", 0, 10, 0.9, "John Smith"),
-        EntityDetectionResult("PERSON", 5, 15, 0.7, "Smith John"),      # Overlaps with first
+        EntityDetectionResult(
+            "PERSON", 5, 15, 0.7, "Smith John"
+        ),  # Overlaps with first
         EntityDetectionResult("EMAIL_ADDRESS", 20, 37, 0.95, "john@example.com"),
-        EntityDetectionResult("URL", 20, 40, 0.6, "http://john@example.com"),  # Overlaps with email
+        EntityDetectionResult(
+            "URL", 20, 40, 0.6, "http://john@example.com"
+        ),  # Overlaps with email
         EntityDetectionResult("PHONE_NUMBER", 50, 62, 0.85, "555-123-4567"),
-        EntityDetectionResult("PHONE_NUMBER", 65, 77, 0.80, "555-987-6543"),   # Adjacent (3 char gap)
+        EntityDetectionResult(
+            "PHONE_NUMBER", 65, 77, 0.80, "555-987-6543"
+        ),  # Adjacent (3 char gap)
     ]
 
     print(f"Starting with {len(conflicting_entities)} entities (some overlapping):")
     for i, entity in enumerate(conflicting_entities):
-        print(f"  {i+1}. {entity.entity_type}[{entity.start}-{entity.end}]: '{entity.text}' (conf: {entity.confidence:.2f})")
+        print(
+            f"  {i+1}. {entity.entity_type}[{entity.start}-{entity.end}]: '{entity.text}' (conf: {entity.confidence:.2f})"
+        )
 
     # Test different resolution strategies
     strategies = [
         ConflictResolutionStrategy.HIGHEST_CONFIDENCE,
         ConflictResolutionStrategy.LONGEST_ENTITY,
         ConflictResolutionStrategy.MOST_SPECIFIC,
-        ConflictResolutionStrategy.MERGE_ADJACENT
+        ConflictResolutionStrategy.MERGE_ADJACENT,
     ]
 
     for strategy in strategies:
@@ -187,7 +208,7 @@ def demonstrate_conflict_resolution():
 
         config = ConflictResolutionConfig(
             strategy=strategy,
-            merge_threshold_chars=5  # Allow merging entities within 5 characters
+            merge_threshold_chars=5,  # Allow merging entities within 5 characters
         )
         normalizer = EntityNormalizer(config)
 
@@ -195,7 +216,9 @@ def demonstrate_conflict_resolution():
 
         print(f"Resolved to {len(result.normalized_entities)} entities:")
         for entity in result.normalized_entities:
-            print(f"  - {entity.entity_type}[{entity.start}-{entity.end}]: '{entity.text}' (conf: {entity.confidence:.2f})")
+            print(
+                f"  - {entity.entity_type}[{entity.start}-{entity.end}]: '{entity.text}' (conf: {entity.confidence:.2f})"
+            )
 
         print(f"  Conflicts resolved: {result.conflicts_resolved}")
         print(f"  Entities merged: {result.entities_merged}")
@@ -203,24 +226,33 @@ def demonstrate_conflict_resolution():
 
 def demonstrate_pipeline_integration():
     """Demonstrate full pipeline integration."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("4. FULL PIPELINE INTEGRATION")
-    print("="*60)
+    print("=" * 60)
 
     # Create sample text segments
     segments = create_sample_text_segments()
     print(f"Created {len(segments)} text segments:")
     for i, segment in enumerate(segments):
-        print(f"  {i+1}. {segment.node_type}[{segment.start_offset}-{segment.end_offset}]: '{segment.text[:50]}...'")
+        print(
+            f"  {i+1}. {segment.node_type}[{segment.start_offset}-{segment.end_offset}]: '{segment.text[:50]}...'"
+        )
 
     # Create detection pipeline with policy
     policy = MaskingPolicy(
-        thresholds={"PERSON": 0.8, "EMAIL_ADDRESS": 0.9, "PHONE_NUMBER": 0.7, "US_SSN": 0.9},
-        context_rules={"heading": {"enabled": False}}  # Don't detect PII in headings
+        thresholds={
+            "PERSON": 0.8,
+            "EMAIL_ADDRESS": 0.9,
+            "PHONE_NUMBER": 0.7,
+            "US_SSN": 0.9,
+        },
+        context_rules={"heading": {"enabled": False}},  # Don't detect PII in headings
     )
 
     pipeline = EntityDetectionPipeline.from_policy(policy)
-    print(f"\nCreated detection pipeline with language: {pipeline.analyzer.config.language}")
+    print(
+        f"\nCreated detection pipeline with language: {pipeline.analyzer.config.language}"
+    )
 
     # Simulate entity detection (in real usage, this would call Presidio)
     print("\nSimulating entity detection...")
@@ -230,22 +262,24 @@ def demonstrate_pipeline_integration():
         # Segment 0: Employee info
         [
             EntityDetectionResult("PERSON", 0, 10, 0.9, "John Smith"),
-            EntityDetectionResult("EMAIL_ADDRESS", 45, 69, 0.95, "john.smith@company.com"),
-            EntityDetectionResult("PHONE_NUMBER", 78, 90, 0.85, "555-123-4567")
+            EntityDetectionResult(
+                "EMAIL_ADDRESS", 45, 69, 0.95, "john.smith@company.com"
+            ),
+            EntityDetectionResult("PHONE_NUMBER", 78, 90, 0.85, "555-123-4567"),
         ],
         # Segment 1: Confidential info
-        [
-            EntityDetectionResult("US_SSN", 54, 66, 0.98, "123-45-6789")
-        ],
+        [EntityDetectionResult("US_SSN", 54, 66, 0.98, "123-45-6789")],
         # Segment 2: Header (should be filtered out by policy)
         [],
         # Segment 3: More employee info
         [
             EntityDetectionResult("PERSON", 0, 8, 0.85, "Jane Doe"),
-            EntityDetectionResult("EMAIL_ADDRESS", 33, 55, 0.92, "jane.doe@company.com"),
+            EntityDetectionResult(
+                "EMAIL_ADDRESS", 33, 55, 0.92, "jane.doe@company.com"
+            ),
             EntityDetectionResult("PHONE_NUMBER", 64, 76, 0.88, "555-987-6543"),
-            EntityDetectionResult("PHONE_NUMBER", 80, 92, 0.82, "555-987-6544")
-        ]
+            EntityDetectionResult("PHONE_NUMBER", 80, 92, 0.82, "555-987-6544"),
+        ],
     ]
 
     # Create analysis results
@@ -257,11 +291,16 @@ def demonstrate_pipeline_integration():
         context = "heading" if segment.node_type == "TitleItem" else None
 
         for entity in entities:
-            if policy.should_mask_entity(entity.text, entity.entity_type, entity.confidence, context):
+            if policy.should_mask_entity(
+                entity.text, entity.entity_type, entity.confidence, context
+            ):
                 filtered_entities.append(entity)
 
         from cloakpivot.core.detection import SegmentAnalysisResult
-        segment_result = SegmentAnalysisResult(segment=segment, entities=filtered_entities)
+
+        segment_result = SegmentAnalysisResult(
+            segment=segment, entities=filtered_entities
+        )
         analysis_result.add_segment_result(segment_result)
 
     print("Analysis completed:")
@@ -273,14 +312,16 @@ def demonstrate_pipeline_integration():
     anchors = pipeline.map_entities_to_anchors(analysis_result)
     print(f"\nCreated {len(anchors)} anchor mappings:")
     for anchor in anchors[:3]:  # Show first 3
-        print(f"  - Anchor {anchor.anchor_id}: {anchor.entity_type} at {anchor.node_id}[{anchor.start_offset}-{anchor.end_offset}]")
+        print(
+            f"  - Anchor {anchor.anchor_id}: {anchor.entity_type} at {anchor.node_id}[{anchor.start_offset}-{anchor.end_offset}]"
+        )
 
     # Normalize entities
     all_entities = [entity for entity, segment in analysis_result.get_all_entities()]
 
-    normalizer = EntityNormalizer(ConflictResolutionConfig(
-        strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE
-    ))
+    normalizer = EntityNormalizer(
+        ConflictResolutionConfig(strategy=ConflictResolutionStrategy.HIGHEST_CONFIDENCE)
+    )
 
     normalization_result = normalizer.normalize_entities(all_entities)
     print("\nNormalization result:")
@@ -291,9 +332,9 @@ def demonstrate_pipeline_integration():
 
 def demonstrate_diagnostic_capabilities():
     """Demonstrate diagnostic and validation capabilities."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("5. DIAGNOSTIC CAPABILITIES")
-    print("="*60)
+    print("=" * 60)
 
     # Test analyzer diagnostics
     analyzer = AnalyzerEngineWrapper()
@@ -306,13 +347,13 @@ def demonstrate_diagnostic_capabilities():
     print(f"  - Custom recognizers: {len(diagnostics['custom_recognizers'])}")
     print(f"  - Warnings: {len(diagnostics.get('warnings', []))}")
 
-    if diagnostics.get('errors'):
+    if diagnostics.get("errors"):
         print(f"  - Errors: {diagnostics['errors']}")
 
     # Test normalization validation
     entities = [
         EntityDetectionResult("PERSON", 0, 8, 0.9, "John Doe"),
-        EntityDetectionResult("EMAIL_ADDRESS", 10, 27, 0.95, "john@example.com")
+        EntityDetectionResult("EMAIL_ADDRESS", 10, 27, 0.95, "john@example.com"),
     ]
 
     normalizer = EntityNormalizer()
@@ -326,7 +367,7 @@ def demonstrate_diagnostic_capabilities():
     print(f"  - No overlaps: {validation['no_overlaps']}")
     print(f"  - High confidence preserved: {validation['high_confidence_preserved']}")
 
-    if validation['warnings']:
+    if validation["warnings"]:
         print(f"  - Warnings: {validation['warnings']}")
 
 
@@ -344,9 +385,9 @@ def main():
         demonstrate_pipeline_integration()
         demonstrate_diagnostic_capabilities()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ DEMONSTRATION COMPLETED SUCCESSFULLY")
-        print("="*60)
+        print("=" * 60)
         print("\nKey features demonstrated:")
         print("  ✓ Presidio AnalyzerEngine wrapper with configuration")
         print("  ✓ Policy-based entity filtering and thresholds")
@@ -358,6 +399,7 @@ def main():
     except Exception as e:
         print(f"\n✗ DEMONSTRATION FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

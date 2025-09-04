@@ -153,9 +153,7 @@ latex_documents = [
 ]
 
 # -- Options for manual page output ------------------------------------------
-man_pages = [
-    ("index", "cloakpivot", "CloakPivot Documentation", [author], 1)
-]
+man_pages = [("index", "cloakpivot", "CloakPivot Documentation", [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 texinfo_documents = [

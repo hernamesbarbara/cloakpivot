@@ -430,9 +430,9 @@ class GCSStorage(StorageBackend):
                     "storage_class": blob.storage_class,
                     "content_type": blob.content_type,
                     "generation": str(blob.generation) if blob.generation else None,
-                    "metageneration": str(blob.metageneration)
-                    if blob.metageneration
-                    else None,
+                    "metageneration": (
+                        str(blob.metageneration) if blob.metageneration else None
+                    ),
                 }
             )
 
