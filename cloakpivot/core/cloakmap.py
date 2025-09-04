@@ -27,8 +27,11 @@ class CloakMap:
     policy state, cryptographic metadata, and document integrity information.
     It supports encryption and digital signatures for secure storage.
 
+    Version 2.0 adds optional Presidio metadata for enhanced reversibility
+    when using Presidio's AnonymizerEngine and DeanonymizerEngine.
+
     Attributes:
-        version: Schema version for compatibility management
+        version: Schema version for compatibility management (1.0 or 2.0)
         doc_id: Unique identifier for the source document
         doc_hash: SHA-256 hash of the original document content
         anchors: List of anchor entries mapping original to masked content
@@ -37,6 +40,7 @@ class CloakMap:
         signature: Optional HMAC signature for integrity verification
         created_at: Timestamp when the CloakMap was created
         metadata: Additional document and processing metadata
+        presidio_metadata: Optional Presidio operator results for v2.0 (backward compatible)
 
     Examples:
         >>> from .policies import MaskingPolicy
@@ -56,12 +60,26 @@ class CloakMap:
         ...     )
         ... ]
         >>>
-        >>> # Create CloakMap
+        >>> # Create CloakMap v1.0 (backward compatible)
         >>> cloakmap = CloakMap.create(
         ...     doc_id="my_document",
         ...     doc_hash="a1b2c3d4...",
         ...     anchors=anchors,
         ...     policy=MaskingPolicy()
+        ... )
+        >>>
+        >>> # Create CloakMap v2.0 with Presidio metadata
+        >>> presidio_data = {
+        ...     "engine_version": "2.2.x", 
+        ...     "operator_results": [...],
+        ...     "reversible_operators": ["encrypt"]
+        ... }
+        >>> cloakmap_v2 = CloakMap.create_with_presidio(
+        ...     doc_id="my_document",
+        ...     doc_hash="a1b2c3d4...", 
+        ...     anchors=anchors,
+        ...     policy=MaskingPolicy(),
+        ...     presidio_metadata=presidio_data
         ... )
     """
 
@@ -74,6 +92,7 @@ class CloakMap:
     signature: Optional[str] = field(default=None)
     created_at: Optional[datetime] = field(default=None)
     metadata: dict[str, Any] = field(default_factory=dict)
+    presidio_metadata: Optional[dict[str, Any]] = field(default=None)
 
     def __post_init__(self) -> None:
         """Validate CloakMap data after initialization."""
@@ -81,10 +100,15 @@ class CloakMap:
         self._validate_doc_fields()
         self._validate_anchors()
         self._validate_crypto()
+        self._validate_presidio_metadata()
 
         # Set default timestamp if not provided
         if self.created_at is None:
             object.__setattr__(self, "created_at", datetime.utcnow())
+
+        # Auto-set version to 2.0 if presidio_metadata is present
+        if self.presidio_metadata is not None and self.version == "1.0":
+            object.__setattr__(self, "version", "2.0")
 
     def _validate_version(self) -> None:
         """Validate version string format."""
@@ -143,6 +167,49 @@ class CloakMap:
         if self.signature is not None and not isinstance(self.signature, str):
             raise ValueError("signature must be a string or None")
 
+    def _validate_presidio_metadata(self) -> None:
+        """Validate Presidio metadata structure."""
+        if self.presidio_metadata is None:
+            return
+
+        if not isinstance(self.presidio_metadata, dict):
+            raise ValueError("presidio_metadata must be a dictionary or None")
+
+        # Validate required fields if present
+        if "operator_results" in self.presidio_metadata:
+            results = self.presidio_metadata["operator_results"]
+            if not isinstance(results, list):
+                raise ValueError("operator_results must be a list")
+
+            # Validate each operator result structure
+            for i, result in enumerate(results):
+                if not isinstance(result, dict):
+                    raise ValueError(f"operator_result[{i}] must be a dictionary")
+
+                # Check for required fields in operator result
+                required_fields = ["entity_type", "start", "end", "operator"]
+                for field in required_fields:
+                    if field not in result:
+                        raise ValueError(
+                            f"operator_result[{i}] missing required field: {field}"
+                        )
+
+        # Validate reversible_operators if present
+        if "reversible_operators" in self.presidio_metadata:
+            reversible = self.presidio_metadata["reversible_operators"]
+            if not isinstance(reversible, list):
+                raise ValueError("reversible_operators must be a list")
+
+            for op in reversible:
+                if not isinstance(op, str):
+                    raise ValueError("all reversible_operators must be strings")
+
+        # Validate engine_version if present
+        if "engine_version" in self.presidio_metadata:
+            engine_version = self.presidio_metadata["engine_version"]
+            if not isinstance(engine_version, str) or not engine_version.strip():
+                raise ValueError("engine_version must be a non-empty string")
+
     @property
     def anchor_count(self) -> int:
         """Get the total number of anchors."""
@@ -173,6 +240,28 @@ class CloakMap:
     def is_signed(self) -> bool:
         """Check if the CloakMap has a signature."""
         return self.signature is not None
+
+    @property
+    def is_presidio_enabled(self) -> bool:
+        """Check if the CloakMap has Presidio metadata."""
+        return self.presidio_metadata is not None
+
+    @property
+    def has_reversible_operators(self) -> bool:
+        """Check if the CloakMap contains reversible Presidio operators."""
+        if not self.is_presidio_enabled:
+            return False
+        
+        reversible = self.presidio_metadata.get("reversible_operators", [])
+        return len(reversible) > 0
+
+    @property
+    def presidio_engine_version(self) -> Optional[str]:
+        """Get the Presidio engine version used to create this CloakMap."""
+        if not self.is_presidio_enabled:
+            return None
+        
+        return self.presidio_metadata.get("engine_version")
 
     def get_anchor_index(self) -> AnchorIndex:
         """Get an indexed view of the anchors for efficient lookups."""
@@ -645,7 +734,7 @@ class CloakMap:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert CloakMap to dictionary for serialization."""
-        return {
+        result = {
             "version": self.version,
             "doc_id": self.doc_id,
             "doc_hash": self.doc_hash,
@@ -656,6 +745,12 @@ class CloakMap:
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "metadata": self.metadata,
         }
+        
+        # Only include presidio_metadata if present (backward compatibility)
+        if self.presidio_metadata is not None:
+            result["presidio_metadata"] = self.presidio_metadata
+            
+        return result
 
     def to_json(self, indent: Optional[int] = None) -> str:
         """Convert CloakMap to JSON string."""
@@ -674,6 +769,9 @@ class CloakMap:
         if data.get("created_at"):
             created_at = datetime.fromisoformat(data["created_at"])
 
+        # Handle presidio_metadata (optional for backward compatibility)
+        presidio_metadata = data.get("presidio_metadata")
+
         return cls(
             version=data.get("version", "1.0"),
             doc_id=data.get("doc_id", ""),
@@ -684,6 +782,7 @@ class CloakMap:
             signature=data.get("signature"),
             created_at=created_at,
             metadata=data.get("metadata", {}),
+            presidio_metadata=presidio_metadata,
         )
 
     @classmethod
@@ -726,7 +825,7 @@ class CloakMap:
             metadata: Optional additional metadata
 
         Returns:
-            New CloakMap instance
+            New CloakMap instance (v1.0 format)
         """
         # Serialize policy if provided
         policy_snapshot = {}
@@ -739,6 +838,45 @@ class CloakMap:
             anchors=anchors,
             policy_snapshot=policy_snapshot,
             metadata=metadata or {},
+        )
+
+    @classmethod
+    def create_with_presidio(
+        cls,
+        doc_id: str,
+        doc_hash: str,
+        anchors: list[AnchorEntry],
+        presidio_metadata: dict[str, Any],
+        policy: Optional[Any] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> "CloakMap":
+        """
+        Create a new CloakMap v2.0 with Presidio metadata.
+
+        Args:
+            doc_id: Document identifier
+            doc_hash: Hash of the original document
+            anchors: List of anchor entries
+            presidio_metadata: Presidio operator results and metadata
+            policy: Optional masking policy (will be serialized to policy_snapshot)
+            metadata: Optional additional metadata
+
+        Returns:
+            New CloakMap instance (v2.0 format with Presidio metadata)
+        """
+        # Serialize policy if provided
+        policy_snapshot = {}
+        if policy is not None and hasattr(policy, "to_dict"):
+            policy_snapshot = policy.to_dict()
+
+        return cls(
+            version="2.0",
+            doc_id=doc_id,
+            doc_hash=doc_hash,
+            anchors=anchors,
+            policy_snapshot=policy_snapshot,
+            metadata=metadata or {},
+            presidio_metadata=presidio_metadata,
         )
 
 
