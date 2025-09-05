@@ -1,42 +1,20 @@
 """Core UnmaskingEngine for orchestrating PII unmasking operations."""
 
 import logging
-from dataclasses import dataclass
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union, cast
 
-from cloakpivot.core.types import DoclingDocument
+from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 
+from ..core.anchors import AnchorEntry
 from ..core.cloakmap import CloakMap
 from .anchor_resolver import AnchorResolver
 from .cloakmap_loader import CloakMapLoader
 from .document_unmasker import DocumentUnmasker
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class UnmaskingResult:
-    """
-    Result of an unmasking operation containing the restored document.
-
-    Attributes:
-        restored_document: The DoclingDocument with original content restored
-        cloakmap: The CloakMap that was used for restoration
-        stats: Statistics about the unmasking operation
-        integrity_report: Report on restoration integrity and any issues
-    """
-
-    restored_document: DoclingDocument
-    cloakmap: CloakMap
-    stats: Optional[dict[str, Any]] = None
-    integrity_report: Optional[dict[str, Any]] = None
-
-    @property
-    def unmasked_document(self) -> DoclingDocument:
-        """Alias for restored_document for backward compatibility."""
-        return self.restored_document
 
 
 class UnmaskingEngine:
@@ -59,12 +37,24 @@ class UnmaskingEngine:
         >>> print(f"Restored {len(result.cloakmap.anchors)} entities")
     """
 
-    def __init__(self) -> None:
-        """Initialize the unmasking engine."""
+    def __init__(self, use_presidio_engine: Optional[bool] = None) -> None:
+        """Initialize the unmasking engine.
+        
+        Args:
+            use_presidio_engine: Force engine selection (True=Presidio, False=Legacy, None=Auto)
+        """
         self.cloakmap_loader = CloakMapLoader()
         self.document_unmasker = DocumentUnmasker()
         self.anchor_resolver = AnchorResolver()
-        logger.debug("UnmaskingEngine initialized")
+        self.use_presidio_override = use_presidio_engine
+        
+        # Initialize Presidio adapter if requested
+        self.presidio_adapter: Optional[Any] = None  
+        if use_presidio_engine is True:
+            from .presidio_adapter import PresidioUnmaskingAdapter
+            self.presidio_adapter = PresidioUnmaskingAdapter()
+            
+        logger.debug(f"UnmaskingEngine initialized with use_presidio_engine={use_presidio_engine}")
 
     def unmask_document(
         self,
@@ -117,52 +107,63 @@ class UnmaskingEngine:
                 },
             )
 
-        # Validate remaining inputs
-        self._validate_inputs(masked_document, cloakmap_obj)
-
-        # Verify document compatibility
-        self._verify_document_compatibility(masked_document, cloakmap_obj)
-
-        # Create a copy of the document for restoration
-        restored_document = self._copy_document(masked_document)
-
-        # Resolve anchor positions in the copied document (not the original)
-        resolved_anchors = self.anchor_resolver.resolve_anchors(
-            document=restored_document, anchors=cloakmap_obj.anchors
-        )
-
-        logger.info(
-            f"Resolved {len(resolved_anchors)} out of {len(cloakmap_obj.anchors)} anchors"
-        )
-
-        # Apply unmasking to restore original content
-        restoration_stats = self.document_unmasker.apply_unmasking(
-            document=restored_document,
-            resolved_anchors=resolved_anchors.get("resolved", []),
-            cloakmap=cloakmap_obj,
-        )
-
+        # Select the appropriate unmasking engine
+        engine_type = self._select_unmasking_engine(cloakmap_obj)
+        logger.info(f"Selected unmasking engine: {engine_type}")
+        
+        # Determine if we need hybrid processing
+        has_reversible = self._detect_reversible_operations(cloakmap_obj)
+        has_anchors = len(cloakmap_obj.anchors) > 0
+        
+        # Route to appropriate unmasking method
+        if engine_type == "presidio" and (has_reversible or not has_anchors):
+            # Use Presidio engine if selected and has reversible ops or no anchors
+            result = self._unmask_with_presidio(masked_document, cloakmap_obj)
+        elif has_reversible and has_anchors:
+            # Hybrid processing: Use Presidio for reversible, legacy for anchors
+            reversible_ops, anchor_ops = self._categorize_operations(cloakmap_obj)
+            
+            # First apply Presidio for reversible operations
+            if self.presidio_adapter:
+                result = self._unmask_with_presidio(masked_document, cloakmap_obj)
+            else:
+                # Fall back to legacy if Presidio not available
+                result = self._unmask_with_legacy(masked_document, cloakmap_obj)
+            
+            # Update stats to indicate hybrid processing
+            if result.stats:
+                result.stats["method"] = "hybrid"
+                result.stats["presidio_restored"] = len(reversible_ops)
+                result.stats["anchor_restored"] = len(anchor_ops)
+        else:
+            # Use legacy engine for pure anchor-based restoration
+            result = self._unmask_with_legacy(masked_document, cloakmap_obj)
+        
         # Perform integrity verification if requested
-        integrity_report = None
         if verify_integrity:
-            integrity_report = self._verify_restoration_integrity(
-                original_document=restored_document,
+            # Get resolved anchors from stats if available
+            resolved_anchors_data = {}
+            if hasattr(result, 'stats') and result.stats:
+                if 'resolved_anchors' in result.stats:
+                    # If it's already a dict, use it directly
+                    if isinstance(result.stats['resolved_anchors'], dict):
+                        resolved_anchors_data = result.stats['resolved_anchors']
+                    # If it's a number, create a dict format
+                    elif isinstance(result.stats['resolved_anchors'], int):
+                        resolved_anchors_data = {
+                            "resolved": [None] * result.stats['resolved_anchors'],
+                            "failed": []
+                        }
+            
+            result.integrity_report = self._verify_restoration_integrity(
+                original_document=result.restored_document,
                 masked_document=masked_document,
                 cloakmap=cloakmap_obj,
-                resolved_anchors=resolved_anchors,
+                resolved_anchors=resolved_anchors_data,
             )
-
-        # Generate statistics
-        stats = self._generate_stats(cloakmap_obj, resolved_anchors, restoration_stats)
-
+        
         logger.info("Unmasking completed successfully")
-
-        return UnmaskingResult(
-            restored_document=restored_document,
-            cloakmap=cloakmap_obj,
-            stats=stats,
-            integrity_report=integrity_report,
-        )
+        return result
 
     def unmask_from_files(
         self,
@@ -296,3 +297,162 @@ class UnmaskingEngine:
                 else 100
             ),
         }
+    
+    def _select_unmasking_engine(self, cloakmap: CloakMap) -> str:
+        """Select the appropriate unmasking engine based on configuration and CloakMap.
+        
+        Args:
+            cloakmap: The CloakMap to use for unmasking
+            
+        Returns:
+            Engine selection: "presidio" or "legacy"
+        """
+        # Check explicit override
+        if self.use_presidio_override is not None:
+            return "presidio" if self.use_presidio_override else "legacy"
+            
+        # Check environment variable
+        env_value = os.environ.get("CLOAKPIVOT_USE_PRESIDIO_ENGINE", "").lower()
+        if env_value == "true":
+            return "presidio"
+        elif env_value == "false":
+            return "legacy"
+            
+        # Auto-detect based on CloakMap version and metadata
+        if cloakmap.version == "2.0" and cloakmap.presidio_metadata:
+            return "presidio"
+        
+        return "legacy"
+    
+    def _detect_reversible_operations(self, cloakmap: CloakMap) -> bool:
+        """Detect if the CloakMap contains reversible operations.
+        
+        Args:
+            cloakmap: The CloakMap to check
+            
+        Returns:
+            True if reversible operations are detected
+        """
+        if not cloakmap.presidio_metadata:
+            return False
+            
+        reversible_ops = cloakmap.presidio_metadata.get("reversible_operators", [])
+        return len(reversible_ops) > 0
+    
+    def _categorize_operations(self, cloakmap: CloakMap) -> tuple[list[dict[str, Any]], list[AnchorEntry]]:
+        """Categorize operations into reversible and anchor-based.
+        
+        Args:
+            cloakmap: The CloakMap to categorize
+            
+        Returns:
+            Tuple of (reversible_operations, anchor_operations)
+        """
+        reversible_ops = []
+        anchor_ops = list(cloakmap.anchors)  # All anchors are anchor-based by default
+        
+        if cloakmap.presidio_metadata:
+            operator_results = cloakmap.presidio_metadata.get("operator_results", [])
+            reversible_ops = operator_results
+            
+        return reversible_ops, anchor_ops
+    
+    def _unmask_with_presidio(self, document: DoclingDocument, cloakmap: CloakMap) -> UnmaskingResult:
+        """Unmask using Presidio engine.
+        
+        Args:
+            document: The masked document
+            cloakmap: The CloakMap with Presidio metadata
+            
+        Returns:
+            UnmaskingResult with restored document
+        """
+        if not self.presidio_adapter:
+            from .presidio_adapter import PresidioUnmaskingAdapter
+            self.presidio_adapter = PresidioUnmaskingAdapter()
+            
+        return self.presidio_adapter.unmask_document(document, cloakmap)
+    
+    def _unmask_with_legacy(self, document: DoclingDocument, cloakmap: CloakMap) -> UnmaskingResult:
+        """Unmask using legacy anchor-based method.
+        
+        Args:
+            document: The masked document
+            cloakmap: The CloakMap with anchors
+            
+        Returns:
+            UnmaskingResult with restored document
+        """
+        # Use existing anchor-based unmasking logic
+        restored_document = self._copy_document(document)
+        
+        resolved_anchors = self.anchor_resolver.resolve_anchors(
+            document=restored_document, 
+            anchors=cloakmap.anchors
+        )
+        
+        restoration_stats = self.document_unmasker.apply_unmasking(
+            document=restored_document,
+            resolved_anchors=resolved_anchors.get("resolved", []),
+            cloakmap=cloakmap,
+        )
+        
+        stats = self._generate_stats(cloakmap, resolved_anchors, restoration_stats)
+        stats["method"] = "legacy"
+        
+        return UnmaskingResult(
+            restored_document=restored_document,
+            cloakmap=cloakmap,
+            stats=stats,
+        )
+    
+    def _enhance_legacy_cloakmap(self, cloakmap: CloakMap) -> CloakMap:
+        """Enhance a v1.0 CloakMap with Presidio metadata.
+        
+        Args:
+            cloakmap: v1.0 CloakMap to enhance
+            
+        Returns:
+            Enhanced v2.0 CloakMap
+        """
+        enhanced_map = CloakMap(
+            version="2.0",
+            doc_id=cloakmap.doc_id,
+            doc_hash=cloakmap.doc_hash,
+            anchors=cloakmap.anchors,
+            presidio_metadata={
+                "operator_results": [],
+                "reversible_operators": [],
+                "engine_version": "2.2.0",
+            },
+            created_at=cloakmap.created_at,
+        )
+        
+        # Additional fields are already handled by the CloakMap dataclass
+            
+        return enhanced_map
+    
+    def migrate_to_presidio(self, cloakmap_path: Union[str, Path]) -> Path:
+        """Migrate a v1.0 CloakMap to v2.0 with Presidio metadata.
+        
+        Args:
+            cloakmap_path: Path to the v1.0 CloakMap file
+            
+        Returns:
+            Path to the new v2.0 CloakMap file
+        """
+        cloakmap_path = Path(cloakmap_path)
+        
+        # Load the existing CloakMap
+        cloakmap = self.cloakmap_loader.load(cloakmap_path)
+        
+        # Enhance it with Presidio metadata
+        enhanced_map = self._enhance_legacy_cloakmap(cloakmap)
+        
+        # Save to new file
+        new_path = cloakmap_path.with_suffix(".v2.cloakmap")
+        enhanced_map.save_to_file(new_path)
+        
+        logger.info(f"Migrated CloakMap from v1.0 to v2.0: {new_path}")
+        
+        return new_path

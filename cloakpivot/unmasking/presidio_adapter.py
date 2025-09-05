@@ -28,10 +28,9 @@ from presidio_anonymizer.entities import OperatorResult
 
 from ..core.cloakmap import CloakMap
 from ..core.cloakmap_enhancer import CloakMapEnhancer
-from ..core.types import DoclingDocument
+from ..core.types import DoclingDocument, UnmaskingResult
 from .anchor_resolver import AnchorResolver
 from .document_unmasker import DocumentUnmasker
-from .engine import UnmaskingResult
 
 logger = logging.getLogger(__name__)
 
