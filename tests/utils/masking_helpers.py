@@ -72,6 +72,11 @@ def mask_document_with_detection(
     extractor = TextExtractor()
     text_segments = extractor.extract_text_segments(document)
 
+    # Set _main_text if not already set (needed for Presidio adapter)
+    if not hasattr(document, '_main_text'):
+        if text_segments:
+            document._main_text = ''.join(seg.text for seg in text_segments)
+
     # Detect entities in each text segment and adjust positions to global coordinates
     all_entities = []
     for segment in text_segments:

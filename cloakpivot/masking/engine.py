@@ -5,10 +5,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import logging
+import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
@@ -43,7 +44,7 @@ class MaskingResult:
 
     masked_document: DoclingDocument
     cloakmap: CloakMap
-    stats: Optional[dict[str, Any]] = None
+    stats: dict[str, Any] | None = None
 
 
 class MaskingEngine:
@@ -70,8 +71,9 @@ class MaskingEngine:
     def __init__(
         self,
         resolve_conflicts: bool = False,
-        conflict_resolution_config: Optional[ConflictResolutionConfig] = None,
+        conflict_resolution_config: ConflictResolutionConfig | None = None,
         store_original_text: bool = True,
+        use_presidio_engine: bool | None = None,
     ) -> None:
         """Initialize the masking engine.
 
@@ -79,8 +81,22 @@ class MaskingEngine:
             resolve_conflicts: Whether to resolve entity conflicts or raise errors (default: False for backward compatibility)
             conflict_resolution_config: Configuration for conflict resolution (uses defaults if None)
             store_original_text: Whether to store original text in metadata for round-trip functionality (default: True)
+            use_presidio_engine: Whether to use Presidio engine instead of legacy. If None, checks environment variable (default: None)
         """
-        self.strategy_applicator = StrategyApplicator()
+        # Determine which engine to use
+        self.use_presidio = self._determine_presidio_usage(use_presidio_engine)
+
+        # Initialize the appropriate masking adapter
+        if self.use_presidio:
+            from .presidio_adapter import PresidioMaskingAdapter
+            self.presidio_adapter = PresidioMaskingAdapter()
+            self.strategy_applicator = None  # Not used in Presidio mode
+            logger.info("MaskingEngine using Presidio adapter")
+        else:
+            self.strategy_applicator = StrategyApplicator()
+            self.presidio_adapter = None  # Not used in legacy mode
+            logger.info("MaskingEngine using legacy StrategyApplicator")
+
         self.document_masker = DocumentMasker()
         self.resolve_conflicts = resolve_conflicts
         self.store_original_text = store_original_text
@@ -90,16 +106,47 @@ class MaskingEngine:
             else None
         )
         logger.debug(
-            f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}, store_original_text={store_original_text}"
+            f"MaskingEngine initialized with resolve_conflicts={resolve_conflicts}, "
+            f"store_original_text={store_original_text}, use_presidio={self.use_presidio}"
         )
+
+    def _determine_presidio_usage(self, explicit_flag: bool | None) -> bool:
+        """Determine whether to use Presidio engine based on various sources.
+
+        Priority order:
+        1. Explicit parameter (if provided)
+        2. Environment variable CLOAKPIVOT_USE_PRESIDIO_ENGINE
+        3. Default to False (legacy engine for safety)
+
+        Args:
+            explicit_flag: Explicit flag from constructor parameter
+
+        Returns:
+            True if Presidio engine should be used, False otherwise
+        """
+        # 1. Explicit parameter takes precedence
+        if explicit_flag is not None:
+            logger.debug(f"Using explicit flag for Presidio engine: {explicit_flag}")
+            return explicit_flag
+
+        # 2. Check environment variable
+        env_flag = os.getenv("CLOAKPIVOT_USE_PRESIDIO_ENGINE")
+        if env_flag is not None:
+            use_presidio = env_flag.strip().lower() in ("true", "1", "yes", "on")
+            logger.debug(f"Using environment variable for Presidio engine: {use_presidio}")
+            return use_presidio
+
+        # 3. Default behavior (False for safety - use legacy engine)
+        logger.debug("No Presidio engine preference found, defaulting to legacy engine")
+        return False
 
     def mask_document(
         self,
         document: DoclingDocument,
-        entities: list["RecognizerResult"],
+        entities: list[RecognizerResult],
         policy: MaskingPolicy,
         text_segments: list[TextSegment],
-        original_format: Optional[str] = None,
+        original_format: str | None = None,
     ) -> MaskingResult:
         """
         Mask PII entities in a document according to the given policy.
@@ -121,6 +168,50 @@ class MaskingEngine:
 
         # Validate inputs
         self._validate_inputs(document, entities, policy, text_segments)
+
+        # Route to appropriate engine based on configuration
+        if self.use_presidio:
+            return self._mask_with_presidio(
+                document, entities, policy, text_segments, original_format
+            )
+        else:
+            return self._mask_with_legacy(
+                document, entities, policy, text_segments, original_format
+            )
+
+    def _mask_with_presidio(
+        self,
+        document: DoclingDocument,
+        entities: list[RecognizerResult],
+        policy: MaskingPolicy,
+        text_segments: list[TextSegment],
+        original_format: str | None = None,
+    ) -> MaskingResult:
+        """Mask document using Presidio engine."""
+        logger.debug("Using Presidio engine for masking")
+
+        if self.presidio_adapter is None:
+            raise RuntimeError("Presidio adapter not initialized")
+
+        # Delegate to PresidioMaskingAdapter
+        return self.presidio_adapter.mask_document(
+            document=document,
+            entities=entities,
+            policy=policy,
+            text_segments=text_segments,
+            original_format=original_format
+        )
+
+    def _mask_with_legacy(
+        self,
+        document: DoclingDocument,
+        entities: list[RecognizerResult],
+        policy: MaskingPolicy,
+        text_segments: list[TextSegment],
+        original_format: str | None = None,
+    ) -> MaskingResult:
+        """Mask document using legacy StrategyApplicator engine."""
+        logger.debug("Using legacy StrategyApplicator for masking")
 
         # Resolve entity conflicts or check for overlaps
         resolved_entities = self._resolve_entity_conflicts(entities, text_segments)
@@ -202,7 +293,7 @@ class MaskingEngine:
     def _validate_inputs(
         self,
         document: DoclingDocument,
-        entities: list["RecognizerResult"],
+        entities: list[RecognizerResult],
         policy: MaskingPolicy,
         text_segments: list[TextSegment],
     ) -> None:
@@ -230,9 +321,9 @@ class MaskingEngine:
 
     def _resolve_entity_conflicts(
         self,
-        entities: list["RecognizerResult"],
+        entities: list[RecognizerResult],
         text_segments: list[TextSegment],
-    ) -> list["RecognizerResult"]:
+    ) -> list[RecognizerResult]:
         """Resolve entity conflicts using EntityNormalizer or validate no overlaps.
 
         This method handles entity conflicts in two modes based on the resolve_conflicts flag:
@@ -369,7 +460,7 @@ class MaskingEngine:
 
     def _check_overlapping_entities(
         self,
-        entities: list["RecognizerResult"],
+        entities: list[RecognizerResult],
         text_segments: list[TextSegment],
     ) -> None:
         """Check for overlapping entities and raise error if found."""
@@ -404,7 +495,7 @@ class MaskingEngine:
 
     def _find_segment_for_entity(
         self, entity: RecognizerResult, text_segments: list[TextSegment]
-    ) -> Optional[TextSegment]:
+    ) -> TextSegment | None:
         """Find the text segment that contains the given entity."""
         for segment in text_segments:
             if segment.contains_offset(entity.start) and segment.contains_offset(
@@ -471,7 +562,7 @@ class MaskingEngine:
 
     def _generate_stats(
         self,
-        entities: list["RecognizerResult"],
+        entities: list[RecognizerResult],
         anchor_entries: list[AnchorEntry],
         policy: MaskingPolicy,
     ) -> dict[str, Any]:
