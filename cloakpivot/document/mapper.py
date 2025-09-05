@@ -1,10 +1,13 @@
 """Anchor mapping system for linking text positions to document structure."""
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from presidio_analyzer import RecognizerResult
+if TYPE_CHECKING:
+    from presidio_analyzer import RecognizerResult
 
 from ..core.anchors import AnchorEntry
 from .extractor import TextSegment
@@ -349,7 +352,7 @@ class AnchorMapper:
 
     def _create_node_reference(
         self,
-        detection: RecognizerResult,
+        detection: "RecognizerResult",
         segment: TextSegment,
         all_segments: list[TextSegment],
     ) -> Optional[NodeReference]:

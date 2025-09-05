@@ -269,7 +269,7 @@ class TestPresidioMaskingAdapter:
         entities = [
             RecognizerResult(entity_type="PERSON", start=8, end=12, score=0.9),
             RecognizerResult(entity_type="EMAIL_ADDRESS", start=16, end=33, score=0.95),
-            RecognizerResult(entity_type="PHONE_NUMBER", start=37, end=45, score=0.85)
+            RecognizerResult(entity_type="PHONE_NUMBER", start=37, end=44, score=0.85)
         ]
         
         strategies = {
@@ -387,8 +387,21 @@ class TestPresidioMaskingAdapter:
         engine.strategy_applicator = adapter
         
         # Create test inputs
-        document = Mock(spec=DoclingDocument)
-        document.name = "test"
+        from docling_core.types.doc.document import TextItem
+        
+        document = DoclingDocument(
+            name="test",
+            texts=[],
+            tables=[],
+            key_value_items=[]
+        )
+        text_item = TextItem(
+            text="Call 555-1234",
+            self_ref="#/texts/0",
+            label="text",
+            orig="Call 555-1234"
+        )
+        document.texts = [text_item]
         document._main_text = "Call 555-1234"
         
         entities = [

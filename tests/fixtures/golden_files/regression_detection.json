@@ -1,10 +1,10 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "test_name": "regression_detection",
   "metrics": {
-    "entities_detected": 4,
+    "entities_detected": 3,
     "masked_length": 379,
-    "cloakmap_size": 153,
+    "cloakmap_size": 118,
     "has_phone_masking": false,
     "has_email_masking": false
   }

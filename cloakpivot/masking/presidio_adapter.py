@@ -94,12 +94,26 @@ class PresidioMaskingAdapter:
             if strategy.kind == StrategyKind.CUSTOM:
                 return self._apply_custom_strategy(original_text, strategy)
 
-            # Map CloakPivot strategy to Presidio operator
-            operator_config = self.operator_mapper.strategy_to_operator(strategy)
-
             # Handle SURROGATE strategy specially for better quality
             if strategy.kind == StrategyKind.SURROGATE:
                 return self._apply_surrogate_strategy(original_text, entity_type, strategy)
+
+            # Special handling for REDACT strategy since Presidio's redact operator has issues
+            if strategy.kind == StrategyKind.REDACT:
+                params = strategy.parameters or {}
+                char = params.get("char", params.get("redact_char", "*"))
+                return char * len(original_text)
+
+            # Special handling for HASH strategy to support prefix
+            if strategy.kind == StrategyKind.HASH:
+                return self._apply_hash_strategy(original_text, entity_type, strategy, confidence)
+
+            # Special handling for PARTIAL strategy
+            if strategy.kind == StrategyKind.PARTIAL:
+                return self._apply_partial_strategy(original_text, entity_type, strategy, confidence)
+
+            # Map CloakPivot strategy to Presidio operator
+            operator_config = self.operator_mapper.strategy_to_operator(strategy)
 
             # Create a single entity for this text
             entity = RecognizerResult(
@@ -193,6 +207,10 @@ class PresidioMaskingAdapter:
             salt = base64.b64encode(hashlib.sha256(str(uuid.uuid4()).encode()).digest()[:8]).decode()
             checksum_hash = hashlib.sha256(f"{salt}{original}".encode()).hexdigest()
 
+            # Ensure masked value is not empty (for anchor validation)
+            if not masked_value:
+                masked_value = "*"  # Use single char as fallback
+                
             anchor = AnchorEntry(
                 node_id="#/texts/0",  # Would need segment info for proper node_id
                 start=entity.start,
@@ -213,17 +231,35 @@ class PresidioMaskingAdapter:
             anchor_entries.append(anchor)
 
         # Create masked document
+        from docling_core.types.doc.document import TextItem
+        
         masked_document = DoclingDocument(
             name=document.name,
-            _main_text=masked_text
+            texts=[],
+            tables=[],
+            key_value_items=[]
         )
+        
+        # Add masked text as a text item if the original had texts
+        if hasattr(document, 'texts') and document.texts:
+            # Create a new text item with the masked text
+            masked_text_item = TextItem(
+                text=masked_text,
+                self_ref="#/texts/0",
+                label="text",
+                orig=masked_text
+            )
+            masked_document.texts = [masked_text_item]
+        
+        # Set _main_text for compatibility
+        masked_document._main_text = masked_text
 
         # Create base CloakMap
         base_cloakmap = CloakMap.create(
             doc_id=document.name,
             doc_hash=hashlib.sha256(document._main_text.encode()).hexdigest(),
             anchors=anchor_entries,
-            policy_snapshot=policy.to_dict() if hasattr(policy, 'to_dict') else {},
+            policy=policy,
             metadata={"original_format": original_format} if original_format else {}
         )
 
@@ -302,10 +338,104 @@ class PresidioMaskingAdapter:
         except Exception as e:
             logger.error(f"Batch processing failed: {e}")
             # Create fallback results
-            return [
-                self._create_synthetic_result(entity, strategies[entity.entity_type], text)
-                for entity in entities
-            ]
+            results = []
+            for entity in entities:
+                entity_type = getattr(entity, 'entity_type', None) or 'UNKNOWN'
+                strategy = strategies.get(entity_type, Strategy(StrategyKind.REDACT, {"char": "*"}))
+                results.append(self._create_synthetic_result(entity, strategy, text))
+            return results
+
+    def _apply_hash_strategy(
+        self, 
+        text: str, 
+        entity_type: str, 
+        strategy: Strategy,
+        confidence: float
+    ) -> str:
+        """Apply hash strategy with support for prefix and other parameters."""
+        params = strategy.parameters or {}
+        
+        # Create entity for Presidio
+        entity = RecognizerResult(
+            entity_type=entity_type,
+            start=0,
+            end=len(text),
+            score=confidence
+        )
+        
+        # Use Presidio for the base hash
+        operator_config = self.operator_mapper.strategy_to_operator(strategy)
+        result = self.anonymizer.anonymize(
+            text=text,
+            analyzer_results=[entity],
+            operators={entity_type: operator_config}
+        )
+        
+        hashed_value = result.text
+        
+        # Add prefix if specified
+        if "prefix" in params:
+            hashed_value = params["prefix"] + hashed_value
+            
+        # Truncate if specified
+        if "truncate" in params:
+            truncate_length = params["truncate"]
+            if isinstance(truncate_length, int) and truncate_length > 0:
+                hashed_value = hashed_value[:truncate_length]
+                
+        return hashed_value
+
+    def _apply_partial_strategy(
+        self,
+        text: str,
+        entity_type: str,
+        strategy: Strategy,
+        confidence: float
+    ) -> str:
+        """Apply partial masking strategy with proper char count calculation."""
+        params = strategy.parameters or {}
+        visible_chars = params.get("visible_chars", 4)
+        position = params.get("position", "end")
+        mask_char = params.get("mask_char", "*")
+        
+        # Create entity for Presidio
+        entity = RecognizerResult(
+            entity_type=entity_type,
+            start=0,
+            end=len(text),
+            score=confidence
+        )
+        
+        # Calculate how many chars to mask based on text length
+        text_length = len(text)
+        
+        if position == "end":
+            # Show last N chars, mask the rest
+            chars_to_mask = max(0, text_length - visible_chars)
+            from_end = False
+        elif position == "start":
+            # Show first N chars, mask the rest
+            chars_to_mask = max(0, text_length - visible_chars)
+            from_end = True  # Mask from the end, leaving start visible
+        else:
+            # Default to end behavior
+            chars_to_mask = max(0, text_length - visible_chars)
+            from_end = False
+        
+        # Use Presidio's mask operator
+        operator_config = OperatorConfig("mask", {
+            "masking_char": mask_char,
+            "chars_to_mask": chars_to_mask,
+            "from_end": from_end
+        })
+        
+        result = self.anonymizer.anonymize(
+            text=text,
+            analyzer_results=[entity],
+            operators={entity_type: operator_config}
+        )
+        
+        return result.text
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
@@ -353,13 +483,28 @@ class PresidioMaskingAdapter:
         text: str
     ) -> OperatorResult:
         """Create a synthetic OperatorResult for fallback scenarios."""
-        original = text[entity.start:entity.end]
+        # Handle invalid entity positions
+        start = getattr(entity, 'start', 0) or 0
+        end = getattr(entity, 'end', len(text)) or len(text)
+        entity_type = getattr(entity, 'entity_type', 'UNKNOWN') or 'UNKNOWN'
+        
+        # Ensure valid bounds
+        if start < 0:
+            start = 0
+        if end > len(text):
+            end = len(text)
+        if start >= end:
+            # Invalid range, use single char
+            start = min(start, len(text) - 1)
+            end = start + 1
+            
+        original = text[start:end] if start < end else "*"
 
         # Apply strategy manually
         if strategy.kind == StrategyKind.REDACT:
             masked = strategy.parameters.get("char", "*") * len(original)
         elif strategy.kind == StrategyKind.TEMPLATE:
-            masked = strategy.parameters.get("template", f"[{entity.entity_type}]")
+            masked = strategy.parameters.get("template", f"[{entity_type}]")
         elif strategy.kind == StrategyKind.HASH:
             algo = strategy.parameters.get("algorithm", "sha256")
             prefix = strategy.parameters.get("prefix", "")
@@ -370,18 +515,20 @@ class PresidioMaskingAdapter:
             visible = strategy.parameters.get("visible_chars", 4)
             position = strategy.parameters.get("position", "end")
             mask_char = strategy.parameters.get("mask_char", "*")
-            if position == "end":
+            if position == "end" and len(original) > visible:
                 masked = mask_char * (len(original) - visible) + original[-visible:]
-            else:
+            elif position == "start" and len(original) > visible:
                 masked = original[:visible] + mask_char * (len(original) - visible)
+            else:
+                masked = original  # Too short to partial mask
         else:
             masked = self._fallback_redaction(original)
 
         # Create synthetic result
         result = type('OperatorResult', (), {
-            'entity_type': entity.entity_type,
-            'start': entity.start,
-            'end': entity.end,
+            'entity_type': entity_type,
+            'start': start,
+            'end': end,
             'operator': strategy.kind.value,
             'text': masked
         })()

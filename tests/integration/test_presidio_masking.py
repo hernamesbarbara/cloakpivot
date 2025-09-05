@@ -41,10 +41,24 @@ class TestPresidioMaskingIntegration:
         Contact Phone: 555-987-6543
         """
         
+        from docling_core.types.doc.document import TextItem
+        
         document = DoclingDocument(
             name="medical_record.txt",
-            _main_text=document_text.strip()
+            texts=[],
+            tables=[],
+            key_value_items=[]
         )
+        
+        # Add the text as a text item and also set _main_text for compatibility
+        text_item = TextItem(
+            text=document_text.strip(),
+            self_ref="#/texts/0",
+            label="text",
+            orig=document_text.strip()
+        )
+        document.texts = [text_item]
+        document._main_text = document_text.strip()
         
         # Create entities (would normally come from analyzer)
         entities = [
@@ -61,7 +75,7 @@ class TestPresidioMaskingIntegration:
         # Create policy
         policy = MaskingPolicy(
             default_strategy=Strategy(StrategyKind.REDACT, {"char": "*"}),
-            entity_strategies={
+            per_entity={
                 "PERSON": Strategy(StrategyKind.SURROGATE, {}),
                 "US_SSN": Strategy(StrategyKind.HASH, {"algorithm": "sha256"}),
                 "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"}),
@@ -167,7 +181,22 @@ class TestPresidioMaskingIntegration:
         
         # Original document
         original_text = "Contact Alice Johnson at alice@example.com or 555-0123"
-        document = DoclingDocument(name="contact.txt", _main_text=original_text)
+        from docling_core.types.doc.document import TextItem as TextItem2
+        
+        document = DoclingDocument(
+            name="contact.txt",
+            texts=[],
+            tables=[],
+            key_value_items=[]
+        )
+        text_item2 = TextItem2(
+            text=original_text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=original_text
+        )
+        document.texts = [text_item2]
+        document._main_text = original_text
         
         # Entities
         entities = [
@@ -178,7 +207,7 @@ class TestPresidioMaskingIntegration:
         
         # Policy - use reversible strategies
         policy = MaskingPolicy(
-            entity_strategies={
+            per_entity={
                 "PERSON": Strategy(StrategyKind.HASH, {"algorithm": "sha256"}),
                 "EMAIL_ADDRESS": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"}),
                 "PHONE_NUMBER": Strategy(StrategyKind.REDACT, {"char": "*"})
@@ -306,13 +335,29 @@ class TestPresidioMaskingIntegration:
         assert not v1_cloakmap.is_presidio_enabled
         
         # Process document to create v2.0 CloakMap
-        document = DoclingDocument(name="test", _main_text="Email: test@example.com")
+        from docling_core.types.doc.document import TextItem as TextItem3
+        
+        document = DoclingDocument(
+            name="test",
+            texts=[],
+            tables=[],
+            key_value_items=[]
+        )
+        text_item3 = TextItem3(
+            text="Email: test@example.com",
+            self_ref="#/texts/0",
+            label="text",
+            orig="Email: test@example.com"
+        )
+        document.texts = [text_item3]
+        document._main_text = "Email: test@example.com"
         entities = [RecognizerResult(entity_type="EMAIL", start=7, end=23, score=0.95)]
-        policy = MaskingPolicy(entity_strategies={
+        policy = MaskingPolicy(per_entity={
             "EMAIL": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"})
         })
-        segments = [TextSegment(text=document._main_text, start_offset=0, 
-                               end_offset=len(document._main_text), segment_type="main")]
+        segments = [TextSegment(text=document._main_text, node_id="#/texts/0",
+                               start_offset=0, 
+                               end_offset=len(document._main_text), node_type="TextItem")]
         
         result = adapter.mask_document(document, entities, policy, segments)
         v2_cloakmap = result.cloakmap

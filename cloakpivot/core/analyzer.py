@@ -28,6 +28,16 @@ def _import_presidio() -> None:
     if not TYPE_CHECKING and AnalyzerEngine is not None:
         return  # Already imported
 
+    import signal
+    import time
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Presidio import timed out after 5 seconds")
+
+    # Set a timeout for the import
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(5)  # 5 second timeout
+    
     try:
         from presidio_analyzer import (
             AnalyzerEngine,
@@ -36,8 +46,23 @@ def _import_presidio() -> None:
         from presidio_analyzer.nlp_engine import (
             NlpEngineProvider,
         )
+        signal.alarm(0)  # Cancel the alarm
+        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
 
+    except TimeoutError as e:
+        signal.alarm(0)  # Cancel the alarm
+        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+        logger.warning(f"Presidio import timed out: {e}")
+        # Set to None to indicate import failure
+        AnalyzerEngine = None
+        RecognizerResult = None
+        NlpEngineProvider = None
+        raise ImportError(
+            "presidio-analyzer import timed out. There may be an issue with the installation."
+        ) from e
     except ImportError as e:
+        signal.alarm(0)  # Cancel the alarm
+        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
         raise ImportError(
             "presidio-analyzer is required for PII detection. "
             "Install it with: pip install presidio-analyzer"

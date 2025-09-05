@@ -1,11 +1,16 @@
 """Parallel analysis engine for efficient PII detection across document chunks."""
 
+from __future__ import annotations
+
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from threading import Lock
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from presidio_analyzer import RecognizerResult
 
 from presidio_analyzer import RecognizerResult
 
@@ -21,7 +26,7 @@ class ChunkAnalysisResult:
     """Result of analyzing a single document chunk."""
 
     chunk_id: str
-    entities: list[RecognizerResult]
+    entities: list["RecognizerResult"]
     processing_time_ms: float
     chunk_size: int
     error: Optional[str] = None
@@ -31,7 +36,7 @@ class ChunkAnalysisResult:
 class ParallelAnalysisResult:
     """Result of parallel analysis across all chunks."""
 
-    entities: list[RecognizerResult]
+    entities: list["RecognizerResult"]
     chunk_results: list[ChunkAnalysisResult]
     total_processing_time_ms: float
     total_chunks: int

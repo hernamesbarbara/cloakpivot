@@ -1,12 +1,17 @@
 """Core MaskingEngine for orchestrating PII masking operations."""
 
+from __future__ import annotations
+
 import copy
 import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from presidio_analyzer import RecognizerResult
 
 from presidio_analyzer import RecognizerResult
 
@@ -91,7 +96,7 @@ class MaskingEngine:
     def mask_document(
         self,
         document: DoclingDocument,
-        entities: list[RecognizerResult],
+        entities: list["RecognizerResult"],
         policy: MaskingPolicy,
         text_segments: list[TextSegment],
         original_format: Optional[str] = None,
@@ -197,7 +202,7 @@ class MaskingEngine:
     def _validate_inputs(
         self,
         document: DoclingDocument,
-        entities: list[RecognizerResult],
+        entities: list["RecognizerResult"],
         policy: MaskingPolicy,
         text_segments: list[TextSegment],
     ) -> None:
@@ -209,8 +214,9 @@ class MaskingEngine:
             raise ValueError("entities must be a list")
 
         for entity in entities:
-            if not isinstance(entity, RecognizerResult):
-                raise ValueError("all entities must be RecognizerResult instances")
+            # Check for RecognizerResult-like object (duck typing for compatibility)
+            if not hasattr(entity, 'entity_type') or not hasattr(entity, 'start') or not hasattr(entity, 'end') or not hasattr(entity, 'score'):
+                raise ValueError("all entities must be RecognizerResult-like instances with entity_type, start, end, and score attributes")
 
         if not isinstance(policy, MaskingPolicy):
             raise ValueError("policy must be a MaskingPolicy")
@@ -224,9 +230,9 @@ class MaskingEngine:
 
     def _resolve_entity_conflicts(
         self,
-        entities: list[RecognizerResult],
+        entities: list["RecognizerResult"],
         text_segments: list[TextSegment],
-    ) -> list[RecognizerResult]:
+    ) -> list["RecognizerResult"]:
         """Resolve entity conflicts using EntityNormalizer or validate no overlaps.
 
         This method handles entity conflicts in two modes based on the resolve_conflicts flag:
@@ -363,7 +369,7 @@ class MaskingEngine:
 
     def _check_overlapping_entities(
         self,
-        entities: list[RecognizerResult],
+        entities: list["RecognizerResult"],
         text_segments: list[TextSegment],
     ) -> None:
         """Check for overlapping entities and raise error if found."""
@@ -465,7 +471,7 @@ class MaskingEngine:
 
     def _generate_stats(
         self,
-        entities: list[RecognizerResult],
+        entities: list["RecognizerResult"],
         anchor_entries: list[AnchorEntry],
         policy: MaskingPolicy,
     ) -> dict[str, Any]:

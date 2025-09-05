@@ -61,7 +61,7 @@ class TestGoldenFiles:
     def create_document_from_file(self, file_path: Path) -> DoclingDocument:
         """Create DoclingDocument from text file."""
         text_content = file_path.read_text(encoding="utf-8")
-        doc = DoclingDocument(name=file_path.stem)
+        doc = DoclingDocument(name=file_path.stem, texts=[], tables=[], key_value_items=[])
 
         text_item = TextItem(
             text=text_content, self_ref="#/texts/0", label="text", orig=text_content

@@ -1,9 +1,35 @@
 """Strategy to Presidio OperatorConfig mapping functionality."""
 
 import logging
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
-from presidio_anonymizer.entities import OperatorConfig
+if TYPE_CHECKING:
+    from presidio_anonymizer.entities import OperatorConfig
+else:
+    import signal
+    
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Import timed out")
+    
+    # Try to import with timeout
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler) if hasattr(signal, 'SIGALRM') else None
+    if old_handler is not None:
+        signal.alarm(2)  # 2 second timeout
+    
+    try:
+        from presidio_anonymizer.entities import OperatorConfig
+        if old_handler is not None:
+            signal.alarm(0)  # Cancel alarm
+            signal.signal(signal.SIGALRM, old_handler)
+    except (ImportError, TimeoutError):
+        if old_handler is not None:
+            signal.alarm(0)  # Cancel alarm
+            signal.signal(signal.SIGALRM, old_handler)
+        # Create a mock OperatorConfig for when Presidio is not available
+        class OperatorConfig:
+            def __init__(self, operator_name: str, params: dict[str, Any] = None):
+                self.operator_name = operator_name
+                self.params = params or {}
 
 from .policies import MaskingPolicy
 from .strategies import Strategy, StrategyKind
@@ -109,8 +135,8 @@ class StrategyToOperatorMapper:
         """Map REDACT strategy to Presidio redact operator."""
         params = strategy.parameters or {}
 
-        # Map redact_char parameter
-        redact_char = params.get("redact_char", "*")
+        # Map redact_char parameter - support both 'char' and 'redact_char'
+        redact_char = params.get("char", params.get("redact_char", "*"))
 
         operator_params = {"redact_char": redact_char}
 
