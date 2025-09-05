@@ -7,6 +7,11 @@ from typing import Any, Optional
 from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, OperatorResult
 from presidio_anonymizer.entities import OperatorConfig
+try:
+    import presidio_anonymizer
+    PRESIDIO_VERSION = getattr(presidio_anonymizer, '__version__', '2.x.x')
+except (ImportError, AttributeError):
+    PRESIDIO_VERSION = '2.x.x'
 
 from ..core.cloakmap import AnchorEntry, CloakMap
 from ..core.cloakmap_enhancer import CloakMapEnhancer
@@ -210,9 +215,12 @@ class PresidioMaskingAdapter:
             # Ensure masked value is not empty (for anchor validation)
             if not masked_value:
                 masked_value = "*"  # Use single char as fallback
-                
+
+            # Find the segment containing this entity
+            node_id = self._find_segment_for_position(entity.start, text_segments) if text_segments else "#/texts/0"
+            
             anchor = AnchorEntry(
-                node_id="#/texts/0",  # Would need segment info for proper node_id
+                node_id=node_id,
                 start=entity.start,
                 end=entity.start + len(masked_value),
                 entity_type=entity.entity_type,
@@ -232,14 +240,14 @@ class PresidioMaskingAdapter:
 
         # Create masked document
         from docling_core.types.doc.document import TextItem
-        
+
         masked_document = DoclingDocument(
             name=document.name,
             texts=[],
             tables=[],
             key_value_items=[]
         )
-        
+
         # Add masked text as a text item if the original had texts
         if hasattr(document, 'texts') and document.texts:
             # Create a new text item with the masked text
@@ -250,7 +258,7 @@ class PresidioMaskingAdapter:
                 orig=masked_text
             )
             masked_document.texts = [masked_text_item]
-        
+
         # Set _main_text for compatibility
         masked_document._main_text = masked_text
 
@@ -267,7 +275,7 @@ class PresidioMaskingAdapter:
         enhanced_cloakmap = self.cloakmap_enhancer.add_presidio_metadata(
             base_cloakmap,
             operator_results=[self._operator_result_to_dict(r) for r in operator_results],
-            engine_version="2.x.x",  # Would get from Presidio
+            engine_version=PRESIDIO_VERSION,
             reversible_operators=self._get_reversible_operators(strategies)
         )
 
@@ -346,15 +354,15 @@ class PresidioMaskingAdapter:
             return results
 
     def _apply_hash_strategy(
-        self, 
-        text: str, 
-        entity_type: str, 
+        self,
+        text: str,
+        entity_type: str,
         strategy: Strategy,
         confidence: float
     ) -> str:
         """Apply hash strategy with support for prefix and other parameters."""
         params = strategy.parameters or {}
-        
+
         # Create entity for Presidio
         entity = RecognizerResult(
             entity_type=entity_type,
@@ -362,7 +370,7 @@ class PresidioMaskingAdapter:
             end=len(text),
             score=confidence
         )
-        
+
         # Use Presidio for the base hash
         operator_config = self.operator_mapper.strategy_to_operator(strategy)
         result = self.anonymizer.anonymize(
@@ -370,19 +378,19 @@ class PresidioMaskingAdapter:
             analyzer_results=[entity],
             operators={entity_type: operator_config}
         )
-        
+
         hashed_value = result.text
-        
+
         # Add prefix if specified
         if "prefix" in params:
             hashed_value = params["prefix"] + hashed_value
-            
+
         # Truncate if specified
         if "truncate" in params:
             truncate_length = params["truncate"]
             if isinstance(truncate_length, int) and truncate_length > 0:
                 hashed_value = hashed_value[:truncate_length]
-                
+
         return hashed_value
 
     def _apply_partial_strategy(
@@ -397,7 +405,7 @@ class PresidioMaskingAdapter:
         visible_chars = params.get("visible_chars", 4)
         position = params.get("position", "end")
         mask_char = params.get("mask_char", "*")
-        
+
         # Create entity for Presidio
         entity = RecognizerResult(
             entity_type=entity_type,
@@ -405,10 +413,10 @@ class PresidioMaskingAdapter:
             end=len(text),
             score=confidence
         )
-        
+
         # Calculate how many chars to mask based on text length
         text_length = len(text)
-        
+
         if position == "end":
             # Show last N chars, mask the rest
             chars_to_mask = max(0, text_length - visible_chars)
@@ -421,20 +429,20 @@ class PresidioMaskingAdapter:
             # Default to end behavior
             chars_to_mask = max(0, text_length - visible_chars)
             from_end = False
-        
+
         # Use Presidio's mask operator
         operator_config = OperatorConfig("mask", {
             "masking_char": mask_char,
             "chars_to_mask": chars_to_mask,
             "from_end": from_end
         })
-        
+
         result = self.anonymizer.anonymize(
             text=text,
             analyzer_results=[entity],
             operators={entity_type: operator_config}
         )
-        
+
         return result.text
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
@@ -487,7 +495,7 @@ class PresidioMaskingAdapter:
         start = getattr(entity, 'start', 0) or 0
         end = getattr(entity, 'end', len(text)) or len(text)
         entity_type = getattr(entity, 'entity_type', 'UNKNOWN') or 'UNKNOWN'
-        
+
         # Ensure valid bounds
         if start < 0:
             start = 0
@@ -497,7 +505,7 @@ class PresidioMaskingAdapter:
             # Invalid range, use single char
             start = min(start, len(text) - 1)
             end = start + 1
-            
+
         original = text[start:end] if start < end else "*"
 
         # Apply strategy manually
@@ -544,8 +552,54 @@ class PresidioMaskingAdapter:
                 reversible.append(strategy.kind.value)
         return reversible
 
+    def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> Optional[str]:
+        """Find the segment node_id for a given character position.
+        
+        Args:
+            position: Character position in the full text
+            segments: List of text segments with position information
+            
+        Returns:
+            Node ID of the containing segment, or None if not found
+        """
+        for segment in segments:
+            if hasattr(segment, 'start') and hasattr(segment, 'end'):
+                if segment.start <= position < segment.end:
+                    # Return segment's node_id if available, otherwise construct one
+                    if hasattr(segment, 'node_id'):
+                        return segment.node_id
+                    elif hasattr(segment, 'segment_index'):
+                        return f"#/texts/{segment.segment_index}"
+                    else:
+                        # Default to index in segment list
+                        return f"#/texts/{segments.index(segment)}"
+        
+        # Fallback to default if no segment found
+        return "#/texts/0"
+    
     def _cleanup_large_results(self, results: list[OperatorResult]) -> None:
-        """Clean up large result sets for memory efficiency."""
-        # This is a placeholder for memory management
-        # In production, might implement result pagination or streaming
-        pass
+        """Clean up large result sets for memory efficiency.
+        
+        For results exceeding memory thresholds:
+        - Clear text fields from operator results after processing
+        - Remove redundant metadata fields
+        - Release references to large intermediate objects
+        """
+        # Define thresholds for memory management
+        MAX_TEXT_LENGTH = 10000  # Characters per text field
+        MAX_RESULTS = 1000  # Maximum results to keep in memory
+        
+        if len(results) > MAX_RESULTS:
+            # For very large result sets, clear text from older results
+            # Keep only essential metadata for audit trail
+            for result in results[:-100]:  # Keep last 100 results intact
+                if hasattr(result, 'text') and result.text and len(result.text) > MAX_TEXT_LENGTH:
+                    # Clear large text fields while preserving structure
+                    result.text = f"[Text truncated - {len(result.text)} chars]"
+                
+                # Clear large metadata fields if present
+                if hasattr(result, 'operator_metadata') and result.operator_metadata:
+                    if 'original_text' in result.operator_metadata:
+                        orig_len = len(str(result.operator_metadata.get('original_text', '')))
+                        if orig_len > MAX_TEXT_LENGTH:
+                            result.operator_metadata['original_text'] = f"[Truncated - {orig_len} chars]"
