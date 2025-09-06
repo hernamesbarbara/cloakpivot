@@ -1,6 +1,7 @@
 """Integration tests for Presidio unmasking workflows."""
 
 from docling_core.types import DoclingDocument
+from docling_core.types.doc.document import TextItem
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.cloakmap import CloakMap
@@ -12,13 +13,36 @@ from cloakpivot.unmasking.presidio_adapter import PresidioUnmaskingAdapter
 
 
 class TestPresidioUnmaskingIntegration:
+
+    def _get_document_text(self, document: DoclingDocument) -> str:
+        """Helper to get text from document, handling both formats."""
+        if hasattr(document, '_main_text'):
+            return document._main_text
+        elif document.texts:
+            return document.texts[0].text
+        return ""
+
+    def _set_document_text(self, document: DoclingDocument, text: str) -> None:
+        """Helper to set text in document, handling both formats."""
+        from docling_core.types.doc.document import TextItem
+        # Create proper TextItem
+        text_item = TextItem(
+            text=text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=text
+        )
+        document.texts = [text_item]
+        # Also set _main_text for backward compatibility
+        document._main_text = text
+
     """Integration tests for Presidio unmasking workflows."""
 
     def test_round_trip_mask_unmask_simple(self):
         """Test round-trip masking and unmasking with simple replacements."""
         # Original document
         original_doc = DoclingDocument(name="test_doc")
-        original_doc._main_text = "Call me at 555-1234 or email john@example.com"
+        self._set_document_text(original_doc, "Call me at 555-1234 or email john@example.com")
 
         # Create masking adapter and policy
         masking_adapter = PresidioMaskingAdapter()
@@ -46,7 +70,7 @@ class TestPresidioUnmaskingIntegration:
         ]
 
         # Mask the document
-        masked_text = original_doc._main_text
+        masked_text = self._get_document_text(original_doc)
         operator_results = []
 
         for entity in entities:
@@ -80,7 +104,7 @@ class TestPresidioUnmaskingIntegration:
             )
 
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = masked_text
+        self._set_document_text(masked_doc, masked_text)
 
         # Create enhanced CloakMap
         enhancer = CloakMapEnhancer()
@@ -103,7 +127,7 @@ class TestPresidioUnmaskingIntegration:
         result = unmasking_adapter.unmask_document(masked_doc, enhanced_cloakmap)
 
         # Verify round-trip integrity
-        assert result.restored_document._main_text == original_doc._main_text
+        assert self._get_document_text(result.restored_document) == self._get_document_text(original_doc)
         assert result.stats["presidio_restored"] == 2
         assert result.stats["presidio_failed"] == 0
 
@@ -111,7 +135,7 @@ class TestPresidioUnmaskingIntegration:
         """Test mixed operations with both reversible and non-reversible masking."""
         # Original document
         original_doc = DoclingDocument(name="test_doc")
-        original_doc._main_text = "SSN: 123-45-6789, Phone: 555-1234"
+        self._set_document_text(original_doc, "SSN: 123-45-6789, Phone: 555-1234")
 
         # Create operator results
         operator_results = [
@@ -134,7 +158,7 @@ class TestPresidioUnmaskingIntegration:
 
         # Create masked document
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "SSN: ***********, Phone: [PHONE]"
+        self._set_document_text(masked_doc, "SSN: ***********, Phone: [PHONE]")
 
         # Create enhanced CloakMap
         enhancer = CloakMapEnhancer()
@@ -156,8 +180,8 @@ class TestPresidioUnmaskingIntegration:
         result = unmasking_adapter.unmask_document(masked_doc, enhanced_cloakmap)
 
         # Verify partial restoration
-        assert "555-1234" in result.restored_document._main_text  # Phone restored
-        assert "***********" in result.restored_document._main_text  # SSN still redacted
+        assert "555-1234" in self._get_document_text(result.restored_document)  # Phone restored
+        assert "***********" in self._get_document_text(result.restored_document)  # SSN still redacted
         assert result.stats["presidio_restored"] == 1  # Only phone restored
 
     def test_v1_to_v2_migration_scenario(self):
@@ -172,7 +196,7 @@ class TestPresidioUnmaskingIntegration:
 
         # Create masked document
         masked_doc = DoclingDocument(name="legacy_doc")
-        masked_doc._main_text = "Data: [MASKED_1], [MASKED_2]"
+        self._set_document_text(masked_doc, "Data: [MASKED_1], [MASKED_2]")
 
         # Simulate adding Presidio metadata during migration
         operator_results = [
@@ -211,15 +235,15 @@ class TestPresidioUnmaskingIntegration:
         result = unmasking_adapter.unmask_document(masked_doc, v2_cloakmap)
 
         # Verify restoration
-        assert "value1" in result.restored_document._main_text
-        assert "value2" in result.restored_document._main_text
+        assert "value1" in self._get_document_text(result.restored_document)
+        assert "value2" in self._get_document_text(result.restored_document)
         assert result.stats["method"] in ["presidio", "hybrid"]
 
     def test_error_recovery_and_partial_restoration(self):
         """Test error recovery when some operations fail."""
         # Create masked document
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "Valid: [VALID], Invalid: [INVALID], Good: [GOOD]"
+        self._set_document_text(masked_doc, "Valid: [VALID], Invalid: [INVALID], Good: [GOOD]")
 
         # Create operator results with mixed validity
         operator_results = [
@@ -266,9 +290,9 @@ class TestPresidioUnmaskingIntegration:
         result = unmasking_adapter.unmask_document(masked_doc, cloakmap)
 
         # Verify partial restoration
-        assert "data1" in result.restored_document._main_text  # Valid restored
-        assert "[INVALID]" in result.restored_document._main_text  # Invalid not restored
-        assert "data3" in result.restored_document._main_text  # Good restored
+        assert "data1" in self._get_document_text(result.restored_document)  # Valid restored
+        assert "[INVALID]" in self._get_document_text(result.restored_document)  # Invalid not restored
+        assert "data3" in self._get_document_text(result.restored_document)  # Good restored
         assert result.stats["presidio_restored"] == 2
         assert result.stats["presidio_failed"] == 1
 
@@ -304,7 +328,7 @@ class TestPresidioUnmaskingIntegration:
         masked_text_parts = ["Original text "]
         for i in range(num_entities):
             masked_text_parts.append(f"[MASKED_{i}] ")
-        masked_doc._main_text = "".join(masked_text_parts)
+        self._set_document_text(masked_doc, "".join(masked_text_parts))
 
         # Create v2.0 CloakMap
         cloakmap = CloakMap(
@@ -329,7 +353,7 @@ class TestPresidioUnmaskingIntegration:
 
         # Verify all entities were restored
         for i in range(num_entities):
-            assert f"entity_{i}" in result.restored_document._main_text
+            assert f"entity_{i}" in self._get_document_text(result.restored_document)
 
         assert result.stats["presidio_restored"] == num_entities
 

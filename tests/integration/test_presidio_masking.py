@@ -15,6 +15,29 @@ from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
 
 
 class TestPresidioMaskingIntegration:
+
+    def _get_document_text(self, document: DoclingDocument) -> str:
+        """Helper to get text from document, handling both formats."""
+        if hasattr(document, '_main_text'):
+            return document._main_text
+        elif document.texts:
+            return document.texts[0].text
+        return ""
+
+    def _set_document_text(self, document: DoclingDocument, text: str) -> None:
+        """Helper to set text in document, handling both formats."""
+        from docling_core.types.doc.document import TextItem
+        # Create proper TextItem
+        text_item = TextItem(
+            text=text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=text
+        )
+        document.texts = [text_item]
+        # Also set _main_text for backward compatibility
+        document._main_text = text
+
     """Integration tests for end-to-end Presidio masking workflows."""
 
     def test_end_to_end_masking_with_real_document(self):
@@ -86,9 +109,9 @@ class TestPresidioMaskingIntegration:
         text_segments = [
             TextSegment(
                 node_id="#/texts/0",
-                text=document._main_text,
+                text=self._get_document_text(document),
                 start_offset=0,
-                end_offset=len(document._main_text),
+                end_offset=len(self._get_document_text(document)),
                 node_type="TextItem"
             )
         ]
@@ -113,7 +136,7 @@ class TestPresidioMaskingIntegration:
         assert len(result.cloakmap.presidio_metadata["operator_results"]) == len(entities)
 
         # Verify masked content doesn't contain original PII
-        masked_text = result.masked_document._main_text
+        masked_text = self._get_document_text(result.masked_document)
         assert "John Smith" not in masked_text
         assert "123-45-6789" not in masked_text
         assert "john.smith@example.com" not in masked_text
@@ -347,14 +370,14 @@ class TestPresidioMaskingIntegration:
             orig="Email: test@example.com"
         )
         document.texts = [text_item3]
-        document._main_text = "Email: test@example.com"
+        self._set_document_text(document, "Email: test@example.com")
         entities = [RecognizerResult(entity_type="EMAIL", start=7, end=23, score=0.95)]
         policy = MaskingPolicy(per_entity={
             "EMAIL": Strategy(StrategyKind.TEMPLATE, {"template": "[EMAIL]"})
         })
-        segments = [TextSegment(text=document._main_text, node_id="#/texts/0",
+        segments = [TextSegment(text=self._get_document_text(document), node_id="#/texts/0",
                                start_offset=0,
-                               end_offset=len(document._main_text), node_type="TextItem")]
+                               end_offset=len(self._get_document_text(document)), node_type="TextItem")]
 
         result = adapter.mask_document(document, entities, policy, segments)
         v2_cloakmap = result.cloakmap

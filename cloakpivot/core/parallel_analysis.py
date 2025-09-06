@@ -7,7 +7,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
@@ -26,17 +26,17 @@ class ChunkAnalysisResult:
     """Result of analyzing a single document chunk."""
 
     chunk_id: str
-    entities: list["RecognizerResult"]
+    entities: list[RecognizerResult]
     processing_time_ms: float
     chunk_size: int
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class ParallelAnalysisResult:
     """Result of parallel analysis across all chunks."""
 
-    entities: list["RecognizerResult"]
+    entities: list[RecognizerResult]
     chunk_results: list[ChunkAnalysisResult]
     total_processing_time_ms: float
     total_chunks: int
@@ -55,8 +55,8 @@ class ParallelAnalysisEngine:
 
     def __init__(
         self,
-        analyzer_config: Optional[AnalyzerConfig] = None,
-        max_workers: Optional[int] = None,
+        analyzer_config: AnalyzerConfig | None = None,
+        max_workers: int | None = None,
         enable_performance_monitoring: bool = True,
     ) -> None:
         """
@@ -134,7 +134,7 @@ class ParallelAnalysisEngine:
         self,
         document,  # DoclingDocument - avoiding import for type hint
         policy: MaskingPolicy,
-        chunk_size: Optional[int] = None,
+        chunk_size: int | None = None,
     ) -> ParallelAnalysisResult:
         """
         Analyze document for PII entities using parallel processing.

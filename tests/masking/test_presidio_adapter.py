@@ -14,6 +14,29 @@ from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
 
 
 class TestPresidioMaskingAdapter:
+
+    def _get_document_text(self, document: DoclingDocument) -> str:
+        """Helper to get text from document, handling both formats."""
+        if hasattr(document, '_main_text'):
+            return document._main_text
+        elif document.texts:
+            return document.texts[0].text
+        return ""
+
+    def _set_document_text(self, document: DoclingDocument, text: str) -> None:
+        """Helper to set text in document, handling both formats."""
+        from docling_core.types.doc.document import TextItem
+        # Create proper TextItem
+        text_item = TextItem(
+            text=text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=text
+        )
+        document.texts = [text_item]
+        # Also set _main_text for backward compatibility
+        document._main_text = text
+
     """Test suite for PresidioMaskingAdapter functionality."""
 
     def test_adapter_initialization(self):
@@ -173,7 +196,7 @@ class TestPresidioMaskingAdapter:
         # Create test document
         document = Mock(spec=DoclingDocument)
         document.name = "test_doc"
-        document._main_text = "Call me at 555-123-4567 or email john@example.com"
+        self._set_document_text(document, "Call me at 555-123-4567 or email john@example.com")
 
         # Create test entities
         entities = [
@@ -201,9 +224,9 @@ class TestPresidioMaskingAdapter:
         text_segments = [
             TextSegment(
                 node_id="#/texts/0",
-                text=document._main_text,
+                text=self._get_document_text(document),
                 start_offset=0,
-                end_offset=len(document._main_text),
+                end_offset=len(self._get_document_text(document)),
                 node_type="TextItem"
             )
         ]
@@ -223,7 +246,7 @@ class TestPresidioMaskingAdapter:
 
         document = Mock(spec=DoclingDocument)
         document.name = "test_doc"
-        document._main_text = "SSN: 123-45-6789"
+        self._set_document_text(document, "SSN: 123-45-6789")
 
         entities = [
             RecognizerResult(
@@ -242,9 +265,9 @@ class TestPresidioMaskingAdapter:
         text_segments = [
             TextSegment(
                 node_id="#/texts/0",
-                text=document._main_text,
+                text=self._get_document_text(document),
                 start_offset=0,
-                end_offset=len(document._main_text),
+                end_offset=len(self._get_document_text(document)),
                 node_type="TextItem"
             )
         ]
@@ -399,7 +422,7 @@ class TestPresidioMaskingAdapter:
             orig="Call 555-1234"
         )
         document.texts = [text_item]
-        document._main_text = "Call 555-1234"
+        self._set_document_text(document, "Call 555-1234")
 
         entities = [
             RecognizerResult(
@@ -418,9 +441,9 @@ class TestPresidioMaskingAdapter:
         segments = [
             TextSegment(
                 node_id="#/texts/0",
-                text=document._main_text,
+                text=self._get_document_text(document),
                 start_offset=0,
-                end_offset=len(document._main_text),
+                end_offset=len(self._get_document_text(document)),
                 node_type="TextItem"
             )
         ]

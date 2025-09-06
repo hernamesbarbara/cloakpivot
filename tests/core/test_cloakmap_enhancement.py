@@ -1,11 +1,9 @@
 """Tests for CloakMap enhancement with Presidio metadata."""
 
 import json
-import pytest
-from datetime import datetime
-from typing import Any, Dict, List
 
-from cloakpivot.core.anchors import AnchorEntry
+import pytest
+
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.cloakmap_enhancer import CloakMapEnhancer
 
@@ -22,7 +20,7 @@ class TestCloakMapV2Format:
             doc_hash="abc123",
             anchors=anchors,
         )
-        
+
         assert cloakmap.version == "1.0"
         assert cloakmap.doc_id == "test_doc"
         assert cloakmap.doc_hash == "abc123"
@@ -67,7 +65,7 @@ class TestCloakMapV2Format:
         presidio_metadata = {
             "operator_results": [
                 {
-                    "entity_type": "EMAIL_ADDRESS", 
+                    "entity_type": "EMAIL_ADDRESS",
                     "start": 0,
                     "end": 15,
                     "operator": "redact",
@@ -122,7 +120,7 @@ class TestPresidioMetadataValidation:
         with pytest.raises(ValueError, match="presidio_metadata must be a dictionary"):
             CloakMap(
                 doc_id="test",
-                doc_hash="hash", 
+                doc_hash="hash",
                 presidio_metadata="invalid",  # Should be dict
             )
 
@@ -141,7 +139,7 @@ class TestPresidioMetadataValidation:
         """Test that invalid operator result structure raises ValueError."""
         with pytest.raises(ValueError, match="operator_result\\[0\\] must be a dictionary"):
             CloakMap(
-                doc_id="test", 
+                doc_id="test",
                 doc_hash="hash",
                 presidio_metadata={
                     "operator_results": ["not_a_dict"]  # Should be dict
@@ -275,7 +273,7 @@ class TestCloakMapSerialization:
         v2_json_data = """
         {
             "version": "2.0",
-            "doc_id": "test_doc_v2", 
+            "doc_id": "test_doc_v2",
             "doc_hash": "xyz789",
             "anchors": [],
             "policy_snapshot": {},
@@ -325,7 +323,7 @@ class TestCloakMapSerialization:
     def test_serialization_round_trip_v2(self):
         """Test v2.0 serialization round-trip preserves presidio metadata."""
         presidio_metadata = {
-            "engine_version": "2.2.1", 
+            "engine_version": "2.2.1",
             "operator_results": [
                 {
                     "entity_type": "SSN",
@@ -341,7 +339,7 @@ class TestCloakMapSerialization:
 
         original = CloakMap.create_with_presidio(
             doc_id="round_trip_test_v2",
-            doc_hash="hash456", 
+            doc_hash="hash456",
             anchors=[],
             presidio_metadata=presidio_metadata,
         )
@@ -374,7 +372,7 @@ class TestCloakMapEnhancer:
         enhancer = CloakMapEnhancer()
         operator_results = [
             {
-                "entity_type": "EMAIL_ADDRESS", 
+                "entity_type": "EMAIL_ADDRESS",
                 "start": 5,
                 "end": 25,
                 "operator": "redact",
@@ -441,7 +439,7 @@ class TestCloakMapEnhancer:
         # v2.0 CloakMap with presidio metadata
         cloakmap_v2 = CloakMap.create_with_presidio(
             doc_id="test",
-            doc_hash="hash", 
+            doc_hash="hash",
             anchors=[],
             presidio_metadata={"operator_results": []},
         )
@@ -469,11 +467,11 @@ class TestCloakMapEnhancer:
     def test_migrate_to_v2_alias(self):
         """Test that migrate_to_v2 is alias for add_presidio_metadata."""
         cloakmap_v1 = CloakMap.create(doc_id="test", doc_hash="hash", anchors=[])
-        
+
         operator_results = [
             {
                 "entity_type": "SSN",
-                "start": 0, 
+                "start": 0,
                 "end": 11,
                 "operator": "hash",
             }
@@ -576,14 +574,14 @@ class TestEdgeCases:
 
         operator_results = [
             {"entity_type": "EMAIL", "start": 0, "end": 10, "operator": "hash"},
-            {"entity_type": "PHONE", "start": 15, "end": 27, "operator": "encrypt"}, 
+            {"entity_type": "PHONE", "start": 15, "end": 27, "operator": "encrypt"},
             {"entity_type": "SSN", "start": 30, "end": 41, "operator": "redact"},
             {"entity_type": "NAME", "start": 50, "end": 60, "operator": "custom"},
         ]
 
         # Should detect "encrypt" and "custom" as reversible
         reversible = enhancer._detect_reversible_operators(operator_results)
-        
+
         assert "encrypt" in reversible
         assert "custom" in reversible
         assert "hash" not in reversible

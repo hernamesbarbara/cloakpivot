@@ -70,13 +70,13 @@ class CloakMap:
         >>>
         >>> # Create CloakMap v2.0 with Presidio metadata
         >>> presidio_data = {
-        ...     "engine_version": "2.2.x", 
+        ...     "engine_version": "2.2.x",
         ...     "operator_results": [...],
         ...     "reversible_operators": ["encrypt"]
         ... }
         >>> cloakmap_v2 = CloakMap.create_with_presidio(
         ...     doc_id="my_document",
-        ...     doc_hash="a1b2c3d4...", 
+        ...     doc_hash="a1b2c3d4...",
         ...     anchors=anchors,
         ...     policy=MaskingPolicy(),
         ...     presidio_metadata=presidio_data
@@ -249,18 +249,18 @@ class CloakMap:
     @property
     def has_reversible_operators(self) -> bool:
         """Check if the CloakMap contains reversible Presidio operators."""
-        if not self.is_presidio_enabled:
+        if not self.is_presidio_enabled or self.presidio_metadata is None:
             return False
-        
+
         reversible = self.presidio_metadata.get("reversible_operators", [])
         return len(reversible) > 0
 
     @property
     def presidio_engine_version(self) -> Optional[str]:
         """Get the Presidio engine version used to create this CloakMap."""
-        if not self.is_presidio_enabled:
+        if not self.is_presidio_enabled or self.presidio_metadata is None:
             return None
-        
+
         return self.presidio_metadata.get("engine_version")
 
     def get_anchor_index(self) -> AnchorIndex:
@@ -745,11 +745,11 @@ class CloakMap:
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "metadata": self.metadata,
         }
-        
+
         # Only include presidio_metadata if present (backward compatibility)
         if self.presidio_metadata is not None:
             result["presidio_metadata"] = self.presidio_metadata
-            
+
         return result
 
     def to_json(self, indent: Optional[int] = None) -> str:

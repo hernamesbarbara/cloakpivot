@@ -86,6 +86,10 @@ class DocumentMasker:
         for node_id, node_anchors in anchors_by_node.items():
             self._mask_node(document, node_id, node_anchors)
 
+        # Sync _main_text if it exists (for backward compatibility with tests)
+        if hasattr(document, '_main_text') and document.texts:
+            document._main_text = document.texts[0].text
+
         logger.info("Document masking completed successfully")
 
     def _group_anchors_by_node(
@@ -215,6 +219,8 @@ class DocumentMasker:
 
         original_text = node_item.text
         modified_text = original_text
+        logger.debug(f"Starting masking of text node with {len(anchors)} anchors")
+        logger.debug(f"Original text length: {len(original_text)}")
 
         # Apply replacements in reverse order (highest start position first)
         # This prevents position shifts from affecting subsequent replacements
@@ -227,11 +233,10 @@ class DocumentMasker:
                 continue
 
             # Replace the text segment
-            modified_text = (
-                modified_text[: anchor.start]
-                + anchor.masked_value
-                + modified_text[anchor.end :]
-            )
+            before = modified_text[: anchor.start]
+            replacement = anchor.masked_value
+            after = modified_text[anchor.end :]
+            modified_text = before + replacement + after
 
             logger.debug(
                 f"Replaced text at {anchor.start}:{anchor.end} "
@@ -239,6 +244,7 @@ class DocumentMasker:
             )
 
         # Update the node's text
+        logger.debug(f"Updating node text - was {len(original_text)} chars, now {len(modified_text)} chars")
         node_item.text = modified_text
 
     def _mask_table_node(

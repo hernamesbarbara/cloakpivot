@@ -96,11 +96,10 @@ class PresidioUnmaskingAdapter:
         operator_results: list[Union[dict[str, Any], OperatorResult]]
     ) -> str:
         """
-        Content restoration using simple replacement or Presidio deanonymization.
+        Content restoration using exact position-based replacement.
 
-        This method handles restoration by directly replacing masked values with
-        original text for simple operations, and using Presidio's DeanonymizeEngine
-        only for truly reversible operations like encryption.
+        This method handles restoration by processing replacements in reverse order
+        to maintain correct positions as the text changes.
 
         Args:
             masked_text: Text containing masked values
@@ -112,46 +111,79 @@ class PresidioUnmaskingAdapter:
         if not operator_results:
             return masked_text
 
-        # Sort operator results by position (reverse order to maintain positions)
-        sorted_results = sorted(operator_results, key=lambda x: x.get("start", 0) if isinstance(x, dict) else x.start, reverse=True)
+        # Build a list of replacements with position information
+        replacements = []
 
+        for result in operator_results:
+            if isinstance(result, dict):
+                masked_value = result.get("text", "")
+                original_value = result.get("original_text", "")
+                operator = result.get("operator", "replace")
+                start = result.get("start")
+                end = result.get("end")
+
+                # For restorable operations, add to replacements list
+                if operator in ["replace", "template", "redact", "partial", "hash"] and original_value and masked_value:
+                    replacements.append({
+                        "masked": masked_value,
+                        "original": original_value,
+                        "operator": operator,
+                        "start": start,
+                        "end": end
+                    })
+                elif operator == "encrypt":
+                    logger.warning("Encryption reversal not yet implemented")
+                elif operator == "custom":
+                    # Custom operators need special handling
+                    if "reverse_function" in result:
+                        # Apply reverse function if available
+                        reverse_func = result["reverse_function"]
+                        replacements.append({
+                            "masked": masked_value,
+                            "original": reverse_func(masked_value),
+                            "operator": operator,
+                            "start": start,
+                            "end": end
+                        })
+                    else:
+                        logger.warning("No reverse function for custom operator")
+            else:
+                # Handle OperatorResult objects
+                if hasattr(result, "old") and result.old:
+                    replacements.append({
+                        "masked": result.text,
+                        "original": result.old,
+                        "operator": "presidio",
+                        "start": getattr(result, "start", None),
+                        "end": getattr(result, "end", None)
+                    })
+
+        # Process replacements in the order they appear (which is reverse order from masking)
+        # The key insight: since operator_results are in reverse order (last entity first),
+        # we need to replace from the end of the string to maintain correct positions
         restored_text = masked_text
 
-        for result in sorted_results:
-            try:
-                if isinstance(result, dict):
-                    operator = result.get("operator", "replace")
-                    masked_value = result.get("text", "")
-                    original_value = result.get("original_text", "")
+        logger.debug(f"Starting restoration with text: {masked_text}")
+        logger.debug(f"Found {len(replacements)} replacements to apply")
 
-                    # For simple replace operations, just replace the masked value
-                    if operator == "replace" and original_value:
-                        # Find and replace the masked value in the text
-                        if masked_value in restored_text:
-                            restored_text = restored_text.replace(masked_value, original_value, 1)
-                    elif operator == "encrypt":
-                        # TODO: Implement encryption reversal using Presidio's decrypt operator
-                        # This would require the decrypt operator to be available
-                        # For now, we'll just log a warning
-                        logger.warning(f"Encryption reversal not yet implemented for {masked_value}")
-                    elif operator == "custom":
-                        # TODO: Enhance custom operator handling with better error recovery
-                        # Custom operators need special handling
-                        if "reverse_function" in result:
-                            # Apply reverse function if available
-                            reverse_func = result["reverse_function"]
-                            restored_text = restored_text.replace(masked_value, reverse_func(masked_value), 1)
-                        else:
-                            logger.warning(f"No reverse function for custom operator on {masked_value}")
-                else:
-                    # Handle OperatorResult objects
-                    if hasattr(result, "old") and result.old:
-                        # Replace masked text with original
-                        restored_text = restored_text.replace(result.text, result.old, 1)
+        for replacement in replacements:
+            masked_val = replacement["masked"]
+            original_val = replacement["original"]
 
-            except Exception as e:
-                logger.warning(f"Failed to restore individual result: {e}")
-                continue
+            logger.debug(f"Replacing '{masked_val}' with '{original_val}'")
+
+            # Replace the LAST occurrence since we're processing in reverse order
+            # This ensures we replace the correct instance when there are duplicates
+            idx = restored_text.rfind(masked_val)
+            if idx != -1:
+                restored_text = (
+                    restored_text[:idx] +
+                    original_val +
+                    restored_text[idx + len(masked_val):]
+                )
+                logger.debug(f"Replacement successful at position {idx}")
+            else:
+                logger.warning(f"Could not find '{masked_val}' in text")
 
         return restored_text
 
@@ -187,11 +219,14 @@ class PresidioUnmaskingAdapter:
             return self._anchor_based_restoration(masked_document, cloakmap)
 
         # Separate reversible and non-reversible operations
-        reversible_results = []
+        reversible_results: list[Union[dict[str, Any], OperatorResult]] = []
         non_reversible_count = 0
 
         for result in operator_results:
-            operator = result.get("operator", "")
+            if isinstance(result, dict):
+                operator = result.get("operator", "")
+            else:
+                operator = getattr(result, "operator", "")
             if operator in reversible_operators or operator == "replace":
                 reversible_results.append(result)
             else:
@@ -203,21 +238,51 @@ class PresidioUnmaskingAdapter:
 
         if reversible_results:
             try:
+                # Get the text from the first text item (assuming single text document)
+                if restored_document.texts and len(restored_document.texts) > 0:
+                    current_text = restored_document.texts[0].text
+                else:
+                    current_text = ""
+
                 restored_text = self.restore_content(
-                    restored_document._main_text,
+                    current_text,
                     reversible_results
                 )
-                restored_document._main_text = restored_text
+
+                logger.debug(f"After restoration: current_text='{current_text}', restored_text='{restored_text}'")
+
+                # Update the text in the document
+                if restored_document.texts and len(restored_document.texts) > 0:
+                    restored_document.texts[0].text = restored_text
+                    restored_document.texts[0].orig = restored_text
+                    logger.debug(f"Updated document text to: {restored_document.texts[0].text}")
+
+                # Also update _main_text for backward compatibility
+                if hasattr(restored_document, '_main_text'):
+                    restored_document._main_text = restored_text
+                    logger.debug(f"Updated _main_text to: {restored_document._main_text}")
+
+                # Preserve tables and key_value_items from masked document
+                # These don't contain PII that needs unmasking in the current implementation
+                if hasattr(masked_document, 'tables'):
+                    restored_document.tables = copy.deepcopy(masked_document.tables)
+                if hasattr(masked_document, 'key_value_items'):
+                    restored_document.key_value_items = copy.deepcopy(masked_document.key_value_items)
 
                 # Count successful restorations by checking what changed
                 for result in reversible_results:
-                    masked_val = result.get("text", "")
-                    original_val = result.get("original_text", "")
+                    if isinstance(result, dict):
+                        masked_val = result.get("text", "")
+                        original_val = result.get("original_text", "")
+                    else:
+                        # Handle OperatorResult type
+                        masked_val = getattr(result, "text", "")
+                        original_val = getattr(result, "original_text", "")
 
                     # Check if restoration was successful
                     if original_val and masked_val not in restored_text and original_val in restored_text:
                         presidio_restored += 1
-                    elif result.get("operator") == "custom" and "reverse_function" not in result:
+                    elif isinstance(result, dict) and result.get("operator") == "custom" and "reverse_function" not in result:
                         # Custom operators without reverse function fail
                         presidio_failed += 1
                     elif masked_val in restored_text:

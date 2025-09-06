@@ -28,45 +28,54 @@ def _import_presidio() -> None:
     if not TYPE_CHECKING and AnalyzerEngine is not None:
         return  # Already imported
 
-    import signal
-    import time
+    import threading
 
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Presidio import timed out after 5 seconds")
+    # Track if import completed
+    import_complete = threading.Event()
+    import_error: Optional[Exception] = None
 
-    # Set a timeout for the import
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(5)  # 5 second timeout
-    
-    try:
-        from presidio_analyzer import (
-            AnalyzerEngine,
-            RecognizerResult,
-        )
-        from presidio_analyzer.nlp_engine import (
-            NlpEngineProvider,
-        )
-        signal.alarm(0)  # Cancel the alarm
-        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+    def import_with_timeout() -> None:
+        """Import presidio modules in a separate thread."""
+        nonlocal import_error
+        global AnalyzerEngine, RecognizerResult, NlpEngineProvider
 
-    except TimeoutError as e:
-        signal.alarm(0)  # Cancel the alarm
-        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
-        logger.warning(f"Presidio import timed out: {e}")
-        # Set to None to indicate import failure
-        AnalyzerEngine = None
-        RecognizerResult = None
-        NlpEngineProvider = None
+        try:
+            from presidio_analyzer import (
+                AnalyzerEngine,
+                RecognizerResult,
+            )
+            from presidio_analyzer.nlp_engine import (
+                NlpEngineProvider,
+            )
+            import_complete.set()
+        except ImportError as e:
+            import_error = e
+            import_complete.set()
+        except Exception as e:
+            import_error = e
+            import_complete.set()
+
+    # Start import in a separate thread
+    import_thread = threading.Thread(target=import_with_timeout, daemon=True)
+    import_thread.start()
+
+    # Wait for up to 5 seconds
+    if not import_complete.wait(timeout=5.0):
+        # Import timed out
+        logger.warning("Presidio import timed out after 5 seconds")
         raise ImportError(
             "presidio-analyzer import timed out. There may be an issue with the installation."
-        ) from e
-    except ImportError as e:
-        signal.alarm(0)  # Cancel the alarm
-        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
-        raise ImportError(
-            "presidio-analyzer is required for PII detection. "
-            "Install it with: pip install presidio-analyzer"
-        ) from e
+        )
+
+    # Check if there was an error during import
+    if import_error is not None:
+        if isinstance(import_error, ImportError):
+            raise ImportError(
+                "presidio-analyzer is required for PII detection. "
+                "Install it with: pip install presidio-analyzer"
+            ) from import_error
+        else:
+            raise import_error
 
 
 logger = logging.getLogger(__name__)
