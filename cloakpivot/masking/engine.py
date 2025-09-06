@@ -87,8 +87,13 @@ class MaskingEngine:
         self.use_presidio = self._determine_presidio_usage(use_presidio_engine)
 
         # Initialize the appropriate masking adapter
+
+        from .presidio_adapter import PresidioMaskingAdapter
+
+        self.presidio_adapter: PresidioMaskingAdapter | None
+        self.strategy_applicator: StrategyApplicator | None
+
         if self.use_presidio:
-            from .presidio_adapter import PresidioMaskingAdapter
             self.presidio_adapter = PresidioMaskingAdapter()
             self.strategy_applicator = None  # Not used in Presidio mode
             logger.info("MaskingEngine using Presidio adapter")
@@ -193,10 +198,25 @@ class MaskingEngine:
         if self.presidio_adapter is None:
             raise RuntimeError("Presidio adapter not initialized")
 
+        # Convert analyzer RecognizerResult to anonymizer RecognizerResult
+        from presidio_anonymizer.entities import (
+            RecognizerResult as AnonymizerRecognizerResult,
+        )
+
+        anonymizer_entities = [
+            AnonymizerRecognizerResult(
+                entity_type=entity.entity_type,
+                start=entity.start,
+                end=entity.end,
+                score=entity.score
+            )
+            for entity in entities
+        ]
+
         # Delegate to PresidioMaskingAdapter
         return self.presidio_adapter.mask_document(
             document=document,
-            entities=entities,
+            entities=anonymizer_entities,
             policy=policy,
             text_segments=text_segments,
             original_format=original_format
@@ -212,6 +232,9 @@ class MaskingEngine:
     ) -> MaskingResult:
         """Mask document using legacy StrategyApplicator engine."""
         logger.debug("Using legacy StrategyApplicator for masking")
+
+        if self.strategy_applicator is None:
+            raise RuntimeError("Strategy applicator not initialized for legacy mode")
 
         # Resolve entity conflicts or check for overlaps
         resolved_entities = self._resolve_entity_conflicts(entities, text_segments)

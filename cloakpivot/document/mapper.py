@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
@@ -193,7 +193,7 @@ class AnchorMapper:
 
     def map_global_to_node_position(
         self, global_start: int, global_end: int, segments: list[TextSegment]
-    ) -> Optional[NodeReference]:
+    ) -> NodeReference | None:
         """
         Map global text positions to node-specific positions.
 
@@ -241,7 +241,7 @@ class AnchorMapper:
 
     def map_node_to_global_position(
         self, node_id: str, start_pos: int, end_pos: int, segments: list[TextSegment]
-    ) -> Optional[tuple[int, int]]:
+    ) -> tuple[int, int] | None:
         """
         Map node-specific positions to global text positions.
 
@@ -343,7 +343,7 @@ class AnchorMapper:
 
     def _find_segment_for_global_position(
         self, segments: list[TextSegment], global_position: int
-    ) -> Optional[TextSegment]:
+    ) -> TextSegment | None:
         """Find the text segment that contains a global position."""
         for segment in segments:
             if segment.contains_offset(global_position):
@@ -352,10 +352,10 @@ class AnchorMapper:
 
     def _create_node_reference(
         self,
-        detection: "RecognizerResult",
+        detection: RecognizerResult,
         segment: TextSegment,
         all_segments: list[TextSegment],
-    ) -> Optional[NodeReference]:
+    ) -> NodeReference | None:
         """Create a node reference from a detection and its containing segment."""
         try:
             # Convert global positions to local positions within the segment
@@ -391,7 +391,7 @@ class AnchorMapper:
         node_ref: NodeReference,
         original_texts: dict[str, str],
         segments: list[TextSegment],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Extract the original text for a node reference."""
         # Try to get from original_texts mapping first
         if node_ref.node_id in original_texts:
@@ -416,7 +416,7 @@ class AnchorMapper:
 
     def _resolve_overlap_conflict(
         self, new_anchor: AnchorEntry, existing_anchors: list[AnchorEntry]
-    ) -> Optional[AnchorEntry]:
+    ) -> AnchorEntry | None:
         """
         Resolve overlap conflicts by choosing the best anchor.
 

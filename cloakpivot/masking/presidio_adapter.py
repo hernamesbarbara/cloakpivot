@@ -1,12 +1,13 @@
 """Presidio-based masking adapter for CloakPivot."""
 
+import copy
 import hashlib
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
-from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, OperatorResult
-from presidio_anonymizer.entities import OperatorConfig
+from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
+
 try:
     import presidio_anonymizer
     PRESIDIO_VERSION = getattr(presidio_anonymizer, '__version__', '2.x.x')
@@ -53,7 +54,7 @@ class PresidioMaskingAdapter:
         Args:
             engine_config: Optional configuration for Presidio engine
         """
-        self._anonymizer_instance = None  # Lazy loading
+        self._anonymizer_instance: Optional[AnonymizerEngine] = None  # Lazy loading
         self.operator_mapper = StrategyToOperatorMapper()
         self.cloakmap_enhancer = CloakMapEnhancer()
         self._fallback_char = "*"
@@ -111,7 +112,7 @@ class PresidioMaskingAdapter:
 
             # Special handling for HASH strategy to support prefix
             if strategy.kind == StrategyKind.HASH:
-                return self._apply_hash_strategy(original_text, entity_type, strategy, confidence)
+                return cast(str, self._apply_hash_strategy(original_text, entity_type, strategy, confidence))
 
             # Special handling for PARTIAL strategy
             if strategy.kind == StrategyKind.PARTIAL:
@@ -170,29 +171,55 @@ class PresidioMaskingAdapter:
         """
         logger.info(f"Masking document {document.name} with {len(entities)} entities using Presidio")
 
+        # Filter out overlapping entities to avoid conflicts
+        filtered_entities = self._filter_overlapping_entities(entities)
+
         # Prepare strategies for each entity type
         strategies = {}
-        for entity in entities:
+        for entity in filtered_entities:
             if entity.entity_type not in strategies:
                 strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
 
+        # Get the document text (assuming single text document)
+        document_text = document.texts[0].text if document.texts else ""
+
         # Process all entities in batch
         operator_results = self._batch_process_entities(
-            document._main_text, entities, strategies
+            document_text, filtered_entities, strategies
         )
 
         # Create anchor entries for CloakMap
         anchor_entries = []
-        masked_text = document._main_text
+        masked_text = document_text
 
-        # Apply masks and create anchors (process in reverse to maintain positions)
-        for _i, (entity, op_result) in enumerate(sorted(
-            zip(entities, operator_results),
-            key=lambda x: x[0].start,
-            reverse=True
-        )):
+        # Map operator results by position for correct matching
+        op_results_by_pos = {}
+        for op_result in operator_results:
+            if hasattr(op_result, 'start') and hasattr(op_result, 'end'):
+                key = (op_result.start, op_result.end)
+                op_results_by_pos[key] = op_result
+
+        # Process entities in reverse order to maintain positions
+        sorted_entities = sorted(filtered_entities, key=lambda x: x.start, reverse=True)
+        entity_to_op_result = []
+
+        for entity in sorted_entities:
+            # Find matching operator result by position
+            key = (entity.start, entity.end)
+            op_result = op_results_by_pos.get(key)
+
+            # If no exact match, create a synthetic result
+            if op_result is None:
+                op_result = self._create_synthetic_result(
+                    entity,
+                    strategies.get(entity.entity_type, Strategy(StrategyKind.REDACT, {"char": "*"})),
+                    document_text
+                )
+
+            entity_to_op_result.append((entity, op_result))
+
             # Extract original text
-            original = document._main_text[entity.start:entity.end]
+            original = document_text[entity.start:entity.end]
 
             # Get masked value from operator result
             masked_value = op_result.text if hasattr(op_result, 'text') else self._fallback_redaction(original)
@@ -217,8 +244,9 @@ class PresidioMaskingAdapter:
                 masked_value = "*"  # Use single char as fallback
 
             # Find the segment containing this entity
-            node_id = self._find_segment_for_position(entity.start, text_segments) if text_segments else "#/texts/0"
-            
+            found_node_id = self._find_segment_for_position(entity.start, text_segments) if text_segments else None
+            node_id = found_node_id if found_node_id is not None else "#/texts/0"
+
             anchor = AnchorEntry(
                 node_id=node_id,
                 start=entity.start,
@@ -239,13 +267,13 @@ class PresidioMaskingAdapter:
             anchor_entries.append(anchor)
 
         # Create masked document
-        from docling_core.types.doc.document import TextItem
+        from docling_core.types.doc.document import DocItemLabel, TextItem
 
         masked_document = DoclingDocument(
             name=document.name,
             texts=[],
-            tables=[],
-            key_value_items=[]
+            tables=copy.deepcopy(document.tables) if hasattr(document, 'tables') else [],
+            key_value_items=copy.deepcopy(document.key_value_items) if hasattr(document, 'key_value_items') else []
         )
 
         # Add masked text as a text item if the original had texts
@@ -254,30 +282,48 @@ class PresidioMaskingAdapter:
             masked_text_item = TextItem(
                 text=masked_text,
                 self_ref="#/texts/0",
-                label="text",
+                label=DocItemLabel.TEXT,
                 orig=masked_text
             )
             masked_document.texts = [masked_text_item]
 
-        # Set _main_text for compatibility
-        masked_document._main_text = masked_text
+        # Also preserve _main_text for backward compatibility
+        if hasattr(document, '_main_text'):
+            masked_document._main_text = masked_text  # type: ignore[attr-defined]
 
         # Create base CloakMap
         base_cloakmap = CloakMap.create(
             doc_id=document.name,
-            doc_hash=hashlib.sha256(document._main_text.encode()).hexdigest(),
+            doc_hash=hashlib.sha256(document_text.encode()).hexdigest(),
             anchors=anchor_entries,
             policy=policy,
             metadata={"original_format": original_format} if original_format else {}
         )
 
-        # Enhance with Presidio metadata
-        enhanced_cloakmap = self.cloakmap_enhancer.add_presidio_metadata(
-            base_cloakmap,
-            operator_results=[self._operator_result_to_dict(r) for r in operator_results],
-            engine_version=PRESIDIO_VERSION,
-            reversible_operators=self._get_reversible_operators(strategies)
-        )
+        # Enhance with Presidio metadata - include original text only for reversible operations
+        enhanced_operator_results = []
+        reversible_operators = self._get_reversible_operators(strategies)
+
+        for entity, op_result in entity_to_op_result:
+            op_dict = self._operator_result_to_dict(op_result)
+
+            # Only add original text for reversible operations
+            operator = op_dict.get("operator", "")
+            if operator in reversible_operators:
+                op_dict["original_text"] = document_text[entity.start:entity.end]
+
+            enhanced_operator_results.append(op_dict)
+
+        # Only enhance with Presidio metadata if there are results
+        if enhanced_operator_results:
+            enhanced_cloakmap = self.cloakmap_enhancer.add_presidio_metadata(
+                base_cloakmap,
+                operator_results=enhanced_operator_results,
+                engine_version=PRESIDIO_VERSION,
+                reversible_operators=self._get_reversible_operators(strategies)
+            )
+        else:
+            enhanced_cloakmap = base_cloakmap
 
         # Calculate statistics
         stats = {
@@ -285,7 +331,7 @@ class PresidioMaskingAdapter:
             "unique_entity_types": len(strategies),
             "presidio_engine_used": True,
             "fallback_used": any(
-                a.metadata.get("presidio_operator") == "fallback"
+                a.metadata and a.metadata.get("presidio_operator") == "fallback"
                 for a in anchor_entries
             )
         }
@@ -295,6 +341,40 @@ class PresidioMaskingAdapter:
             cloakmap=enhanced_cloakmap,
             stats=stats
         )
+
+    def _filter_overlapping_entities(self, entities: list[RecognizerResult]) -> list[RecognizerResult]:
+        """Filter out overlapping entities, keeping the highest confidence or longest match.
+
+        Args:
+            entities: List of detected entities that may overlap
+
+        Returns:
+            Filtered list with no overlapping entities
+        """
+        if not entities:
+            return []
+
+        # Sort by start position, then by score (descending), then by length (descending)
+        sorted_entities = sorted(
+            entities,
+            key=lambda e: (e.start, -e.score, -(e.end - e.start))
+        )
+
+        filtered = []
+        last_end = -1
+
+        for entity in sorted_entities:
+            # Skip if this entity overlaps with a previously selected one
+            if entity.start >= last_end:
+                filtered.append(entity)
+                last_end = entity.end
+            else:
+                # Log that we're skipping an overlapping entity
+                logger.debug(
+                    f"Skipping overlapping entity: {entity.entity_type} at {entity.start}-{entity.end}"
+                )
+
+        return filtered
 
     def _batch_process_entities(
         self,
@@ -447,10 +527,10 @@ class PresidioMaskingAdapter:
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
-        callback = strategy.parameters.get("callback")
+        callback = strategy.parameters.get("callback") if strategy.parameters else None
         if callback and callable(callback):
             try:
-                return callback(text)
+                return cast(str, callback(text))
             except Exception as e:
                 logger.error(f"Custom callback failed: {e}")
         return self._fallback_redaction(text)
@@ -509,20 +589,28 @@ class PresidioMaskingAdapter:
         original = text[start:end] if start < end else "*"
 
         # Apply strategy manually
+        params = strategy.parameters or {}
         if strategy.kind == StrategyKind.REDACT:
-            masked = strategy.parameters.get("char", "*") * len(original)
+            masked = params.get("char", "*") * len(original)
         elif strategy.kind == StrategyKind.TEMPLATE:
-            masked = strategy.parameters.get("template", f"[{entity_type}]")
+            template = params.get("template", f"[{entity_type}]")
+            # Replace {} with a unique ID if present
+            if "{}" in template:
+                import uuid
+                unique_id = str(uuid.uuid4())[:8]
+                masked = template.replace("{}", unique_id)
+            else:
+                masked = template
         elif strategy.kind == StrategyKind.HASH:
-            algo = strategy.parameters.get("algorithm", "sha256")
-            prefix = strategy.parameters.get("prefix", "")
+            algo = params.get("algorithm", "sha256")
+            prefix = params.get("prefix", "")
             hash_obj = hashlib.new(algo)
             hash_obj.update(original.encode())
             masked = prefix + hash_obj.hexdigest()[:8]
         elif strategy.kind == StrategyKind.PARTIAL:
-            visible = strategy.parameters.get("visible_chars", 4)
-            position = strategy.parameters.get("position", "end")
-            mask_char = strategy.parameters.get("mask_char", "*")
+            visible = params.get("visible_chars", 4)
+            position = params.get("position", "end")
+            mask_char = params.get("mask_char", "*")
             if position == "end" and len(original) > visible:
                 masked = mask_char * (len(original) - visible) + original[-visible:]
             elif position == "start" and len(original) > visible:
@@ -541,24 +629,39 @@ class PresidioMaskingAdapter:
             'text': masked
         })()
 
-        return result
+        return cast(OperatorResult, result)
 
     def _get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
-        """Identify which operators are reversible."""
+        """Identify which operators are reversible.
+
+        Reversible operations are those that can be undone to restore the original text.
+        Non-reversible operations like REDACT, HASH, and SURROGATE cannot be reversed.
+        """
+        reversible_kinds = {
+            StrategyKind.TEMPLATE,  # Can store original
+            # StrategyKind.CUSTOM could be reversible depending on implementation
+            # PARTIAL is not reversible - it loses some information
+            # REDACT is not reversible
+            # HASH is not reversible
+            # SURROGATE is not reversible
+        }
+
         reversible = []
         for _entity_type, strategy in strategies.items():
-            if strategy.kind in [StrategyKind.HASH, StrategyKind.CUSTOM]:
-                # These might be reversible depending on implementation
-                reversible.append(strategy.kind.value)
-        return reversible
+            if strategy.kind in reversible_kinds:
+                # Map strategy kind to Presidio operator name
+                # Presidio typically uses "replace" for template operations
+                reversible.append("replace")
+
+        return list(set(reversible))  # Remove duplicates
 
     def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> Optional[str]:
         """Find the segment node_id for a given character position.
-        
+
         Args:
             position: Character position in the full text
             segments: List of text segments with position information
-            
+
         Returns:
             Node ID of the containing segment, or None if not found
         """
@@ -573,13 +676,13 @@ class PresidioMaskingAdapter:
                     else:
                         # Default to index in segment list
                         return f"#/texts/{segments.index(segment)}"
-        
+
         # Fallback to default if no segment found
         return "#/texts/0"
-    
+
     def _cleanup_large_results(self, results: list[OperatorResult]) -> None:
         """Clean up large result sets for memory efficiency.
-        
+
         For results exceeding memory thresholds:
         - Clear text fields from operator results after processing
         - Remove redundant metadata fields
@@ -588,7 +691,7 @@ class PresidioMaskingAdapter:
         # Define thresholds for memory management
         MAX_TEXT_LENGTH = 10000  # Characters per text field
         MAX_RESULTS = 1000  # Maximum results to keep in memory
-        
+
         if len(results) > MAX_RESULTS:
             # For very large result sets, clear text from older results
             # Keep only essential metadata for audit trail
@@ -596,7 +699,7 @@ class PresidioMaskingAdapter:
                 if hasattr(result, 'text') and result.text and len(result.text) > MAX_TEXT_LENGTH:
                     # Clear large text fields while preserving structure
                     result.text = f"[Text truncated - {len(result.text)} chars]"
-                
+
                 # Clear large metadata fields if present
                 if hasattr(result, 'operator_metadata') and result.operator_metadata:
                     if 'original_text' in result.operator_metadata:

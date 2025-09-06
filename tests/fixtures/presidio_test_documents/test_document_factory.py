@@ -6,6 +6,29 @@ from docling_core.types.doc.document import TableItem, TextItem
 
 
 class TestDocumentFactory:
+
+    def _get_document_text(self, document: DoclingDocument) -> str:
+        """Helper to get text from document, handling both formats."""
+        if hasattr(document, '_main_text'):
+            return document._main_text
+        elif document.texts:
+            return document.texts[0].text
+        return ""
+
+    def _set_document_text(self, document: DoclingDocument, text: str) -> None:
+        """Helper to set text in document, handling both formats."""
+        from docling_core.types.doc.document import TextItem
+        # Create proper TextItem
+        text_item = TextItem(
+            text=text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=text
+        )
+        document.texts = [text_item]
+        # Also set _main_text for backward compatibility
+        document._main_text = text
+
     """Factory for creating various types of test documents."""
 
     @staticmethod

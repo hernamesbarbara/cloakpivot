@@ -134,7 +134,9 @@ class CloakMapEnhancer:
                 "Use add_presidio_metadata() first or check CloakMap version."
             )
 
-        operator_results = cloakmap.presidio_metadata.get("operator_results", [])
+        if cloakmap.presidio_metadata is None:
+            return []
+        operator_results: list[dict[str, Any]] = cloakmap.presidio_metadata.get("operator_results", [])
 
         if not operator_results:
             logger.warning("CloakMap has presidio_metadata but no operator_results")
@@ -164,10 +166,11 @@ class CloakMapEnhancer:
         Raises:
             ValueError: If CloakMap doesn't contain Presidio metadata
         """
-        if not self.is_presidio_enabled(cloakmap):
+        if not self.is_presidio_enabled(cloakmap) or cloakmap.presidio_metadata is None:
             raise ValueError("CloakMap does not contain Presidio metadata")
 
-        return cloakmap.presidio_metadata.get("reversible_operators", [])
+        reversible_operators: list[str] = cloakmap.presidio_metadata.get("reversible_operators", [])
+        return reversible_operators
 
     def get_engine_version(self, cloakmap: CloakMap) -> Optional[str]:
         """Get Presidio engine version from CloakMap.
@@ -181,7 +184,7 @@ class CloakMapEnhancer:
         Raises:
             ValueError: If CloakMap doesn't contain Presidio metadata
         """
-        if not self.is_presidio_enabled(cloakmap):
+        if not self.is_presidio_enabled(cloakmap) or cloakmap.presidio_metadata is None:
             raise ValueError("CloakMap does not contain Presidio metadata")
 
         return cloakmap.presidio_metadata.get("engine_version")
@@ -198,7 +201,7 @@ class CloakMapEnhancer:
         Raises:
             ValueError: If CloakMap doesn't contain Presidio metadata
         """
-        if not self.is_presidio_enabled(cloakmap):
+        if not self.is_presidio_enabled(cloakmap) or cloakmap.presidio_metadata is None:
             raise ValueError("CloakMap does not contain Presidio metadata")
 
         return cloakmap.presidio_metadata.get("batch_id")
@@ -208,7 +211,7 @@ class CloakMapEnhancer:
         cloakmap: CloakMap,
         operator_results: list[dict[str, Any]],
         engine_version: Optional[str] = None,
-        **kwargs
+        **kwargs: Any
     ) -> CloakMap:
         """Migrate v1.0 CloakMap to v2.0 with Presidio metadata.
 
@@ -258,6 +261,8 @@ class CloakMapEnhancer:
             )
 
         # Start with existing metadata
+        if cloakmap.presidio_metadata is None:
+            raise ValueError("CloakMap presidio_metadata is None")
         current_metadata = cloakmap.presidio_metadata.copy()
 
         # Update fields if provided
@@ -344,7 +349,7 @@ class CloakMapEnhancer:
         reversible_operators = self.get_reversible_operators(cloakmap)
 
         # Count operators by type
-        operator_counts = {}
+        operator_counts: dict[str, int] = {}
         for result in operator_results:
             operator = result.get("operator", "unknown")
             operator_counts[operator] = operator_counts.get(operator, 0) + 1

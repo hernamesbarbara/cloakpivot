@@ -1,0 +1,61 @@
+# Presidio Engine Configuration for CloakPivot
+# This configuration file controls how the Presidio integration behaves
+
+presidio:
+  # Engine selection
+  # Options: auto (intelligent selection), presidio (force Presidio), legacy (force legacy)
+  engine: "auto"
+  
+  # Fallback behavior
+  # If true, falls back to legacy engine when Presidio encounters errors
+  fallback_on_error: true
+  
+  # Performance settings
+  batch_processing: true       # Process entities in batches for better performance
+  connection_pooling: true     # Reuse connections for efficiency
+  max_batch_size: 100          # Maximum entities per batch
+  
+  # Detection settings
+  confidence_threshold: 0.8    # Minimum confidence for entity detection
+  
+  # Advanced features
+  operator_chaining: false     # Chain multiple operators together
+  custom_recognizers: []       # List of custom recognizer modules to load
+  
+  # Operator configuration
+  # Define specific settings for each Presidio operator
+  operators:
+    # Default redaction operator
+    default_redact:
+      redact_char: "*"         # Character used for redaction
+      preserve_length: true    # Keep original text length
+      
+    # Encryption operator configuration
+    encryption:
+      key_provider: "environment"  # Options: environment, file, vault
+      key_rotation: true           # Enable automatic key rotation
+      algorithm: "AES-256"         # Encryption algorithm
+      
+    # Hash operator configuration
+    hash:
+      algorithm: "sha256"      # Hash algorithm (sha256, sha512, md5)
+      salt_source: "random"    # Salt generation: random, fixed, per-entity
+      truncate: 8              # Truncate hash to N characters
+      prefix: "HASH_"          # Prefix for hashed values
+      
+    # Masking operator configuration
+    mask:
+      masking_char: "X"        # Character for masking
+      chars_to_mask: 4         # Number of characters to mask
+      from_end: true           # Mask from end of string
+      
+    # Replace operator configuration
+    replace:
+      new_value: "[REDACTED]"  # Default replacement text
+
+# Note: The following sections are not yet implemented but are reserved for future use:
+# - entity_operators: Map entity types to specific operators
+# - context_settings: Apply different settings based on document context
+# - logging: Control logging behavior
+# - performance: Advanced performance tuning
+# - error_handling: Configure error handling strategies

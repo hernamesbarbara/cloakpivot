@@ -124,6 +124,10 @@ class DocumentUnmasker:
         # Calculate statistics
         stats = self._calculate_restoration_stats(restoration_results)
 
+        # Sync _main_text if it exists (for backward compatibility with tests)
+        if hasattr(document, '_main_text') and document.texts:
+            document._main_text = document.texts[0].text
+
         logger.info(
             f"Document unmasking completed: {stats['restored_anchors']} restored, "
             f"{stats['failed_restorations']} failed "

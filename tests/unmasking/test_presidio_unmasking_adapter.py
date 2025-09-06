@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from docling_core.types import DoclingDocument
+from docling_core.types.doc.document import TextItem
 from presidio_anonymizer import DeanonymizeEngine
 
 from cloakpivot.core.anchors import AnchorEntry
@@ -13,6 +14,29 @@ from cloakpivot.unmasking.presidio_adapter import PresidioUnmaskingAdapter
 
 
 class TestPresidioUnmaskingAdapter:
+
+    def _get_document_text(self, document: DoclingDocument) -> str:
+        """Helper to get text from document, handling both formats."""
+        if hasattr(document, '_main_text'):
+            return document._main_text
+        elif document.texts:
+            return document.texts[0].text
+        return ""
+
+    def _set_document_text(self, document: DoclingDocument, text: str) -> None:
+        """Helper to set text in document, handling both formats."""
+        from docling_core.types.doc.document import TextItem
+        # Create proper TextItem
+        text_item = TextItem(
+            text=text,
+            self_ref="#/texts/0",
+            label="text",
+            orig=text
+        )
+        document.texts = [text_item]
+        # Also set _main_text for backward compatibility
+        document._main_text = text
+
     """Test suite for PresidioUnmaskingAdapter."""
 
     def test_initialization(self):
@@ -29,7 +53,7 @@ class TestPresidioUnmaskingAdapter:
 
         # Create masked document
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "My phone is [PHONE] and email is [EMAIL]."
+        self._set_document_text(masked_doc, "My phone is [PHONE] and email is [EMAIL].")
 
         # Create operator results for reversible operations
         operator_results = [
@@ -68,7 +92,7 @@ class TestPresidioUnmaskingAdapter:
         result = adapter.unmask_document(masked_doc, cloakmap)
 
         # Verify restoration
-        assert result.restored_document._main_text == "My phone is 555-1234 and email is test@example.com."
+        assert self._get_document_text(result.restored_document) == "My phone is 555-1234 and email is test@example.com."
         assert result.stats["presidio_restored"] == 2
         assert result.stats["anchor_restored"] == 0
 
@@ -78,7 +102,7 @@ class TestPresidioUnmaskingAdapter:
 
         # Create masked document
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "My SSN is [SSN_TOKEN_123]."
+        self._set_document_text(masked_doc, "My SSN is [SSN_TOKEN_123].")
 
         # Create anchor entries for non-reversible operations
         anchor = AnchorEntry(
@@ -109,7 +133,7 @@ class TestPresidioUnmaskingAdapter:
 
             # Create a mock result with restored document
             mock_doc = DoclingDocument(name="test_doc")
-            mock_doc._main_text = "My SSN is 123-45-6789."
+            self._set_document_text(mock_doc, "My SSN is 123-45-6789.")
 
             mock_result = UnmaskingResult(
                 restored_document=mock_doc,
@@ -122,7 +146,7 @@ class TestPresidioUnmaskingAdapter:
 
             # Verify anchor-based restoration was called
             mock_restore.assert_called_once()
-            assert result.restored_document._main_text == "My SSN is 123-45-6789."
+            assert self._get_document_text(result.restored_document) == "My SSN is 123-45-6789."
 
     def test_hybrid_restoration(self):
         """Test hybrid restoration with both Presidio and anchor operations."""
@@ -130,7 +154,7 @@ class TestPresidioUnmaskingAdapter:
 
         # Create masked document with mixed operations
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "Phone: [PHONE], SSN: [REDACTED]"
+        self._set_document_text(masked_doc, "Phone: [PHONE], SSN: [REDACTED]")
 
         # Reversible operation (can be restored via Presidio)
         operator_results = [
@@ -176,10 +200,10 @@ class TestPresidioUnmaskingAdapter:
         result = adapter.unmask_document(masked_doc, cloakmap)
 
         # Verify mixed restoration
-        assert "[PHONE]" not in result.restored_document._main_text
-        assert "555-1234" in result.restored_document._main_text
+        assert "[PHONE]" not in self._get_document_text(result.restored_document)
+        assert "555-1234" in self._get_document_text(result.restored_document)
         # SSN remains redacted (non-reversible)
-        assert "[REDACTED]" in result.restored_document._main_text
+        assert "[REDACTED]" in self._get_document_text(result.restored_document)
 
     def test_restore_content_with_encryption(self):
         """Test content restoration for encrypted values."""
@@ -204,7 +228,7 @@ class TestPresidioUnmaskingAdapter:
 
             # Should log warning about encryption not being implemented
             mock_logger.warning.assert_called_with(
-                "Encryption reversal not yet implemented for ENCRYPTED_VALUE_XYZ"
+                "Encryption reversal not yet implemented"
             )
             # Text remains unchanged since encryption reversal isn't implemented
             assert restored == masked_text
@@ -214,7 +238,7 @@ class TestPresidioUnmaskingAdapter:
         adapter = PresidioUnmaskingAdapter()
 
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "Test [MASKED] content"
+        self._set_document_text(masked_doc, "Test [MASKED] content")
 
         # Create v1.0 CloakMap to trigger fallback to anchor-based restoration
         cloakmap = CloakMap(
@@ -274,7 +298,7 @@ class TestPresidioUnmaskingAdapter:
         )
 
         masked_doc = DoclingDocument(name="legacy_doc")
-        masked_doc._main_text = "[NAME] is here"
+        self._set_document_text(masked_doc, "[NAME] is here")
 
         # Should handle v1.0 gracefully
         with patch.object(adapter, '_anchor_based_restoration') as mock_restore:
@@ -299,7 +323,7 @@ class TestPresidioUnmaskingAdapter:
         adapter = PresidioUnmaskingAdapter()
 
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "No PII here"
+        self._set_document_text(masked_doc, "No PII here")
 
         cloakmap = CloakMap(
             version="2.0",
@@ -315,7 +339,7 @@ class TestPresidioUnmaskingAdapter:
         result = adapter.unmask_document(masked_doc, cloakmap)
 
         # Document should remain unchanged
-        assert result.restored_document._main_text == "No PII here"
+        assert self._get_document_text(result.restored_document) == "No PII here"
         assert result.stats["presidio_restored"] == 0
         assert result.stats["anchor_restored"] == 0
 
@@ -324,7 +348,7 @@ class TestPresidioUnmaskingAdapter:
         adapter = PresidioUnmaskingAdapter()
 
         masked_doc = DoclingDocument(name="test_doc")
-        masked_doc._main_text = "Phone: [PHONE], Email: [EMAIL]"
+        self._set_document_text(masked_doc, "Phone: [PHONE], Email: [EMAIL]")
 
         # One valid, one invalid operator result
         operator_results = [
@@ -360,7 +384,7 @@ class TestPresidioUnmaskingAdapter:
         result = adapter.unmask_document(masked_doc, cloakmap)
 
         # Phone should be restored, email should remain masked
-        assert "555-1234" in result.restored_document._main_text
-        assert "[EMAIL]" in result.restored_document._main_text
+        assert "555-1234" in self._get_document_text(result.restored_document)
+        assert "[EMAIL]" in self._get_document_text(result.restored_document)
         assert result.stats["presidio_restored"] == 1
         assert result.stats["presidio_failed"] == 1

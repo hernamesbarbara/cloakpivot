@@ -250,7 +250,6 @@ def mask(
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
-            import sys
 
             sys.exit(130)  # SIGINT
 
@@ -330,7 +329,8 @@ def unmask(
         cloakpivot batch unmask "masked/*.json" --cloakmap-dir ./cloakmaps --out-dir ./restored
 
         # Unmask with integrity verification disabled (faster)
-        cloakpivot batch unmask "masked/**/*.json" --cloakmap-dir ./maps --out-dir ./restored --no-verify
+        cloakpivot batch unmask "masked/**/*.json" --cloakmap-dir ./maps \\
+            --out-dir ./restored --no-verify
     """
     verbose = verbose or (ctx.obj and ctx.obj.get("verbose", False))
 
@@ -383,7 +383,6 @@ def unmask(
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch processing cancelled by user")
             processor.cancel()
-            import sys
 
             sys.exit(130)  # SIGINT
 
@@ -530,7 +529,6 @@ def analyze(
         except KeyboardInterrupt:
             click.echo("\n🛑 Batch analysis cancelled by user")
             processor.cancel()
-            import sys
 
             sys.exit(130)  # SIGINT
 

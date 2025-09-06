@@ -1,10 +1,9 @@
 """Integration tests for CloakMap migration scenarios."""
 
-import json
-import pytest
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+
+import pytest
 
 from cloakpivot.core.anchors import AnchorEntry
 from cloakpivot.core.cloakmap import CloakMap
@@ -39,7 +38,7 @@ class TestCloakMapMigrationScenarios:
 
         # Add crypto and signature data
         original_v1_signed = original_v1.with_signature(secret_key="test_secret")
-        
+
         # Migrate to v2.0
         enhancer = CloakMapEnhancer()
         operator_results = [
@@ -120,7 +119,7 @@ class TestCloakMapMigrationScenarios:
                     {
                         "entity_type": "PLACEHOLDER",
                         "start": 0,
-                        "end": 1, 
+                        "end": 1,
                         "operator": "redact",
                     }
                 ]
@@ -167,7 +166,7 @@ class TestCloakMapMigrationScenarios:
             v1_file_path = temp_path / "cloakmap_v1.json"
             original_v1.save_to_file(v1_file_path)
 
-            # Load from file 
+            # Load from file
             loaded_v1 = CloakMap.load_from_file(v1_file_path)
             assert loaded_v1.version == "1.0"
             assert not loaded_v1.is_presidio_enabled
@@ -190,7 +189,7 @@ class TestCloakMapMigrationScenarios:
             )
 
             # Save migrated version to new file
-            v2_file_path = temp_path / "cloakmap_v2.json" 
+            v2_file_path = temp_path / "cloakmap_v2.json"
             migrated_v2.save_to_file(v2_file_path)
 
             # Load migrated version and verify
@@ -339,7 +338,7 @@ class TestVersionDetectionAndCompatibility:
         """Test handling collections of mixed version CloakMaps."""
         # Create mixed versions
         v1_cloakmap = CloakMap.create(doc_id="v1", doc_hash="hash1", anchors=[])
-        
+
         v2_cloakmap = CloakMap.create_with_presidio(
             doc_id="v2",
             doc_hash="hash2",
@@ -366,7 +365,7 @@ class TestVersionDetectionAndCompatibility:
 
         # Verify mixed handling works
         v1_count = sum(1 for cm in mixed_versions if cm.version == "1.0")
-        v2_count = sum(1 for cm in mixed_versions if cm.version == "2.0") 
+        v2_count = sum(1 for cm in mixed_versions if cm.version == "2.0")
         assert v1_count == 1
         assert v2_count == 1
 
@@ -374,11 +373,11 @@ class TestVersionDetectionAndCompatibility:
         """Test version validation with edge cases."""
         # Valid version formats
         valid_versions = ["1.0", "2.0", "1.1", "2.1", "1.0.0", "2.0.1"]
-        
+
         for version in valid_versions:
             cloakmap = CloakMap(
                 version=version,
-                doc_id="version_test", 
+                doc_id="version_test",
                 doc_hash="hash",
             )
             assert cloakmap.version == version
@@ -386,18 +385,18 @@ class TestVersionDetectionAndCompatibility:
         # Test individual invalid version formats
         with pytest.raises(ValueError, match="Version cannot be empty"):
             CloakMap(version="", doc_id="version_test", doc_hash="hash")
-            
+
         with pytest.raises(ValueError, match="version must follow 'major.minor' format"):
             CloakMap(version="1", doc_id="version_test", doc_hash="hash")
-            
+
         with pytest.raises(ValueError, match="version major and minor components must be numeric"):
             CloakMap(version="v1.0", doc_id="version_test", doc_hash="hash")
-            
+
         # Note: "1.0.x" actually succeeds because only first two parts need to be numeric
         # This is by design to support patch versions like "1.0.1"
         with pytest.raises(ValueError, match="version major and minor components must be numeric"):
             CloakMap(version="x.0", doc_id="version_test", doc_hash="hash")
-            
+
         with pytest.raises(ValueError, match="version must follow 'major.minor' format"):
             CloakMap(version="invalid", doc_id="version_test", doc_hash="hash")
 
@@ -407,7 +406,7 @@ class TestUpgradeAndDowngradeScenarios:
 
     def test_v2_to_v1_compatibility_mode(self):
         """Test that v2.0 CloakMap can be used in v1.0 compatibility mode."""
-        # Create v2.0 CloakMap 
+        # Create v2.0 CloakMap
         v2_cloakmap = CloakMap.create_with_presidio(
             doc_id="upgrade_test",
             doc_hash="hash123",
@@ -436,7 +435,7 @@ class TestUpgradeAndDowngradeScenarios:
         v2_cloakmap = CloakMap.create_with_presidio(
             doc_id="strip_test",
             doc_hash="hash123",
-            anchors=[], 
+            anchors=[],
             presidio_metadata={
                 "engine_version": "2.2.1",
                 "operator_results": [

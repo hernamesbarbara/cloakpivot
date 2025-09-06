@@ -7,15 +7,15 @@ if TYPE_CHECKING:
     from presidio_anonymizer.entities import OperatorConfig
 else:
     import signal
-    
+
     def timeout_handler(signum, frame):
         raise TimeoutError("Import timed out")
-    
+
     # Try to import with timeout
     old_handler = signal.signal(signal.SIGALRM, timeout_handler) if hasattr(signal, 'SIGALRM') else None
     if old_handler is not None:
         signal.alarm(2)  # 2 second timeout
-    
+
     try:
         from presidio_anonymizer.entities import OperatorConfig
         if old_handler is not None:

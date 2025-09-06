@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from docling_core.types import DoclingDocument
+
     from .cloakmap import CloakMap
 else:
     try:
