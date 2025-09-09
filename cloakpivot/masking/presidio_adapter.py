@@ -112,7 +112,7 @@ class PresidioMaskingAdapter:
 
             # Special handling for HASH strategy to support prefix
             if strategy.kind == StrategyKind.HASH:
-                return cast(str, self._apply_hash_strategy(original_text, entity_type, strategy, confidence))
+                return self._apply_hash_strategy(original_text, entity_type, strategy, confidence)
 
             # Special handling for PARTIAL strategy
             if strategy.kind == StrategyKind.PARTIAL:
@@ -206,7 +206,7 @@ class PresidioMaskingAdapter:
         for entity in sorted_entities:
             # Find matching operator result by position
             key = (entity.start, entity.end)
-            op_result = op_results_by_pos.get(key)
+            op_result: Optional[OperatorResult] = op_results_by_pos.get(key)
 
             # If no exact match, create a synthetic result
             if op_result is None:
@@ -215,8 +215,6 @@ class PresidioMaskingAdapter:
                     strategies.get(entity.entity_type, Strategy(StrategyKind.REDACT, {"char": "*"})),
                     document_text
                 )
-
-            entity_to_op_result.append((entity, op_result))
 
             # Extract original text
             original = document_text[entity.start:entity.end]
@@ -265,6 +263,8 @@ class PresidioMaskingAdapter:
                 }
             )
             anchor_entries.append(anchor)
+            # Track entity to operator result mapping for metadata
+            entity_to_op_result.append((entity, op_result))
 
         # Create masked document
         from docling_core.types.doc.document import DocItemLabel, TextItem

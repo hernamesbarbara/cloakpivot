@@ -109,37 +109,74 @@ class AnchorResolver:
         resolved_anchors: list[ResolvedAnchor] = []
         failed_anchors: list[FailedAnchor] = []
 
+        # Group anchors by node ID for better position tracking
+        anchors_by_node: dict[str, list[AnchorEntry]] = {}
         for anchor in anchors:
-            try:
-                resolved = self._resolve_single_anchor(document, anchor)
-                if resolved:
-                    resolved_anchors.append(resolved)
-                    logger.debug(
-                        f"Resolved anchor {anchor.replacement_id} "
-                        f"with confidence {resolved.confidence:.2f}"
+            if anchor.node_id not in anchors_by_node:
+                anchors_by_node[anchor.node_id] = []
+            anchors_by_node[anchor.node_id].append(anchor)
+
+        # Process each node's anchors
+        for _node_id, node_anchors in anchors_by_node.items():
+            # Sort anchors by start position for cumulative shift tracking
+            sorted_anchors = sorted(node_anchors, key=lambda a: a.start)
+
+            # Track cumulative position shift for this node
+            cumulative_shift = 0
+
+            for anchor in sorted_anchors:
+                try:
+                    # Calculate adjusted position based on cumulative shift
+                    adjusted_anchor = AnchorEntry(
+                        node_id=anchor.node_id,
+                        start=anchor.start + cumulative_shift,
+                        end=anchor.start + cumulative_shift + len(anchor.masked_value),  # Use masked value length
+                        entity_type=anchor.entity_type,
+                        confidence=anchor.confidence,
+                        masked_value=anchor.masked_value,
+                        replacement_id=anchor.replacement_id,
+                        original_checksum=anchor.original_checksum,
+                        checksum_salt=anchor.checksum_salt,
+                        strategy_used=anchor.strategy_used,
+                        timestamp=anchor.timestamp,
+                        metadata=anchor.metadata
                     )
-                else:
+
+                    resolved = self._resolve_single_anchor_with_adjusted(document, anchor, adjusted_anchor)
+                    if resolved:
+                        resolved_anchors.append(resolved)
+                        logger.debug(
+                            f"Resolved anchor {anchor.replacement_id} "
+                            f"with confidence {resolved.confidence:.2f}"
+                        )
+
+                        # Update cumulative shift based on length difference
+                        original_length = anchor.end - anchor.start
+                        masked_length = len(anchor.masked_value)
+                        shift_delta = masked_length - original_length
+                        cumulative_shift += shift_delta
+                    else:
+                        failed_anchors.append(
+                            FailedAnchor(
+                                anchor=anchor,
+                                failure_reason="Could not locate replacement token",
+                                node_found=self._find_node_by_id(document, anchor.node_id)
+                                is not None,
+                                attempted_positions=[],
+                            )
+                        )
+                        logger.warning(f"Failed to resolve anchor {anchor.replacement_id}")
+
+                except Exception as e:
+                    logger.error(f"Error resolving anchor {anchor.replacement_id}: {e}")
                     failed_anchors.append(
                         FailedAnchor(
                             anchor=anchor,
-                            failure_reason="Could not locate replacement token",
-                            node_found=self._find_node_by_id(document, anchor.node_id)
-                            is not None,
+                            failure_reason=f"Resolution error: {e}",
+                            node_found=False,
                             attempted_positions=[],
                         )
                     )
-                    logger.warning(f"Failed to resolve anchor {anchor.replacement_id}")
-
-            except Exception as e:
-                logger.error(f"Error resolving anchor {anchor.replacement_id}: {e}")
-                failed_anchors.append(
-                    FailedAnchor(
-                        anchor=anchor,
-                        failure_reason=f"Resolution error: {e}",
-                        node_found=False,
-                        attempted_positions=[],
-                    )
-                )
 
         success_rate = len(resolved_anchors) / len(anchors) * 100 if anchors else 100
 
@@ -159,10 +196,67 @@ class AnchorResolver:
             },
         }
 
+    def _resolve_single_anchor_with_adjusted(
+        self, document: DoclingDocument, original_anchor: AnchorEntry, adjusted_anchor: AnchorEntry
+    ) -> Optional[ResolvedAnchor]:
+        """Resolve a single anchor using adjusted positions."""
+        # Find the target node
+        node_item = self._find_node_by_id(document, original_anchor.node_id)
+        if not node_item:
+            logger.debug(f"Node not found: {original_anchor.node_id}")
+            return None
+
+        # Extract text content from the node
+        node_text = self._extract_node_text(node_item, original_anchor.node_id)
+        if not node_text:
+            logger.debug(f"No text content in node: {original_anchor.node_id}")
+            return None
+
+        # Try exact position match first with adjusted positions
+        exact_match = self._try_exact_position_match(adjusted_anchor, node_text)
+        if exact_match:
+            return ResolvedAnchor(
+                anchor=original_anchor,  # Use original anchor for metadata
+                node_item=node_item,
+                found_position=exact_match["position"],
+                found_text=exact_match["text"],
+                position_delta=0,
+                confidence=1.0,
+            )
+
+        # Try fuzzy position matching with adjusted positions
+        fuzzy_match = self._try_fuzzy_position_match(adjusted_anchor, node_text)
+        if fuzzy_match and fuzzy_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD:
+            return ResolvedAnchor(
+                anchor=original_anchor,  # Use original anchor for metadata
+                node_item=node_item,
+                found_position=fuzzy_match["position"],
+                found_text=fuzzy_match["text"],
+                position_delta=fuzzy_match["delta"],
+                confidence=fuzzy_match["confidence"],
+            )
+
+        # Try content-based search as last resort with adjusted positions
+        content_match = self._try_content_based_search(adjusted_anchor, node_text)
+        if (
+            content_match
+            and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD
+        ):
+            return ResolvedAnchor(
+                anchor=original_anchor,  # Use original anchor for metadata
+                node_item=node_item,
+                found_position=content_match["position"],
+                found_text=content_match["text"],
+                position_delta=content_match["delta"],
+                confidence=content_match["confidence"],
+            )
+
+        return None
+
     def _resolve_single_anchor(
         self, document: DoclingDocument, anchor: AnchorEntry
     ) -> Optional[ResolvedAnchor]:
-        """Resolve a single anchor in the document."""
+        """Resolve a single anchor in the document (backward compatibility)."""
         # Find the target node
         node_item = self._find_node_by_id(document, anchor.node_id)
         if not node_item:
@@ -271,15 +365,24 @@ class AnchorResolver:
         """Search for the masked value anywhere in the node text."""
         masked_value = anchor.masked_value
 
-        # Find all occurrences of the masked value
-        occurrences = []
-        start_idx = 0
-        while True:
-            idx = node_text.find(masked_value, start_idx)
-            if idx == -1:
-                break
-            occurrences.append((idx, idx + len(masked_value)))
-            start_idx = idx + 1
+        # Special handling for asterisk patterns to avoid matching substrings
+        if masked_value and all(c == "*" for c in masked_value):
+            # For asterisk patterns, look for isolated sequences of the exact length
+            import re
+            pattern = r'(?<!\*)\*{' + str(len(masked_value)) + r'}(?!\*)'
+            occurrences = []
+            for match in re.finditer(pattern, node_text):
+                occurrences.append((match.start(), match.end()))
+        else:
+            # For non-asterisk patterns, use the original logic
+            occurrences = []
+            start_idx = 0
+            while True:
+                idx = node_text.find(masked_value, start_idx)
+                if idx == -1:
+                    break
+                occurrences.append((idx, idx + len(masked_value)))
+                start_idx = idx + 1
 
         if not occurrences:
             return None
