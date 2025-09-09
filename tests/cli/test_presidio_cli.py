@@ -239,6 +239,7 @@ class TestMigrationCommands:
         cloakmap_v1 = {
             "version": "1.0",
             "doc_id": "test-doc",
+            "doc_hash": "abc123",
             "anchors": [],
             "created_at": "2024-01-01T00:00:00",
         }
@@ -268,6 +269,7 @@ class TestMigrationCommands:
         cloakmap_v2 = {
             "version": "2.0",
             "doc_id": "test-doc",
+            "doc_hash": "abc123",
             "anchors": [],
             "engine_used": "presidio",
         }
@@ -286,7 +288,7 @@ class TestMigrationCommands:
     def test_upgrade_cloakmap_with_backup(self, runner, temp_dir):
         """Test upgrading with backup creation."""
         # Create v1.0 CloakMap
-        cloakmap_v1 = {"version": "1.0", "doc_id": "test-doc", "anchors": []}
+        cloakmap_v1 = {"version": "1.0", "doc_id": "test-doc", "doc_hash": "abc123", "anchors": []}
 
         cloakmap_path = temp_dir / "map.json"
         with open(cloakmap_path, "w") as f:

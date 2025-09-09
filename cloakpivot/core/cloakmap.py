@@ -749,6 +749,9 @@ class CloakMap:
         # Only include presidio_metadata if present (backward compatibility)
         if self.presidio_metadata is not None:
             result["presidio_metadata"] = self.presidio_metadata
+            # If engine_used is in presidio_metadata, also expose it at top level for compatibility
+            if "engine_used" in self.presidio_metadata:
+                result["engine_used"] = self.presidio_metadata["engine_used"]
 
         return result
 
@@ -771,6 +774,12 @@ class CloakMap:
 
         # Handle presidio_metadata (optional for backward compatibility)
         presidio_metadata = data.get("presidio_metadata")
+        
+        # If engine_used is at top level, move it to presidio_metadata for storage
+        if "engine_used" in data:
+            if presidio_metadata is None:
+                presidio_metadata = {}
+            presidio_metadata["engine_used"] = data["engine_used"]
 
         return cls(
             version=data.get("version", "1.0"),
