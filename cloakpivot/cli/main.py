@@ -13,6 +13,7 @@ from cloakpivot import __version__
 from cloakpivot.core.types import DoclingDocument
 
 from .batch import batch
+from .migration import migrate
 
 # Error messages
 ERROR_MASK_ARGS = (
@@ -2550,12 +2551,12 @@ def completion(shell: str) -> None:
 
 
 @cli.group()
-def migrate() -> None:
-    """CloakMap migration utilities."""
+def migrate_old() -> None:
+    """CloakMap migration utilities (deprecated - use migrate instead)."""
     pass
 
 
-@migrate.command("upgrade-cloakmap")
+@migrate_old.command("upgrade-cloakmap")
 @click.argument("cloakmap_file", type=click.Path(exists=True))
 @click.option("--output", help="Output path for upgraded CloakMap")
 @click.option("--backup/--no-backup", default=True, help="Create backup of original")
@@ -2781,6 +2782,7 @@ def list_operators(ctx: click.Context) -> None:
 
 # Add command groups
 cli.add_command(batch)
+cli.add_command(migrate)
 
 
 def main() -> None:
