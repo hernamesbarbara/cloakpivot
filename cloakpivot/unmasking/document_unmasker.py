@@ -271,19 +271,44 @@ class DocumentUnmasker:
                     f"Using placeholder content for {anchor.replacement_id}: '{original_content}'"
                 )
 
-            # Search for the masked value in the current state of the text
-            masked_value = anchor.masked_value
-            position = modified_text.rfind(
-                masked_value
-            )  # Search from end for reverse processing
+            # First try to use the resolved position directly
+            start_pos, end_pos = resolved_anchor.found_position
 
-            if position == -1:
-                # Try a forward search as fallback
-                position = modified_text.find(masked_value)
+            # Verify the position is valid and contains the expected text
+            position_valid = False
+            if 0 <= start_pos < end_pos <= len(modified_text):
+                found_text = modified_text[start_pos:end_pos]
+                # Check if we found the right masked value or the expected text
+                if found_text == anchor.masked_value or found_text == resolved_anchor.found_text:
+                    position_valid = True
+                # For asterisks, be more lenient - any asterisk sequence is ok
+                elif anchor.masked_value and all(c == "*" for c in anchor.masked_value) and all(c == "*" for c in found_text):
+                    position_valid = True
 
-            if position == -1:
+            if not position_valid:
+                # Fall back to searching for the masked value
+                logger.debug(
+                    f"Found position {start_pos}:{end_pos} invalid for anchor {anchor.replacement_id}, "
+                    f"falling back to search"
+                )
+                masked_value = anchor.masked_value
+                position = modified_text.rfind(
+                    masked_value
+                )  # Search from end for reverse processing
+
+                if position == -1:
+                    # Try a forward search as fallback
+                    position = modified_text.find(masked_value)
+
+                if position != -1:
+                    start_pos = position
+                    end_pos = position + len(masked_value)
+                else:
+                    start_pos = -1
+
+            if start_pos == -1:
                 # Try pattern matching for common masking patterns (asterisks)
-                if masked_value and all(c == "*" for c in masked_value):
+                if anchor.masked_value and all(c == "*" for c in anchor.masked_value):
                     # Look for any sequence of asterisks that might be part of this mask
                     import re
 
@@ -295,20 +320,21 @@ class DocumentUnmasker:
                     for match in reversed(matches):  # Process in reverse order
                         match_text = match.group()
                         # Accept if it's reasonably close in length or contains asterisks
-                        if len(match_text) >= min(3, len(masked_value) // 2):
+                        if len(match_text) >= min(3, len(anchor.masked_value) // 2):
                             best_match = match
                             break
 
                     if best_match:
-                        position = best_match.start()
+                        start_pos = best_match.start()
+                        end_pos = best_match.end()
                         logger.debug(
-                            f"Found asterisk pattern '{best_match.group()}' at position {position} "
-                            f"for masked_value '{masked_value}' (anchor {anchor.replacement_id})"
+                            f"Found asterisk pattern '{best_match.group()}' at position {start_pos} "
+                            f"for masked_value '{anchor.masked_value}' (anchor {anchor.replacement_id})"
                         )
 
-            if position == -1:
+            if start_pos == -1:
                 logger.warning(
-                    f"Could not find masked value '{masked_value}' in text for anchor {anchor.replacement_id}"
+                    f"Could not find masked value '{anchor.masked_value}' in text for anchor {anchor.replacement_id}"
                 )
                 results.append(
                     {
@@ -318,23 +344,6 @@ class DocumentUnmasker:
                     }
                 )
                 continue
-
-            start_pos = position
-
-            # Determine end position based on what we actually found
-            if masked_value in modified_text[position:]:
-                # Found exact match
-                end_pos = position + len(masked_value)
-            else:
-                # Found partial match - find where the asterisks end
-                end_pos = position
-                while end_pos < len(modified_text) and modified_text[end_pos] == "*":
-                    end_pos += 1
-
-                logger.debug(
-                    f"Using partial asterisk match from {start_pos} to {end_pos} "
-                    f"for anchor {anchor.replacement_id}"
-                )
 
             if end_pos > len(modified_text):
                 logger.warning(
