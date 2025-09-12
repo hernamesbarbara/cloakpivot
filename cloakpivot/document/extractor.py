@@ -15,6 +15,7 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+from packaging import version
 
 from cloakpivot.core.types import DoclingDocument
 
@@ -123,6 +124,10 @@ class TextExtractor:
         This method traverses the document structure and extracts all text-bearing
         content as individual segments, maintaining the mapping to original nodes.
 
+        Note: DoclingDocument v1.7.0+ uses segment-local charspans in the prov field,
+        but this extractor builds its own segments with global offsets for consistent
+        masking operations across all document versions.
+
         Args:
             document: The DoclingDocument to extract text from
 
@@ -135,7 +140,16 @@ class TextExtractor:
             >>> for segment in segments:
             ...     print(f"{segment.node_type}: {segment.text[:50]}...")
         """
-        logger.info(f"Extracting text segments from document: {document.name}")
+        # Check document version for logging purposes
+        doc_version = getattr(document, 'version', '1.2.0')
+        logger.info(f"Extracting text segments from document: {document.name} (version: {doc_version})")
+
+        # Log version-specific information
+        if version.parse(str(doc_version)) >= version.parse('1.7.0'):
+            logger.debug(
+                "Document is v1.7.0+: prov charspans are segment-local. "
+                "TextExtractor builds independent segments with global offsets."
+            )
 
         segments: list[TextSegment] = []
         current_offset = 0

@@ -104,12 +104,22 @@ class DocumentProcessor:
             if validate:
                 self._validate_document_structure(document)
 
-            logger.info(f"Successfully loaded document: {document.name}")
+            # Log document version for v1.7.0 migration awareness
+            doc_version = getattr(document, 'version', '1.2.0')
+            logger.info(f"Successfully loaded document: {document.name} (version: {doc_version})")
             logger.debug(
                 f"Document contains: {len(document.texts)} text items, "
                 f"{len(document.tables)} tables, "
                 f"{len(document.pictures)} pictures"
             )
+
+            # Note about v1.7.0 changes
+            from packaging import version
+            if version.parse(str(doc_version)) >= version.parse('1.7.0'):
+                logger.debug(
+                    "Note: DoclingDocument v1.7.0+ uses segment-local charspans. "
+                    "CloakPivot handles this transparently."
+                )
 
             return document
 

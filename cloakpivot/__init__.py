@@ -3,6 +3,9 @@
 CloakPivot enables reversible document masking while preserving structure
 and formatting using DocPivot for document processing and Presidio for
 PII detection and anonymization.
+
+Supports DoclingDocument versions 1.2.0 through 1.7.0+, including proper
+handling of v1.7.0's segment-local charspan changes.
 """
 
 __version__ = "0.1.0"
