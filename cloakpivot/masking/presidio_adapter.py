@@ -180,12 +180,35 @@ class PresidioMaskingAdapter:
             if entity.entity_type not in strategies:
                 strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
 
-        # Get the document text (assuming single text document)
-        document_text = document.texts[0].text if document.texts else ""
+        # Build the full document text from segments (preserving structure)
+        document_text = ""
+        segment_boundaries = []
+        for i, segment in enumerate(text_segments):
+            segment_boundaries.append({
+                'segment_index': i,
+                'start': len(document_text),
+                'end': len(document_text) + len(segment.text),
+                'node_id': segment.node_id
+            })
+            document_text += segment.text
+            if i < len(text_segments) - 1:
+                document_text += "\n\n"  # Add separator between segments
+                segment_boundaries[-1]['end'] += 2  # Adjust for separator
 
-        # Process all entities in batch
+        # Validate entity positions against document text length
+        valid_entities = []
+        for entity in filtered_entities:
+            if entity.end <= len(document_text):
+                valid_entities.append(entity)
+            else:
+                logger.warning(
+                    f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
+                    f"exceeds document text length {len(document_text)}, skipping"
+                )
+        
+        # Process all valid entities in batch
         operator_results = self._batch_process_entities(
-            document_text, filtered_entities, strategies
+            document_text, valid_entities, strategies
         )
 
         # Create anchor entries for CloakMap
@@ -200,7 +223,7 @@ class PresidioMaskingAdapter:
                 op_results_by_pos[key] = op_result
 
         # Process entities in reverse order to maintain positions
-        sorted_entities = sorted(filtered_entities, key=lambda x: x.start, reverse=True)
+        sorted_entities = sorted(valid_entities, key=lambda x: x.start, reverse=True)
         entity_to_op_result = []
 
         for entity in sorted_entities:
@@ -266,7 +289,7 @@ class PresidioMaskingAdapter:
             # Track entity to operator result mapping for metadata
             entity_to_op_result.append((entity, op_result))
 
-        # Create masked document
+        # Create masked document preserving original structure
         from docling_core.types.doc.document import DocItemLabel, TextItem
 
         masked_document = DoclingDocument(
@@ -276,16 +299,77 @@ class PresidioMaskingAdapter:
             key_value_items=copy.deepcopy(document.key_value_items) if hasattr(document, 'key_value_items') else []
         )
 
-        # Add masked text as a text item if the original had texts
+        # Instead of trying to split the masked text, apply masking to each segment individually
         if hasattr(document, 'texts') and document.texts:
-            # Create a new text item with the masked text
-            masked_text_item = TextItem(
-                text=masked_text,
-                self_ref="#/texts/0",
-                label=DocItemLabel.TEXT,
-                orig=masked_text
-            )
-            masked_document.texts = [masked_text_item]
+            from ..document.mapper import AnchorMapper
+            mapper = AnchorMapper()
+            
+            masked_segments = []
+            
+            for i, original_item in enumerate(document.texts):
+                if i < len(text_segments):
+                    segment = text_segments[i]
+                    segment_text = original_item.text
+                    
+                    # Find entities that affect this segment
+                    segment_entities = []
+                    for entity in sorted_entities:
+                        # Check if entity overlaps with this segment
+                        if entity.start < segment.end_offset and entity.end > segment.start_offset:
+                            # Calculate local positions within the segment
+                            local_start = max(0, entity.start - segment.start_offset)
+                            local_end = min(len(segment_text), entity.end - segment.start_offset)
+                            
+                            # Only add if there's actual overlap
+                            if local_start < local_end:
+                                segment_entities.append({
+                                    'entity': entity,
+                                    'local_start': local_start,
+                                    'local_end': local_end
+                                })
+                    
+                    # Apply masks to this segment
+                    masked_segment_text = segment_text
+                    # Sort by position (reverse to maintain positions)
+                    segment_entities.sort(key=lambda x: x['local_start'], reverse=True)
+                    
+                    for entity_info in segment_entities:
+                        entity = entity_info['entity']
+                        local_start = entity_info['local_start']
+                        local_end = entity_info['local_end']
+                        
+                        # Find the anchor entry for this entity
+                        anchor = next(
+                            (a for a in anchor_entries if a.metadata.get('original_text') == document_text[entity.start:entity.end]),
+                            None
+                        )
+                        
+                        if anchor:
+                            # Apply the mask
+                            masked_segment_text = (
+                                masked_segment_text[:local_start] +
+                                anchor.masked_value +
+                                masked_segment_text[local_end:]
+                            )
+                    
+                    # Create new text item preserving original structure
+                    masked_text_item = TextItem(
+                        text=masked_segment_text,
+                        self_ref=original_item.self_ref if hasattr(original_item, 'self_ref') else f"#/texts/{i}",
+                        label=original_item.label if hasattr(original_item, 'label') else DocItemLabel.TEXT,
+                        orig=masked_segment_text
+                    )
+                    
+                    # Preserve other attributes if they exist
+                    if hasattr(original_item, 'prov'):
+                        masked_text_item.prov = original_item.prov
+                    
+                    masked_segments.append(masked_text_item)
+                else:
+                    # Fallback: copy original item if no boundary found
+                    masked_segments.append(copy.deepcopy(original_item))
+            
+            masked_document.texts = masked_segments
 
         # Also preserve _main_text for backward compatibility
         if hasattr(document, '_main_text'):

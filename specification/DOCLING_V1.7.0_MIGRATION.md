@@ -3,6 +3,12 @@
 ## Overview
 CloakPivot now fully supports DoclingDocument version 1.7.0. The library handles version differences transparently, requiring **no changes** to downstream applications.
 
+## Bug Fix Applied (December 2024)
+Fixed a critical issue where masking v1.7.0 documents would collapse multiple segments into one. The PresidioMaskingAdapter now correctly:
+- Preserves all document segments during masking
+- Applies masks to each segment individually using local coordinates
+- Maintains the original document structure with all metadata
+
 ## What Changed in DoclingDocument v1.7.0
 
 ### 1. Segment-Local Charspan Offsets
