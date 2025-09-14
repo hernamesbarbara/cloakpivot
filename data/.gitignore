@@ -1,0 +1,11 @@
+# Ignore all files by default to prevent accidental PII commits
+*
+
+# But keep the README files and generator script
+!README.md
+!.gitignore
+!pdf/README.md
+
+# Keep sample synthetic data files that are explicitly safe
+!text/employee_record.txt
+!docling/financial_report.docling.json
