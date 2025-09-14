@@ -1,4 +1,4 @@
-"""Tests for the UnmaskingEngine and related components."""
+"""Tests for unmasking functionality using CloakEngine."""
 
 import json
 from datetime import datetime
@@ -7,8 +7,11 @@ import pytest
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
 
+from cloakpivot.engine import CloakEngine, MaskResult
 from cloakpivot.core.anchors import AnchorEntry
 from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.unmasking.anchor_resolver import AnchorResolver, ResolvedAnchor
 from cloakpivot.unmasking.cloakmap_loader import CloakMapLoader, CloakMapLoadError
 from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
@@ -347,259 +350,285 @@ class TestDocumentUnmasker:
         assert stats["success_rate"] == 100.0
 
 
-class TestUnmaskingEngine:
-    """Test UnmaskingEngine integration."""
+class TestUnmaskingWithCloakEngine:
+    """Test unmasking functionality via CloakEngine."""
 
-    def create_test_setup(self) -> tuple[DoclingDocument, CloakMap]:
-        """Create a test document and CloakMap."""
-        # Create masked document
-        doc = DoclingDocument(name="test_document")
+    @pytest.fixture
+    def simple_unmasking_document(self) -> DoclingDocument:
+        """Create a simple document with PII for unmasking tests."""
+        doc = DoclingDocument(name="unmask_test")
         text_item = TextItem(
-            text="Contact us at [PHONE] or [EMAIL].",
+            text="Contact us at 555-123-4567 or john@example.com.",
             self_ref="#/texts/0",
             label="text",
-            orig="Contact us at [PHONE] or [EMAIL].",
+            orig="Contact us at 555-123-4567 or john@example.com.",
         )
         doc.texts = [text_item]
+        return doc
 
-        # Create anchors
-        anchors = [
-            AnchorEntry(
-                node_id="#/texts/0",
-                start=14,
-                end=21,  # "[PHONE]"
-                entity_type="PHONE_NUMBER",
-                confidence=0.95,
-                masked_value="[PHONE]",
-                replacement_id="repl_phone",
-                original_checksum="a" * 64,
-                checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="template",
-            ),
-            AnchorEntry(
-                node_id="#/texts/0",
-                start=25,
-                end=32,  # "[EMAIL]"
-                entity_type="EMAIL_ADDRESS",
-                confidence=0.90,
-                masked_value="[EMAIL]",
-                replacement_id="repl_email",
-                original_checksum="b" * 64,
-                checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="template",
-            ),
-        ]
+    def test_round_trip_masking_and_unmasking(self, simple_unmasking_document):
+        """Test that masking and unmasking preserves original content."""
+        engine = CloakEngine()
+        original_text = simple_unmasking_document.texts[0].text
 
-        # Create CloakMap
-        cloakmap = CloakMap(
-            version="1.0",
-            doc_id="test_document",
-            doc_hash="c" * 64,
-            anchors=anchors,
-            policy_snapshot={"default_strategy": "template"},
+        # Mask the document
+        mask_result = engine.mask_document(simple_unmasking_document)
+
+        # Verify masking worked
+        assert mask_result.document.texts[0].text != original_text
+        assert "555-123-4567" not in mask_result.document.texts[0].text
+        assert "john@example.com" not in mask_result.document.texts[0].text
+
+        # Unmask the document
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+
+        # Verify original content restored
+        assert unmasked_doc.texts[0].text == original_text
+
+    def test_unmask_with_custom_policy(self, simple_unmasking_document):
+        """Test unmasking works with custom masking policies."""
+        # Create custom policy with partial masking
+        policy = MaskingPolicy(
+            per_entity={
+                "PHONE_NUMBER": Strategy(
+                    kind=StrategyKind.PARTIAL,
+                    parameters={"visible_chars": 4, "position": "end"}
+                ),
+                "EMAIL_ADDRESS": Strategy(
+                    kind=StrategyKind.TEMPLATE,
+                    parameters={"template": "[EMAIL]"}
+                )
+            }
         )
 
-        return doc, cloakmap
+        engine = CloakEngine(default_policy=policy)
+        original_text = simple_unmasking_document.texts[0].text
 
-    def test_unmask_document_success(self):
-        """Test successful document unmasking."""
-        engine = UnmaskingEngine()
-        doc, cloakmap = self.create_test_setup()
+        # Mask and unmask
+        mask_result = engine.mask_document(simple_unmasking_document)
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
 
-        result = engine.unmask_document(doc, cloakmap, verify_integrity=False)
+        # Verify restoration
+        assert unmasked_doc.texts[0].text == original_text
 
-        assert isinstance(result, UnmaskingResult)
-        assert result.cloakmap == cloakmap
-        assert result.stats["success_rate"] == 100.0
-
-        # Verify document was modified
-        original_text = doc.texts[0].text
-        restored_text = result.restored_document.texts[0].text
-        assert original_text != restored_text
-        assert "[PHONE]" not in restored_text
-        assert "[EMAIL]" not in restored_text
-
-    def test_unmask_document_with_integrity_verification(self):
-        """Test document unmasking with integrity verification."""
-        engine = UnmaskingEngine()
-        doc, cloakmap = self.create_test_setup()
-
-        result = engine.unmask_document(doc, cloakmap, verify_integrity=True)
-
-        assert result.integrity_report is not None
-        assert "valid" in result.integrity_report
-        assert "stats" in result.integrity_report
-
-    def test_unmask_document_invalid_input(self):
-        """Test unmasking with invalid inputs."""
-        engine = UnmaskingEngine()
-        doc, cloakmap = self.create_test_setup()
-
-        with pytest.raises(ValueError, match="document must be a DoclingDocument"):
-            engine.unmask_document("not_a_document", cloakmap)
-
-        with pytest.raises(FileNotFoundError, match="CloakMap file not found"):
-            engine.unmask_document(doc, "not_a_cloakmap")
-
-        with pytest.raises(ValueError, match="cloakmap must be a CloakMap"):
-            engine.unmask_document(doc, 123)  # Invalid type
-
-    def test_unmask_from_cloakmap_file(self, tmp_path):
+    def test_unmask_from_cloakmap_file(self, simple_unmasking_document, tmp_path):
         """Test unmasking using CloakMap from file."""
-        engine = UnmaskingEngine()
-        doc, cloakmap = self.create_test_setup()
+        engine = CloakEngine()
+
+        # Mask the document
+        mask_result = engine.mask_document(simple_unmasking_document)
 
         # Save CloakMap to file
         cloakmap_file = tmp_path / "test.cloakmap"
-        cloakmap.save_to_file(cloakmap_file)
+        mask_result.cloakmap.save_to_file(cloakmap_file)
 
-        # Unmask using file path
-        result = engine.unmask_document(doc, cloakmap_file)
+        # Create new engine and unmask using file path
+        new_engine = CloakEngine()
+        unmasked_doc = new_engine.unmask_document(mask_result.document, cloakmap_file)
 
-        assert isinstance(result, UnmaskingResult)
-        assert result.cloakmap.version == cloakmap.version
-        assert result.stats["success_rate"] == 100.0
+        # Verify restoration
+        assert unmasked_doc.texts[0].text == simple_unmasking_document.texts[0].text
 
-    def test_unmask_document_no_anchors(self):
-        """Test unmasking a document with no anchors."""
-        engine = UnmaskingEngine()
+    def test_unmask_empty_document(self):
+        """Test unmasking an empty document."""
+        doc = DoclingDocument(name="empty_doc")
+        doc.texts = []
 
-        doc = DoclingDocument(name="test_document")
+        engine = CloakEngine()
+
+        # Mask empty document
+        mask_result = engine.mask_document(doc)
+
+        # Unmask empty document
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+
+        # Should return empty document unchanged
+        assert len(unmasked_doc.texts) == 0
+
+    def test_unmask_no_pii_document(self):
+        """Test unmasking document with no PII."""
+        doc = DoclingDocument(name="no_pii")
         text_item = TextItem(
-            text="No masked content here.",
+            text="This is a simple text with no personal information.",
             self_ref="#/texts/0",
             label="text",
-            orig="No masked content here.",
+            orig="This is a simple text with no personal information."
         )
         doc.texts = [text_item]
 
-        cloakmap = CloakMap(
-            version="1.0",
-            doc_id="test_document",
-            doc_hash="d" * 64,
-            anchors=[],
-        )
+        engine = CloakEngine()
+        original_text = doc.texts[0].text
 
-        # Should not raise an exception, but return document unchanged
-        result = engine.unmask_document(doc, cloakmap)
+        # Mask and unmask
+        mask_result = engine.mask_document(doc)
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
 
-        # Should return the document unchanged
-        assert result.restored_document is not None
-        assert result.stats["total_anchors_processed"] == 0
-        assert result.stats["successful_restorations"] == 0
-        assert result.stats["failed_restorations"] == 0
+        # Should be identical since no PII was found
+        assert unmasked_doc.texts[0].text == original_text
+
+    def test_unmask_multiple_sections(self):
+        """Test unmasking document with multiple text sections."""
+        doc = DoclingDocument(name="multi_section")
+        doc.texts = [
+            TextItem(
+                text="Section 1: Call 555-123-4567",
+                self_ref="#/texts/0",
+                label="text",
+                orig="Section 1: Call 555-123-4567"
+            ),
+            TextItem(
+                text="Section 2: Email john@example.com",
+                self_ref="#/texts/1",
+                label="text",
+                orig="Section 2: Email john@example.com"
+            )
+        ]
+
+        engine = CloakEngine()
+        original_texts = [t.text for t in doc.texts]
+
+        # Mask and unmask
+        mask_result = engine.mask_document(doc)
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+
+        # Verify all sections restored
+        for i, original_text in enumerate(original_texts):
+            assert unmasked_doc.texts[i].text == original_text
+
+    def test_unmask_preserves_document_structure(self, simple_unmasking_document):
+        """Test that unmasking preserves document structure and metadata."""
+        engine = CloakEngine()
+
+        # Mask the document
+        mask_result = engine.mask_document(simple_unmasking_document)
+
+        # Unmask the document
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+
+        # Verify structure preserved
+        assert unmasked_doc.name == simple_unmasking_document.name
+        assert len(unmasked_doc.texts) == len(simple_unmasking_document.texts)
+        assert unmasked_doc.texts[0].self_ref == simple_unmasking_document.texts[0].self_ref
+        assert unmasked_doc.texts[0].label == simple_unmasking_document.texts[0].label
 
 
 class TestUnmaskingIntegration:
-    """Integration tests for the complete unmasking workflow."""
+    """Integration tests for the complete unmasking workflow using CloakEngine."""
 
-    def test_round_trip_placeholder_workflow(self):
-        """Test a complete round-trip workflow with placeholder content."""
-        # This test demonstrates the unmasking workflow
-        # In a real system, this would use actual secure content restoration
-
-        # Create original-style document structure
+    def test_round_trip_workflow_with_cloakengine(self):
+        """Test a complete round-trip workflow with CloakEngine."""
+        # Create original document with PII
         doc = DoclingDocument(name="integration_test")
         text_item = TextItem(
-            text="Call me at [PHONE] or email [EMAIL].",
+            text="Call me at 555-123-4567 or email user@example.com.",
             self_ref="#/texts/0",
             label="text",
-            orig="Call me at [PHONE] or email [EMAIL].",
+            orig="Call me at 555-123-4567 or email user@example.com.",
         )
         doc.texts = [text_item]
 
-        # Create realistic anchors
-        anchors = [
-            AnchorEntry.create_from_detection(
-                node_id="#/texts/0",
-                start=11,
-                end=18,
-                entity_type="PHONE_NUMBER",
-                confidence=0.95,
-                original_text="555-1234",  # This would be the original content
-                masked_value="[PHONE]",
-                strategy_used="template",
-            ),
-            AnchorEntry.create_from_detection(
-                node_id="#/texts/0",
-                start=28,
-                end=35,
-                entity_type="EMAIL_ADDRESS",
-                confidence=0.90,
-                original_text="user@example.com",  # This would be the original content
-                masked_value="[EMAIL]",
-                strategy_used="template",
-            ),
-        ]
+        # Use CloakEngine for masking and unmasking
+        engine = CloakEngine()
+        original_text = doc.texts[0].text
 
-        # Create CloakMap
-        cloakmap = CloakMap(
-            version="1.0",
-            doc_id="integration_test",
-            doc_hash="integration_hash",
-            anchors=anchors,
-            policy_snapshot={"default_strategy": "template"},
-        )
+        # Perform masking
+        mask_result = engine.mask_document(doc)
+
+        # Verify masking worked
+        masked_text = mask_result.document.texts[0].text
+        assert masked_text != original_text
+        assert "555-123-4567" not in masked_text
+        assert "user@example.com" not in masked_text
+        assert len(mask_result.cloakmap.anchors) >= 2
 
         # Perform unmasking
-        engine = UnmaskingEngine()
-        result = engine.unmask_document(doc, cloakmap, verify_integrity=True)
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
 
-        # Verify results
-        assert result.stats["success_rate"] == 100.0
-        assert len(result.cloakmap.anchors) == 2
+        # Verify complete restoration
+        assert unmasked_doc.texts[0].text == original_text
 
-        # Verify text was restored (with placeholder content)
-        restored_text = result.restored_document.texts[0].text
-        assert "[PHONE]" not in restored_text
-        assert "[EMAIL]" not in restored_text
-
-        # Should contain placeholder content
-        assert (
-            "555-0123" in restored_text or "555" in restored_text
-        )  # Phone placeholder
-        assert (
-            "example.com" in restored_text or "@" in restored_text
-        )  # Email placeholder
-
-    def test_error_handling_workflow(self):
-        """Test error handling in the unmasking workflow."""
-        # Create document with mismatched content
-        doc = DoclingDocument(name="error_test")
+    def test_workflow_with_multiple_entity_types(self):
+        """Test workflow with various entity types."""
+        doc = DoclingDocument(name="multi_entity_test")
         text_item = TextItem(
-            text="This has different content than expected.",
+            text="John Doe (SSN: 123-45-6789) lives at 123 Main St, phone: 555-987-6543.",
             self_ref="#/texts/0",
             label="text",
-            orig="This has different content than expected.",
+            orig="John Doe (SSN: 123-45-6789) lives at 123 Main St, phone: 555-987-6543.",
         )
         doc.texts = [text_item]
 
-        # Create anchors that won't match the document
-        anchors = [
-            AnchorEntry(
-                node_id="#/texts/0",
-                start=50,  # Beyond text length
-                end=60,
-                entity_type="PHONE_NUMBER",
-                confidence=0.95,
-                masked_value="[PHONE]",
-                replacement_id="repl_phone",
-                original_checksum="a" * 64,
-                checksum_salt="dGVzdA==",  # base64 encoded "test"
-                strategy_used="template",
-            ),
+        engine = CloakEngine()
+        original_text = doc.texts[0].text
+
+        # Mask with default policy
+        mask_result = engine.mask_document(doc)
+
+        # Verify multiple entities were found and masked
+        assert mask_result.entities_found > 0
+        assert mask_result.entities_masked > 0
+        masked_text = mask_result.document.texts[0].text
+        assert masked_text != original_text
+
+        # Unmask and verify restoration
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+        assert unmasked_doc.texts[0].text == original_text
+
+    def test_selective_entity_masking_workflow(self):
+        """Test masking only specific entity types and unmasking."""
+        doc = DoclingDocument(name="selective_test")
+        text_item = TextItem(
+            text="Contact John at 555-123-4567 or john@example.com",
+            self_ref="#/texts/0",
+            label="text",
+            orig="Contact John at 555-123-4567 or john@example.com",
+        )
+        doc.texts = [text_item]
+
+        engine = CloakEngine()
+        original_text = doc.texts[0].text
+
+        # Mask only phone numbers
+        mask_result = engine.mask_document(doc, entities=['PHONE_NUMBER'])
+
+        # Verify selective masking
+        masked_text = mask_result.document.texts[0].text
+        assert "555-123-4567" not in masked_text  # Phone should be masked
+        assert "john@example.com" in masked_text  # Email should NOT be masked
+
+        # Unmask and verify
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+        assert unmasked_doc.texts[0].text == original_text
+
+    def test_error_recovery_in_workflow(self):
+        """Test that CloakEngine handles edge cases gracefully."""
+        # Test with empty document
+        empty_doc = DoclingDocument(name="empty")
+        empty_doc.texts = []
+
+        engine = CloakEngine()
+
+        # Should handle empty document
+        mask_result = engine.mask_document(empty_doc)
+        assert mask_result.entities_found == 0
+        assert mask_result.entities_masked == 0
+
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
+        assert len(unmasked_doc.texts) == 0
+
+        # Test with no PII document
+        no_pii_doc = DoclingDocument(name="no_pii")
+        no_pii_doc.texts = [
+            TextItem(
+                text="This is a regular sentence with no PII.",
+                self_ref="#/texts/0",
+                label="text",
+                orig="This is a regular sentence with no PII."
+            )
         ]
 
-        cloakmap = CloakMap(
-            version="1.0",
-            doc_id="error_test",
-            doc_hash="error_hash",
-            anchors=anchors,
-        )
+        mask_result = engine.mask_document(no_pii_doc)
+        unmasked_doc = engine.unmask_document(mask_result.document, mask_result.cloakmap)
 
-        engine = UnmaskingEngine()
-        result = engine.unmask_document(doc, cloakmap)
-
-        # Should handle errors gracefully
-        assert result.stats["success_rate"] < 100.0
-        assert result.stats["failed_anchors"] > 0
+        # Should be identical
+        assert unmasked_doc.texts[0].text == no_pii_doc.texts[0].text

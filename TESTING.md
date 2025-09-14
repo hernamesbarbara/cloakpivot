@@ -8,41 +8,38 @@ This document provides comprehensive guidance for running and contributing to th
 # Install test dependencies
 pip install -e ".[test]"
 
-# Run all fast tests with coverage
-python run_tests.py fast --coverage
+# Run all tests
+pytest tests/
 
-# Run specific test categories
-python run_tests.py unit
-python run_tests.py integration
-python run_tests.py e2e
+# Run tests with coverage
+pytest --cov=cloakpivot --cov-report=html tests/
+
+# Run specific test files
+pytest tests/test_cloak_engine_simple.py -v
 ```
 
 ## Test Suite Architecture
 
-### Test Categories
+### CloakEngine Test Suite
 
-#### Unit Tests (`tests/unit/`)
-- **Purpose**: Test individual components in isolation
-- **Speed**: Fast (< 5 seconds per test)
-- **Coverage**: Core business logic, data models, utilities
-- **Markers**: `@pytest.mark.unit`
+The test suite has been refactored to focus on the simplified CloakEngine API:
 
-#### Integration Tests (`tests/integration/`)
-- **Golden File Tests**: Regression testing with expected outputs
-- **Round-Trip Tests**: Mask/unmask fidelity validation
-- **Property-Based Tests**: Hypothesis-driven edge case discovery
-- **Format Conversion Tests**: Document structure preservation
-- **Markers**: `@pytest.mark.integration`, `@pytest.mark.golden`, `@pytest.mark.property`
+#### Core CloakEngine Tests
+- `test_cloak_engine_simple.py`: Basic masking/unmasking functionality
+- `test_cloak_engine_builder.py`: Builder pattern and configuration tests
+- `test_cloak_engine_examples.py`: Specification and documentation examples
+- `test_defaults.py`: Default configuration and policy presets
 
-#### End-to-End Tests (`tests/e2e/`)
-- **Purpose**: Complete user workflows through CLI
-- **Coverage**: CLI commands, file I/O, error handling
-- **Markers**: `@pytest.mark.e2e`
+#### Functional Tests
+- `test_masking_engine.py`: Masking functionality via CloakEngine
+- `test_unmasking_engine.py`: Unmasking and round-trip tests
+- `test_masking_integration.py`: End-to-end integration tests
+- `test_property_masking.py`: Property-based testing with Hypothesis
 
-#### Performance Tests (`tests/performance/`)
-- **Purpose**: Benchmark performance and detect regressions
-- **Coverage**: Processing speed, memory usage, scalability
+#### Performance Tests
 - **Markers**: `@pytest.mark.performance`, `@pytest.mark.slow`
+- **Purpose**: Benchmark CloakEngine performance
+- **Coverage**: Processing speed, memory usage, engine reuse benefits
 
 ### Test Infrastructure
 
@@ -130,16 +127,21 @@ class TestMaskingPolicy:
 
 ```python
 @pytest.mark.integration
-def test_document_processing_integration(
-    simple_document,
-    basic_masking_policy,
-    masking_engine
-):
+def test_document_processing_with_cloakengine(simple_document):
     """Test complete document processing workflow."""
-    result = masking_engine.mask_document(simple_document, basic_masking_policy)
-    
-    assert_masking_result_valid(result)
-    assert_document_structure_preserved(simple_document, result.masked_document)
+    from cloakpivot.engine import CloakEngine
+
+    engine = CloakEngine()
+    result = engine.mask_document(simple_document)
+
+    # Verify masking
+    assert result.entities_found > 0
+    assert result.entities_masked > 0
+    assert len(result.document.texts) == len(simple_document.texts)
+
+    # Test round-trip
+    unmasked = engine.unmask_document(result.document, result.cloakmap)
+    assert unmasked.texts[0].text == simple_document.texts[0].text
 ```
 
 ### Writing Property-Based Tests
@@ -158,13 +160,20 @@ def test_threshold_property(text, threshold):
 
 ```python
 @pytest.mark.performance
-def test_processing_performance(benchmark_document, benchmark_policy):
-    """Benchmark document processing performance."""
+def test_cloakengine_performance():
+    """Benchmark CloakEngine processing performance."""
+    from cloakpivot.engine import CloakEngine
+    import time
+
+    engine = CloakEngine()
+    document = create_test_document()
+
     start_time = time.perf_counter()
-    result = masking_engine.mask_document(benchmark_document, benchmark_policy)
+    result = engine.mask_document(document)
     processing_time = time.perf_counter() - start_time
-    
-    assert_performance_acceptable(processing_time, max_seconds=5.0, document_size)
+
+    assert processing_time < 5.0  # Should complete within 5 seconds
+    assert result.entities_masked > 0
 ```
 
 ## Golden File Testing

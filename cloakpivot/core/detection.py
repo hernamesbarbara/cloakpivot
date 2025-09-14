@@ -11,7 +11,7 @@ from cloakpivot.core.types import DoclingDocument
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
-from .performance import profile_method
+# Performance profiling removed - simplified implementation
 from .policies import MaskingPolicy
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,6 @@ class EntityDetectionPipeline:
 
         return cls(analyzer)
 
-    @profile_method("document_analysis")
     def analyze_document(
         self, document: DoclingDocument, policy: Optional[MaskingPolicy] = None
     ) -> DocumentAnalysisResult:
@@ -222,7 +221,6 @@ class EntityDetectionPipeline:
 
         return result
 
-    @profile_method("segment_batch_analysis")
     def analyze_text_segments(
         self, segments: list[TextSegment], policy: Optional[MaskingPolicy] = None
     ) -> list[SegmentAnalysisResult]:
@@ -332,7 +330,6 @@ class EntityDetectionPipeline:
 
         return node_type_mapping.get(segment.node_type)
 
-    @profile_method("entity_anchor_mapping")
     def map_entities_to_anchors(
         self, analysis_result: DocumentAnalysisResult
     ) -> list[AnchorEntry]:

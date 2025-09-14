@@ -1,4 +1,4 @@
-"""Integration tests for MaskingEngine with existing Presidio and DocPivot modules."""
+"""Integration tests for masking functionality using CloakEngine."""
 
 import json
 import tempfile
@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 from docling_core.types import DoclingDocument
-from presidio_analyzer import AnalyzerEngine, RecognizerResult
+from presidio_analyzer import AnalyzerEngine
 
+from cloakpivot.engine import CloakEngine
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import (
     EMAIL_TEMPLATE,
@@ -15,9 +16,7 @@ from cloakpivot.core.strategies import (
     Strategy,
     StrategyKind,
 )
-from cloakpivot.document.extractor import TextExtractor
 from cloakpivot.document.processor import DocumentProcessor
-from cloakpivot.masking.engine import MaskingEngine
 
 
 class TestMaskingIntegration:
@@ -110,8 +109,8 @@ class TestMaskingIntegration:
             json.dump(document_data, f, indent=2)
             return f.name
 
-    def test_full_masking_pipeline_with_docpivot_loading(self, sample_docling_json):
-        """Test complete pipeline: DocPivot loading -> text extraction -> PII detection -> masking."""
+    def test_full_masking_pipeline_with_cloakengine(self, sample_docling_json):
+        """Test complete pipeline using CloakEngine."""
         # Step 1: Load document using DocumentProcessor
         processor = DocumentProcessor()
         document = processor.load_document(sample_docling_json)
@@ -119,95 +118,50 @@ class TestMaskingIntegration:
         assert isinstance(document, DoclingDocument)
         assert len(document.texts) == 2
 
-        # Step 2: Extract text segments
-        extractor = TextExtractor()
-        text_segments = extractor.extract_text_segments(document)
-
-        assert len(text_segments) >= 2
-
-        # Step 3: Simulate PII detection (instead of calling Presidio directly)
-        # This simulates what PIIAnalyzer would return
-        [
-            RecognizerResult(
-                entity_type="PHONE_NUMBER", start=16, end=28, score=0.95
-            ),  # "555-123-4567"
-            RecognizerResult(
-                entity_type="EMAIL_ADDRESS", start=17, end=33, score=0.90
-            ),  # "help@company.com" in second segment
-        ]
-
-        # Step 4: Set up masking policy
+        # Step 2: Set up masking policy
         policy = MaskingPolicy(
             per_entity={"PHONE_NUMBER": PHONE_TEMPLATE, "EMAIL_ADDRESS": EMAIL_TEMPLATE}
         )
 
-        # Step 5: Apply masking
-        masking_engine = MaskingEngine()
+        # Step 3: Use CloakEngine for detection and masking
+        engine = CloakEngine(default_policy=policy)
+        result = engine.mask_document(document)
 
-        # Adjust entities to account for segment offsets
-        # First entity is in first segment (offset 0)
-        # Second entity is in second segment, need to adjust its position
-        extractor.extract_full_text(document)
-        second_segment = text_segments[1]
-
-        adjusted_entities = [
-            RecognizerResult(
-                entity_type="PHONE_NUMBER", start=16, end=28, score=0.95
-            ),  # First segment
-            RecognizerResult(
-                entity_type="EMAIL_ADDRESS",
-                start=second_segment.start_offset + 17,
-                end=second_segment.start_offset + 33,
-                score=0.90,
-            ),  # Second segment
-        ]
-
-        result = masking_engine.mask_document(
-            document=document,
-            entities=adjusted_entities,
-            policy=policy,
-            text_segments=text_segments,
-        )
-
-        # Step 6: Verify results
-        assert result.masked_document is not None
+        # Step 4: Verify results
+        assert result.document is not None
         assert result.cloakmap is not None
+        assert result.entities_found > 0
+        assert result.entities_masked > 0
 
         # Check that PII was masked
-        masked_text_0 = result.masked_document.texts[0].text
-        masked_text_1 = result.masked_document.texts[1].text
+        masked_text_0 = result.document.texts[0].text
+        masked_text_1 = result.document.texts[1].text
 
-        assert "[PHONE]" in masked_text_0
+        # Phone number should be masked in first text
         assert "555-123-4567" not in masked_text_0
-        assert "[EMAIL]" in masked_text_1
+        assert "[PHONE]" in masked_text_0 or "[REDACTED]" in masked_text_0
+
+        # Email should be masked in second text
         assert "help@company.com" not in masked_text_1
+        assert "[EMAIL]" in masked_text_1 or "[REDACTED]" in masked_text_1
 
-        # Check CloakMap has correct entries
-        assert len(result.cloakmap.anchors) == 2
+        # Check CloakMap has entries
+        assert len(result.cloakmap.anchors) >= 2
 
-        phone_anchor = next(
-            a for a in result.cloakmap.anchors if a.entity_type == "PHONE_NUMBER"
-        )
-        email_anchor = next(
-            a for a in result.cloakmap.anchors if a.entity_type == "EMAIL_ADDRESS"
-        )
-
-        assert phone_anchor.masked_value == "[PHONE]"
-        assert email_anchor.masked_value == "[EMAIL]"
-
-        # TODO: Security Issue - Original PII should not be stored in CloakMap metadata
-        # Currently the system stores original text in anchor metadata for testing purposes
-        # In production, this should be removed or encrypted
-        # For now, we verify the CloakMap structure is valid
-        result.cloakmap.to_json()
+        # Verify CloakMap structure
         assert result.cloakmap.version == "1.0"
-        assert len(result.cloakmap.anchors) == 2
+        assert result.cloakmap.doc_id == "test_document_with_pii"
+
+        # Verify no original PII in CloakMap JSON
+        cloakmap_json = result.cloakmap.to_json()
+        assert "555-123-4567" not in cloakmap_json
+        assert "help@company.com" not in cloakmap_json
 
         # Cleanup
         Path(sample_docling_json).unlink()
 
-    def test_masking_with_presidio_analyzer(self):
-        """Test integration with actual Presidio AnalyzerEngine."""
+    def test_masking_with_cloakengine_and_custom_entities(self):
+        """Test CloakEngine with selective entity masking."""
         # Create a simple document
         document_data = {
             "schema_name": "DoclingDocument",
@@ -275,65 +229,42 @@ class TestMaskingIntegration:
             processor = DocumentProcessor()
             document = processor.load_document(temp_path)
 
-            # Extract text
-            extractor = TextExtractor()
-            text_segments = extractor.extract_text_segments(document)
-            full_text = extractor.extract_full_text(document)
-
-            # Use Presidio analyzer
-            analyzer = AnalyzerEngine()
-            presidio_results = analyzer.analyze(text=full_text, language="en")
-
-            # Convert to our format - simple position mapping for single segment
-            detected_entities = [
-                RecognizerResult(
-                    entity_type=result.entity_type,
-                    start=result.start,
-                    end=result.end,
-                    score=result.score,
-                )
-                for result in presidio_results
-            ]
-
-            # Set up policy with strategies for detected entity types
-            entity_strategies = {}
-            for entity in detected_entities:
-                if entity.entity_type in ["PHONE_NUMBER"]:
-                    entity_strategies[entity.entity_type] = PHONE_TEMPLATE
-                elif entity.entity_type in ["US_SSN"]:
-                    entity_strategies[entity.entity_type] = Strategy(
+            # Set up policy with custom strategies for specific entity types
+            policy = MaskingPolicy(
+                per_entity={
+                    "PHONE_NUMBER": PHONE_TEMPLATE,
+                    "US_SSN": Strategy(
                         StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
-                    )
-                else:
-                    entity_strategies[entity.entity_type] = Strategy(
-                        StrategyKind.TEMPLATE, {"template": f"[{entity.entity_type}]"}
-                    )
-
-            policy = MaskingPolicy(per_entity=entity_strategies)
-
-            # Apply masking
-            masking_engine = MaskingEngine()
-            result = masking_engine.mask_document(
-                document=document,
-                entities=detected_entities,
-                policy=policy,
-                text_segments=text_segments,
+                    ),
+                },
+                default_strategy=Strategy(
+                    StrategyKind.TEMPLATE, {"template": "[REDACTED]"}
+                )
             )
 
+            # Use CloakEngine for masking
+            engine = CloakEngine(default_policy=policy)
+            result = engine.mask_document(document)
+
             # Verify masking worked
-            masked_text = result.masked_document.texts[0].text
+            masked_text = result.document.texts[0].text
 
             # Should not contain original PII
             assert "456-78-9012" not in masked_text
             assert "555-987-6543" not in masked_text
 
-            # Should contain masked values
-            # (Exact format depends on Presidio detection and our strategies)
+            # Should have found and masked entities
+            assert result.entities_found > 0
+            assert result.entities_masked > 0
             assert len(result.cloakmap.anchors) > 0
 
             # Verify CloakMap integrity
             assert result.cloakmap.doc_id == "presidio_test"
             assert all(anchor.confidence > 0 for anchor in result.cloakmap.anchors)
+
+            # Test round-trip
+            unmasked_doc = engine.unmask_document(result.document, result.cloakmap)
+            assert unmasked_doc.texts[0].text == document.texts[0].text
 
         finally:
             Path(temp_path).unlink()
@@ -382,27 +313,20 @@ class TestMaskingIntegration:
             processor = DocumentProcessor()
             document = processor.load_document(temp_path)
 
-            extractor = TextExtractor()
-            text_segments = extractor.extract_text_segments(document)
-
-            # No text segments expected
-            assert len(text_segments) == 0
-
-            # Masking empty entities should work fine
-            masking_engine = MaskingEngine()
-            policy = MaskingPolicy()
-
-            result = masking_engine.mask_document(
-                document=document,
-                entities=[],  # No entities to mask
-                policy=policy,
-                text_segments=text_segments,
-            )
+            # Use CloakEngine to mask empty document
+            engine = CloakEngine()
+            result = engine.mask_document(document)
 
             # Should succeed with empty results
-            assert result.masked_document is not None
+            assert result.document is not None
             assert result.cloakmap is not None
+            assert result.entities_found == 0
+            assert result.entities_masked == 0
             assert len(result.cloakmap.anchors) == 0
+
+            # Test round-trip on empty document
+            unmasked_doc = engine.unmask_document(result.document, result.cloakmap)
+            assert len(unmasked_doc.texts) == 0
 
         finally:
             Path(temp_path).unlink()

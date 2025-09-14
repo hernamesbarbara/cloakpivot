@@ -56,10 +56,43 @@ from .document import (
 # Masking system
 from .masking import DocumentMasker, MaskingEngine, MaskingResult, StrategyApplicator
 
+# New simplified API
+from .engine import CloakEngine, MaskResult
+from .engine_builder import CloakEngineBuilder
+from .registration import register_cloak_methods, unregister_cloak_methods, is_registered
+from .wrappers import CloakedDocument
+from .defaults import (
+    DEFAULT_ENTITIES,
+    get_default_policy,
+    get_conservative_policy,
+    get_permissive_policy,
+    get_default_analyzer_config,
+    get_policy_preset,
+    get_analyzer_preset,
+)
+
+# Unmasking system
+from .unmasking import UnmaskingEngine
+
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
+    # New simplified API
+    "CloakEngine",
+    "CloakEngineBuilder",
+    "register_cloak_methods",
+    "unregister_cloak_methods",
+    "is_registered",
+    "CloakedDocument",
+    "MaskResult",
+    "DEFAULT_ENTITIES",
+    "get_default_policy",
+    "get_conservative_policy",
+    "get_permissive_policy",
+    "get_default_analyzer_config",
+    "get_policy_preset",
+    "get_analyzer_preset",
     # Strategy system
     "StrategyKind",
     "Strategy",
@@ -99,4 +132,6 @@ __all__ = [
     "MaskingResult",
     "StrategyApplicator",
     "DocumentMasker",
+    # Unmasking system
+    "UnmaskingEngine",
 ]

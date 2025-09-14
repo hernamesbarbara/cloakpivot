@@ -8,13 +8,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from .anchors import AnchorEntry, AnchorIndex
-from .security import (
-    CryptoUtils,
-    EncryptedCloakMap,
-    KeyManager,
-    SecurityConfig,
-    create_default_key_manager,
-)
+# Security features removed - simplified implementation
 
 
 @dataclass(frozen=True)
@@ -308,9 +302,9 @@ class CloakMap:
 
     def verify_signature(
         self,
-        key_manager: Optional[KeyManager] = None,
+        key_manager: Optional[Any] = None,
         secret_key: Optional[str] = None,
-        config: Optional[SecurityConfig] = None,
+        config: Optional[Any] = None,
     ) -> bool:
         """
         Verify the HMAC signature of the CloakMap.
@@ -327,7 +321,7 @@ class CloakMap:
             return False
 
         if config is None:
-            config = SecurityConfig()
+            config = None  # Security config removed
 
         # Get signing key using the key_id from crypto metadata
         key_id = self.crypto.get("key_id", "default") if self.crypto else "default"
@@ -370,10 +364,10 @@ class CloakMap:
 
     def with_signature(
         self,
-        key_manager: Optional[KeyManager] = None,
+        key_manager: Optional[Any] = None,
         secret_key: Optional[str] = None,
         key_id: str = "default",
-        config: Optional[SecurityConfig] = None,
+        config: Optional[Any] = None,
     ) -> "CloakMap":
         """
         Create a new CloakMap with an HMAC signature.
@@ -388,7 +382,7 @@ class CloakMap:
             New CloakMap with signature
         """
         if config is None:
-            config = SecurityConfig()
+            config = None  # Security config removed
 
         # Get signing key
         signing_key = self._get_signing_key(key_manager, secret_key, key_id)
@@ -438,10 +432,10 @@ class CloakMap:
 
     def sign(
         self,
-        key_manager: Optional[KeyManager] = None,
+        key_manager: Optional[Any] = None,
         secret_key: Optional[str] = None,
         key_id: str = "default",
-        config: Optional[SecurityConfig] = None,
+        config: Optional[Any] = None,
     ) -> "CloakMap":
         """
         Sign the CloakMap with a secret key (alias for with_signature).
@@ -459,7 +453,7 @@ class CloakMap:
 
     def _get_signing_key(
         self,
-        key_manager: Optional[KeyManager],
+        key_manager: Optional[Any],
         secret_key: Optional[str],
         key_id: str = "default",
     ) -> Optional[bytes]:
@@ -529,11 +523,11 @@ class CloakMap:
 
     def encrypt(
         self,
-        key_manager: Optional[KeyManager] = None,
+        key_manager: Optional[Any] = None,
         key_id: str = "default",
         key_version: Optional[str] = None,
-        config: Optional[SecurityConfig] = None,
-    ) -> "EncryptedCloakMap":
+        config: Optional[Any] = None,
+    ) -> Any:
         """
         Encrypt this CloakMap using AES-GCM encryption.
 
@@ -544,30 +538,22 @@ class CloakMap:
             config: Security configuration
 
         Returns:
-            EncryptedCloakMap with encrypted sensitive data
+            Any - would be EncryptedCloakMap if encryption was enabled
 
         Raises:
             KeyError: If encryption key is not found
             ValueError: If encryption fails
         """
-        from .security import CloakMapEncryption, create_default_key_manager
-
-        if key_manager is None:
-            key_manager = create_default_key_manager()
-
-        if config is None:
-            config = SecurityConfig()
-
-        encryption = CloakMapEncryption(key_manager, config)
-        return encryption.encrypt_cloakmap(self, key_id, key_version)
+        # Security features removed - simplified implementation
+        raise NotImplementedError("Encryption feature has been removed in the simplified version")
 
     def save_encrypted(
         self,
         file_path: Union[str, Path],
-        key_manager: Optional[KeyManager] = None,
+        key_manager: Optional[Any] = None,
         key_id: str = "default",
         key_version: Optional[str] = None,
-        config: Optional[SecurityConfig] = None,
+        config: Optional[Any] = None,
         indent: int = 2,
     ) -> None:
         """
@@ -602,11 +588,11 @@ class CloakMap:
     def load_encrypted(
         cls,
         file_path: Union[str, Path],
-        key_manager: Optional[KeyManager] = None,
-        config: Optional[SecurityConfig] = None,
+        key_manager: Optional[Any] = None,
+        config: Optional[Any] = None,
     ) -> "CloakMap":
         """
-        Load and decrypt an EncryptedCloakMap from JSON file.
+        Load and decrypt a CloakMap from JSON file (encryption removed).
 
         Args:
             file_path: Path to encrypted CloakMap file
@@ -621,11 +607,9 @@ class CloakMap:
             KeyError: If decryption key is not found
             ValueError: If decryption fails
         """
-        from .security import (
-            CloakMapEncryption,
-            EncryptedCloakMap,
-            create_default_key_manager,
-        )
+        # Security features removed
+        raise NotImplementedError("Encrypted loading has been removed in the simplified version")
+        return  # Early return
 
         path = Path(file_path)
         if not path.exists():
@@ -635,11 +619,12 @@ class CloakMap:
             key_manager = create_default_key_manager()
 
         if config is None:
-            config = SecurityConfig()
+            config = None  # Security config removed
 
         try:
             with open(path, encoding="utf-8") as f:
-                encrypted_map = EncryptedCloakMap.from_json(f.read())
+                # Encryption removed - this method no longer works
+                raise NotImplementedError("Encrypted loading has been removed")
 
             encryption = CloakMapEncryption(key_manager, config)
             return encryption.decrypt_cloakmap(encrypted_map)
@@ -653,8 +638,8 @@ class CloakMap:
     def load_from_file(
         cls,
         file_path: Union[str, Path],
-        key_manager: Optional[KeyManager] = None,
-        config: Optional[SecurityConfig] = None,
+        key_manager: Optional[Any] = None,
+        config: Optional[Any] = None,
     ) -> "CloakMap":
         """
         Load CloakMap from JSON file, auto-detecting encrypted vs unencrypted format.
@@ -983,33 +968,50 @@ def merge_cloakmaps(
 
 def validate_cloakmap_integrity(
     cloakmap: CloakMap,
-    key_manager: Optional[KeyManager] = None,
+    key_manager: Optional[Any] = None,
     secret_key: Optional[str] = None,
-    config: Optional[SecurityConfig] = None,
+    config: Optional[Any] = None,
 ) -> dict[str, Any]:
     """
-    Perform comprehensive integrity validation of a CloakMap using enhanced security.
+    Perform basic integrity validation of a CloakMap.
 
     Args:
         cloakmap: CloakMap to validate
-        key_manager: Key manager for signature verification
-        secret_key: Optional direct secret key (deprecated, use key_manager)
-        config: Security configuration
+        key_manager: Not used (kept for compatibility)
+        secret_key: Not used (kept for compatibility)
+        config: Not used (kept for compatibility)
 
     Returns:
-        Dictionary with detailed validation results
+        Dictionary with validation results
     """
-    from .security import SecurityValidator
+    errors = []
+    warnings = []
 
-    # Use enhanced security validator
-    if key_manager is None and secret_key:
-        # Create temporary key manager for backward compatibility
-        import os
+    # Basic validation checks
+    if not cloakmap.version:
+        errors.append("CloakMap missing version")
 
-        from .security import EnvironmentKeyManager
+    if not cloakmap.doc_id:
+        errors.append("CloakMap missing document ID")
 
-        os.environ["CLOAKPIVOT_KEY_DEFAULT"] = secret_key
-        key_manager = EnvironmentKeyManager()
+    if not cloakmap.doc_hash:
+        warnings.append("CloakMap missing document hash")
 
-    validator = SecurityValidator(config=config, key_manager=key_manager)
-    return validator.validate_cloakmap(cloakmap)
+    # Validate anchors
+    for i, anchor in enumerate(cloakmap.anchors):
+        if not anchor.node_id:
+            errors.append(f"Anchor {i} missing node_id")
+        if anchor.start < 0:
+            errors.append(f"Anchor {i} has invalid start position")
+        if anchor.end <= anchor.start:
+            errors.append(f"Anchor {i} has invalid end position")
+        if not anchor.entity_type:
+            errors.append(f"Anchor {i} missing entity_type")
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "anchor_count": len(cloakmap.anchors),
+        "version": cloakmap.version,
+    }

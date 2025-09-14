@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Optional, cast
 
-from .performance import profile_method
+# Performance profiling removed - simplified implementation
 from .policies import MaskingPolicy
 
 if TYPE_CHECKING:
@@ -454,7 +454,6 @@ class AnalyzerEngineWrapper:
 
         return get_model_name(language, model_size)
 
-    @profile_method("analyzer_initialization")
     def _initialize_engine(self) -> None:
         """Initialize the Presidio AnalyzerEngine (lazy initialization)."""
         if self._is_initialized:
@@ -501,7 +500,6 @@ class AnalyzerEngineWrapper:
                 f"Failed to initialize Presidio AnalyzerEngine: {e}"
             ) from e
 
-    @profile_method("entity_analysis")
     def analyze_text(
         self,
         text: str,

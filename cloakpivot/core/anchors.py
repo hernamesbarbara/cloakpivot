@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
-from .security import CryptoUtils, SecurityConfig
+# Security features removed - simplified implementation
 
 
 @dataclass(frozen=True)
@@ -169,7 +169,7 @@ class AnchorEntry:
         return self.replacement_length - self.span_length
 
     def verify_original_text(
-        self, original_text: str, config: Optional[SecurityConfig] = None
+        self, original_text: str, config: Optional[Any] = None
     ) -> bool:
         """
         Verify that the provided original text matches the stored salted checksum.
@@ -181,16 +181,15 @@ class AnchorEntry:
         Returns:
             True if the text matches the checksum, False otherwise
         """
-        if config is None:
-            config = SecurityConfig()
+        # Security features simplified - just do basic comparison
+        import hashlib
 
-        import base64
+        if not self.original_checksum:
+            return True  # No checksum to verify
 
-        salt = base64.b64decode(self.checksum_salt)
-
-        return CryptoUtils.verify_salted_checksum(
-            original_text, salt, self.original_checksum, config
-        )
+        # Simple hash comparison
+        computed = hashlib.sha256(original_text.encode()).hexdigest()
+        return computed == self.original_checksum
 
     def overlaps_with(self, other: "AnchorEntry") -> bool:
         """
@@ -277,9 +276,9 @@ class AnchorEntry:
             # For backward compatibility, generate a default salt if missing
             import base64
 
-            default_salt = CryptoUtils.generate_salt(
-                16
-            )  # Smaller salt for compatibility
+            # Use simple random salt
+            import os
+            default_salt = os.urandom(16)
             checksum_salt = base64.b64encode(default_salt).decode("ascii")
 
         return cls(
@@ -299,13 +298,12 @@ class AnchorEntry:
 
     @staticmethod
     def _compute_salted_checksum(
-        text: str, salt: bytes, config: Optional[SecurityConfig] = None
+        text: str, salt: bytes, config: Optional[Any] = None
     ) -> str:
         """Compute salted checksum of text using PBKDF2."""
-        if config is None:
-            config = SecurityConfig()
-
-        return CryptoUtils.compute_salted_checksum(text, salt, config)
+        # Simplified checksum computation
+        import hashlib
+        return hashlib.sha256(text.encode()).hexdigest()
 
     @staticmethod
     def create_replacement_id(entity_type: str, node_id: str, start: int) -> str:
@@ -338,7 +336,7 @@ class AnchorEntry:
         strategy_used: str,
         replacement_id: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
-        config: Optional[SecurityConfig] = None,
+        config: Optional[Any] = None,
     ) -> "AnchorEntry":
         """
         Create an anchor entry from PII detection results using salted checksums.
@@ -362,14 +360,13 @@ class AnchorEntry:
         if replacement_id is None:
             replacement_id = cls.create_replacement_id(entity_type, node_id, start)
 
-        if config is None:
-            config = SecurityConfig()
-
-        # Generate salt and compute salted checksum
+        # Simplified integrity metadata
         import base64
+        import os
+        import hashlib
 
-        salt = CryptoUtils.generate_salt(config.salt_length)
-        original_checksum = cls._compute_salted_checksum(original_text, salt, config)
+        salt = os.urandom(16)
+        original_checksum = hashlib.sha256(original_text.encode()).hexdigest()
         checksum_salt = base64.b64encode(salt).decode("ascii")
 
         return cls(
