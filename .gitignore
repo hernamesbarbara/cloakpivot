@@ -162,3 +162,5 @@ map.json
 email_masked.json
 temp/
 tmp/
+docling2cloaked.py
+pdf2docling.py

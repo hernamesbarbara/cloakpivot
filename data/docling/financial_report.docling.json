@@ -1,0 +1,108 @@
+{
+  "schema_name": "DoclingDocument",
+  "version": "1.6.0",
+  "name": "financial_report.pdf",
+  "furniture": {
+    "self_ref": "#/furniture",
+    "children": [],
+    "content_layer": "furniture",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "body": {
+    "self_ref": "#/body",
+    "children": [],
+    "content_layer": "body",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "groups": [],
+  "texts": [
+    {
+      "self_ref": "#/texts/0",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "2024 Q3 Financial Report",
+      "text": "2024 Q3 Financial Report"
+    },
+    {
+      "self_ref": "#/texts/1",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "Prepared by: Michael Anderson (CFO)",
+      "text": "Prepared by: Michael Anderson (CFO)"
+    },
+    {
+      "self_ref": "#/texts/2",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "Contact: m.anderson@techcorp.com or (555) 456-7890",
+      "text": "Contact: m.anderson@techcorp.com or (555) 456-7890"
+    },
+    {
+      "self_ref": "#/texts/3",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "Key Clients:",
+      "text": "Key Clients:"
+    },
+    {
+      "self_ref": "#/texts/4",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "- Acme Corp (Contact: Lisa Chen, lisa@acme.com, 555-111-2222)",
+      "text": "- Acme Corp (Contact: Lisa Chen, lisa@acme.com, 555-111-2222)"
+    },
+    {
+      "self_ref": "#/texts/5",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "- Global Industries (Contact: David Park, dpark@global.com)",
+      "text": "- Global Industries (Contact: David Park, dpark@global.com)"
+    },
+    {
+      "self_ref": "#/texts/6",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "Banking Details: Account #9876543210, Routing #123456789",
+      "text": "Banking Details: Account #9876543210, Routing #123456789"
+    },
+    {
+      "self_ref": "#/texts/7",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "Tax ID: 12-3456789, Registration: REG-2024-789456",
+      "text": "Tax ID: 12-3456789, Registration: REG-2024-789456"
+    },
+    {
+      "self_ref": "#/texts/8",
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [],
+      "orig": "For internal use only. Questions? Contact hr@techcorp.com",
+      "text": "For internal use only. Questions? Contact hr@techcorp.com"
+    }
+  ],
+  "pictures": [],
+  "tables": [],
+  "key_value_items": [],
+  "form_items": [],
+  "pages": {}
+}
