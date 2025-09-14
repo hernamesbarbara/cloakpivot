@@ -1,7 +1,7 @@
 # CloakPivot
 
-[![PyPI version](https://img.shields.io/pypi/v/cloakpivot.svg)](https://pypi.python.org/pypi/cloakpivot)
-[![Python versions](https://img.shields.io/pypi/pyversions/cloakpivot.svg)](https://pypi.python.org/pypi/cloakpivot)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/hernamesbarbara/cloakpivot)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Simple, reversible PII masking for documents.** One-line masking and unmasking while preserving document structure.
@@ -22,7 +22,13 @@ CloakPivot provides a Presidio-like simple API for detecting and masking PII in 
 ### Installation
 
 ```bash
-pip install cloakpivot
+# From GitHub (until PyPI release)
+pip install git+https://github.com/hernamesbarbara/cloakpivot.git
+
+# Or clone and install locally
+git clone https://github.com/hernamesbarbara/cloakpivot.git
+cd cloakpivot
+pip install -e .
 ```
 
 ### Basic Usage
@@ -113,8 +119,10 @@ CloakPivot creates a **CloakMap** - a secure mapping between original and masked
 
 ## 📖 Documentation
 
-- **[Simple Example](examples/simple_usage.py)** - Basic usage patterns
-- **[Advanced Example](examples/advanced_usage.py)** - Builder pattern and policies
+- **[Quick Start](examples/simple_usage.py)** - Basic usage with test data
+- **[Advanced Configuration](examples/advanced_usage.py)** - Builder pattern and policies
+- **[PDF Workflow](examples/pdf_workflow.py)** - Complete PDF processing example
+- **[Pipeline Integration](examples/docling_integration.py)** - Working with DoclingDocument files
 - **[API Reference](docs/API.md)** - Complete API documentation
 - **[Migration Guide](docs/MIGRATION.md)** - Upgrading from v1.x
 
@@ -131,8 +139,10 @@ cloakpivot/
 │   ├── masking/          # Masking engine
 │   └── unmasking/        # Unmasking engine
 ├── examples/             # Usage examples
-│   ├── simple_usage.py   # Basic example
-│   └── advanced_usage.py # Advanced configuration
+│   ├── simple_usage.py   # Quick start with test data
+│   ├── advanced_usage.py # Builder pattern and policies
+│   ├── pdf_workflow.py   # Complete PDF processing
+│   └── docling_integration.py # Pipeline integration
 ├── tests/                # Test suite (60+ tests)
 └── config/policies/      # Policy templates
 ```
