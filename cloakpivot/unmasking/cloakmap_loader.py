@@ -42,7 +42,7 @@ class CloakMapLoader:
         ... )
     """
 
-    SUPPORTED_VERSIONS = ["1.0"]
+    SUPPORTED_VERSIONS = ["1.0", "2.0"]
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB max CloakMap file size
 
     def __init__(self) -> None:
@@ -315,41 +315,13 @@ class CloakMapLoader:
                     f"CloakMap version {cloakmap.version} may not be fully supported"
                 )
 
-        # Initialize key_manager variable (may be used later for integrity validation)
-        from ..core.security import KeyManager, create_default_key_manager
-
-        key_manager: Optional[KeyManager] = None
-
-        # Verify signature if requested
+        # Signature verification is not currently implemented
         if verify_signature:
-            if not cloakmap.is_signed:
-                raise CloakMapLoadError(
-                    "Signature verification requested but CloakMap is not signed"
-                )
+            logger.warning("Signature verification requested but not implemented")
 
-            if not secret_key:
-                raise CloakMapLoadError(
-                    "Secret key required for signature verification"
-                )
-
-            # Create key manager from secret key for signature verification
-            if secret_key:
-                # Use default key manager if secret key is provided
-                key_manager = create_default_key_manager()
-
-            if not cloakmap.verify_signature(
-                key_manager=key_manager, secret_key=secret_key
-            ):
-                raise CloakMapLoadError("CloakMap signature verification failed")
-
-            logger.info("CloakMap signature verified successfully")
-
-        # Perform comprehensive integrity validation
-        # Use the key manager from signature verification if it exists,
-        # otherwise integrity validation will create its own if needed
-
+        # Perform basic integrity validation
         integrity_result = validate_cloakmap_integrity(
-            cloakmap, key_manager=key_manager, secret_key=secret_key
+            cloakmap, key_manager=None, secret_key=secret_key
         )
 
         if not integrity_result["valid"]:

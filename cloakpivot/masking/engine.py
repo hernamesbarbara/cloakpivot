@@ -98,12 +98,7 @@ class MaskingEngine:
             self.strategy_applicator = None  # Not used in Presidio mode
             logger.info("MaskingEngine using Presidio adapter")
         else:
-            # Issue deprecation warning for legacy engine
-            from ..migration import DeprecationManager
-            DeprecationManager.warn_legacy_usage(
-                "masking engine", 
-                "set use_presidio_engine=True"
-            )
+            # Legacy engine mode (deprecated)
             self.strategy_applicator = StrategyApplicator()
             self.presidio_adapter = None  # Not used in legacy mode
             logger.info("MaskingEngine using legacy StrategyApplicator")

@@ -498,6 +498,20 @@ def masking_engine():
 
 
 @pytest.fixture(scope="session")
+def cloakengine():
+    """Create a CloakEngine instance for testing.
+
+    Uses session scope for maximum performance optimization since CloakEngine
+    is stateless and safe to reuse across all tests in the session.
+    This reduces Presidio AnalyzerEngine initialization costs while maintaining
+    test isolation through separate input documents and policies.
+    """
+    from cloakpivot.engine import CloakEngine
+
+    return CloakEngine()
+
+
+@pytest.fixture(scope="session")
 def benchmark_policy() -> MaskingPolicy:
     """Create a benchmark masking policy for performance testing."""
     return MaskingPolicy(

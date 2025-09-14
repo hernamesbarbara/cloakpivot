@@ -10,7 +10,7 @@ from threading import Lock
 from typing import Any, Optional, Protocol
 
 from .error_handling import ErrorCollector
-from .performance import PerformanceProfiler
+# Performance profiling removed - simplified implementation
 from .policies import MaskingPolicy
 
 logger = logging.getLogger(__name__)
@@ -214,7 +214,7 @@ class BatchProcessor:
         self,
         config: BatchConfig,
         progress_callback: Optional[BatchProgressCallback] = None,
-        profiler: Optional[PerformanceProfiler] = None,
+        # profiler parameter removed - simplified implementation
         error_collector: Optional[ErrorCollector] = None,
     ):
         """
@@ -230,9 +230,8 @@ class BatchProcessor:
         self.progress_callback = progress_callback or DefaultProgressCallback(
             verbose=config.verbose_logging
         )
-        self.profiler = profiler or PerformanceProfiler(
-            enable_detailed_logging=config.verbose_logging
-        )
+        # Performance profiling removed
+        self.profiler = None
         self.error_collector = error_collector or ErrorCollector()
 
         # Legacy compatibility - some tests expect error_handler attribute
