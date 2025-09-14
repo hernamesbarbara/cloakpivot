@@ -2,18 +2,20 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/cloakpivot.svg)](https://pypi.python.org/pypi/cloakpivot)
 [![Python versions](https://img.shields.io/pypi/pyversions/cloakpivot.svg)](https://pypi.python.org/pypi/cloakpivot)
-[![CI status](https://github.com/your-org/cloakpivot/workflows/CI/badge.svg)](https://github.com/your-org/cloakpivot/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-CloakPivot is a Python package that enables **reversible document masking** while preserving structure and formatting. It leverages DocPivot for robust document processing and Presidio for PII detection and anonymization.
+**Simple, reversible PII masking for documents.** One-line masking and unmasking while preserving document structure.
 
-## 🔑 Key Features
+CloakPivot provides a Presidio-like simple API for detecting and masking PII in documents, with the unique ability to perfectly restore the original content later using a secure mapping file (CloakMap).
 
-- **🔄 Reversible Masking**: Mask PII while maintaining the ability to restore original content
-- **📋 Structure Preservation**: Maintain document layout, formatting, and hierarchy during masking
-- **⚙️ Policy-Driven**: Configurable masking strategies per entity type with comprehensive policy system
-- **📄 Format Support**: Works with multiple document formats through DocPivot integration
-- **🔒 Security**: Optional encryption and integrity verification for CloakMaps
-- **🖥️ CLI & API**: Both command-line interface and programmatic Python API
+## ✨ Key Features
+
+- **🎯 One-line masking**: `engine.mask_document(doc)` - that's it!
+- **🔄 Perfect reversal**: Restore original content exactly with CloakMap
+- **📄 Document-aware**: Works with Docling documents, preserving structure
+- **🛡️ Smart defaults**: Detects common PII types automatically (emails, phones, SSNs, etc.)
+- **⚙️ Flexible policies**: Customize masking strategies per entity type
+- **🚀 Builder pattern**: Advanced configuration when you need it
 
 ## 🚀 Quick Start
 
@@ -25,80 +27,114 @@ pip install cloakpivot
 
 ### Basic Usage
 
-#### CLI Example
-```bash
-# Mask a document
-cloakpivot mask document.pdf --out masked.json --cloakmap map.json
+```python
+from cloakpivot import CloakEngine
+from docling.document_converter import DocumentConverter
 
-# Unmask later
-cloakpivot unmask masked.json --cloakmap map.json --out restored.json
+# Convert your document
+converter = DocumentConverter()
+doc = converter.convert("document.pdf").document
+
+# One-line PII masking!
+engine = CloakEngine()
+result = engine.mask_document(doc)
+
+print(f"Masked {result.entities_masked} PII entities")
+# Save the masked document and CloakMap...
+
+# Later, restore the original
+original = engine.unmask_document(result.document, result.cloakmap)
 ```
 
-#### Python API Example
-```python
-from cloakpivot import mask_document, unmask_document
+### CLI Example
 
+```bash
 # Mask a document
-result = mask_document("document.pdf", policy="my-policy.yaml")
+cloakpivot mask document.pdf -o masked.md -c document.cloakmap.json
 
 # Unmask later
-restored = unmask_document(result.masked_path, result.cloakmap_path)
+cloakpivot unmask masked.md document.cloakmap.json -o restored.md
+```
+
+## 📖 More Examples
+
+### Using Different Policies
+
+```python
+from cloakpivot import CloakEngine, get_conservative_policy, get_permissive_policy
+
+# Maximum privacy - redact everything
+engine = CloakEngine(default_policy=get_conservative_policy())
+result = engine.mask_document(doc)
+
+# Minimal masking - only critical PII
+engine = CloakEngine(default_policy=get_permissive_policy())
+result = engine.mask_document(doc)
+```
+
+### Advanced Configuration with Builder
+
+```python
+# Fine-tune detection and masking
+engine = CloakEngine.builder() \
+    .with_confidence_threshold(0.9) \
+    .with_languages(['en', 'es']) \
+    .with_custom_policy(my_policy) \
+    .build()
+
+result = engine.mask_document(doc)
+```
+
+### Detect Specific Entity Types
+
+```python
+# Only mask emails and credit cards
+result = engine.mask_document(doc, entities=['EMAIL_ADDRESS', 'CREDIT_CARD'])
 ```
 
 ## 🎯 How It Works
 
 CloakPivot creates a **CloakMap** - a secure mapping between original and masked content that enables perfect restoration:
 
-1. **Document Processing**: Load documents using DocPivot integration
-2. **PII Detection**: Identify sensitive information using Presidio
-3. **Strategic Masking**: Apply configurable masking strategies per entity type
-4. **CloakMap Generation**: Create secure anchors for reversible transformations
-5. **Perfect Restoration**: Unmask documents with 100% accuracy
+1. **📄 Document Loading**: Use Docling to convert any document format
+2. **🔍 PII Detection**: Presidio identifies sensitive information
+3. **🎭 Smart Masking**: Apply configurable strategies per entity type
+4. **🗺️ CloakMap Creation**: Store original values and positions securely
+5. **♻️ Perfect Restoration**: Unmask with 100% accuracy
 
 ### Masking Strategies
 
-- **Redaction**: Replace with characters (e.g., `████████`)
-- **Template**: Use templates (e.g., `[PERSON]`, `[EMAIL]`)
-- **Partial**: Show partial content (e.g., `joh***@company.com`)
-- **Hash**: Consistent hashing (e.g., `a7b2c8d1`)
+| Strategy | Example Input | Example Output | Use Case |
+|----------|--------------|----------------|----------|
+| **REDACT** | `john.doe@email.com` | `████████████████` | Maximum privacy |
+| **TEMPLATE** | `John Smith` | `[PERSON]` | Clear entity types |
+| **PARTIAL** | `555-123-4567` | `555-XXX-XXXX` | Preserve format |
+| **HASH** | `123-45-6789` | `a7b2c8d1` | Consistent replacement |
 
 ## 📖 Documentation
 
-Comprehensive documentation is available in the [`docs/`](docs/) directory:
+- **[Simple Example](examples/simple_usage.py)** - Basic usage patterns
+- **[Advanced Example](examples/advanced_usage.py)** - Builder pattern and policies
+- **[API Reference](docs/API.md)** - Complete API documentation
+- **[Migration Guide](docs/MIGRATION.md)** - Upgrading from v1.x
 
-- **[Getting Started Guide](docs/notebooks/01_getting_started.ipynb)** - Interactive tutorial
-- **[CLI Reference](docs/cli/overview.rst)** - Complete command-line documentation
-- **[API Documentation](docs/api/)** - Python API reference
-- **[Policy Development](docs/notebooks/02_policy_development.ipynb)** - Creating custom policies
-- **[Examples](examples/)** - Integration examples and use cases
-
-### Quick Links
-
-- 📘 [Full Documentation](docs/index.rst)
-- 🔧 [CLI Commands](docs/cli/overview.rst)
-- 📝 [Policy Configuration](docs/policies/)
-- 🧪 [Jupyter Notebooks](docs/notebooks/)
-- 💼 [Industry Examples](examples/)
-
-## 🏗️ Repository Structure
+## 🏗️ Project Structure
 
 ```
 cloakpivot/
 ├── cloakpivot/           # Main package
+│   ├── engine.py         # CloakEngine - main API
+│   ├── engine_builder.py # Builder pattern configuration
+│   ├── defaults.py       # Default policies and settings
 │   ├── cli/              # Command-line interface
-│   ├── core/             # Core masking/unmasking logic
-│   ├── document/         # DocPivot integration
-│   ├── masking/          # Masking engines and strategies
-│   ├── unmasking/        # Unmasking and restoration
-│   ├── policies/         # Policy management and examples
-│   ├── plugins/          # Extension system
-│   ├── storage/          # CloakMap storage backends
-│   └── observability/    # Monitoring and diagnostics
-├── docs/                 # Comprehensive documentation
-├── examples/             # Integration examples
-├── tests/                # Test suite (142+ tests)
-├── policies/             # Policy templates and examples
-└── specification/        # Technical specifications
+│   ├── core/             # Core functionality (anchors, policies, etc.)
+│   ├── masking/          # Masking engine
+│   └── unmasking/        # Unmasking engine
+├── examples/             # Usage examples
+│   ├── simple_usage.py   # Basic example
+│   └── advanced_usage.py # Advanced configuration
+├── tests/                # Test suite (60+ tests)
+└── config/policies/      # Policy templates
 ```
 
 ## 🔧 Development
@@ -131,104 +167,68 @@ ruff check cloakpivot/ tests/
 mypy cloakpivot/
 ```
 
-## 🏥 Use Cases
+## 🏥 Common Use Cases
 
-### Healthcare & HIPAA Compliance
-```python
-# HIPAA-compliant masking for medical records
-result = mask_document(
-    "patient_record.pdf", 
-    policy="policies/industries/healthcare/hipaa-compliant.yaml"
-)
-```
+- **🏥 Healthcare**: De-identify patient records while preserving document structure
+- **💳 Financial**: Mask credit cards, SSNs, and account numbers in reports
+- **👥 HR**: Redact employee PII in documents for compliance
+- **🧪 Development**: Create safe test data from production documents
+- **📝 Legal**: Redact sensitive information in legal documents
+- **📧 Customer Support**: Remove PII from support tickets and logs
 
-### Document Processing Pipelines
-```python
-# Batch processing with custom policies
-from cloakpivot.core.batch import BatchProcessor
+## 🎯 Supported Entity Types
 
-processor = BatchProcessor(policy="balanced.yaml")
-results = processor.process_directory("./sensitive_docs/")
-```
-
-### Development & Testing
-```python
-# Mask production data for development environments
-result = mask_document(
-    "production_db_export.json",
-    policy="policies/templates/permissive.yaml"
-)
-```
-
-## 📊 Performance
-
-- **Fast Processing**: Optimized for large documents and batch operations
-- **Memory Efficient**: Streaming processing for large files
-- **Parallel Analysis**: Multi-core entity detection and processing
-- **Comprehensive Testing**: 142+ tests including performance benchmarks
+Default detection includes:
+- **Personal**: Names, phone numbers, addresses
+- **Financial**: Credit cards, bank accounts, SSNs
+- **Digital**: Email addresses, URLs, IP addresses
+- **Healthcare**: Medical license numbers, patient IDs
+- **Dates & Times**: Birthdays, appointments
+- **Custom**: Add your own entity recognizers
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/development/contributing.rst) for details on:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-- Setting up the development environment
-- Running tests and quality checks
-- Submitting pull requests
-- Plugin development
-- Documentation improvements
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/hernamesbarbara/cloakpivot.git
+cd cloakpivot
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run tests
+python -m pytest
+```
 
 ## 📄 License
 
 CloakPivot is released under the MIT License. See [LICENSE](LICENSE) for details.
 
-## 🔗 Related Projects
+## 🔗 Dependencies
 
-- **[DocPivot](https://github.com/example/docpivot)** - Document processing and format conversion
-- **[Presidio](https://github.com/microsoft/presidio)** - PII detection and anonymization
-- **[Policy Templates](policies/)** - Industry-specific masking policies
+- **[Docling](https://github.com/DS4SD/docling)** - Document parsing and conversion
+- **[Presidio](https://github.com/microsoft/presidio)** - PII detection engine
+- **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation
 
-## 💡 Examples
+## ℹ️ Version 2.0 Breaking Changes
 
-### Healthcare Document Masking
-```python
-from cloakpivot import mask_document
+Version 2.0 introduces the simplified CloakEngine API. If upgrading from v1.x:
+- `MaskingEngine` and `UnmaskingEngine` are deprecated
+- Use `CloakEngine` for all operations
+- See [Migration Guide](docs/MIGRATION.md) for details
 
-# Mask medical record with HIPAA compliance
-result = mask_document(
-    "medical_record.pdf",
-    policy_path="policies/industries/healthcare/hipaa-compliant.yaml",
-    output_format="docling"
-)
+## 💬 Support
 
-print(f"Masked {result.stats.total_entities_found} PII entities")
-print(f"Document: {result.masked_path}")
-print(f"CloakMap: {result.cloakmap_path}")
-```
+- **Issues**: [GitHub Issues](https://github.com/hernamesbarbara/cloakpivot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hernamesbarbara/cloakpivot/discussions)
+- **Examples**: [examples/](examples/)
 
-### Custom Policy Development
-```python
-from cloakpivot import MaskingPolicy, Strategy, StrategyKind
+---
 
-# Create custom policy
-policy = MaskingPolicy(
-    locale="en",
-    default_strategy=Strategy(
-        kind=StrategyKind.TEMPLATE,
-        parameters={"template": "[REDACTED]"}
-    ),
-    per_entity={
-        "EMAIL_ADDRESS": Strategy(
-            kind=StrategyKind.PARTIAL,
-            parameters={"visible_chars": 3, "position": "start"}
-        ),
-        "PHONE_NUMBER": Strategy(
-            kind=StrategyKind.REDACT,
-            parameters={"redact_char": "X"}
-        )
-    }
-)
-
-result = mask_document("document.json", policy=policy)
-```
-
-For more examples, see the [`examples/`](examples/) directory and [documentation notebooks](docs/notebooks/).
+<p align="center">
+  Made with ❤️ for document privacy
+</p>
