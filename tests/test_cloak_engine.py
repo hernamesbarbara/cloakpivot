@@ -5,8 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import DocItem, DocItemLabel
-from docling_core.types.doc.labels import DocItemLabel
+from docling_core.types.doc.document import TextItem
 
 from cloakpivot import CloakEngine, CloakEngineBuilder, CloakedDocument
 from cloakpivot.defaults import get_default_policy, get_conservative_policy
@@ -23,8 +22,8 @@ class TestCloakEngineBasics:
         assert engine is not None
         assert engine.default_policy is not None
         assert engine.analyzer_config is not None
-        assert engine.analyzer_config.languages == ["en"]
-        assert engine.analyzer_config.confidence_threshold == 0.7
+        assert engine.analyzer_config.language == "en"
+        assert engine.analyzer_config.min_confidence == 0.7
 
     def test_custom_initialization(self):
         """Test CloakEngine with custom configuration."""
@@ -34,8 +33,8 @@ class TestCloakEngineBasics:
             default_policy=custom_policy
         )
         assert engine.default_policy == custom_policy
-        assert engine.analyzer_config.languages == ['es']
-        assert engine.analyzer_config.confidence_threshold == 0.8
+        assert engine.analyzer_config.language == 'es'
+        assert engine.analyzer_config.min_confidence == 0.8
 
     def test_mask_document_with_defaults(self, sample_document):
         """Test simple masking workflow with defaults."""
@@ -69,12 +68,12 @@ class TestCloakEngineBasics:
             per_entity={
                 "EMAIL_ADDRESS": Strategy(
                     kind=StrategyKind.REDACT,
-                    params={"replacement": "[REMOVED]"}
+                    parameters={"replacement": "[REMOVED]"}
                 )
             },
             default_strategy=Strategy(
                 kind=StrategyKind.KEEP,
-                params={}
+                parameters={}
             )
         )
 
@@ -114,7 +113,7 @@ class TestCloakEngineBuilder:
             .with_languages(['en', 'es', 'fr']) \
             .build()
 
-        assert engine.analyzer_config.languages == ['en', 'es', 'fr']
+        assert engine.analyzer_config.language == 'fr'  # Last language in list
 
     def test_builder_with_confidence_threshold(self):
         """Test builder with custom confidence threshold."""
@@ -122,7 +121,7 @@ class TestCloakEngineBuilder:
             .with_confidence_threshold(0.9) \
             .build()
 
-        assert engine.analyzer_config.confidence_threshold == 0.9
+        assert engine.analyzer_config.min_confidence == 0.9
 
     def test_builder_with_invalid_threshold(self):
         """Test builder rejects invalid threshold."""
@@ -149,8 +148,8 @@ class TestCloakEngineBuilder:
             .with_custom_policy(get_default_policy()) \
             .build()
 
-        assert engine.analyzer_config.languages == ['es']
-        assert engine.analyzer_config.confidence_threshold == 0.8
+        assert engine.analyzer_config.language == 'es'
+        assert engine.analyzer_config.min_confidence == 0.8
         assert engine.analyzer_config.return_decision_process == True
 
     def test_builder_reset(self):
@@ -163,8 +162,8 @@ class TestCloakEngineBuilder:
         builder.reset()
         engine = builder.build()
 
-        assert engine.analyzer_config.languages == ['en']  # Back to default
-        assert engine.analyzer_config.confidence_threshold == 0.7  # Back to default
+        assert engine.analyzer_config.language == 'en'  # Back to default
+        assert engine.analyzer_config.min_confidence == 0.7  # Back to default
 
 
 class TestCloakedDocument:
@@ -320,11 +319,13 @@ def sample_document():
     doc = DoclingDocument(name="test_doc.pdf")
 
     # Add some basic content
-    item = DocItem(
-        label=DocItemLabel.PARAGRAPH,
-        text="This is a test document with sample content."
+    text_item = TextItem(
+        text="This is a test document with sample content.",
+        self_ref="#/texts/0",
+        label="text",
+        orig="This is a test document with sample content."
     )
-    doc.add_item(item)
+    doc.texts = [text_item]
 
     return doc
 
@@ -335,11 +336,13 @@ def sample_document_with_pii():
     doc = DoclingDocument(name="test_pii.pdf")
 
     # Add content with PII
-    item = DocItem(
-        label=DocItemLabel.PARAGRAPH,
-        text="Contact John Doe at john.doe@example.com or call 555-123-4567."
+    text_item = TextItem(
+        text="Contact John Doe at john.doe@example.com or call 555-123-4567.",
+        self_ref="#/texts/0",
+        label="text",
+        orig="Contact John Doe at john.doe@example.com or call 555-123-4567."
     )
-    doc.add_item(item)
+    doc.texts = [text_item]
 
     return doc
 
