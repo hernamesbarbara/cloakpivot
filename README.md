@@ -98,6 +98,18 @@ result = engine.mask_document(doc)
 result = engine.mask_document(doc, entities=['EMAIL_ADDRESS', 'CREDIT_CARD'])
 ```
 
+### Working with DocPivot
+
+```python
+from cloakpivot.compat import load_document, to_lexical
+
+# Load Docling JSON files directly
+doc = load_document('document.docling.json')
+
+# Convert to Lexical format for editor integration
+lexical_doc = to_lexical(doc)
+```
+
 ## 🎯 How It Works
 
 CloakPivot creates a **CloakMap** - a secure mapping between original and masked content that enables perfect restoration:
@@ -123,6 +135,7 @@ CloakPivot creates a **CloakMap** - a secure mapping between original and masked
 - **[Advanced Configuration](examples/advanced_usage.py)** - Builder pattern and policies
 - **[PDF Workflow](examples/pdf_workflow.py)** - Complete PDF processing example
 - **[Pipeline Integration](examples/docling_integration.py)** - Working with DoclingDocument files
+- **[Docling to Lexical](examples/docling_to_lexical_workflow.py)** - Convert documents to Lexical format
 - **[API Reference](docs/API.md)** - Complete API documentation
 - **[Migration Guide](docs/MIGRATION.md)** - Upgrading from v1.x
 
@@ -221,11 +234,19 @@ CloakPivot is released under the MIT License. See [LICENSE](LICENSE) for details
 ## 🔗 Dependencies
 
 - **[Docling](https://github.com/DS4SD/docling)** - Document parsing and conversion
+- **[DocPivot](https://github.com/hernamesbarbara/docpivot)** v2.0.1+ - Document format conversions
 - **[Presidio](https://github.com/microsoft/presidio)** - PII detection engine
 - **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation
 
-## ℹ️ Version 2.0 Breaking Changes
+## ℹ️ Recent Updates
 
+### DocPivot v2.0.1 Integration
+CloakPivot now uses DocPivot v2.0.1 with improved performance:
+- Direct JSON loading for Docling documents
+- Single `DocPivotEngine` for all conversions
+- Backward compatibility via `cloakpivot.compat` module
+
+### Version 2.0 Breaking Changes
 Version 2.0 introduces the simplified CloakEngine API. If upgrading from v1.x:
 - `MaskingEngine` and `UnmaskingEngine` are deprecated
 - Use `CloakEngine` for all operations

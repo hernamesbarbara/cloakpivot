@@ -1,6 +1,6 @@
 """Comprehensive tests for document integration functionality."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, mock_open
 
 import pytest
 from docling_core.types import DoclingDocument
@@ -26,8 +26,9 @@ class TestDocumentProcessor:
         assert stats.files_processed == 0
         assert stats.errors_encountered == 0
 
-    @patch("cloakpivot.document.processor.load_document")
-    def test_load_document_success(self, mock_load_document):
+    @patch("builtins.open", new_callable=mock_open, read_data='{"schema_name": "DoclingDocument", "name": "test_document", "texts": [], "tables": [], "pictures": [], "key_value_items": [], "form_items": []}')
+    @patch("cloakpivot.document.processor.DoclingDocument.model_validate")
+    def test_load_document_success(self, mock_model_validate, mock_file):
         """Test successful document loading."""
         # Setup mock
         mock_doc = Mock(spec=DoclingDocument)
@@ -37,7 +38,7 @@ class TestDocumentProcessor:
         mock_doc.pictures = []
         mock_doc.key_value_items = []
         mock_doc.form_items = []
-        mock_load_document.return_value = mock_doc
+        mock_model_validate.return_value = mock_doc
 
         processor = DocumentProcessor()
 
@@ -46,10 +47,11 @@ class TestDocumentProcessor:
 
         assert result == mock_doc
         assert processor.get_processing_stats().files_processed == 1
-        mock_load_document.assert_called_once_with("test.docling.json")
+        mock_model_validate.assert_called_once()
 
-    @patch("cloakpivot.document.processor.load_document")
-    def test_load_document_with_validation_disabled(self, mock_load_document):
+    @patch("builtins.open", new_callable=mock_open, read_data='{"schema_name": "DoclingDocument", "name": "test_document", "texts": [], "tables": [], "pictures": [], "key_value_items": [], "form_items": []}')
+    @patch("cloakpivot.document.processor.DoclingDocument.model_validate")
+    def test_load_document_with_validation_disabled(self, mock_model_validate, mock_file):
         """Test document loading with validation disabled."""
         mock_doc = Mock(spec=DoclingDocument)
         mock_doc.name = "test_document"
@@ -58,26 +60,19 @@ class TestDocumentProcessor:
         mock_doc.pictures = []
         mock_doc.key_value_items = []
         mock_doc.form_items = []
-        mock_load_document.return_value = mock_doc
+        mock_model_validate.return_value = mock_doc
 
         processor = DocumentProcessor()
         result = processor.load_document("test.docling.json", validate=False)
 
         assert result == mock_doc
-        mock_load_document.assert_called_once_with("test.docling.json")
+        mock_model_validate.assert_called_once()
 
-    @patch("cloakpivot.document.processor.load_document")
-    def test_load_document_file_not_found(self, mock_load_document):
+    def test_load_document_file_not_found(self):
         """Test handling of file not found error."""
-        from docpivot.io.readers.exceptions import FileAccessError
-
-        mock_load_document.side_effect = FileAccessError(
-            "File not found", file_path="nonexistent.json", operation="load_document"
-        )
-
         processor = DocumentProcessor()
 
-        with pytest.raises(FileAccessError):
+        with pytest.raises(FileNotFoundError):
             processor.load_document("nonexistent.json")
 
         assert processor.get_processing_stats().errors_encountered == 1

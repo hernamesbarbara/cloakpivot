@@ -114,7 +114,7 @@ class TestMaskCommand:
 
             with (
                 patch("cloakpivot.document.extractor.TextExtractor"),
-                patch("docpivot.LexicalDocSerializer"),
+                patch("docpivot.DocPivotEngine"),
                 patch("builtins.open", create=True),
             ):
                 runner.invoke(
@@ -237,7 +237,7 @@ class TestUnmaskCommand:
             cloakmap_file.write_text('{"doc_id": "test", "anchors": []}')
 
             with (
-                patch("docpivot.LexicalDocSerializer"),
+                patch("docpivot.DocPivotEngine"),
                 patch("builtins.open", create=True),
                 patch("json.load", return_value={"doc_id": "test", "anchors": []}),
             ):
@@ -550,7 +550,7 @@ class TestProgressReporting:
 
             with (
                 patch("cloakpivot.document.extractor.TextExtractor"),
-                patch("docpivot.LexicalDocSerializer"),
+                patch("docpivot.DocPivotEngine"),
                 patch("builtins.open", create=True),
                 patch("click.confirm", return_value=True),
             ):

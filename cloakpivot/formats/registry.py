@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from docpivot import SerializerProvider
+from docpivot import DocPivotEngine
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class SupportedFormat(Enum):
 class FormatRegistry:
     """Registry for managing document formats and their serializers.
 
-    This class provides a high-level interface to docpivot's SerializerProvider
+    This class provides a high-level interface to docpivot's DocPivotEngine
     with CloakPivot-specific enhancements like format detection and validation.
     """
 
@@ -61,11 +61,8 @@ class FormatRegistry:
 
     def __init__(self) -> None:
         """Initialize the format registry."""
-        self._provider = SerializerProvider()
+        self._engine = DocPivotEngine()
         self._custom_serializers: dict[str, type] = {}
-
-        # Enable registry integration for extensibility
-        self._provider.enable_registry_integration()
 
         logger.debug(
             f"FormatRegistry initialized with formats: {self.list_supported_formats()}"
@@ -85,7 +82,8 @@ class FormatRegistry:
             # Handle special case formats
             if format_name == "docling":
                 return True  # We handle docling format specially
-            return bool(self._provider.is_format_supported(format_name))
+            # DocPivotEngine supports lexical, markdown, html, and doctags
+            return format_name in ["lexical", "markdown", "md", "html", "doctags"]
         except ValueError:
             return False
 
@@ -95,11 +93,9 @@ class FormatRegistry:
         Returns:
             List of supported format names
         """
-        formats = self._provider.list_formats().copy()
-        # Add our special case formats
-        if "docling" not in formats:
-            formats.append("docling")
-        return list(formats)
+        # DocPivotEngine supports these formats
+        formats = ["lexical", "markdown", "md", "html", "doctags", "docling"]
+        return formats
 
     def detect_format_from_path(
         self, file_path: Union[str, Path]
@@ -219,7 +215,7 @@ class FormatRegistry:
         except ValueError as e:
             raise ValueError(f"Unsupported format: {format_name}") from e
 
-        # Handle special case formats that aren't supported by docpivot SerializerProvider
+        # Handle special case formats that aren't supported by docpivot DocPivotEngine
         if format_name == "docling":
             # For docling format, we use the DoclingDocument's native export_to_dict method
             class DoclingSerializer:
@@ -238,18 +234,20 @@ class FormatRegistry:
             else:
                 return DoclingSerializer(document)
 
-        # Check if format is supported by docpivot
-        if not self._provider.is_format_supported(format_name):
-            raise ValueError(
-                f"Format '{format_name}' not available in docpivot SerializerProvider"
-            )
+        # Return the engine for conversion
+        return self._engine
 
-        # For docpivot, we need a document to get the serializer
-        if document is None:
-            # Return a factory function that creates the serializer when given a document
-            return lambda doc: self._provider.get_serializer(format_name, doc)
-        else:
-            return self._provider.get_serializer(format_name, document)
+    def serialize_to_lexical(self, document: Any) -> str:
+        """Serialize document to Lexical JSON.
+
+        Args:
+            document: DoclingDocument to serialize
+
+        Returns:
+            JSON string in Lexical format
+        """
+        result = self._engine.convert_to_lexical(document)
+        return result.content  # Returns JSON string
 
     def register_custom_serializer(
         self, format_name: str, serializer_class: type
