@@ -136,8 +136,6 @@ CloakPivot creates a **CloakMap** - a secure mapping between original and masked
 - **[PDF Workflow](examples/pdf_workflow.py)** - Complete PDF processing example
 - **[Pipeline Integration](examples/docling_integration.py)** - Working with DoclingDocument files
 - **[Docling to Lexical](examples/docling_to_lexical_workflow.py)** - Convert documents to Lexical format
-- **[API Reference](docs/API.md)** - Complete API documentation
-- **[Migration Guide](docs/MIGRATION.md)** - Upgrading from v1.x
 
 ## 🏗️ Project Structure
 
@@ -180,7 +178,7 @@ make dev
 make help
 
 # Quick validation before committing
-make check  # Runs format + lint
+make check  # Runs format + lint + type + test-fast
 
 # Run full CI/CD pipeline locally
 make all    # Runs format + lint + type + test
@@ -218,8 +216,6 @@ All project configuration is centralized in `pyproject.toml`:
 - **MyPy**: Gradual typing with per-module overrides
 - **Pytest**: Coverage integration, test markers
 - **Coverage**: Branch coverage, multiple report formats
-
-See [PROJECT_CONFIG.md](PROJECT_CONFIG.md) for complete configuration details.
 
 ## 🏥 Common Use Cases
 
@@ -277,11 +273,11 @@ CloakPivot now uses DocPivot v2.0.1 with improved performance:
 - Single `DocPivotEngine` for all conversions
 - Backward compatibility via `cloakpivot.compat` module
 
-### Version 2.0 Breaking Changes
-Version 2.0 introduces the simplified CloakEngine API. If upgrading from v1.x:
-- `MaskingEngine` and `UnmaskingEngine` are deprecated
-- Use `CloakEngine` for all operations
-- See [Migration Guide](docs/MIGRATION.md) for details
+### Version 2.0 Features
+Version 2.0 introduces the simplified CloakEngine API:
+- Single `CloakEngine` for all masking/unmasking operations
+- Clean builder pattern for advanced configuration
+- Improved performance with direct JSON loading
 
 ## 💬 Support
 

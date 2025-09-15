@@ -8,29 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Project Configuration Overhaul**: Complete restructuring of project configuration
-  - Single-source-of-truth configuration in `pyproject.toml`
-  - Comprehensive `Makefile` with 25+ targets for all development operations
-  - Detailed `PROJECT_CONFIG.md` documentation
-  - Removed redundant configuration files and scripts
+- **Project Configuration Standardization**: Adopted DocPivot's cleaner configuration approach
+  - Simplified `pyproject.toml` by removing excessive comments and verbose configurations
+  - Streamlined `Makefile` from 248 lines to 158 lines, removing redundant targets
+  - Adopted DocPivot's minimal configuration style with selective enhancements
+  - Removed redundant `PROJECT_CONFIG.md` documentation file
 - **New Test Suite**: Complete rewrite of test infrastructure
   - Archived old tests to `tests_old/` for reference
   - Created clean test structure: `unit/`, `integration/`, `e2e/`
   - Leverages real test data from `data/pdf/` and `data/json/`
   - Minimal fixtures focused on actual functionality
+- **Compatibility Module**: New `cloakpivot.compat` module providing:
+  - `load_document()` - Direct Docling JSON loading
+  - `to_lexical()` - Conversion using new DocPivotEngine
+- **Migration Guide**: Added `specification/CLOAKPIVOT_MIGRATION_GUIDE.md` for DocPivot v2.0.1 migration
 
 ### Changed
 - **Development Workflow**: Simplified to use Make commands exclusively
   - `make dev` - One-command development setup
   - `make all` - Single CI/CD pipeline entry point
-  - `make check` - Quick pre-commit validation
-  - All tool configurations centralized in `pyproject.toml`
-- **Tool Configuration**: Updated and consolidated
-  - Black: line-length=100, target-version=py311
-  - Ruff: Comprehensive rule set with integrated isort
-  - MyPy: Gradual typing approach with per-module overrides
-  - Pytest: Enhanced with coverage integration and test markers
-  - Coverage: Configured with branch coverage and multiple report formats
+  - `make check` - Quick pre-commit validation (format, lint, type, test-fast)
+  - Removed redundant targets like `install-dev`, publishing targets, and verbose helpers
+- **Configuration Philosophy**: Adopted DocPivot's cleaner approach
+  - Removed 100+ lines of comments from `pyproject.toml`
+  - Simplified pytest configuration to essential options only
+  - Adopted moderate MyPy strictness with gradual typing
+  - Kept test markers but removed verbose coverage requirements
 - **DocPivot v2.0.1 Migration**: Updated to use DocPivot v2.0.1 with new `DocPivotEngine` API
   - Replaced `SerializerProvider` with `DocPivotEngine` in format registry
   - Replaced `LexicalDocSerializer` with `engine.convert_to_lexical()`
@@ -39,15 +42,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Document Loading**: Simplified to load Docling JSON files directly without DocPivot
 - **Performance**: Improved performance with direct JSON loading and single engine instance
 
-### Added
-- **Compatibility Module**: New `cloakpivot.compat` module providing:
-  - `load_document()` - Direct Docling JSON loading
-  - `to_lexical()` - Conversion using new DocPivotEngine
-- **Migration Guide**: Added `specification/CLOAKPIVOT_MIGRATION_GUIDE.md` for DocPivot v2.0.1 migration
+### Removed
+- Excessive configuration comments in `pyproject.toml` (reduced by ~60%)
+- Redundant Makefile targets (90+ lines removed)
+- `PROJECT_CONFIG.md` documentation file (content already in README)
+- `PERFORMANCE.md` - Outdated performance documentation referencing removed features
+- `run_tests.py` - Redundant test runner (functionality in Makefile)
+- `coverage.xml` - Generated file that shouldn't be in version control
+- `htmlcov/` directory - Generated coverage HTML reports
+- `test_reports/` directory - Old performance test reports no longer needed
+- `tests_old/` directory - Archived old test suite replaced by new clean structure
+- `benchmarks/` directory - Old performance benchmarking configuration
+- `policies/` directory - Incomplete example policy templates never fully implemented
+- `scripts/` directory - Obsolete performance and setup scripts
+- `docs/` directory - Misleading documentation referencing non-existent v1.x
+- Publishing targets from Makefile (not needed for internal project)
+- Watch target and other rarely-used development helpers
 
 ### Fixed
 - Import errors with DocPivot v2.0.1 API changes
 - Test compatibility with new DocPivot API
+- Over-engineered configuration files now simplified
 
 ### Removed
 - **Dead Code Cleanup**: Major cleanup of unused and deprecated code
