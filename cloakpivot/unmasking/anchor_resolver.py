@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from docling_core.types.doc.document import (
     CodeItem,
@@ -81,9 +81,7 @@ class AnchorResolver:
     """
 
     # Configuration for anchor resolution
-    MAX_POSITION_DRIFT = (
-        100  # Maximum characters to search around expected position (increased)
-    )
+    MAX_POSITION_DRIFT = 100  # Maximum characters to search around expected position (increased)
     MIN_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence to accept resolution (lowered)
     FUZZY_SEARCH_WINDOW = 20  # Characters to search in each direction (increased)
 
@@ -130,7 +128,9 @@ class AnchorResolver:
                     adjusted_anchor = AnchorEntry(
                         node_id=anchor.node_id,
                         start=anchor.start + cumulative_shift,
-                        end=anchor.start + cumulative_shift + len(anchor.masked_value),  # Use masked value length
+                        end=anchor.start
+                        + cumulative_shift
+                        + len(anchor.masked_value),  # Use masked value length
                         entity_type=anchor.entity_type,
                         confidence=anchor.confidence,
                         masked_value=anchor.masked_value,
@@ -139,10 +139,12 @@ class AnchorResolver:
                         checksum_salt=anchor.checksum_salt,
                         strategy_used=anchor.strategy_used,
                         timestamp=anchor.timestamp,
-                        metadata=anchor.metadata
+                        metadata=anchor.metadata,
                     )
 
-                    resolved = self._resolve_single_anchor_with_adjusted(document, anchor, adjusted_anchor)
+                    resolved = self._resolve_single_anchor_with_adjusted(
+                        document, anchor, adjusted_anchor
+                    )
                     if resolved:
                         resolved_anchors.append(resolved)
                         logger.debug(
@@ -198,7 +200,7 @@ class AnchorResolver:
 
     def _resolve_single_anchor_with_adjusted(
         self, document: DoclingDocument, original_anchor: AnchorEntry, adjusted_anchor: AnchorEntry
-    ) -> Optional[ResolvedAnchor]:
+    ) -> ResolvedAnchor | None:
         """Resolve a single anchor using adjusted positions."""
         # Find the target node
         node_item = self._find_node_by_id(document, original_anchor.node_id)
@@ -238,10 +240,7 @@ class AnchorResolver:
 
         # Try content-based search as last resort with adjusted positions
         content_match = self._try_content_based_search(adjusted_anchor, node_text)
-        if (
-            content_match
-            and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD
-        ):
+        if content_match and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD:
             return ResolvedAnchor(
                 anchor=original_anchor,  # Use original anchor for metadata
                 node_item=node_item,
@@ -255,7 +254,7 @@ class AnchorResolver:
 
     def _resolve_single_anchor(
         self, document: DoclingDocument, anchor: AnchorEntry
-    ) -> Optional[ResolvedAnchor]:
+    ) -> ResolvedAnchor | None:
         """Resolve a single anchor in the document (backward compatibility)."""
         # Find the target node
         node_item = self._find_node_by_id(document, anchor.node_id)
@@ -295,10 +294,7 @@ class AnchorResolver:
 
         # Try content-based search as last resort
         content_match = self._try_content_based_search(anchor, node_text)
-        if (
-            content_match
-            and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD
-        ):
+        if content_match and content_match["confidence"] >= self.MIN_CONFIDENCE_THRESHOLD:
             return ResolvedAnchor(
                 anchor=anchor,
                 node_item=node_item,
@@ -312,7 +308,7 @@ class AnchorResolver:
 
     def _try_exact_position_match(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Try to match the anchor at its exact expected position."""
         if anchor.end > len(node_text):
             return None
@@ -330,7 +326,7 @@ class AnchorResolver:
 
     def _try_fuzzy_position_match(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Try to match the anchor within a window around the expected position."""
         expected_length = len(anchor.masked_value)
         search_start = max(0, anchor.start - self.FUZZY_SEARCH_WINDOW)
@@ -361,7 +357,7 @@ class AnchorResolver:
 
     def _try_content_based_search(
         self, anchor: AnchorEntry, node_text: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Search for the masked value anywhere in the node text."""
         masked_value = anchor.masked_value
 
@@ -369,7 +365,8 @@ class AnchorResolver:
         if masked_value and all(c == "*" for c in masked_value):
             # For asterisk patterns, look for isolated sequences of the exact length
             import re
-            pattern = r'(?<!\*)\*{' + str(len(masked_value)) + r'}(?!\*)'
+
+            pattern = r"(?<!\*)\*{" + str(len(masked_value)) + r"}(?!\*)"
             occurrences = []
             for match in re.finditer(pattern, node_text):
                 occurrences.append((match.start(), match.end()))
@@ -398,17 +395,14 @@ class AnchorResolver:
                 best_match = {
                     "position": (start_pos, end_pos),
                     "text": masked_value,
-                    "confidence": confidence
-                    * 0.8,  # Reduce confidence for content search
+                    "confidence": confidence * 0.8,  # Reduce confidence for content search
                     "delta": distance,
                 }
                 best_distance = distance
 
         return best_match
 
-    def _find_node_by_id(
-        self, document: DoclingDocument, node_id: str
-    ) -> Optional[NodeItem]:
+    def _find_node_by_id(self, document: DoclingDocument, node_id: str) -> NodeItem | None:
         """Find a node in the document by its ID."""
         # Check text items
         for text_item in document.texts:
@@ -446,7 +440,7 @@ class AnchorResolver:
 
         return f"#{node_type.lower()}_{id(node_item)}"
 
-    def _extract_node_text(self, node_item: NodeItem, node_id: str) -> Optional[str]:
+    def _extract_node_text(self, node_item: NodeItem, node_id: str) -> str | None:
         """Extract text content from a node item."""
         # Handle text-bearing nodes
         if isinstance(
@@ -463,16 +457,16 @@ class AnchorResolver:
             return getattr(node_item, "text", None)
 
         # Handle table nodes
-        elif isinstance(node_item, TableItem):
+        if isinstance(node_item, TableItem):
             return self._extract_table_text(node_item, node_id)
 
         # Handle key-value nodes
-        elif isinstance(node_item, KeyValueItem):
+        if isinstance(node_item, KeyValueItem):
             return self._extract_key_value_text(node_item, node_id)
 
         return None
 
-    def _extract_table_text(self, table_item: TableItem, node_id: str) -> Optional[str]:
+    def _extract_table_text(self, table_item: TableItem, node_id: str) -> str | None:
         """Extract text from a table node or specific cell."""
         if not hasattr(table_item, "data") or not table_item.data:
             return None
@@ -507,9 +501,7 @@ class AnchorResolver:
 
         return None
 
-    def _extract_key_value_text(
-        self, kv_item: KeyValueItem, node_id: str
-    ) -> Optional[str]:
+    def _extract_key_value_text(self, kv_item: KeyValueItem, node_id: str) -> str | None:
         """Extract text from a key-value node."""
         base_node_id = self._get_node_id(kv_item)
 
@@ -520,11 +512,7 @@ class AnchorResolver:
 
         # Check for value-specific node ID
         elif node_id == f"{base_node_id}/value":
-            if (
-                hasattr(kv_item, "value")
-                and kv_item.value
-                and hasattr(kv_item.value, "text")
-            ):
+            if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
                 return kv_item.value.text  # type: ignore[no-any-return]
 
         # Return concatenated key-value text if node_id matches the item
@@ -532,11 +520,7 @@ class AnchorResolver:
             texts = []
             if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
                 texts.append(kv_item.key.text)
-            if (
-                hasattr(kv_item, "value")
-                and kv_item.value
-                and hasattr(kv_item.value, "text")
-            ):
+            if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
                 texts.append(kv_item.value.text)
             return " ".join(texts) if texts else None
 
@@ -567,13 +551,9 @@ class AnchorResolver:
             reason = failed_anchor.failure_reason
             failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
 
-        avg_confidence = (
-            sum(r.confidence for r in resolved) / len(resolved) if resolved else 0.0
-        )
+        avg_confidence = sum(r.confidence for r in resolved) / len(resolved) if resolved else 0.0
 
-        avg_position_delta = (
-            sum(position_deltas) / len(position_deltas) if position_deltas else 0
-        )
+        avg_position_delta = sum(position_deltas) / len(position_deltas) if position_deltas else 0
 
         return {
             "total_anchors": len(resolved) + len(failed),

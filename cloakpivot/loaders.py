@@ -10,7 +10,7 @@ import hashlib
 import logging
 from functools import lru_cache
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 
 from .core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from .core.detection import EntityDetectionPipeline
@@ -54,9 +54,7 @@ def _validate_language(language: str) -> None:
         ConfigurationError: If language is invalid
     """
     if not isinstance(language, str):
-        raise ConfigurationError(
-            f"Language must be a string, got {type(language).__name__}"
-        )
+        raise ConfigurationError(f"Language must be a string, got {type(language).__name__}")
 
     if not language.strip():
         raise ConfigurationError("Language cannot be empty")
@@ -77,14 +75,10 @@ def _validate_confidence(confidence: float) -> None:
         ConfigurationError: If confidence is invalid
     """
     if not isinstance(confidence, (int, float)):
-        raise ConfigurationError(
-            f"Confidence must be a number, got {type(confidence).__name__}"
-        )
+        raise ConfigurationError(f"Confidence must be a number, got {type(confidence).__name__}")
 
     if not (0.0 <= confidence <= 1.0):
-        raise ConfigurationError(
-            f"Confidence must be between 0.0 and 1.0, got {confidence}"
-        )
+        raise ConfigurationError(f"Confidence must be between 0.0 and 1.0, got {confidence}")
 
 
 def _validate_nlp_engine(nlp_engine_name: str) -> None:
@@ -121,9 +115,7 @@ def _generate_config_hash(config: AnalyzerConfig) -> str:
         ConfigurationError: If config is invalid
     """
     if not isinstance(config, AnalyzerConfig):
-        raise ConfigurationError(
-            f"Expected AnalyzerConfig, got {type(config).__name__}"
-        )
+        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
 
     try:
         # Create a stable string representation of the config
@@ -140,7 +132,7 @@ def _generate_config_hash(config: AnalyzerConfig) -> str:
         raise ConfigurationError(f"Failed to generate config hash: {e}") from e
 
 
-def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
+def _generate_policy_hash(policy: MaskingPolicy | None) -> str:
     """Generate stable hash for MaskingPolicy caching.
 
     Args:
@@ -156,9 +148,7 @@ def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
         return "none"
 
     if not isinstance(policy, MaskingPolicy):
-        raise ConfigurationError(
-            f"Expected MaskingPolicy or None, got {type(policy).__name__}"
-        )
+        raise ConfigurationError(f"Expected MaskingPolicy or None, got {type(policy).__name__}")
 
     try:
         # Create a stable string representation focusing on analyzer-relevant fields
@@ -175,7 +165,7 @@ def _generate_policy_hash(policy: Optional[MaskingPolicy]) -> str:
 
 def get_presidio_analyzer(
     language: str = "en",
-    config_hash: Optional[str] = None,
+    config_hash: str | None = None,
     min_confidence: float = 0.5,
     nlp_engine_name: str = "spacy",
 ) -> AnalyzerEngineWrapper:
@@ -251,7 +241,7 @@ _analyzer_caches = {}
 
 def _get_cached_analyzer(
     language: str,
-    config_hash: Optional[str],
+    config_hash: str | None,
     min_confidence: float,
     nlp_engine_name: str,
     cache_size: int,
@@ -264,7 +254,7 @@ def _get_cached_analyzer(
 
         @lru_cache(maxsize=cache_size)
         def cached_analyzer_func(
-            lang: str, conf_hash: Optional[str], min_conf: float, nlp_engine: str
+            lang: str, conf_hash: str | None, min_conf: float, nlp_engine: str
         ) -> AnalyzerEngineWrapper:
             with _ANALYZER_LOCK:
                 config = AnalyzerConfig(
@@ -280,9 +270,7 @@ def _get_cached_analyzer(
         _analyzer_caches[cache_size] = cached_analyzer_func
 
     # Use the cached function
-    return _analyzer_caches[cache_size](
-        language, config_hash, min_confidence, nlp_engine_name
-    )
+    return _analyzer_caches[cache_size](language, config_hash, min_confidence, nlp_engine_name)
 
 
 def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineWrapper:
@@ -309,9 +297,7 @@ def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineW
         raise ConfigurationError("Config cannot be None")
 
     if not isinstance(config, AnalyzerConfig):
-        raise ConfigurationError(
-            f"Expected AnalyzerConfig, got {type(config).__name__}"
-        )
+        raise ConfigurationError(f"Expected AnalyzerConfig, got {type(config).__name__}")
 
     try:
         config_hash = _generate_config_hash(config)
@@ -369,17 +355,13 @@ def get_document_processor(enable_chunked: bool = True) -> DocumentProcessor:
             return processor
 
     except Exception as e:
-        logger.error(
-            f"Failed to create DocumentProcessor: {e} (chunked={enable_chunked})"
-        )
-        raise InitializationError(
-            f"Failed to initialize document processor: {e}"
-        ) from e
+        logger.error(f"Failed to create DocumentProcessor: {e} (chunked={enable_chunked})")
+        raise InitializationError(f"Failed to initialize document processor: {e}") from e
 
 
 @lru_cache(maxsize=4)
 def get_detection_pipeline(
-    analyzer_hash: Optional[str] = None, policy_hash: Optional[str] = None
+    analyzer_hash: str | None = None, policy_hash: str | None = None
 ) -> EntityDetectionPipeline:
     """Get cached detection pipeline instance.
 
@@ -431,9 +413,7 @@ def get_detection_pipeline(
         logger.error(f"Failed to create EntityDetectionPipeline: {e}")
         if isinstance(e, (ConfigurationError, InitializationError)):
             raise
-        raise InitializationError(
-            f"Failed to initialize detection pipeline: {e}"
-        ) from e
+        raise InitializationError(f"Failed to initialize detection pipeline: {e}") from e
 
 
 def get_detection_pipeline_from_policy(
@@ -474,9 +454,7 @@ def get_detection_pipeline_from_policy(
         # Note: We don't cache the pipeline itself since it should be policy-specific
         pipeline = EntityDetectionPipeline(analyzer=analyzer)
 
-        logger.info(
-            f"Created EntityDetectionPipeline from policy (locale={policy.locale})"
-        )
+        logger.info(f"Created EntityDetectionPipeline from policy (locale={policy.locale})")
 
         return pipeline
 

@@ -2,12 +2,12 @@
 
 import json
 from pathlib import Path
-from typing import Union
+
 from docling_core.types import DoclingDocument
 from docpivot import DocPivotEngine
 
 
-def load_document(file_path: Union[str, Path]) -> DoclingDocument:
+def load_document(file_path: str | Path) -> DoclingDocument:
     """Load a Docling JSON document directly.
 
     This function replaces the old docpivot.load_document function
@@ -23,7 +23,7 @@ def load_document(file_path: Union[str, Path]) -> DoclingDocument:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the JSON is invalid
     """
-    with open(file_path, 'r') as f:
+    with open(file_path) as f:
         doc_dict = json.load(f)
     return DoclingDocument.model_validate(doc_dict)
 

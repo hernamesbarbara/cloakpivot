@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 from docling_core.types.doc.document import (
     CodeItem,
@@ -54,7 +54,7 @@ class TextSegment:
     start_offset: int
     end_offset: int
     node_type: str
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         """Validate segment data after initialization."""
@@ -113,9 +113,7 @@ class TextExtractor:
         """
         self.normalize_whitespace = normalize_whitespace
         self._segment_separator = "\n\n"  # Separator between text segments
-        logger.debug(
-            f"TextExtractor initialized with normalize_whitespace={normalize_whitespace}"
-        )
+        logger.debug(f"TextExtractor initialized with normalize_whitespace={normalize_whitespace}")
 
     def extract_text_segments(self, document: DoclingDocument) -> list[TextSegment]:
         """
@@ -141,11 +139,13 @@ class TextExtractor:
             ...     print(f"{segment.node_type}: {segment.text[:50]}...")
         """
         # Check document version for logging purposes
-        doc_version = getattr(document, 'version', '1.2.0')
-        logger.info(f"Extracting text segments from document: {document.name} (version: {doc_version})")
+        doc_version = getattr(document, "version", "1.2.0")
+        logger.info(
+            f"Extracting text segments from document: {document.name} (version: {doc_version})"
+        )
 
         # Log version-specific information
-        if version.parse(str(doc_version)) >= version.parse('1.7.0'):
+        if version.parse(str(doc_version)) >= version.parse("1.7.0"):
             logger.debug(
                 "Document is v1.7.0+: prov charspans are segment-local. "
                 "TextExtractor builds independent segments with global offsets."
@@ -166,22 +166,16 @@ class TextExtractor:
             table_segments = self._extract_from_table_item(table_item, current_offset)
             segments.extend(table_segments)
             if table_segments:
-                current_offset = table_segments[-1].end_offset + len(
-                    self._segment_separator
-                )
+                current_offset = table_segments[-1].end_offset + len(self._segment_separator)
 
         # Extract from key-value items
         for kv_item in document.key_value_items:
             kv_segments = self._extract_from_key_value_item(kv_item, current_offset)
             segments.extend(kv_segments)
             if kv_segments:
-                current_offset = kv_segments[-1].end_offset + len(
-                    self._segment_separator
-                )
+                current_offset = kv_segments[-1].end_offset + len(self._segment_separator)
 
-        logger.info(
-            f"Extracted {len(segments)} text segments, {current_offset} total characters"
-        )
+        logger.info(f"Extracted {len(segments)} text segments, {current_offset} total characters")
         return segments
 
     def extract_full_text(self, document: DoclingDocument) -> str:
@@ -199,7 +193,7 @@ class TextExtractor:
 
     def find_segment_containing_offset(
         self, segments: list[TextSegment], offset: int
-    ) -> Optional[TextSegment]:
+    ) -> TextSegment | None:
         """
         Find the text segment that contains the given global offset.
 
@@ -249,11 +243,9 @@ class TextExtractor:
 
     def _extract_from_text_item(
         self,
-        text_item: Union[
-            TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem
-        ],
+        text_item: TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
         start_offset: int,
-    ) -> Optional[TextSegment]:
+    ) -> TextSegment | None:
         """Extract text from a text-bearing item."""
         if not hasattr(text_item, "text") or not text_item.text:
             return None
@@ -351,11 +343,7 @@ class TextExtractor:
                 current_offset = key_segment.end_offset + len(self._segment_separator)
 
         # Extract value text
-        if (
-            hasattr(kv_item, "value")
-            and kv_item.value
-            and hasattr(kv_item.value, "text")
-        ):
+        if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
             value_text = kv_item.value.text
             if self.normalize_whitespace:
                 value_text = self._normalize_whitespace(value_text)
@@ -400,9 +388,7 @@ class TextExtractor:
 
     def _extract_text_item_metadata(
         self,
-        text_item: Union[
-            TextItem, TitleItem, SectionHeaderItem, ListItem, CodeItem, FormulaItem
-        ],
+        text_item: TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
     ) -> dict[str, Any]:
         """Extract metadata from a text item."""
         metadata = {"item_type": type(text_item).__name__}

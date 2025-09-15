@@ -1,7 +1,7 @@
 """CloakMap enhancer for Presidio metadata integration."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from .cloakmap import CloakMap
 
@@ -48,9 +48,9 @@ class CloakMapEnhancer:
         self,
         cloakmap: CloakMap,
         operator_results: list[dict[str, Any]],
-        engine_version: Optional[str] = None,
-        reversible_operators: Optional[list[str]] = None,
-        batch_id: Optional[str] = None,
+        engine_version: str | None = None,
+        reversible_operators: list[str] | None = None,
+        batch_id: str | None = None,
     ) -> CloakMap:
         """Add Presidio operator results to CloakMap, creating v2.0 format.
 
@@ -82,9 +82,7 @@ class CloakMapEnhancer:
             required_fields = ["entity_type", "start", "end", "operator"]
             for field in required_fields:
                 if field not in result:
-                    raise ValueError(
-                        f"operator_result[{i}] missing required field: {field}"
-                    )
+                    raise ValueError(f"operator_result[{i}] missing required field: {field}")
 
         # Auto-detect reversible operators if not provided
         if reversible_operators is None:
@@ -136,7 +134,9 @@ class CloakMapEnhancer:
 
         if cloakmap.presidio_metadata is None:
             return []
-        operator_results: list[dict[str, Any]] = cloakmap.presidio_metadata.get("operator_results", [])
+        operator_results: list[dict[str, Any]] = cloakmap.presidio_metadata.get(
+            "operator_results", []
+        )
 
         if not operator_results:
             logger.warning("CloakMap has presidio_metadata but no operator_results")
@@ -172,7 +172,7 @@ class CloakMapEnhancer:
         reversible_operators: list[str] = cloakmap.presidio_metadata.get("reversible_operators", [])
         return reversible_operators
 
-    def get_engine_version(self, cloakmap: CloakMap) -> Optional[str]:
+    def get_engine_version(self, cloakmap: CloakMap) -> str | None:
         """Get Presidio engine version from CloakMap.
 
         Args:
@@ -189,7 +189,7 @@ class CloakMapEnhancer:
 
         return cloakmap.presidio_metadata.get("engine_version")
 
-    def get_batch_id(self, cloakmap: CloakMap) -> Optional[str]:
+    def get_batch_id(self, cloakmap: CloakMap) -> str | None:
         """Get batch ID from CloakMap.
 
         Args:
@@ -210,8 +210,8 @@ class CloakMapEnhancer:
         self,
         cloakmap: CloakMap,
         operator_results: list[dict[str, Any]],
-        engine_version: Optional[str] = None,
-        **kwargs: Any
+        engine_version: str | None = None,
+        **kwargs: Any,
     ) -> CloakMap:
         """Migrate v1.0 CloakMap to v2.0 with Presidio metadata.
 
@@ -227,17 +227,15 @@ class CloakMapEnhancer:
         Returns:
             New CloakMap v2.0 with Presidio metadata
         """
-        return self.add_presidio_metadata(
-            cloakmap, operator_results, engine_version, **kwargs
-        )
+        return self.add_presidio_metadata(cloakmap, operator_results, engine_version, **kwargs)
 
     def update_presidio_metadata(
         self,
         cloakmap: CloakMap,
-        operator_results: Optional[list[dict[str, Any]]] = None,
-        engine_version: Optional[str] = None,
-        reversible_operators: Optional[list[str]] = None,
-        batch_id: Optional[str] = None,
+        operator_results: list[dict[str, Any]] | None = None,
+        engine_version: str | None = None,
+        reversible_operators: list[str] | None = None,
+        batch_id: str | None = None,
     ) -> CloakMap:
         """Update existing Presidio metadata in CloakMap.
 
@@ -275,9 +273,7 @@ class CloakMapEnhancer:
                 required_fields = ["entity_type", "start", "end", "operator"]
                 for field in required_fields:
                     if field not in result:
-                        raise ValueError(
-                            f"operator_result[{i}] missing required field: {field}"
-                        )
+                        raise ValueError(f"operator_result[{i}] missing required field: {field}")
 
             current_metadata["operator_results"] = operator_results
 
@@ -304,9 +300,7 @@ class CloakMapEnhancer:
             presidio_metadata=current_metadata,
         )
 
-    def _detect_reversible_operators(
-        self, operator_results: list[dict[str, Any]]
-    ) -> list[str]:
+    def _detect_reversible_operators(self, operator_results: list[dict[str, Any]]) -> list[str]:
         """Detect which operators are reversible from operator results.
 
         Args:

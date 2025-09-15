@@ -43,6 +43,15 @@ from .core import (
     merge_cloakmaps,
     validate_cloakmap_integrity,
 )
+from .defaults import (
+    DEFAULT_ENTITIES,
+    get_analyzer_preset,
+    get_conservative_policy,
+    get_default_analyzer_config,
+    get_default_policy,
+    get_permissive_policy,
+    get_policy_preset,
+)
 
 # Document processing system
 from .document import (
@@ -53,26 +62,17 @@ from .document import (
     TextSegment,
 )
 
-# Masking system
-from .masking import DocumentMasker, MaskingEngine, MaskingResult, StrategyApplicator
-
 # New simplified API
 from .engine import CloakEngine, MaskResult
 from .engine_builder import CloakEngineBuilder
-from .registration import register_cloak_methods, unregister_cloak_methods, is_registered
-from .wrappers import CloakedDocument
-from .defaults import (
-    DEFAULT_ENTITIES,
-    get_default_policy,
-    get_conservative_policy,
-    get_permissive_policy,
-    get_default_analyzer_config,
-    get_policy_preset,
-    get_analyzer_preset,
-)
+
+# Masking system
+from .masking import MaskingEngine, MaskingResult, StrategyApplicator
+from .registration import is_registered, register_cloak_methods, unregister_cloak_methods
 
 # Unmasking system
 from .unmasking import UnmaskingEngine
+from .wrappers import CloakedDocument
 
 __all__ = [
     "__version__",
@@ -131,7 +131,6 @@ __all__ = [
     "MaskingEngine",
     "MaskingResult",
     "StrategyApplicator",
-    "DocumentMasker",
     # Unmasking system
     "UnmaskingEngine",
 ]

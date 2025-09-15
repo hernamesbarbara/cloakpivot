@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from .analyzer import EntityDetectionResult
 
@@ -133,9 +133,7 @@ class EntityGroup:
     def add_entity(self, entity: EntityDetectionResult) -> None:
         """Add entity to group and update boundaries."""
         self.entities.append(entity)
-        self.start_pos = (
-            min(self.start_pos, entity.start) if self.entities else entity.start
-        )
+        self.start_pos = min(self.start_pos, entity.start) if self.entities else entity.start
         self.end_pos = max(self.end_pos, entity.end) if self.entities else entity.end
 
     def overlaps_with(self, entity: EntityDetectionResult) -> bool:
@@ -180,20 +178,16 @@ class EntityGroup:
 class EntityNormalizer:
     """Entity normalizer for resolving conflicts and merging adjacent entities."""
 
-    def __init__(self, config: Optional[ConflictResolutionConfig] = None):
+    def __init__(self, config: ConflictResolutionConfig | None = None):
         """Initialize entity normalizer.
 
         Args:
             config: Configuration for conflict resolution (uses defaults if None)
         """
         self.config = config or ConflictResolutionConfig()
-        logger.info(
-            f"EntityNormalizer initialized with strategy: {self.config.strategy}"
-        )
+        logger.info(f"EntityNormalizer initialized with strategy: {self.config.strategy}")
 
-    def normalize_entities(
-        self, entities: list[EntityDetectionResult]
-    ) -> NormalizationResult:
+    def normalize_entities(self, entities: list[EntityDetectionResult]) -> NormalizationResult:
         """Normalize a list of entities by resolving conflicts and merging adjacent entities.
 
         Args:
@@ -225,9 +219,7 @@ class EntityNormalizer:
                 # Resolve conflicts in multi-entity group
                 resolved = self._resolve_group_conflicts(group, i)
                 result.normalized_entities.extend(resolved.entities)
-                result.conflicts_resolved += len(group.entities) - len(
-                    resolved.entities
-                )
+                result.conflicts_resolved += len(group.entities) - len(resolved.entities)
 
                 # Add resolution details
                 if len(group.entities) > len(resolved.entities):
@@ -258,9 +250,7 @@ class EntityNormalizer:
 
         return result
 
-    def _group_entities(
-        self, entities: list[EntityDetectionResult]
-    ) -> list[EntityGroup]:
+    def _group_entities(self, entities: list[EntityDetectionResult]) -> list[EntityGroup]:
         """Group overlapping and adjacent entities using spatial analysis.
 
         This is the core algorithm that analyzes entity relationships and creates groups
@@ -299,9 +289,7 @@ class EntityNormalizer:
             matching_groups = []
 
             for group in groups:
-                if group.overlaps_with(entity):
-                    matching_groups.append(group)
-                elif group.is_adjacent_to(entity, self.config.merge_threshold_chars):
+                if group.overlaps_with(entity) or group.is_adjacent_to(entity, self.config.merge_threshold_chars):
                     matching_groups.append(group)
 
             if not matching_groups:
@@ -323,9 +311,7 @@ class EntityNormalizer:
 
         return groups
 
-    def _resolve_group_conflicts(
-        self, group: EntityGroup, group_index: int
-    ) -> EntityGroup:
+    def _resolve_group_conflicts(self, group: EntityGroup, group_index: int) -> EntityGroup:
         """Resolve conflicts within a single entity group.
 
         Args:
@@ -386,9 +372,7 @@ class EntityNormalizer:
             return []
 
         # Always preserve entities above preserve_high_confidence threshold
-        preserved = [
-            e for e in entities if e.confidence >= self.config.preserve_high_confidence
-        ]
+        preserved = [e for e in entities if e.confidence >= self.config.preserve_high_confidence]
 
         if preserved:
             logger.debug(f"Preserved {len(preserved)} high-confidence entities")
@@ -507,9 +491,7 @@ class EntityNormalizer:
                 else:
                     # Finalize current group and start new one
                     if len(current_group) > 1:
-                        merged_entity = self._merge_entity_group(
-                            current_group, entity_type
-                        )
+                        merged_entity = self._merge_entity_group(current_group, entity_type)
                         merged.append(merged_entity)
                     else:
                         merged.extend(current_group)

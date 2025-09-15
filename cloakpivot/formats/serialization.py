@@ -15,9 +15,7 @@ logger = logging.getLogger(__name__)
 class SerializationError(Exception):
     """Exception raised during serialization operations."""
 
-    def __init__(
-        self, message: str, format_name: str, context: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str, format_name: str, context: dict[str, Any] | None = None):
         super().__init__(message)
         self.format_name = format_name
         self.context = context or {}
@@ -161,7 +159,7 @@ class CloakPivotSerializer:
 
         if fmt in (SupportedFormat.MARKDOWN, SupportedFormat.MD):
             return self._process_markdown_content(content)
-        elif fmt == SupportedFormat.HTML:
+        if fmt == SupportedFormat.HTML:
             return self._process_html_content(content)
 
         return content

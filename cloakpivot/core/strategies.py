@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class StrategyKind(Enum):
@@ -50,7 +50,7 @@ class Strategy:
     """
 
     kind: StrategyKind
-    parameters: Optional[dict[str, Any]] = None
+    parameters: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         """Validate strategy parameters after initialization."""
@@ -81,16 +81,11 @@ class Strategy:
         """Validate parameters for redact strategy."""
         # Default redaction character is '*'
         if "redact_char" in params:
-            if (
-                not isinstance(params["redact_char"], str)
-                or len(params["redact_char"]) != 1
-            ):
+            if not isinstance(params["redact_char"], str) or len(params["redact_char"]) != 1:
                 raise ValueError("redact_char must be a single character string")
 
         # Optional: maintain original length
-        if "preserve_length" in params and not isinstance(
-            params["preserve_length"], bool
-        ):
+        if "preserve_length" in params and not isinstance(params["preserve_length"], bool):
             raise ValueError("preserve_length must be a boolean")
 
     def _validate_template_params(self, params: dict[str, Any]) -> None:
@@ -113,9 +108,7 @@ class Strategy:
             raise ValueError("auto_generate must be a boolean")
 
         # Validate preserve_format parameter
-        if "preserve_format" in params and not isinstance(
-            params["preserve_format"], bool
-        ):
+        if "preserve_format" in params and not isinstance(params["preserve_format"], bool):
             raise ValueError("preserve_format must be a boolean")
 
         # Optional: template validation (check for placeholders)
@@ -125,9 +118,7 @@ class Strategy:
                 # Check for common placeholder patterns like {entity_type}, {index}, etc.
                 placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
                 if not re.search(placeholder_pattern, template):
-                    raise ValueError(
-                        "Template should contain placeholders like {entity_type}"
-                    )
+                    raise ValueError("Template should contain placeholders like {entity_type}")
 
     def _validate_hash_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for hash strategy."""
@@ -158,9 +149,7 @@ class Strategy:
             if format_output not in {"hex", "base64", "base32"}:
                 raise ValueError("format_output must be 'hex', 'base64', or 'base32'")
 
-        if "consistent_length" in params and not isinstance(
-            params["consistent_length"], bool
-        ):
+        if "consistent_length" in params and not isinstance(params["consistent_length"], bool):
             raise ValueError("consistent_length must be a boolean")
 
         if "preserve_format_structure" in params and not isinstance(
@@ -186,9 +175,7 @@ class Strategy:
         if "seed" in params and not isinstance(params["seed"], str):
             raise ValueError("Seed must be a string")
 
-        if "dictionary" in params and not isinstance(
-            params["dictionary"], (list, tuple)
-        ):
+        if "dictionary" in params and not isinstance(params["dictionary"], (list, tuple)):
             raise ValueError("Dictionary must be a list or tuple")
 
         # Custom format pattern validation
@@ -222,9 +209,7 @@ class Strategy:
         if "format_aware" in params and not isinstance(params["format_aware"], bool):
             raise ValueError("format_aware must be a boolean")
 
-        if "preserve_delimiters" in params and not isinstance(
-            params["preserve_delimiters"], bool
-        ):
+        if "preserve_delimiters" in params and not isinstance(params["preserve_delimiters"], bool):
             raise ValueError("preserve_delimiters must be a boolean")
 
         if "deterministic" in params and not isinstance(params["deterministic"], bool):

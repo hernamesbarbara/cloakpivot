@@ -3,15 +3,13 @@
 
 import sys
 from pathlib import Path
-from typing import Optional, List
 
 import click
 from docling.document_converter import DocumentConverter
 
-from cloakpivot.engine import CloakEngine
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.defaults import get_default_policy
 from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.engine import CloakEngine
 
 
 @click.group()
@@ -24,28 +22,33 @@ def cli(ctx: click.Context) -> None:
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(path_type=Path),
     help="Output file path (default: input_masked.ext)",
 )
 @click.option(
-    "--cloakmap", "-c",
+    "--cloakmap",
+    "-c",
     type=click.Path(path_type=Path),
     help="CloakMap output file (default: input.cloakmap.json)",
 )
 @click.option(
-    "--policy", "-p",
+    "--policy",
+    "-p",
     type=click.Path(exists=True, path_type=Path),
     help="Path to masking policy YAML file",
 )
 @click.option(
-    "--confidence", "-t",
+    "--confidence",
+    "-t",
     type=float,
     default=0.7,
     help="Minimum confidence threshold for entity detection (0.0-1.0)",
 )
 @click.option(
-    "--format", "-f",
+    "--format",
+    "-f",
     type=click.Choice(["markdown", "json", "text"]),
     default="markdown",
     help="Output format for the masked document",
@@ -54,9 +57,9 @@ def cli(ctx: click.Context) -> None:
 def mask(
     ctx: click.Context,
     input_file: Path,
-    output: Optional[Path],
-    cloakmap: Optional[Path],
-    policy: Optional[Path],
+    output: Path | None,
+    cloakmap: Path | None,
+    policy: Path | None,
     confidence: float,
     format: str,
 ) -> None:
@@ -71,6 +74,7 @@ def mask(
     masking_policy = None
     if policy:
         import yaml
+
         with open(policy) as f:
             policy_data = yaml.safe_load(f)
         masking_policy = MaskingPolicy(**policy_data)
@@ -94,6 +98,7 @@ def mask(
         output.write_text(mask_result.document.export_to_markdown())
     elif format == "json":
         import json
+
         output.write_text(json.dumps(mask_result.document.export_to_dict(), indent=2))
     else:  # text
         output.write_text(mask_result.document.export_to_text())
@@ -105,19 +110,23 @@ def mask(
     click.echo(f"Saving CloakMap to: {cloakmap}")
     mask_result.cloakmap.save_to_file(cloakmap)
 
-    click.echo(f"✓ Found {mask_result.entities_found} entities, masked {mask_result.entities_masked}")
+    click.echo(
+        f"✓ Found {mask_result.entities_found} entities, masked {mask_result.entities_masked}"
+    )
 
 
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True, path_type=Path))
 @click.argument("cloakmap_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(path_type=Path),
     help="Output file path (default: input_unmasked.ext)",
 )
 @click.option(
-    "--format", "-f",
+    "--format",
+    "-f",
     type=click.Choice(["markdown", "json", "text"]),
     default="markdown",
     help="Output format for the unmasked document",
@@ -127,7 +136,7 @@ def unmask(
     ctx: click.Context,
     input_file: Path,
     cloakmap_file: Path,
-    output: Optional[Path],
+    output: Path | None,
     format: str,
 ) -> None:
     """Unmask a document using a CloakMap to restore original PII."""
@@ -154,6 +163,7 @@ def unmask(
         output.write_text(unmasked_doc.export_to_markdown())
     elif format == "json":
         import json
+
         output.write_text(json.dumps(unmasked_doc.export_to_dict(), indent=2))
     else:  # text
         output.write_text(unmasked_doc.export_to_text())
@@ -165,6 +175,7 @@ def unmask(
 def version() -> None:
     """Show CloakPivot version."""
     from cloakpivot import __version__
+
     click.echo(f"CloakPivot v{__version__}")
 
 

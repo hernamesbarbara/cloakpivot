@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..core.cloakmap import CloakMap, validate_cloakmap_integrity
 
@@ -51,9 +51,9 @@ class CloakMapLoader:
 
     def load(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         verify_signature: bool = False,
-        secret_key: Optional[str] = None,
+        secret_key: str | None = None,
         strict_validation: bool = True,
     ) -> CloakMap:
         """
@@ -111,7 +111,7 @@ class CloakMapLoader:
         self,
         json_content: str,
         verify_signature: bool = False,
-        secret_key: Optional[str] = None,
+        secret_key: str | None = None,
         strict_validation: bool = True,
     ) -> CloakMap:
         """
@@ -161,9 +161,9 @@ class CloakMapLoader:
 
     def validate_file(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         verify_signature: bool = False,
-        secret_key: Optional[str] = None,
+        secret_key: str | None = None,
     ) -> dict[str, Any]:
         """
         Validate a CloakMap file without fully loading it.
@@ -261,13 +261,9 @@ class CloakMapLoader:
             with open(path, encoding="utf-8") as f:
                 return f.read()
         except UnicodeDecodeError as e:
-            raise CloakMapLoadError(
-                f"CloakMap file contains invalid UTF-8: {path} - {e}"
-            ) from e
+            raise CloakMapLoadError(f"CloakMap file contains invalid UTF-8: {path} - {e}") from e
         except OSError as e:
-            raise CloakMapLoadError(
-                f"Failed to read CloakMap file: {path} - {e}"
-            ) from e
+            raise CloakMapLoadError(f"Failed to read CloakMap file: {path} - {e}") from e
 
     def _parse_json_content(self, content: str) -> dict[str, Any]:
         """Parse JSON content and validate basic structure."""
@@ -299,7 +295,7 @@ class CloakMapLoader:
         self,
         cloakmap: CloakMap,
         verify_signature: bool,
-        secret_key: Optional[str],
+        secret_key: str | None,
         strict_validation: bool,
     ) -> None:
         """Perform comprehensive CloakMap validation."""
@@ -310,10 +306,7 @@ class CloakMapLoader:
                     f"Unsupported CloakMap version: {cloakmap.version}. "
                     f"Supported versions: {self.SUPPORTED_VERSIONS}"
                 )
-            else:
-                logger.warning(
-                    f"CloakMap version {cloakmap.version} may not be fully supported"
-                )
+            logger.warning(f"CloakMap version {cloakmap.version} may not be fully supported")
 
         # Signature verification is not currently implemented
         if verify_signature:
@@ -330,14 +323,13 @@ class CloakMapLoader:
             )
             if strict_validation:
                 raise CloakMapLoadError(error_msg)
-            else:
-                logger.warning(error_msg)
+            logger.warning(error_msg)
 
         # Log any warnings
         for warning in integrity_result.get("warnings", []):
             logger.warning(f"CloakMap validation warning: {warning}")
 
-    def get_file_info(self, file_path: Union[str, Path]) -> dict[str, Any]:
+    def get_file_info(self, file_path: str | Path) -> dict[str, Any]:
         """
         Get basic information about a CloakMap file without full loading.
 

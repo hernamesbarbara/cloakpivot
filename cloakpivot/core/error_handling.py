@@ -7,9 +7,10 @@ different types of failures throughout the CloakPivot pipeline.
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 from .exceptions import (
     CloakPivotError,
@@ -72,7 +73,7 @@ class ErrorCollector:
         self.success_count = 0
         self.total_operations = 0
 
-    def record_success(self, context: Optional[dict[str, Any]] = None) -> None:
+    def record_success(self, context: dict[str, Any] | None = None) -> None:
         """Record a successful operation."""
         self.success_count += 1
         self.total_operations += 1
@@ -84,7 +85,7 @@ class ErrorCollector:
     def record_error(
         self,
         error: Exception,
-        context: Optional[dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         recoverable: bool = False,
         component: str = "unknown",
     ) -> None:
@@ -133,9 +134,7 @@ class ErrorCollector:
         for error_record in self.errors:
             error_type = type(error_record.error).__name__
             error_types[error_type] = error_types.get(error_type, 0) + 1
-            components[error_record.component] = (
-                components.get(error_record.component, 0) + 1
-            )
+            components[error_record.component] = components.get(error_record.component, 0) + 1
 
         return {
             "total_errors": len(self.errors),
@@ -159,7 +158,7 @@ class PartialFailureManager:
 
     def __init__(
         self,
-        tolerance_config: Optional[FailureToleranceConfig] = None,
+        tolerance_config: FailureToleranceConfig | None = None,
     ):
         self.tolerance_config = tolerance_config or FailureToleranceConfig()
         self.error_collector = ErrorCollector()
@@ -193,8 +192,7 @@ class PartialFailureManager:
         # Check minimum success requirement
         if (
             self.error_collector.total_operations >= 10
-            and self.error_collector.success_count
-            < self.tolerance_config.min_success_count
+            and self.error_collector.success_count < self.tolerance_config.min_success_count
         ):
             logger.warning(
                 f"Success count {self.error_collector.success_count} below minimum "
@@ -208,10 +206,10 @@ class PartialFailureManager:
         self,
         operation: Callable[..., T],
         args: tuple[Any, ...] = (),
-        kwargs: Optional[dict[str, Any]] = None,
+        kwargs: dict[str, Any] | None = None,
         component: str = "unknown",
         recoverable: bool = True,
-    ) -> Optional[T]:
+    ) -> T | None:
         """Execute an operation with error isolation and collection."""
         kwargs = kwargs or {}
 
@@ -236,10 +234,7 @@ class PartialFailureManager:
     def _is_error_recoverable(self, error: Exception) -> bool:
         """Determine if an error is potentially recoverable."""
         # Network-related errors are often recoverable
-        if any(
-            keyword in str(error).lower()
-            for keyword in ["timeout", "connection", "network"]
-        ):
+        if any(keyword in str(error).lower() for keyword in ["timeout", "connection", "network"]):
             return True
 
         # Some CloakPivot errors are recoverable
@@ -301,7 +296,7 @@ class CircuitBreaker:
         self.expected_exception = expected_exception
 
         self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
         self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
 
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
@@ -369,7 +364,7 @@ class RetryManager:
         self,
         operation: Callable[..., T],
         args: tuple[Any, ...] = (),
-        kwargs: Optional[dict[str, Any]] = None,
+        kwargs: dict[str, Any] | None = None,
         retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     ) -> T:
         """Execute operation with retry logic."""
@@ -383,15 +378,12 @@ class RetryManager:
                 last_exception = e
 
                 if attempt == self.max_retries:
-                    logger.error(
-                        f"Operation failed after {self.max_retries} retries: {e}"
-                    )
+                    logger.error(f"Operation failed after {self.max_retries} retries: {e}")
                     raise e
 
                 delay = self._calculate_delay(attempt)
                 logger.warning(
-                    f"Operation failed on attempt {attempt + 1}, "
-                    f"retrying in {delay:.2f}s: {e}"
+                    f"Operation failed on attempt {attempt + 1}, " f"retrying in {delay:.2f}s: {e}"
                 )
                 time.sleep(delay)
 
@@ -434,14 +426,12 @@ def with_error_isolation(
     manager: PartialFailureManager,
     component: str = "unknown",
     recoverable: bool = True,
-) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+) -> Callable[[Callable[..., T]], Callable[..., T | None]]:
     """Decorator to add error isolation to a function."""
 
-    def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
-        def wrapper(*args: Any, **kwargs: Any) -> Optional[T]:
-            return manager.execute_with_isolation(
-                func, args, kwargs, component, recoverable
-            )
+    def decorator(func: Callable[..., T]) -> Callable[..., T | None]:
+        def wrapper(*args: Any, **kwargs: Any) -> T | None:
+            return manager.execute_with_isolation(func, args, kwargs, component, recoverable)
 
         return wrapper
 
@@ -459,9 +449,7 @@ def with_retry(
         retry_manager = RetryManager(max_retries=max_retries, base_delay=base_delay)
 
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            return retry_manager.execute_with_retry(
-                func, args, kwargs, retryable_exceptions
-            )
+            return retry_manager.execute_with_retry(func, args, kwargs, retryable_exceptions)
 
         return wrapper
 

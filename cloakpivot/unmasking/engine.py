@@ -4,7 +4,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 
@@ -37,7 +37,7 @@ class UnmaskingEngine:
         >>> print(f"Restored {len(result.cloakmap.anchors)} entities")
     """
 
-    def __init__(self, use_presidio_engine: Optional[bool] = None) -> None:
+    def __init__(self, use_presidio_engine: bool | None = None) -> None:
         """Initialize the unmasking engine.
 
         Args:
@@ -49,9 +49,10 @@ class UnmaskingEngine:
         self.use_presidio_override = use_presidio_engine
 
         # Initialize Presidio adapter if requested
-        self.presidio_adapter: Optional[Any] = None
+        self.presidio_adapter: Any | None = None
         if use_presidio_engine is True:
             from .presidio_adapter import PresidioUnmaskingAdapter
+
             self.presidio_adapter = PresidioUnmaskingAdapter()
 
         logger.debug(f"UnmaskingEngine initialized with use_presidio_engine={use_presidio_engine}")
@@ -59,7 +60,7 @@ class UnmaskingEngine:
     def unmask_document(
         self,
         masked_document: DoclingDocument,
-        cloakmap: Union[CloakMap, str, Path],
+        cloakmap: CloakMap | str | Path,
         verify_integrity: bool = True,
     ) -> UnmaskingResult:
         """
@@ -93,9 +94,7 @@ class UnmaskingEngine:
 
         # Handle empty CloakMap case - if no anchors exist, return document unchanged
         if not cloakmap_obj.anchors:
-            logger.warning(
-                "CloakMap contains no anchors - returning document unchanged"
-            )
+            logger.warning("CloakMap contains no anchors - returning document unchanged")
             return UnmaskingResult(
                 restored_document=self._copy_document(masked_document),
                 cloakmap=cloakmap_obj,
@@ -143,16 +142,16 @@ class UnmaskingEngine:
         if verify_integrity:
             # Get resolved anchors from stats if available
             resolved_anchors_data = {}
-            if hasattr(result, 'stats') and result.stats:
-                if 'resolved_anchors' in result.stats:
+            if hasattr(result, "stats") and result.stats:
+                if "resolved_anchors" in result.stats:
                     # If it's already a dict, use it directly
-                    if isinstance(result.stats['resolved_anchors'], dict):
-                        resolved_anchors_data = result.stats['resolved_anchors']
+                    if isinstance(result.stats["resolved_anchors"], dict):
+                        resolved_anchors_data = result.stats["resolved_anchors"]
                     # If it's a number, create a dict format
-                    elif isinstance(result.stats['resolved_anchors'], int):
+                    elif isinstance(result.stats["resolved_anchors"], int):
                         resolved_anchors_data = {
-                            "resolved": [None] * result.stats['resolved_anchors'],
-                            "failed": []
+                            "resolved": [None] * result.stats["resolved_anchors"],
+                            "failed": [],
                         }
 
             result.integrity_report = self._verify_restoration_integrity(
@@ -167,8 +166,8 @@ class UnmaskingEngine:
 
     def unmask_from_files(
         self,
-        masked_document_path: Union[str, Path],
-        cloakmap_path: Union[str, Path],
+        masked_document_path: str | Path,
+        cloakmap_path: str | Path,
         verify_integrity: bool = True,
     ) -> UnmaskingResult:
         """
@@ -217,16 +216,13 @@ class UnmaskingEngine:
         if not cloakmap.anchors:
             raise ValueError("CloakMap contains no anchors to restore")
 
-    def _verify_document_compatibility(
-        self, document: DoclingDocument, cloakmap: CloakMap
-    ) -> None:
+    def _verify_document_compatibility(self, document: DoclingDocument, cloakmap: CloakMap) -> None:
         """Verify that the document is compatible with the CloakMap."""
         # Check document ID compatibility
         doc_name = document.name or "unnamed_document"
         if cloakmap.doc_id != doc_name:
             logger.warning(
-                f"Document name '{doc_name}' does not match "
-                f"CloakMap doc_id '{cloakmap.doc_id}'"
+                f"Document name '{doc_name}' does not match " f"CloakMap doc_id '{cloakmap.doc_id}'"
             )
 
         # For now, skip hash verification since we don't have the original hash
@@ -315,7 +311,7 @@ class UnmaskingEngine:
         env_value = os.environ.get("CLOAKPIVOT_USE_PRESIDIO_ENGINE", "").lower()
         if env_value == "true":
             return "presidio"
-        elif env_value == "false":
+        if env_value == "false":
             return "legacy"
 
         # Auto-detect based on CloakMap version and metadata
@@ -339,7 +335,9 @@ class UnmaskingEngine:
         reversible_ops = cloakmap.presidio_metadata.get("reversible_operators", [])
         return len(reversible_ops) > 0
 
-    def _categorize_operations(self, cloakmap: CloakMap) -> tuple[list[dict[str, Any]], list[AnchorEntry]]:
+    def _categorize_operations(
+        self, cloakmap: CloakMap
+    ) -> tuple[list[dict[str, Any]], list[AnchorEntry]]:
         """Categorize operations into reversible and anchor-based.
 
         Args:
@@ -357,7 +355,9 @@ class UnmaskingEngine:
 
         return reversible_ops, anchor_ops
 
-    def _unmask_with_presidio(self, document: DoclingDocument, cloakmap: CloakMap) -> UnmaskingResult:
+    def _unmask_with_presidio(
+        self, document: DoclingDocument, cloakmap: CloakMap
+    ) -> UnmaskingResult:
         """Unmask using Presidio engine.
 
         Args:
@@ -369,6 +369,7 @@ class UnmaskingEngine:
         """
         if not self.presidio_adapter:
             from .presidio_adapter import PresidioUnmaskingAdapter
+
             self.presidio_adapter = PresidioUnmaskingAdapter()
 
         return self.presidio_adapter.unmask_document(document, cloakmap)
@@ -387,8 +388,7 @@ class UnmaskingEngine:
         restored_document = self._copy_document(document)
 
         resolved_anchors = self.anchor_resolver.resolve_anchors(
-            document=restored_document,
-            anchors=cloakmap.anchors
+            document=restored_document, anchors=cloakmap.anchors
         )
 
         restoration_stats = self.document_unmasker.apply_unmasking(
@@ -432,7 +432,7 @@ class UnmaskingEngine:
 
         return enhanced_map
 
-    def migrate_to_presidio(self, cloakmap_path: Union[str, Path]) -> Path:
+    def migrate_to_presidio(self, cloakmap_path: str | Path) -> Path:
         """Migrate a v1.0 CloakMap to v2.0 with Presidio metadata.
 
         Args:

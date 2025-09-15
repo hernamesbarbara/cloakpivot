@@ -8,7 +8,7 @@ error detection with clear, actionable error messages.
 import os
 import sys
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .exceptions import (
     ConfigurationError,
@@ -54,9 +54,7 @@ class SystemValidator:
                 installed_version = importlib.metadata.version(package)
 
                 # Simple version comparison (major.minor.patch)
-                if not SystemValidator._version_compatible(
-                    installed_version, min_version
-                ):
+                if not SystemValidator._version_compatible(installed_version, min_version):
                     version_conflicts.append(
                         {
                             "package": package,
@@ -101,7 +99,7 @@ class SystemValidator:
 
     @staticmethod
     def validate_file_permissions(
-        file_path: Union[str, Path],
+        file_path: str | Path,
         require_read: bool = True,
         require_write: bool = False,
     ) -> None:
@@ -114,9 +112,7 @@ class SystemValidator:
                 error_code="FILE_NOT_FOUND",
             )
             error.add_recovery_suggestion("Check the file path is correct")
-            error.add_recovery_suggestion(
-                "Ensure the file exists at the specified location"
-            )
+            error.add_recovery_suggestion("Ensure the file exists at the specified location")
             raise error
 
         if require_read and not os.access(path, os.R_OK):
@@ -133,7 +129,7 @@ class SystemValidator:
 
     @staticmethod
     def validate_directory_access(
-        directory_path: Union[str, Path],
+        directory_path: str | Path,
         require_read: bool = True,
         require_write: bool = False,
         create_if_missing: bool = False,
@@ -179,7 +175,7 @@ class DocumentValidator:
     """Validates document structure and format."""
 
     @staticmethod
-    def validate_document_format(document_path: Union[str, Path]) -> str:
+    def validate_document_format(document_path: str | Path) -> str:
         """Validate document format and return detected format."""
         path = Path(document_path)
         SystemValidator.validate_file_permissions(path, require_read=True)
@@ -231,7 +227,7 @@ class DocumentValidator:
 
     @staticmethod
     def validate_document_size(
-        document_path: Union[str, Path],
+        document_path: str | Path,
         max_size_mb: float = 100.0,
     ) -> None:
         """Validate document size is within acceptable limits."""
@@ -253,9 +249,7 @@ class PolicyValidator:
     def validate_policy_structure(policy_data: dict[str, Any]) -> None:
         """Validate basic policy structure and required fields."""
         required_fields = ["default_strategy"]
-        missing_fields = [
-            field for field in required_fields if field not in policy_data
-        ]
+        missing_fields = [field for field in required_fields if field not in policy_data]
 
         if missing_fields:
             raise ConfigurationError(
@@ -331,9 +325,7 @@ class CloakMapValidator:
     def validate_cloakmap_structure(cloakmap_data: dict[str, Any]) -> None:
         """Validate CloakMap has required structure."""
         required_fields = ["doc_id", "version", "anchors", "created_at"]
-        missing_fields = [
-            field for field in required_fields if field not in cloakmap_data
-        ]
+        missing_fields = [field for field in required_fields if field not in cloakmap_data]
 
         if missing_fields:
             raise ValidationError(
@@ -403,9 +395,9 @@ class InputValidator:
 
     def validate_masking_inputs(
         self,
-        document_path: Union[str, Path],
-        policy_data: Optional[dict[str, Any]] = None,
-        output_path: Optional[Union[str, Path]] = None,
+        document_path: str | Path,
+        policy_data: dict[str, Any] | None = None,
+        output_path: str | Path | None = None,
     ) -> None:
         """Validate all inputs required for masking operation."""
         # System validation
@@ -433,9 +425,9 @@ class InputValidator:
 
     def validate_unmasking_inputs(
         self,
-        masked_document_path: Union[str, Path],
-        cloakmap_path: Union[str, Path],
-        output_path: Optional[Union[str, Path]] = None,
+        masked_document_path: str | Path,
+        cloakmap_path: str | Path,
+        output_path: str | Path | None = None,
     ) -> None:
         """Validate all inputs required for unmasking operation."""
         # System validation
@@ -443,12 +435,8 @@ class InputValidator:
         self.system_validator.validate_dependencies()
 
         # Input file validation
-        self.system_validator.validate_file_permissions(
-            masked_document_path, require_read=True
-        )
-        self.system_validator.validate_file_permissions(
-            cloakmap_path, require_read=True
-        )
+        self.system_validator.validate_file_permissions(masked_document_path, require_read=True)
+        self.system_validator.validate_file_permissions(cloakmap_path, require_read=True)
 
         # CloakMap structure validation
         import json
@@ -480,9 +468,7 @@ class InputValidator:
         deprecated_keys = {"legacy_mode", "old_strategy_format"}
         for key in deprecated_keys:
             if key in config:
-                warnings.append(
-                    f"Configuration key '{key}' is deprecated and will be ignored"
-                )
+                warnings.append(f"Configuration key '{key}' is deprecated and will be ignored")
 
         # Check for potentially problematic settings
         if config.get("max_file_size_mb", 100) > 500:
@@ -492,9 +478,7 @@ class InputValidator:
 
         # Check performance settings
         if config.get("parallel_processing", True) and config.get("max_workers", 4) > 8:
-            warnings.append(
-                f"High worker count ({config['max_workers']}) may impact performance"
-            )
+            warnings.append(f"High worker count ({config['max_workers']}) may impact performance")
 
         return warnings
 
@@ -503,9 +487,9 @@ class InputValidator:
 
 
 def validate_for_masking(
-    document_path: Union[str, Path],
-    policy_data: Optional[dict[str, Any]] = None,
-    output_path: Optional[Union[str, Path]] = None,
+    document_path: str | Path,
+    policy_data: dict[str, Any] | None = None,
+    output_path: str | Path | None = None,
 ) -> list[str]:
     """Validate inputs for masking operation and return any warnings."""
     validator = InputValidator()
@@ -520,13 +504,11 @@ def validate_for_masking(
 
 
 def validate_for_unmasking(
-    masked_document_path: Union[str, Path],
-    cloakmap_path: Union[str, Path],
-    output_path: Optional[Union[str, Path]] = None,
+    masked_document_path: str | Path,
+    cloakmap_path: str | Path,
+    output_path: str | Path | None = None,
 ) -> list[str]:
     """Validate inputs for unmasking operation and return any warnings."""
     validator = InputValidator()
-    validator.validate_unmasking_inputs(
-        masked_document_path, cloakmap_path, output_path
-    )
+    validator.validate_unmasking_inputs(masked_document_path, cloakmap_path, output_path)
     return []

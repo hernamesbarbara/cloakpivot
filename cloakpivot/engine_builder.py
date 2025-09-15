@@ -1,10 +1,9 @@
 """Builder pattern for advanced CloakEngine configuration."""
 
-from typing import Optional, List, Dict, Any
+from typing import Any
 
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.analyzer import AnalyzerConfig
 from cloakpivot.core.normalization import ConflictResolutionConfig
+from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.engine import CloakEngine
 
 
@@ -30,16 +29,16 @@ class CloakEngineBuilder:
 
     def __init__(self):
         """Initialize builder with default values."""
-        self._languages: List[str] = ["en"]
+        self._languages: list[str] = ["en"]
         self._confidence_threshold: float = 0.7
         self._return_decision_process: bool = False
-        self._custom_policy: Optional[MaskingPolicy] = None
-        self._conflict_resolution_config: Optional[ConflictResolutionConfig] = None
+        self._custom_policy: MaskingPolicy | None = None
+        self._conflict_resolution_config: ConflictResolutionConfig | None = None
         self._use_presidio: bool = True
-        self._additional_recognizers: List[str] = []
-        self._excluded_recognizers: List[str] = []
+        self._additional_recognizers: list[str] = []
+        self._excluded_recognizers: list[str] = []
 
-    def with_custom_policy(self, policy: MaskingPolicy) -> 'CloakEngineBuilder':
+    def with_custom_policy(self, policy: MaskingPolicy) -> "CloakEngineBuilder":
         """Set a custom masking policy.
 
         Args:
@@ -51,7 +50,7 @@ class CloakEngineBuilder:
         self._custom_policy = policy
         return self
 
-    def with_languages(self, languages: List[str]) -> 'CloakEngineBuilder':
+    def with_languages(self, languages: list[str]) -> "CloakEngineBuilder":
         """Set the languages for entity detection.
 
         Args:
@@ -63,7 +62,7 @@ class CloakEngineBuilder:
         self._languages = languages
         return self
 
-    def with_confidence_threshold(self, threshold: float) -> 'CloakEngineBuilder':
+    def with_confidence_threshold(self, threshold: float) -> "CloakEngineBuilder":
         """Set the confidence threshold for entity detection.
 
         Args:
@@ -80,7 +79,7 @@ class CloakEngineBuilder:
         self._confidence_threshold = threshold
         return self
 
-    def with_decision_process(self, enabled: bool = True) -> 'CloakEngineBuilder':
+    def with_decision_process(self, enabled: bool = True) -> "CloakEngineBuilder":
         """Enable or disable returning the decision process.
 
         Args:
@@ -92,7 +91,7 @@ class CloakEngineBuilder:
         self._return_decision_process = enabled
         return self
 
-    def with_analyzer_config(self, config: Dict[str, Any]) -> 'CloakEngineBuilder':
+    def with_analyzer_config(self, config: dict[str, Any]) -> "CloakEngineBuilder":
         """Set complete analyzer configuration from a dictionary.
 
         Args:
@@ -101,18 +100,15 @@ class CloakEngineBuilder:
         Returns:
             Self for method chaining
         """
-        if 'languages' in config:
-            self._languages = config['languages']
-        if 'confidence_threshold' in config:
-            self._confidence_threshold = config['confidence_threshold']
-        if 'return_decision_process' in config:
-            self._return_decision_process = config['return_decision_process']
+        if "languages" in config:
+            self._languages = config["languages"]
+        if "confidence_threshold" in config:
+            self._confidence_threshold = config["confidence_threshold"]
+        if "return_decision_process" in config:
+            self._return_decision_process = config["return_decision_process"]
         return self
 
-    def with_conflict_resolution(
-        self,
-        config: ConflictResolutionConfig
-    ) -> 'CloakEngineBuilder':
+    def with_conflict_resolution(self, config: ConflictResolutionConfig) -> "CloakEngineBuilder":
         """Set conflict resolution configuration.
 
         Args:
@@ -124,7 +120,7 @@ class CloakEngineBuilder:
         self._conflict_resolution_config = config
         return self
 
-    def with_presidio_engine(self, use: bool = True) -> 'CloakEngineBuilder':
+    def with_presidio_engine(self, use: bool = True) -> "CloakEngineBuilder":
         """Enable or disable use of Presidio engine.
 
         Args:
@@ -136,10 +132,7 @@ class CloakEngineBuilder:
         self._use_presidio = use
         return self
 
-    def with_additional_recognizers(
-        self,
-        recognizers: List[str]
-    ) -> 'CloakEngineBuilder':
+    def with_additional_recognizers(self, recognizers: list[str]) -> "CloakEngineBuilder":
         """Add additional entity recognizers.
 
         Args:
@@ -151,7 +144,7 @@ class CloakEngineBuilder:
         self._additional_recognizers = recognizers
         return self
 
-    def exclude_recognizers(self, recognizers: List[str]) -> 'CloakEngineBuilder':
+    def exclude_recognizers(self, recognizers: list[str]) -> "CloakEngineBuilder":
         """Exclude specific entity recognizers.
 
         Args:
@@ -171,35 +164,37 @@ class CloakEngineBuilder:
         """
         # Build analyzer configuration
         analyzer_config = {
-            'languages': self._languages,  # Will be mapped to 'language' in CloakEngine
-            'confidence_threshold': self._confidence_threshold,  # Will be mapped to 'min_confidence'
-            'return_decision_process': self._return_decision_process,
+            "languages": self._languages,  # Will be mapped to 'language' in CloakEngine
+            "confidence_threshold": self._confidence_threshold,  # Will be mapped to 'min_confidence'
+            "return_decision_process": self._return_decision_process,
         }
 
         # Add recognizer configuration if specified
         if self._additional_recognizers:
-            analyzer_config['additional_recognizers'] = self._additional_recognizers
+            analyzer_config["additional_recognizers"] = self._additional_recognizers
         if self._excluded_recognizers:
-            analyzer_config['excluded_recognizers'] = self._excluded_recognizers
+            analyzer_config["excluded_recognizers"] = self._excluded_recognizers
 
         # Build conflict resolution config dictionary if provided
         conflict_config = None
         if self._conflict_resolution_config:
             conflict_config = {
-                'strategy': self._conflict_resolution_config.strategy,
+                "strategy": self._conflict_resolution_config.strategy,
             }
             # Add custom_priority if it exists
-            if hasattr(self._conflict_resolution_config, 'custom_priority'):
-                conflict_config['custom_priority'] = self._conflict_resolution_config.custom_priority
+            if hasattr(self._conflict_resolution_config, "custom_priority"):
+                conflict_config["custom_priority"] = (
+                    self._conflict_resolution_config.custom_priority
+                )
 
         # Create and return CloakEngine
         return CloakEngine(
             analyzer_config=analyzer_config,
             default_policy=self._custom_policy,
-            conflict_resolution_config=conflict_config
+            conflict_resolution_config=conflict_config,
         )
 
-    def reset(self) -> 'CloakEngineBuilder':
+    def reset(self) -> "CloakEngineBuilder":
         """Reset builder to default values.
 
         Returns:

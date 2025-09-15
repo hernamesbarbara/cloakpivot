@@ -146,19 +146,13 @@ class AnchorMapper:
             # Create node reference
             node_ref = self._create_node_reference(detection, segment, segments)
             if not node_ref:
-                logger.warning(
-                    f"Could not create node reference for detection {detection}"
-                )
+                logger.warning(f"Could not create node reference for detection {detection}")
                 continue
 
             # Get original text for this detection
-            original_text = self._extract_original_text(
-                node_ref, original_texts, segments
-            )
+            original_text = self._extract_original_text(node_ref, original_texts, segments)
             if not original_text:
-                logger.warning(
-                    f"Could not extract original text for detection {detection}"
-                )
+                logger.warning(f"Could not extract original text for detection {detection}")
                 continue
 
             # Create anchor entry
@@ -206,9 +200,7 @@ class AnchorMapper:
             Optional[NodeReference]: Node reference or None if mapping fails
         """
         # Find the segment containing the start position
-        containing_segment = self._find_segment_for_global_position(
-            segments, global_start
-        )
+        containing_segment = self._find_segment_for_global_position(segments, global_start)
         if not containing_segment:
             return None
 
@@ -221,14 +213,10 @@ class AnchorMapper:
 
         # Convert to local positions within the segment
         local_start = containing_segment.relative_offset(global_start)
-        local_end = (
-            containing_segment.relative_offset(global_end - 1) + 1
-        )  # Inclusive end
+        local_end = containing_segment.relative_offset(global_end - 1) + 1  # Inclusive end
 
         # Find segment index
-        segment_index = next(
-            (i for i, seg in enumerate(segments) if seg == containing_segment), -1
-        )
+        segment_index = next((i for i, seg in enumerate(segments) if seg == containing_segment), -1)
 
         return NodeReference(
             node_id=containing_segment.node_id,
@@ -255,9 +243,7 @@ class AnchorMapper:
             Optional[Tuple[int, int]]: Global (start, end) positions or None
         """
         # Find the segment with matching node_id
-        matching_segment = next(
-            (seg for seg in segments if seg.node_id == node_id), None
-        )
+        matching_segment = next((seg for seg in segments if seg.node_id == node_id), None)
 
         if not matching_segment:
             logger.warning(f"No segment found for node_id: {node_id}")
@@ -316,23 +302,17 @@ class AnchorMapper:
             non_overlapping: list[AnchorEntry] = []
             for anchor in node_anchors:
                 # Check for overlaps with already accepted anchors
-                overlaps = any(
-                    existing.overlaps_with(anchor) for existing in non_overlapping
-                )
+                overlaps = any(existing.overlaps_with(anchor) for existing in non_overlapping)
 
                 if not overlaps:
                     non_overlapping.append(anchor)
                 else:
                     # Apply conflict resolution rules
-                    resolved_anchor = self._resolve_overlap_conflict(
-                        anchor, non_overlapping
-                    )
+                    resolved_anchor = self._resolve_overlap_conflict(anchor, non_overlapping)
                     if resolved_anchor:
                         # Remove conflicting anchors and add the resolved one
                         non_overlapping = [
-                            a
-                            for a in non_overlapping
-                            if not a.overlaps_with(resolved_anchor)
+                            a for a in non_overlapping if not a.overlaps_with(resolved_anchor)
                         ]
                         non_overlapping.append(resolved_anchor)
 
@@ -363,14 +343,10 @@ class AnchorMapper:
             local_end = segment.relative_offset(detection.end - 1) + 1  # Inclusive end
 
             # Find segment index
-            segment_index = next(
-                (i for i, seg in enumerate(all_segments) if seg == segment), -1
-            )
+            segment_index = next((i for i, seg in enumerate(all_segments) if seg == segment), -1)
 
             if segment_index == -1:
-                logger.error(
-                    f"Could not find segment index for segment {segment.node_id}"
-                )
+                logger.error(f"Could not find segment index for segment {segment.node_id}")
                 return None
 
             return NodeReference(
@@ -396,9 +372,7 @@ class AnchorMapper:
         # Try to get from original_texts mapping first
         if node_ref.node_id in original_texts:
             original_text = original_texts[node_ref.node_id]
-            if node_ref.start_pos < len(original_text) and node_ref.end_pos <= len(
-                original_text
-            ):
+            if node_ref.start_pos < len(original_text) and node_ref.end_pos <= len(original_text):
                 return original_text[node_ref.start_pos : node_ref.end_pos]
 
         # Fall back to segment text
@@ -406,9 +380,7 @@ class AnchorMapper:
             segment = segments[node_ref.segment_index]
             if segment.node_id == node_ref.node_id:
                 segment_text = segment.text
-                if node_ref.start_pos < len(segment_text) and node_ref.end_pos <= len(
-                    segment_text
-                ):
+                if node_ref.start_pos < len(segment_text) and node_ref.end_pos <= len(segment_text):
                     return segment_text[node_ref.start_pos : node_ref.end_pos]
 
         logger.error(f"Could not extract original text for {node_ref}")
@@ -425,9 +397,7 @@ class AnchorMapper:
         2. Longer text span (more specific detection)
         3. Earlier position in document
         """
-        conflicting_anchors = [
-            a for a in existing_anchors if a.overlaps_with(new_anchor)
-        ]
+        conflicting_anchors = [a for a in existing_anchors if a.overlaps_with(new_anchor)]
 
         if not conflicting_anchors:
             return new_anchor

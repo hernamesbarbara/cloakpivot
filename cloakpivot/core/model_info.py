@@ -6,7 +6,7 @@ selecting appropriate models based on constraints.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def get_supported_sizes() -> list[str]:
 
 
 def get_model_recommendations(
-    memory_limit_mb: Optional[int] = None, speed_priority: bool = False
+    memory_limit_mb: int | None = None, speed_priority: bool = False
 ) -> dict[str, Any]:
     """Get model size recommendations based on constraints.
 
@@ -269,7 +269,7 @@ def get_model_recommendations(
     return recommendations
 
 
-def get_language_info(language: str) -> Optional[dict[str, Any]]:
+def get_language_info(language: str) -> dict[str, Any] | None:
     """Get detailed information about language support.
 
     Args:

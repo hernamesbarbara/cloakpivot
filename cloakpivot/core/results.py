@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .cloakmap import CloakMap
 
@@ -55,25 +55,19 @@ class PerformanceMetrics:
     """Performance metrics for masking/unmasking operations."""
 
     start_time: datetime = field(default_factory=datetime.utcnow)
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     total_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
-    document_load_time: Optional[timedelta] = None
-    entity_detection_time: Optional[timedelta] = None
-    detection_time: Optional[timedelta] = field(
-        default_factory=lambda: timedelta(seconds=0)
-    )
-    masking_time: Optional[timedelta] = field(
-        default_factory=lambda: timedelta(seconds=0)
-    )
-    serialization_time: Optional[timedelta] = field(
-        default_factory=lambda: timedelta(seconds=0)
-    )
-    cloakmap_creation_time: Optional[timedelta] = None
+    document_load_time: timedelta | None = None
+    entity_detection_time: timedelta | None = None
+    detection_time: timedelta | None = field(default_factory=lambda: timedelta(seconds=0))
+    masking_time: timedelta | None = field(default_factory=lambda: timedelta(seconds=0))
+    serialization_time: timedelta | None = field(default_factory=lambda: timedelta(seconds=0))
+    cloakmap_creation_time: timedelta | None = None
     memory_peak_mb: float = 0.0
     throughput_mb_per_sec: float = 0.0
 
     @property
-    def total_duration(self) -> Optional[timedelta]:
+    def total_duration(self) -> timedelta | None:
         """Get the total duration of the operation."""
         if self.end_time:
             return self.end_time - self.start_time
@@ -105,7 +99,7 @@ class PerformanceMetrics:
         return core_time_seconds / total_seconds
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Get the total duration in seconds."""
         duration = self.total_duration
         return duration.total_seconds() if duration else None
@@ -117,27 +111,17 @@ class PerformanceMetrics:
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "total_duration_seconds": self.duration_seconds,
             "document_load_seconds": (
-                self.document_load_time.total_seconds()
-                if self.document_load_time
-                else None
+                self.document_load_time.total_seconds() if self.document_load_time else None
             ),
             "entity_detection_seconds": (
-                self.entity_detection_time.total_seconds()
-                if self.entity_detection_time
-                else None
+                self.entity_detection_time.total_seconds() if self.entity_detection_time else None
             ),
-            "masking_seconds": (
-                self.masking_time.total_seconds() if self.masking_time else None
-            ),
+            "masking_seconds": (self.masking_time.total_seconds() if self.masking_time else None),
             "serialization_seconds": (
-                self.serialization_time.total_seconds()
-                if self.serialization_time
-                else None
+                self.serialization_time.total_seconds() if self.serialization_time else None
             ),
             "cloakmap_creation_seconds": (
-                self.cloakmap_creation_time.total_seconds()
-                if self.cloakmap_creation_time
-                else None
+                self.cloakmap_creation_time.total_seconds() if self.cloakmap_creation_time else None
             ),
         }
 
@@ -237,9 +221,9 @@ class MaskResult:
     status: OperationStatus
     masked_document: Any  # Could be DoclingDocument, string, bytes, etc.
     cloakmap: CloakMap
-    input_file_path: Optional[Union[str, Path]] = None
-    output_file_path: Optional[Union[str, Path]] = None
-    cloakmap_file_path: Optional[Union[str, Path]] = None
+    input_file_path: str | Path | None = None
+    output_file_path: str | Path | None = None
+    cloakmap_file_path: str | Path | None = None
     stats: ProcessingStats = field(default_factory=ProcessingStats)
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     diagnostics: DiagnosticInfo = field(default_factory=DiagnosticInfo)
@@ -270,12 +254,8 @@ class MaskResult:
         return {
             "status": self.status.value,
             "input_file": str(self.input_file_path) if self.input_file_path else None,
-            "output_file": (
-                str(self.output_file_path) if self.output_file_path else None
-            ),
-            "cloakmap_file": (
-                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
-            ),
+            "output_file": (str(self.output_file_path) if self.output_file_path else None),
+            "cloakmap_file": (str(self.cloakmap_file_path) if self.cloakmap_file_path else None),
             "entities_found": self.stats.total_entities_found,
             "entities_masked": self.stats.entities_masked,
             "success_rate": f"{self.stats.success_rate:.2%}",
@@ -290,12 +270,8 @@ class MaskResult:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "input_file_path": (
-                str(self.input_file_path) if self.input_file_path else None
-            ),
-            "output_file_path": (
-                str(self.output_file_path) if self.output_file_path else None
-            ),
+            "input_file_path": (str(self.input_file_path) if self.input_file_path else None),
+            "output_file_path": (str(self.output_file_path) if self.output_file_path else None),
             "cloakmap_file_path": (
                 str(self.cloakmap_file_path) if self.cloakmap_file_path else None
             ),
@@ -352,9 +328,9 @@ class UnmaskResult:
     status: OperationStatus
     unmasked_document: Any  # Could be DoclingDocument, string, bytes, etc.
     cloakmap: CloakMap
-    masked_file_path: Optional[Union[str, Path]] = None
-    output_file_path: Optional[Union[str, Path]] = None
-    cloakmap_file_path: Optional[Union[str, Path]] = None
+    masked_file_path: str | Path | None = None
+    output_file_path: str | Path | None = None
+    cloakmap_file_path: str | Path | None = None
     restored_stats: ProcessingStats = field(default_factory=ProcessingStats)
     validation_results: dict[str, Any] = field(default_factory=dict)
     performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
@@ -396,15 +372,9 @@ class UnmaskResult:
         """Get a summary of the unmasking operation."""
         return {
             "status": self.status.value,
-            "masked_file": (
-                str(self.masked_file_path) if self.masked_file_path else None
-            ),
-            "output_file": (
-                str(self.output_file_path) if self.output_file_path else None
-            ),
-            "cloakmap_file": (
-                str(self.cloakmap_file_path) if self.cloakmap_file_path else None
-            ),
+            "masked_file": (str(self.masked_file_path) if self.masked_file_path else None),
+            "output_file": (str(self.output_file_path) if self.output_file_path else None),
+            "cloakmap_file": (str(self.cloakmap_file_path) if self.cloakmap_file_path else None),
             "entities_restored": self.entities_restored,
             "total_anchors": self.cloakmap.anchor_count,
             "restoration_rate": f"{self.restoration_rate:.2%}",
@@ -419,12 +389,8 @@ class UnmaskResult:
         """Convert result to dictionary for serialization."""
         return {
             "status": self.status.value,
-            "masked_file_path": (
-                str(self.masked_file_path) if self.masked_file_path else None
-            ),
-            "output_file_path": (
-                str(self.output_file_path) if self.output_file_path else None
-            ),
+            "masked_file_path": (str(self.masked_file_path) if self.masked_file_path else None),
+            "output_file_path": (str(self.output_file_path) if self.output_file_path else None),
             "cloakmap_file_path": (
                 str(self.cloakmap_file_path) if self.cloakmap_file_path else None
             ),
@@ -451,13 +417,9 @@ class BatchResult:
 
     operation_type: str  # "mask" or "unmask"
     status: OperationStatus = OperationStatus.SUCCESS
-    individual_results: list[Union[MaskResult, UnmaskResult]] = field(
-        default_factory=list
-    )
+    individual_results: list[MaskResult | UnmaskResult] = field(default_factory=list)
     failed_files: list[str] = field(default_factory=list)
-    total_processing_time: timedelta = field(
-        default_factory=lambda: timedelta(seconds=0)
-    )
+    total_processing_time: timedelta = field(default_factory=lambda: timedelta(seconds=0))
     batch_stats: dict[str, Any] = field(default_factory=dict)
     overall_performance: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -577,8 +539,8 @@ def create_processing_stats(
 
 
 def create_diagnostics(
-    warnings: Optional[list[str]] = None,
-    errors: Optional[list[str]] = None,
+    warnings: list[str] | None = None,
+    errors: list[str] | None = None,
     **issue_lists: list[Any],
 ) -> DiagnosticInfo:
     """

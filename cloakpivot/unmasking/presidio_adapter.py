@@ -21,7 +21,7 @@ Key Features:
 import copy
 import logging
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 from presidio_anonymizer import DeanonymizeEngine
 from presidio_anonymizer.entities import OperatorResult
@@ -62,9 +62,7 @@ class PresidioUnmaskingAdapter:
         logger.debug("PresidioUnmaskingAdapter initialized")
 
     def unmask_document(
-        self,
-        masked_document: DoclingDocument,
-        cloakmap: CloakMap
+        self, masked_document: DoclingDocument, cloakmap: CloakMap
     ) -> UnmaskingResult:
         """
         Main unmasking method compatible with existing UnmaskingEngine API.
@@ -86,14 +84,11 @@ class PresidioUnmaskingAdapter:
         if self.cloakmap_enhancer.is_presidio_enabled(cloakmap):
             logger.info("Using Presidio-based restoration (v2.0 CloakMap)")
             return self._presidio_deanonymization(masked_document, cloakmap)
-        else:
-            logger.info("Using anchor-based restoration (v1.0 CloakMap)")
-            return self._anchor_based_restoration(masked_document, cloakmap)
+        logger.info("Using anchor-based restoration (v1.0 CloakMap)")
+        return self._anchor_based_restoration(masked_document, cloakmap)
 
     def restore_content(
-        self,
-        masked_text: str,
-        operator_results: list[Union[dict[str, Any], OperatorResult]]
+        self, masked_text: str, operator_results: list[dict[str, Any] | OperatorResult]
     ) -> str:
         """
         Content restoration using exact position-based replacement.
@@ -123,14 +118,20 @@ class PresidioUnmaskingAdapter:
                 end = result.get("end")
 
                 # For restorable operations, add to replacements list
-                if operator in ["replace", "template", "redact", "partial", "hash"] and original_value and masked_value:
-                    replacements.append({
-                        "masked": masked_value,
-                        "original": original_value,
-                        "operator": operator,
-                        "start": start,
-                        "end": end
-                    })
+                if (
+                    operator in ["replace", "template", "redact", "partial", "hash"]
+                    and original_value
+                    and masked_value
+                ):
+                    replacements.append(
+                        {
+                            "masked": masked_value,
+                            "original": original_value,
+                            "operator": operator,
+                            "start": start,
+                            "end": end,
+                        }
+                    )
                 elif operator == "encrypt":
                     logger.warning("Encryption reversal not yet implemented")
                 elif operator == "custom":
@@ -138,25 +139,29 @@ class PresidioUnmaskingAdapter:
                     if "reverse_function" in result:
                         # Apply reverse function if available
                         reverse_func = result["reverse_function"]
-                        replacements.append({
-                            "masked": masked_value,
-                            "original": reverse_func(masked_value),
-                            "operator": operator,
-                            "start": start,
-                            "end": end
-                        })
+                        replacements.append(
+                            {
+                                "masked": masked_value,
+                                "original": reverse_func(masked_value),
+                                "operator": operator,
+                                "start": start,
+                                "end": end,
+                            }
+                        )
                     else:
                         logger.warning("No reverse function for custom operator")
             else:
                 # Handle OperatorResult objects
                 if hasattr(result, "old") and result.old:
-                    replacements.append({
-                        "masked": result.text,
-                        "original": result.old,
-                        "operator": "presidio",
-                        "start": getattr(result, "start", None),
-                        "end": getattr(result, "end", None)
-                    })
+                    replacements.append(
+                        {
+                            "masked": result.text,
+                            "original": result.old,
+                            "operator": "presidio",
+                            "start": getattr(result, "start", None),
+                            "end": getattr(result, "end", None),
+                        }
+                    )
 
         # Process replacements in the order they appear (which is reverse order from masking)
         # The key insight: since operator_results are in reverse order (last entity first),
@@ -177,9 +182,7 @@ class PresidioUnmaskingAdapter:
             idx = restored_text.rfind(masked_val)
             if idx != -1:
                 restored_text = (
-                    restored_text[:idx] +
-                    original_val +
-                    restored_text[idx + len(masked_val):]
+                    restored_text[:idx] + original_val + restored_text[idx + len(masked_val) :]
                 )
                 logger.debug(f"Replacement successful at position {idx}")
             else:
@@ -188,9 +191,7 @@ class PresidioUnmaskingAdapter:
         return restored_text
 
     def _presidio_deanonymization(
-        self,
-        masked_document: DoclingDocument,
-        cloakmap: CloakMap
+        self, masked_document: DoclingDocument, cloakmap: CloakMap
     ) -> UnmaskingResult:
         """
         Use Presidio for reversible operations.
@@ -219,7 +220,7 @@ class PresidioUnmaskingAdapter:
             return self._anchor_based_restoration(masked_document, cloakmap)
 
         # Separate reversible and non-reversible operations
-        reversible_results: list[Union[dict[str, Any], OperatorResult]] = []
+        reversible_results: list[dict[str, Any] | OperatorResult] = []
         non_reversible_count = 0
 
         for result in operator_results:
@@ -244,12 +245,11 @@ class PresidioUnmaskingAdapter:
                 else:
                     current_text = ""
 
-                restored_text = self.restore_content(
-                    current_text,
-                    reversible_results
-                )
+                restored_text = self.restore_content(current_text, reversible_results)
 
-                logger.debug(f"After restoration: current_text='{current_text}', restored_text='{restored_text}'")
+                logger.debug(
+                    f"After restoration: current_text='{current_text}', restored_text='{restored_text}'"
+                )
 
                 # Update the text in the document
                 if restored_document.texts and len(restored_document.texts) > 0:
@@ -258,16 +258,18 @@ class PresidioUnmaskingAdapter:
                     logger.debug(f"Updated document text to: {restored_document.texts[0].text}")
 
                 # Also update _main_text for backward compatibility
-                if hasattr(restored_document, '_main_text'):
+                if hasattr(restored_document, "_main_text"):
                     restored_document._main_text = restored_text
                     logger.debug(f"Updated _main_text to: {restored_document._main_text}")
 
                 # Preserve tables and key_value_items from masked document
                 # These don't contain PII that needs unmasking in the current implementation
-                if hasattr(masked_document, 'tables'):
+                if hasattr(masked_document, "tables"):
                     restored_document.tables = copy.deepcopy(masked_document.tables)
-                if hasattr(masked_document, 'key_value_items'):
-                    restored_document.key_value_items = copy.deepcopy(masked_document.key_value_items)
+                if hasattr(masked_document, "key_value_items"):
+                    restored_document.key_value_items = copy.deepcopy(
+                        masked_document.key_value_items
+                    )
 
                 # Count successful restorations by checking what changed
                 for result in reversible_results:
@@ -280,9 +282,17 @@ class PresidioUnmaskingAdapter:
                         original_val = getattr(result, "original_text", "")
 
                     # Check if restoration was successful
-                    if original_val and masked_val not in restored_text and original_val in restored_text:
+                    if (
+                        original_val
+                        and masked_val not in restored_text
+                        and original_val in restored_text
+                    ):
                         presidio_restored += 1
-                    elif isinstance(result, dict) and result.get("operator") == "custom" and "reverse_function" not in result:
+                    elif (
+                        isinstance(result, dict)
+                        and result.get("operator") == "custom"
+                        and "reverse_function" not in result
+                    ):
                         # Custom operators without reverse function fail
                         presidio_failed += 1
                     elif masked_val in restored_text:
@@ -302,14 +312,13 @@ class PresidioUnmaskingAdapter:
 
             # Resolve and apply anchor-based restoration
             resolved_anchors = self.anchor_resolver.resolve_anchors(
-                document=restored_document,
-                anchors=cloakmap.anchors
+                document=restored_document, anchors=cloakmap.anchors
             )
 
             restoration_stats = self.document_unmasker.apply_unmasking(
                 document=restored_document,
                 resolved_anchors=resolved_anchors.get("resolved", []),
-                cloakmap=cloakmap
+                cloakmap=cloakmap,
             )
 
             anchor_restored = restoration_stats.get("successful_restorations", 0)
@@ -322,19 +331,13 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": presidio_failed,
             "anchor_restored": anchor_restored,
             "non_reversible_count": non_reversible_count,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
-        return UnmaskingResult(
-            restored_document=restored_document,
-            cloakmap=cloakmap,
-            stats=stats
-        )
+        return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
 
     def _anchor_based_restoration(
-        self,
-        masked_document: DoclingDocument,
-        cloakmap: CloakMap
+        self, masked_document: DoclingDocument, cloakmap: CloakMap
     ) -> UnmaskingResult:
         """
         Fall back to anchor-based restoration.
@@ -357,6 +360,7 @@ class PresidioUnmaskingAdapter:
         if not cloakmap.anchors:
             logger.warning("No anchors found in CloakMap - returning document unchanged")
             from .engine import UnmaskingResult
+
             return UnmaskingResult(
                 restored_document=restored_document,
                 cloakmap=cloakmap,
@@ -365,14 +369,13 @@ class PresidioUnmaskingAdapter:
                     "method": "anchor_based",
                     "presidio_restored": 0,
                     "anchor_restored": 0,
-                    "timestamp": datetime.now().isoformat()
-                }
+                    "timestamp": datetime.now().isoformat(),
+                },
             )
 
         # Resolve anchor positions
         resolved_anchors = self.anchor_resolver.resolve_anchors(
-            document=restored_document,
-            anchors=cloakmap.anchors
+            document=restored_document, anchors=cloakmap.anchors
         )
 
         logger.info(
@@ -384,7 +387,7 @@ class PresidioUnmaskingAdapter:
         restoration_stats = self.document_unmasker.apply_unmasking(
             document=restored_document,
             resolved_anchors=resolved_anchors.get("resolved", []),
-            cloakmap=cloakmap
+            cloakmap=cloakmap,
         )
 
         # Create result with statistics
@@ -395,19 +398,13 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": 0,
             "anchor_restored": restoration_stats.get("successful_restorations", 0),
             "anchor_failed": restoration_stats.get("failed_restorations", 0),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
-        return UnmaskingResult(
-            restored_document=restored_document,
-            cloakmap=cloakmap,
-            stats=stats
-        )
+        return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
 
     def _hybrid_restoration(
-        self,
-        masked_document: DoclingDocument,
-        cloakmap: CloakMap
+        self, masked_document: DoclingDocument, cloakmap: CloakMap
     ) -> UnmaskingResult:
         """
         Perform hybrid restoration using both Presidio and anchors.
