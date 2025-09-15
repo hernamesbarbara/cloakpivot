@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Project Configuration Overhaul**: Complete restructuring of project configuration
+  - Single-source-of-truth configuration in `pyproject.toml`
+  - Comprehensive `Makefile` with 25+ targets for all development operations
+  - Detailed `PROJECT_CONFIG.md` documentation
+  - Removed redundant configuration files and scripts
+- **New Test Suite**: Complete rewrite of test infrastructure
+  - Archived old tests to `tests_old/` for reference
+  - Created clean test structure: `unit/`, `integration/`, `e2e/`
+  - Leverages real test data from `data/pdf/` and `data/json/`
+  - Minimal fixtures focused on actual functionality
+
 ### Changed
+- **Development Workflow**: Simplified to use Make commands exclusively
+  - `make dev` - One-command development setup
+  - `make all` - Single CI/CD pipeline entry point
+  - `make check` - Quick pre-commit validation
+  - All tool configurations centralized in `pyproject.toml`
+- **Tool Configuration**: Updated and consolidated
+  - Black: line-length=100, target-version=py311
+  - Ruff: Comprehensive rule set with integrated isort
+  - MyPy: Gradual typing approach with per-module overrides
+  - Pytest: Enhanced with coverage integration and test markers
+  - Coverage: Configured with branch coverage and multiple report formats
 - **DocPivot v2.0.1 Migration**: Updated to use DocPivot v2.0.1 with new `DocPivotEngine` API
   - Replaced `SerializerProvider` with `DocPivotEngine` in format registry
   - Replaced `LexicalDocSerializer` with `engine.convert_to_lexical()`
@@ -25,6 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Import errors with DocPivot v2.0.1 API changes
 - Test compatibility with new DocPivot API
+
+### Removed
+- **Dead Code Cleanup**: Major cleanup of unused and deprecated code
+  - Removed empty `cloakpivot/policies/` directory (functionality in `core/policies.py`)
+  - Removed `cloakpivot/deprecated.py` with broken imports
+  - Removed entire unused `cloakpivot/observability/` subsystem
+  - Removed unused modules: `core/chunking.py`, `formats/registry.py`, `masking/document_masker.py`
+  - Removed dead batch processing modules: `cli/batch.py`, `core/batch.py`
+  - Fixed broken imports throughout codebase
+  - Removed obsolete test files with non-existent imports
 
 ## [2.0.0] - 2025-09-13
 

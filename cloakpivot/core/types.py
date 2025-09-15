@@ -1,7 +1,7 @@
 """Centralized type definitions to avoid import issues."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from docling_core.types import DoclingDocument
@@ -32,8 +32,8 @@ class UnmaskingResult:
 
     restored_document: DoclingDocument
     cloakmap: CloakMap
-    stats: Optional[dict[str, Any]] = None
-    integrity_report: Optional[dict[str, Any]] = None
+    stats: dict[str, Any] | None = None
+    integrity_report: dict[str, Any] | None = None
 
     @property
     def unmasked_document(self) -> DoclingDocument:

@@ -4,11 +4,9 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from cloakpivot.core.types import DoclingDocument
-
-from ..core.chunking import ChunkedDocumentProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +45,10 @@ class DocumentProcessor:
         """Initialize the document processor."""
         self._stats = DocumentProcessingStats()
         self._enable_chunked_processing = enable_chunked_processing
-        self._chunked_processor: Optional[ChunkedDocumentProcessor]
+        self._chunked_processor: Any | None
 
         if enable_chunked_processing:
-            self._chunked_processor = ChunkedDocumentProcessor()
+            self._chunked_processor = None  # ChunkedDocumentProcessor was removed
         else:
             self._chunked_processor = None
 
@@ -59,7 +57,7 @@ class DocumentProcessor:
         )
 
     def load_document(
-        self, file_path: Union[str, Path], validate: bool = True, **kwargs: Any
+        self, file_path: str | Path, validate: bool = True, **kwargs: Any
     ) -> DoclingDocument:
         """
         Load a document using DocPivot's workflow system.
@@ -90,7 +88,7 @@ class DocumentProcessor:
 
         try:
             # Load Docling JSON directly (no DocPivot needed)
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 doc_dict = json.load(f)
             document = DoclingDocument.model_validate(doc_dict)
             self._stats.files_processed += 1
@@ -99,7 +97,7 @@ class DocumentProcessor:
                 self._validate_document_structure(document)
 
             # Log document version for v1.7.0 migration awareness
-            doc_version = getattr(document, 'version', '1.2.0')
+            doc_version = getattr(document, "version", "1.2.0")
             logger.info(f"Successfully loaded document: {document.name} (version: {doc_version})")
             logger.debug(
                 f"Document contains: {len(document.texts)} text items, "
@@ -109,7 +107,8 @@ class DocumentProcessor:
 
             # Note about v1.7.0 changes
             from packaging import version
-            if version.parse(str(doc_version)) >= version.parse('1.7.0'):
+
+            if version.parse(str(doc_version)) >= version.parse("1.7.0"):
                 logger.debug(
                     "Note: DoclingDocument v1.7.0+ uses segment-local charspans. "
                     "CloakPivot handles this transparently."
@@ -129,9 +128,7 @@ class DocumentProcessor:
             # Wrap unexpected errors
             self._stats.errors_encountered += 1
             logger.error(f"Unexpected error loading document {file_path}: {e}")
-            raise RuntimeError(
-                f"Unexpected error loading document from '{file_path}': {e}"
-            ) from e
+            raise RuntimeError(f"Unexpected error loading document from '{file_path}': {e}") from e
 
     def _validate_document_structure(self, document: DoclingDocument) -> None:
         """
@@ -144,27 +141,19 @@ class DocumentProcessor:
             ValueError: If the document structure is invalid
         """
         if not isinstance(document, DoclingDocument):
-            raise ValueError(
-                f"Expected DoclingDocument, got {type(document).__name__}"
-            )
+            raise ValueError(f"Expected DoclingDocument, got {type(document).__name__}")
 
         # Check that the document has a name
         if not document.name:
-            logger.warning(
-                "Document has no name - this may cause issues with anchor mapping"
-            )
+            logger.warning("Document has no name - this may cause issues with anchor mapping")
 
         # Check for text-bearing content
         has_text_content = (
-            len(document.texts) > 0
-            or len(document.tables) > 0
-            or len(document.key_value_items) > 0
+            len(document.texts) > 0 or len(document.tables) > 0 or len(document.key_value_items) > 0
         )
 
         if not has_text_content:
-            logger.warning(
-                "Document appears to have no text content - nothing to process"
-            )
+            logger.warning("Document appears to have no text content - nothing to process")
 
         # Validate node structure
         self._validate_node_references(document)
@@ -211,7 +200,7 @@ class DocumentProcessor:
         self._stats.reset()
         logger.debug("Processing statistics reset")
 
-    def supports_format(self, file_path: Union[str, Path]) -> bool:
+    def supports_format(self, file_path: str | Path) -> bool:
         """
         Check if the given file format is supported by DocPivot.
 
@@ -230,9 +219,7 @@ class DocumentProcessor:
             return True
 
         # Check for specific format indicators in filename
-        if any(
-            pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"]
-        ):
+        if any(pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"]):
             return True
 
         return False

@@ -1,11 +1,9 @@
 """Smart defaults system for CloakEngine - covers 90% of use cases."""
 
-from typing import Dict, Any, List
+from typing import Any
 
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
-from cloakpivot.core.analyzer import AnalyzerConfig
-
 
 # Default entity types for common PII detection
 DEFAULT_ENTITIES = [
@@ -55,84 +53,38 @@ def get_default_policy() -> MaskingPolicy:
     """
     per_entity_strategies = {
         # Contact information
-        "EMAIL_ADDRESS": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[EMAIL]"}
-        ),
-        "PHONE_NUMBER": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[PHONE]"}
-        ),
-
+        "EMAIL_ADDRESS": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"}),
+        "PHONE_NUMBER": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PHONE]"}),
         # Personal identifiers
-        "PERSON": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[NAME]"}
-        ),
-        "LOCATION": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[LOCATION]"}
-        ),
-
+        "PERSON": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[NAME]"}),
+        "LOCATION": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[LOCATION]"}),
         # Financial and sensitive IDs - use stronger masking
-        "CREDIT_CARD": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[CARD-****]"}
-        ),
+        "CREDIT_CARD": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[CARD-****]"}),
         "US_SSN": Strategy(
             kind=StrategyKind.PARTIAL,
-            parameters={"visible_chars": 4, "position": "end", "mask_char": "*"}
+            parameters={"visible_chars": 4, "position": "end", "mask_char": "*"},
         ),
-        "IBAN_CODE": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[IBAN]"}
-        ),
-
+        "IBAN_CODE": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[IBAN]"}),
         # Medical and government IDs
         "MEDICAL_LICENSE": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[MED-LIC]"}
+            kind=StrategyKind.TEMPLATE, parameters={"template": "[MED-LIC]"}
         ),
-        "US_DRIVER_LICENSE": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[DL]"}
-        ),
-        "US_PASSPORT": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[PASSPORT]"}
-        ),
-        "NRP": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[NRP]"}
-        ),
-
+        "US_DRIVER_LICENSE": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[DL]"}),
+        "US_PASSPORT": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PASSPORT]"}),
+        "NRP": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[NRP]"}),
         # Technical identifiers
-        "IP_ADDRESS": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[IP]"}
-        ),
-        "CRYPTO": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[CRYPTO]"}
-        ),
-
+        "IP_ADDRESS": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[IP]"}),
+        "CRYPTO": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[CRYPTO]"}),
         # Contextual information - use template with value preserved
-        "DATE_TIME": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[DATE]"}
-        ),
-        "URL": Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[URL]"}
-        ),
+        "DATE_TIME": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[DATE]"}),
+        "URL": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[URL]"}),
     }
 
     return MaskingPolicy(
         per_entity=per_entity_strategies,
         default_strategy=Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[REDACTED]"}
-        )
+            kind=StrategyKind.TEMPLATE, parameters={"template": "[REDACTED]"}
+        ),
     )
 
 
@@ -147,9 +99,8 @@ def get_conservative_policy() -> MaskingPolicy:
     return MaskingPolicy(
         per_entity={},  # No special handling
         default_strategy=Strategy(
-            kind=StrategyKind.REDACT,
-            parameters={"replacement": "[REMOVED]"}
-        )
+            kind=StrategyKind.REDACT, parameters={"replacement": "[REMOVED]"}
+        ),
     )
 
 
@@ -166,20 +117,16 @@ def get_permissive_policy() -> MaskingPolicy:
     # Only mask high-risk entities
     for entity in HIGH_RISK_ENTITIES:
         per_entity_strategies[entity] = Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": f"[{entity.replace('_', '-')}]"}
+            kind=StrategyKind.TEMPLATE, parameters={"template": f"[{entity.replace('_', '-')}]"}
         )
 
     return MaskingPolicy(
         per_entity=per_entity_strategies,
-        default_strategy=Strategy(
-            kind=StrategyKind.TEMPLATE,
-            parameters={"template": "[PII]"}
-        )
+        default_strategy=Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PII]"}),
     )
 
 
-def get_default_analyzer_config() -> Dict[str, Any]:
+def get_default_analyzer_config() -> dict[str, Any]:
     """Return optimized analyzer configuration.
 
     Provides a balanced configuration for accurate detection
@@ -196,7 +143,7 @@ def get_default_analyzer_config() -> Dict[str, Any]:
     }
 
 
-def get_multilingual_analyzer_config(languages: List[str]) -> Dict[str, Any]:
+def get_multilingual_analyzer_config(languages: list[str]) -> dict[str, Any]:
     """Return analyzer configuration for multiple languages.
 
     Args:
@@ -213,7 +160,7 @@ def get_multilingual_analyzer_config(languages: List[str]) -> Dict[str, Any]:
     }
 
 
-def get_high_precision_analyzer_config() -> Dict[str, Any]:
+def get_high_precision_analyzer_config() -> dict[str, Any]:
     """Return analyzer configuration for high precision.
 
     Reduces false positives at the cost of potentially missing some entities.
@@ -229,7 +176,7 @@ def get_high_precision_analyzer_config() -> Dict[str, Any]:
     }
 
 
-def get_high_recall_analyzer_config() -> Dict[str, Any]:
+def get_high_recall_analyzer_config() -> dict[str, Any]:
     """Return analyzer configuration for high recall.
 
     Catches more entities at the cost of more false positives.
@@ -274,13 +221,12 @@ def get_policy_preset(name: str) -> MaskingPolicy:
     """
     if name not in POLICY_PRESETS:
         raise ValueError(
-            f"Unknown policy preset: {name}. "
-            f"Available presets: {list(POLICY_PRESETS.keys())}"
+            f"Unknown policy preset: {name}. " f"Available presets: {list(POLICY_PRESETS.keys())}"
         )
     return POLICY_PRESETS[name]()
 
 
-def get_analyzer_preset(name: str) -> Dict[str, Any]:
+def get_analyzer_preset(name: str) -> dict[str, Any]:
     """Get a named analyzer configuration preset.
 
     Args:

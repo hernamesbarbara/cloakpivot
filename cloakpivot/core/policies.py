@@ -1,9 +1,10 @@
 """Policy system for defining masking rules and behaviors."""
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
 
@@ -59,10 +60,8 @@ class MaskingPolicy:
     per_entity: dict[str, Strategy] = field(default_factory=dict)
     thresholds: dict[str, float] = field(default_factory=dict)
     locale: str = field(default="en")
-    seed: Optional[str] = field(default=None)
-    custom_callbacks: Optional[dict[str, Callable[[str, str, float], str]]] = field(
-        default=None
-    )
+    seed: str | None = field(default=None)
+    custom_callbacks: dict[str, Callable[[str, str, float], str]] | None = field(default=None)
     allow_list: set[str] = field(default_factory=set)
     deny_list: set[str] = field(default_factory=set)
     context_rules: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -84,9 +83,7 @@ class MaskingPolicy:
         if isinstance(self.privacy_level, str):
             try:
                 # Convert string to enum
-                object.__setattr__(
-                    self, "privacy_level", PrivacyLevel(self.privacy_level)
-                )
+                object.__setattr__(self, "privacy_level", PrivacyLevel(self.privacy_level))
             except ValueError:
                 # Invalid string, use default
                 object.__setattr__(self, "privacy_level", PrivacyLevel.MEDIUM)
@@ -112,9 +109,7 @@ class MaskingPolicy:
         # Basic locale format validation (language or language-country)
         locale_pattern = r"^[a-z]{2}(-[A-Z]{2})?$"
         if not re.match(locale_pattern, self.locale):
-            raise ValueError(
-                f"Locale must follow format 'xx' or 'xx-YY', got '{self.locale}'"
-            )
+            raise ValueError(f"Locale must follow format 'xx' or 'xx-YY', got '{self.locale}'")
 
     def _validate_seed(self) -> None:
         """Validate seed configuration."""
@@ -174,13 +169,9 @@ class MaskingPolicy:
 
             if not expected_params.issubset(actual_params):
                 missing = expected_params - actual_params
-                raise ValueError(
-                    f"Callback for '{entity_type}' missing parameters: {missing}"
-                )
+                raise ValueError(f"Callback for '{entity_type}' missing parameters: {missing}")
 
-    def get_strategy_for_entity(
-        self, entity_type: str, context: Optional[str] = None
-    ) -> Strategy:
+    def get_strategy_for_entity(self, entity_type: str, context: str | None = None) -> Strategy:
         """
         Get the appropriate strategy for a given entity type and context.
 
@@ -196,9 +187,7 @@ class MaskingPolicy:
             context_rule = self.context_rules[context]
             if not context_rule.get("enabled", True):
                 # Context disabled - return a no-op strategy that preserves original text
-                return Strategy(
-                    StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False}
-                )
+                return Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False})
 
             if "strategy" in context_rule:
                 strategy = context_rule["strategy"]
@@ -212,9 +201,7 @@ class MaskingPolicy:
         # Fall back to default strategy
         return self.default_strategy
 
-    def get_threshold_for_entity(
-        self, entity_type: str, context: Optional[str] = None
-    ) -> float:
+    def get_threshold_for_entity(self, entity_type: str, context: str | None = None) -> float:
         """
         Get the confidence threshold for a given entity type and context.
 
@@ -245,7 +232,7 @@ class MaskingPolicy:
         original_text: str,
         entity_type: str,
         confidence: float,
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> bool:
         """
         Determine if an entity should be masked based on policy rules.
@@ -284,17 +271,13 @@ class MaskingPolicy:
 
         return True
 
-    def get_custom_callback(
-        self, entity_type: str
-    ) -> Optional[Callable[[str, str, float], str]]:
+    def get_custom_callback(self, entity_type: str) -> Callable[[str, str, float], str] | None:
         """Get custom callback function for an entity type if available."""
         if self.custom_callbacks is None:
             return None
         return self.custom_callbacks.get(entity_type)
 
-    def with_entity_strategy(
-        self, entity_type: str, strategy: Strategy
-    ) -> "MaskingPolicy":
+    def with_entity_strategy(self, entity_type: str, strategy: Strategy) -> "MaskingPolicy":
         """Create a new policy with an additional entity strategy."""
         new_per_entity = {**self.per_entity, entity_type: strategy}
         return MaskingPolicy(
@@ -356,9 +339,7 @@ class MaskingPolicy:
     def from_dict(cls, data: dict[str, Any]) -> "MaskingPolicy":
         """Create policy from dictionary representation."""
         # Convert default strategy
-        default_strategy_data = data.get(
-            "default_strategy", {"kind": "redact", "parameters": {}}
-        )
+        default_strategy_data = data.get("default_strategy", {"kind": "redact", "parameters": {}})
         default_strategy = Strategy(
             kind=StrategyKind(default_strategy_data["kind"]),
             parameters=default_strategy_data.get("parameters", {}),
@@ -418,18 +399,10 @@ TEMPLATE_POLICY = MaskingPolicy(
 
 PARTIAL_POLICY = MaskingPolicy(
     per_entity={
-        "PHONE_NUMBER": Strategy(
-            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
-        ),
-        "EMAIL_ADDRESS": Strategy(
-            StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}
-        ),
-        "CREDIT_CARD": Strategy(
-            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
-        ),
-        "US_SSN": Strategy(
-            StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}
-        ),
+        "PHONE_NUMBER": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
+        "EMAIL_ADDRESS": Strategy(StrategyKind.PARTIAL, {"visible_chars": 3, "position": "start"}),
+        "CREDIT_CARD": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
+        "US_SSN": Strategy(StrategyKind.PARTIAL, {"visible_chars": 4, "position": "end"}),
     }
 )
 

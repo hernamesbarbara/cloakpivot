@@ -5,7 +5,7 @@ categorization, partial failure isolation, and enhanced error recovery throughou
 the CloakPivot system.
 """
 
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class CloakPivotError(Exception):
@@ -25,10 +25,10 @@ class CloakPivotError(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[dict[str, Any]] = None,
-        recovery_suggestions: Optional[list[str]] = None,
-        component: Optional[str] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        recovery_suggestions: list[str] | None = None,
+        component: str | None = None,
     ):
         super().__init__(message)
         self.message = message
@@ -46,16 +46,15 @@ class CloakPivotError(Exception):
         name = self.__class__.__name__.lower()
         if "validation" in name:
             return "validation"
-        elif "detection" in name:
+        if "detection" in name:
             return "detection"
-        elif "masking" in name:
+        if "masking" in name:
             return "masking"
-        elif "unmasking" in name:
+        if "unmasking" in name:
             return "unmasking"
-        elif "policy" in name:
+        if "policy" in name:
             return "policy"
-        else:
-            return "core"
+        return "core"
 
     def add_context(self, key: str, value: Any) -> None:
         """Add additional context to the error."""
@@ -88,9 +87,9 @@ class ValidationError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        field_name: Optional[str] = None,
-        expected_type: Optional[str] = None,
-        actual_value: Optional[Any] = None,
+        field_name: str | None = None,
+        expected_type: str | None = None,
+        actual_value: Any | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -112,8 +111,8 @@ class ProcessingError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        document_path: Optional[str] = None,
-        processing_stage: Optional[str] = None,
+        document_path: str | None = None,
+        processing_stage: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -133,8 +132,8 @@ class DetectionError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        entity_type: Optional[str] = None,
-        confidence_threshold: Optional[float] = None,
+        entity_type: str | None = None,
+        confidence_threshold: float | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -154,8 +153,8 @@ class MaskingError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        strategy_type: Optional[str] = None,
-        entity_count: Optional[int] = None,
+        strategy_type: str | None = None,
+        entity_count: int | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -175,9 +174,9 @@ class UnmaskingError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        cloakmap_version: Optional[str] = None,
-        anchor_count: Optional[int] = None,
-        failed_anchors: Optional[list[str]] = None,
+        cloakmap_version: str | None = None,
+        anchor_count: int | None = None,
+        failed_anchors: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -199,8 +198,8 @@ class PolicyError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        policy_file: Optional[str] = None,
-        policy_version: Optional[str] = None,
+        policy_file: str | None = None,
+        policy_version: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -220,9 +219,9 @@ class IntegrityError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        expected_hash: Optional[str] = None,
-        actual_hash: Optional[str] = None,
-        corruption_type: Optional[str] = None,
+        expected_hash: str | None = None,
+        actual_hash: str | None = None,
+        corruption_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -268,8 +267,8 @@ class ConfigurationError(ValidationError):
     def __init__(
         self,
         message: str,
-        config_file: Optional[str] = None,
-        config_section: Optional[str] = None,
+        config_file: str | None = None,
+        config_section: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -289,9 +288,9 @@ class DependencyError(CloakPivotError):
     def __init__(
         self,
         message: str,
-        dependency_name: Optional[str] = None,
-        required_version: Optional[str] = None,
-        installed_version: Optional[str] = None,
+        dependency_name: str | None = None,
+        required_version: str | None = None,
+        installed_version: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(message, **kwargs)
@@ -309,7 +308,7 @@ class DependencyError(CloakPivotError):
 def create_validation_error(
     message: str,
     field_name: str,
-    expected: Union[str, type],
+    expected: str | type,
     actual: Any,
 ) -> ValidationError:
     """Create a validation error with standard context."""
@@ -330,7 +329,7 @@ def create_processing_error(
     message: str,
     document_path: str,
     stage: str,
-    original_error: Optional[Exception] = None,
+    original_error: Exception | None = None,
 ) -> ProcessingError:
     """Create a processing error with standard context."""
     error = ProcessingError(
@@ -351,8 +350,8 @@ def create_processing_error(
 
 def create_dependency_error(
     dependency: str,
-    required_version: Optional[str] = None,
-    installed_version: Optional[str] = None,
+    required_version: str | None = None,
+    installed_version: str | None = None,
 ) -> DependencyError:
     """Create a dependency error with installation guidance."""
     if required_version and installed_version:

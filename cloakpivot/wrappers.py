@@ -1,6 +1,6 @@
 """Wrapper classes for enhanced functionality."""
 
-from typing import Optional, Any
+from typing import Any
 
 from docling_core.types import DoclingDocument
 
@@ -38,10 +38,7 @@ class CloakedDocument:
     """
 
     def __init__(
-        self,
-        document: DoclingDocument,
-        cloakmap: CloakMap,
-        engine: Optional[CloakEngine] = None
+        self, document: DoclingDocument, cloakmap: CloakMap, engine: CloakEngine | None = None
     ):
         """Initialize CloakedDocument wrapper.
 
@@ -132,9 +129,11 @@ class CloakedDocument:
 
         if format == "json":
             from cloakpivot.formats.json import JSONSerializer
+
             serializer = JSONSerializer()
         elif format == "yaml":
             from cloakpivot.formats.yaml import YAMLSerializer
+
             serializer = YAMLSerializer()
         else:
             raise ValueError(f"Unsupported format: {format}. Use 'json' or 'yaml'.")
@@ -144,11 +143,8 @@ class CloakedDocument:
 
     @classmethod
     def load_with_cloakmap(
-        cls,
-        document_path: str,
-        cloakmap_path: str,
-        engine: Optional[CloakEngine] = None
-    ) -> 'CloakedDocument':
+        cls, document_path: str, cloakmap_path: str, engine: CloakEngine | None = None
+    ) -> "CloakedDocument":
         """Load a masked document with its CloakMap.
 
         Args:
@@ -160,6 +156,7 @@ class CloakedDocument:
             CloakedDocument instance ready for unmasking
         """
         from pathlib import Path
+
         from docling.document_converter import DocumentConverter
 
         # Load document
@@ -174,9 +171,11 @@ class CloakedDocument:
         # Detect format and deserialize
         if cloakmap_path.suffix in [".yaml", ".yml"]:
             from cloakpivot.formats.yaml import YAMLSerializer
+
             serializer = YAMLSerializer()
         else:
             from cloakpivot.formats.json import JSONSerializer
+
             serializer = JSONSerializer()
 
         cloakmap = serializer.deserialize(cloakmap_data, CloakMap)

@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from functools import total_ordering
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 # Performance profiling removed - simplified implementation
 from .policies import MaskingPolicy
@@ -32,7 +32,7 @@ def _import_presidio() -> None:
 
     # Track if import completed
     import_complete = threading.Event()
-    import_error: Optional[Exception] = None
+    import_error: Exception | None = None
 
     def import_with_timeout() -> None:
         """Import presidio modules in a separate thread."""
@@ -47,6 +47,7 @@ def _import_presidio() -> None:
             from presidio_analyzer.nlp_engine import (
                 NlpEngineProvider,
             )
+
             import_complete.set()
         except ImportError as e:
             import_error = e
@@ -74,8 +75,7 @@ def _import_presidio() -> None:
                 "presidio-analyzer is required for PII detection. "
                 "Install it with: pip install presidio-analyzer"
             ) from import_error
-        else:
-            raise import_error
+        raise import_error
 
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ class AnalyzerConfig:
 
     language: str = field(default="en")
     min_confidence: float = field(default=0.5)
-    enabled_recognizers: Optional[list[str]] = field(default=None)
+    enabled_recognizers: list[str] | None = field(default=None)
     disabled_recognizers: set[str] = field(default_factory=set)
     custom_recognizers: dict[str, Any] = field(default_factory=dict)
     nlp_engine_name: str = field(default="spacy")
@@ -115,9 +115,7 @@ class AnalyzerConfig:
         # Validate ISO 639-1 format (2 letters, optionally followed by country code)
         language_pattern = r"^[a-z]{2}(-[A-Z]{2})?$"
         if not re.match(language_pattern, self.language):
-            raise ValueError(
-                f"Language must be a valid ISO 639-1 code, got '{self.language}'"
-            )
+            raise ValueError(f"Language must be a valid ISO 639-1 code, got '{self.language}'")
 
     def _validate_confidence(self) -> None:
         """Validate confidence threshold."""
@@ -180,7 +178,7 @@ class RecognizerRegistry:
         "LOCATION",
     }
 
-    def __init__(self, enabled_recognizers: Optional[list[str]] = None):
+    def __init__(self, enabled_recognizers: list[str] | None = None):
         """Initialize recognizer registry.
 
         Args:
@@ -257,14 +255,10 @@ class EntityDetectionResult:
     def __post_init__(self) -> None:
         """Validate detection result after initialization."""
         if not 0 <= self.start < self.end:
-            raise ValueError(
-                f"Invalid position range: start={self.start}, end={self.end}"
-            )
+            raise ValueError(f"Invalid position range: start={self.start}, end={self.end}")
 
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(
-                f"Confidence must be between 0.0 and 1.0, got {self.confidence}"
-            )
+            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
 
     @classmethod
     def from_presidio_result(cls, result: Any, text: str) -> "EntityDetectionResult":
@@ -345,8 +339,8 @@ class AnalyzerEngineWrapper:
 
     def __init__(
         self,
-        config: Optional[AnalyzerConfig] = None,
-        use_singleton: Optional[bool] = None,
+        config: AnalyzerConfig | None = None,
+        use_singleton: bool | None = None,
     ):
         """Initialize analyzer wrapper.
 
@@ -358,15 +352,11 @@ class AnalyzerEngineWrapper:
         self.config = config or AnalyzerConfig()
 
         # Determine singleton usage from parameter, environment, or default
-        default_use_singleton = (
-            os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
-        )
-        self.use_singleton = (
-            use_singleton if use_singleton is not None else default_use_singleton
-        )
+        default_use_singleton = os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
+        self.use_singleton = use_singleton if use_singleton is not None else default_use_singleton
 
         self.registry = RecognizerRegistry(self.config.enabled_recognizers)
-        self._engine: Optional[Any] = None  # Will be AnalyzerEngine after import
+        self._engine: Any | None = None  # Will be AnalyzerEngine after import
         self._is_initialized = False
 
         # Apply disabled recognizers
@@ -397,9 +387,7 @@ class AnalyzerEngineWrapper:
         return cls(config)
 
     @classmethod
-    def create_shared(
-        cls, config: Optional[AnalyzerConfig] = None
-    ) -> "AnalyzerEngineWrapper":
+    def create_shared(cls, config: AnalyzerConfig | None = None) -> "AnalyzerEngineWrapper":
         """Create analyzer using singleton loader from loaders module.
 
         This method uses the cached singleton analyzer instances from the loaders
@@ -423,8 +411,7 @@ class AnalyzerEngineWrapper:
 
         if config is not None:
             return get_presidio_analyzer_from_config(config)
-        else:
-            return get_presidio_analyzer()
+        return get_presidio_analyzer()
 
     def _get_spacy_model_name(self, language: str) -> str:
         """Get the appropriate spaCy model name based on language and size preference.
@@ -469,9 +456,7 @@ class AnalyzerEngineWrapper:
             model_name = self._get_spacy_model_name(self.config.language)
             nlp_configuration = {
                 "nlp_engine_name": self.config.nlp_engine_name,
-                "models": [
-                    {"lang_code": self.config.language, "model_name": model_name}
-                ],
+                "models": [{"lang_code": self.config.language, "model_name": model_name}],
             }
 
             if not TYPE_CHECKING:
@@ -496,15 +481,13 @@ class AnalyzerEngineWrapper:
 
         except Exception as e:
             logger.error(f"Failed to initialize Presidio AnalyzerEngine: {e}")
-            raise RuntimeError(
-                f"Failed to initialize Presidio AnalyzerEngine: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to initialize Presidio AnalyzerEngine: {e}") from e
 
     def analyze_text(
         self,
         text: str,
-        entities: Optional[list[str]] = None,
-        min_confidence: Optional[float] = None,
+        entities: list[str] | None = None,
+        min_confidence: float | None = None,
     ) -> list[EntityDetectionResult]:
         """Analyze text for PII entities with performance tracking.
 
@@ -527,20 +510,14 @@ class AnalyzerEngineWrapper:
 
         # Determine entities to analyze
         analyze_entities = (
-            entities
-            if entities is not None
-            else self.registry.get_enabled_recognizers()
+            entities if entities is not None else self.registry.get_enabled_recognizers()
         )
 
         # Determine confidence threshold
-        threshold = (
-            min_confidence if min_confidence is not None else self.config.min_confidence
-        )
+        threshold = min_confidence if min_confidence is not None else self.config.min_confidence
 
         try:
-            logger.debug(
-                f"Analyzing text of length {len(text)} for entities: {analyze_entities}"
-            )
+            logger.debug(f"Analyzing text of length {len(text)} for entities: {analyze_entities}")
 
             # Run Presidio analysis
             presidio_results = self._engine.analyze(
@@ -554,9 +531,7 @@ class AnalyzerEngineWrapper:
             detection_results = []
             for result in presidio_results:
                 entity_text = text[result.start : result.end]
-                detection = EntityDetectionResult.from_presidio_result(
-                    result, entity_text
-                )
+                detection = EntityDetectionResult.from_presidio_result(result, entity_text)
                 detection_results.append(detection)
 
             # Sort for deterministic ordering
@@ -613,9 +588,7 @@ class AnalyzerEngineWrapper:
 
         # Check for common issues
         if not self.registry.get_enabled_recognizers():
-            cast(list[str], diagnostics["warnings"]).append(
-                "No recognizers are enabled"
-            )
+            cast(list[str], diagnostics["warnings"]).append("No recognizers are enabled")
 
         if self.config.min_confidence > 0.9:
             cast(list[str], diagnostics["warnings"]).append(

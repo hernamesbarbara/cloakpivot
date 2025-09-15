@@ -26,7 +26,6 @@ from ..core.policies import MaskingPolicy
 from ..core.strategies import Strategy
 from ..document.extractor import TextSegment
 from .applicator import StrategyApplicator
-from .document_masker import DocumentMasker
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +102,7 @@ class MaskingEngine:
             self.presidio_adapter = None  # Not used in legacy mode
             logger.info("MaskingEngine using legacy StrategyApplicator")
 
-        self.document_masker = DocumentMasker()
+        # DocumentMasker was removed in refactoring
         self.resolve_conflicts = resolve_conflicts
         self.store_original_text = store_original_text
         self.entity_normalizer = (
@@ -180,10 +179,9 @@ class MaskingEngine:
             return self._mask_with_presidio(
                 document, entities, policy, text_segments, original_format
             )
-        else:
-            return self._mask_with_legacy(
-                document, entities, policy, text_segments, original_format
-            )
+        return self._mask_with_legacy(
+            document, entities, policy, text_segments, original_format
+        )
 
     def _mask_with_presidio(
         self,
@@ -209,7 +207,7 @@ class MaskingEngine:
                 entity_type=entity.entity_type,
                 start=entity.start,
                 end=entity.end,
-                score=entity.score
+                score=entity.score,
             )
             for entity in entities
         ]
@@ -220,7 +218,7 @@ class MaskingEngine:
             entities=anonymizer_entities,
             policy=policy,
             text_segments=text_segments,
-            original_format=original_format
+            original_format=original_format,
         )
 
     def _mask_with_legacy(
@@ -246,9 +244,7 @@ class MaskingEngine:
             # Find the text segment containing this entity
             segment = self._find_segment_for_entity(entity, text_segments)
             if not segment:
-                logger.warning(
-                    f"No segment found for entity at {entity.start}-{entity.end}"
-                )
+                logger.warning(f"No segment found for entity at {entity.start}-{entity.end}")
                 continue
 
             # Get strategy for this entity type
@@ -285,9 +281,7 @@ class MaskingEngine:
         masked_document = self._copy_document(document)
 
         # Apply masking to the document
-        self.document_masker.apply_masking(
-            document=masked_document, anchor_entries=anchor_entries
-        )
+        self.document_masker.apply_masking(document=masked_document, anchor_entries=anchor_entries)
 
         # Generate document hash for CloakMap
         doc_hash = self._compute_document_hash(document)
@@ -310,9 +304,7 @@ class MaskingEngine:
 
         logger.info(f"Masking completed: {len(anchor_entries)} entities masked")
 
-        return MaskingResult(
-            masked_document=masked_document, cloakmap=cloakmap, stats=stats
-        )
+        return MaskingResult(masked_document=masked_document, cloakmap=cloakmap, stats=stats)
 
     def _validate_inputs(
         self,
@@ -330,8 +322,15 @@ class MaskingEngine:
 
         for entity in entities:
             # Check for RecognizerResult-like object (duck typing for compatibility)
-            if not hasattr(entity, 'entity_type') or not hasattr(entity, 'start') or not hasattr(entity, 'end') or not hasattr(entity, 'score'):
-                raise ValueError("all entities must be RecognizerResult-like instances with entity_type, start, end, and score attributes")
+            if (
+                not hasattr(entity, "entity_type")
+                or not hasattr(entity, "start")
+                or not hasattr(entity, "end")
+                or not hasattr(entity, "score")
+            ):
+                raise ValueError(
+                    "all entities must be RecognizerResult-like instances with entity_type, start, end, and score attributes"
+                )
 
         if not isinstance(policy, MaskingPolicy):
             raise ValueError("policy must be a MaskingPolicy")
@@ -445,9 +444,7 @@ class MaskingEngine:
 
             # Create detection result with error handling
             try:
-                detection_result = EntityDetectionResult.from_presidio_result(
-                    entity, entity_text
-                )
+                detection_result = EntityDetectionResult.from_presidio_result(entity, entity_text)
                 entity_detection_results.append(detection_result)
             except (ValueError, TypeError) as e:
                 logger.warning(
@@ -460,9 +457,7 @@ class MaskingEngine:
             raise ValueError(
                 "Entity normalizer is not configured but conflict resolution was attempted"
             )
-        normalization_result = self.entity_normalizer.normalize_entities(
-            entity_detection_results
-        )
+        normalization_result = self.entity_normalizer.normalize_entities(entity_detection_results)
 
         logger.info(
             f"Entity conflict resolution: {len(entities)} -> {len(normalization_result.normalized_entities)} entities, "
@@ -511,9 +506,7 @@ class MaskingEngine:
                             f"{entity2.end})"
                         )
 
-    def _entities_overlap(
-        self, entity1: RecognizerResult, entity2: RecognizerResult
-    ) -> bool:
+    def _entities_overlap(self, entity1: RecognizerResult, entity2: RecognizerResult) -> bool:
         """Check if two entities overlap."""
         return not (entity1.end <= entity2.start or entity2.end <= entity1.start)
 
@@ -522,9 +515,7 @@ class MaskingEngine:
     ) -> TextSegment | None:
         """Find the text segment that contains the given entity."""
         for segment in text_segments:
-            if segment.contains_offset(entity.start) and segment.contains_offset(
-                entity.end - 1
-            ):
+            if segment.contains_offset(entity.start) and segment.contains_offset(entity.end - 1):
                 return segment
         return None
 
@@ -595,12 +586,8 @@ class MaskingEngine:
         strategy_counts: dict[str, int] = {}
 
         for anchor in anchor_entries:
-            entity_counts[anchor.entity_type] = (
-                entity_counts.get(anchor.entity_type, 0) + 1
-            )
-            strategy_counts[anchor.strategy_used] = (
-                strategy_counts.get(anchor.strategy_used, 0) + 1
-            )
+            entity_counts[anchor.entity_type] = entity_counts.get(anchor.entity_type, 0) + 1
+            strategy_counts[anchor.strategy_used] = strategy_counts.get(anchor.strategy_used, 0) + 1
 
         return {
             "total_entities_detected": len(entities),

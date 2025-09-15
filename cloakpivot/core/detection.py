@@ -3,7 +3,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 # Temporarily mock docling_core import to allow tests to run
 from cloakpivot.core.types import DoclingDocument
@@ -11,6 +11,7 @@ from cloakpivot.core.types import DoclingDocument
 from ..document.extractor import TextExtractor, TextSegment
 from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 from .anchors import AnchorEntry
+
 # Performance profiling removed - simplified implementation
 from .policies import MaskingPolicy
 
@@ -31,7 +32,7 @@ class SegmentAnalysisResult:
     segment: TextSegment
     entities: list[EntityDetectionResult] = field(default_factory=list)
     processing_time_ms: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
     @property
     def success(self) -> bool:
@@ -110,8 +111,8 @@ class EntityDetectionPipeline:
 
     def __init__(
         self,
-        analyzer: Optional[AnalyzerEngineWrapper] = None,
-        use_shared_analyzer: Optional[bool] = None,
+        analyzer: AnalyzerEngineWrapper | None = None,
+        use_shared_analyzer: bool | None = None,
     ):
         """Initialize the detection pipeline.
 
@@ -125,13 +126,9 @@ class EntityDetectionPipeline:
             self._used_shared_analyzer = False
         else:
             # Determine shared analyzer usage from parameter, environment, or default
-            default_use_shared = (
-                os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
-            )
+            default_use_shared = os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
             use_shared = (
-                use_shared_analyzer
-                if use_shared_analyzer is not None
-                else default_use_shared
+                use_shared_analyzer if use_shared_analyzer is not None else default_use_shared
             )
 
             if use_shared:
@@ -144,13 +141,11 @@ class EntityDetectionPipeline:
         self.text_extractor = TextExtractor(normalize_whitespace=True)
 
         shared_status = "shared" if self._used_shared_analyzer else "direct"
-        logger.info(
-            f"EntityDetectionPipeline initialized with {shared_status} analyzer"
-        )
+        logger.info(f"EntityDetectionPipeline initialized with {shared_status} analyzer")
 
     @classmethod
     def from_policy(
-        cls, policy: MaskingPolicy, use_shared_analyzer: Optional[bool] = None
+        cls, policy: MaskingPolicy, use_shared_analyzer: bool | None = None
     ) -> "EntityDetectionPipeline":
         """Create detection pipeline from masking policy.
 
@@ -164,14 +159,8 @@ class EntityDetectionPipeline:
         from .analyzer import AnalyzerConfig
 
         # Determine shared analyzer usage from parameter, environment, or default
-        default_use_shared = (
-            os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
-        )
-        use_shared = (
-            use_shared_analyzer
-            if use_shared_analyzer is not None
-            else default_use_shared
-        )
+        default_use_shared = os.getenv("CLOAKPIVOT_USE_SINGLETON", "true").lower() == "true"
+        use_shared = use_shared_analyzer if use_shared_analyzer is not None else default_use_shared
 
         if use_shared:
             # Use shared analyzer with policy-derived config
@@ -184,7 +173,7 @@ class EntityDetectionPipeline:
         return cls(analyzer)
 
     def analyze_document(
-        self, document: DoclingDocument, policy: Optional[MaskingPolicy] = None
+        self, document: DoclingDocument, policy: MaskingPolicy | None = None
     ) -> DocumentAnalysisResult:
         """Analyze a complete document for PII entities with performance tracking.
 
@@ -222,7 +211,7 @@ class EntityDetectionPipeline:
         return result
 
     def analyze_text_segments(
-        self, segments: list[TextSegment], policy: Optional[MaskingPolicy] = None
+        self, segments: list[TextSegment], policy: MaskingPolicy | None = None
     ) -> list[SegmentAnalysisResult]:
         """Analyze a list of text segments for PII entities with performance tracking.
 
@@ -243,7 +232,7 @@ class EntityDetectionPipeline:
         return results
 
     def _analyze_segment(
-        self, segment: TextSegment, policy: Optional[MaskingPolicy] = None
+        self, segment: TextSegment, policy: MaskingPolicy | None = None
     ) -> SegmentAnalysisResult:
         """Analyze a single text segment for PII entities.
 
@@ -268,9 +257,7 @@ class EntityDetectionPipeline:
 
             # Run entity detection
             raw_entities = self.analyzer.analyze_text(segment.text)
-            logger.debug(
-                f"Found {len(raw_entities)} raw entities in segment {segment.node_id}"
-            )
+            logger.debug(f"Found {len(raw_entities)} raw entities in segment {segment.node_id}")
 
             # Filter entities based on policy if provided
             if policy:
@@ -307,7 +294,7 @@ class EntityDetectionPipeline:
 
         return result
 
-    def _extract_context_from_segment(self, segment: TextSegment) -> Optional[str]:
+    def _extract_context_from_segment(self, segment: TextSegment) -> str | None:
         """Extract context information from a text segment.
 
         Args:
@@ -330,9 +317,7 @@ class EntityDetectionPipeline:
 
         return node_type_mapping.get(segment.node_type)
 
-    def map_entities_to_anchors(
-        self, analysis_result: DocumentAnalysisResult
-    ) -> list[AnchorEntry]:
+    def map_entities_to_anchors(self, analysis_result: DocumentAnalysisResult) -> list[AnchorEntry]:
         """Map detected entities to document anchor positions with performance tracking.
 
         Args:
@@ -384,9 +369,7 @@ class EntityDetectionPipeline:
                 )
 
             except Exception as e:
-                logger.error(
-                    f"Failed to create anchor for entity {entity.entity_type}: {e}"
-                )
+                logger.error(f"Failed to create anchor for entity {entity.entity_type}: {e}")
 
         logger.info(f"Created {len(anchor_entries)} anchor entries")
         return anchor_entries

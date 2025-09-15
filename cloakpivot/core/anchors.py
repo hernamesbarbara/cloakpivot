@@ -3,7 +3,7 @@
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 # Security features removed - simplified implementation
 
@@ -71,8 +71,8 @@ class AnchorEntry:
     original_checksum: str
     checksum_salt: str
     strategy_used: str
-    timestamp: Optional[datetime] = None
-    metadata: Optional[dict[str, Any]] = None
+    timestamp: datetime | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         """Validate anchor data after initialization."""
@@ -106,9 +106,7 @@ class AnchorEntry:
             raise ValueError("confidence must be a number")
 
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(
-                f"confidence must be between 0.0 and 1.0, got {self.confidence}"
-            )
+            raise ValueError(f"confidence must be between 0.0 and 1.0, got {self.confidence}")
 
     def _validate_checksum(self) -> None:
         """Validate original checksum and salt format."""
@@ -117,16 +115,12 @@ class AnchorEntry:
 
         # Basic SHA-256 hex string validation (64 characters)
         if len(self.original_checksum) != 64:
-            raise ValueError(
-                "original_checksum should be a 64-character SHA-256 hex string"
-            )
+            raise ValueError("original_checksum should be a 64-character SHA-256 hex string")
 
         try:
             int(self.original_checksum, 16)
         except ValueError as e:
-            raise ValueError(
-                "original_checksum must contain only hexadecimal characters"
-            ) from e
+            raise ValueError("original_checksum must contain only hexadecimal characters") from e
 
         # Validate checksum salt
         if not isinstance(self.checksum_salt, str):
@@ -168,9 +162,7 @@ class AnchorEntry:
         """Get the difference in length between original and replacement."""
         return self.replacement_length - self.span_length
 
-    def verify_original_text(
-        self, original_text: str, config: Optional[Any] = None
-    ) -> bool:
+    def verify_original_text(self, original_text: str, config: Any | None = None) -> bool:
         """
         Verify that the provided original text matches the stored salted checksum.
 
@@ -278,6 +270,7 @@ class AnchorEntry:
 
             # Use simple random salt
             import os
+
             default_salt = os.urandom(16)
             checksum_salt = base64.b64encode(default_salt).decode("ascii")
 
@@ -297,12 +290,11 @@ class AnchorEntry:
         )
 
     @staticmethod
-    def _compute_salted_checksum(
-        text: str, salt: bytes, config: Optional[Any] = None
-    ) -> str:
+    def _compute_salted_checksum(text: str, salt: bytes, config: Any | None = None) -> str:
         """Compute salted checksum of text using PBKDF2."""
         # Simplified checksum computation
         import hashlib
+
         return hashlib.sha256(text.encode()).hexdigest()
 
     @staticmethod
@@ -334,9 +326,9 @@ class AnchorEntry:
         original_text: str,
         masked_value: str,
         strategy_used: str,
-        replacement_id: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
-        config: Optional[Any] = None,
+        replacement_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        config: Any | None = None,
     ) -> "AnchorEntry":
         """
         Create an anchor entry from PII detection results using salted checksums.
@@ -362,8 +354,8 @@ class AnchorEntry:
 
         # Simplified integrity metadata
         import base64
-        import os
         import hashlib
+        import os
 
         salt = os.urandom(16)
         original_checksum = hashlib.sha256(original_text.encode()).hexdigest()
@@ -392,7 +384,7 @@ class AnchorIndex:
     and handles operations like conflict detection and position updates.
     """
 
-    def __init__(self, anchors: Optional[list[AnchorEntry]] = None) -> None:
+    def __init__(self, anchors: list[AnchorEntry] | None = None) -> None:
         """
         Initialize the anchor index.
 
@@ -426,7 +418,7 @@ class AnchorIndex:
             self._by_entity_type[anchor.entity_type] = []
         self._by_entity_type[anchor.entity_type].append(anchor)
 
-    def get_by_replacement_id(self, replacement_id: str) -> Optional[AnchorEntry]:
+    def get_by_replacement_id(self, replacement_id: str) -> AnchorEntry | None:
         """Get anchor by replacement ID."""
         return self._by_replacement_id.get(replacement_id)
 
@@ -444,9 +436,7 @@ class AnchorIndex:
         node_anchors = self.get_by_node_id(anchor.node_id)
         return [a for a in node_anchors if a != anchor and a.overlaps_with(anchor)]
 
-    def get_anchors_in_range(
-        self, node_id: str, start: int, end: int
-    ) -> list[AnchorEntry]:
+    def get_anchors_in_range(self, node_id: str, start: int, end: int) -> list[AnchorEntry]:
         """Get all anchors that intersect with the given position range."""
         node_anchors = self.get_by_node_id(node_id)
         return [a for a in node_anchors if not (a.end <= start or a.start >= end)]
@@ -463,21 +453,15 @@ class AnchorIndex:
 
         for anchor in self._anchors:
             # Count by entity type
-            entity_counts[anchor.entity_type] = (
-                entity_counts.get(anchor.entity_type, 0) + 1
-            )
+            entity_counts[anchor.entity_type] = entity_counts.get(anchor.entity_type, 0) + 1
 
             # Count by strategy
-            strategy_counts[anchor.strategy_used] = (
-                strategy_counts.get(anchor.strategy_used, 0) + 1
-            )
+            strategy_counts[anchor.strategy_used] = strategy_counts.get(anchor.strategy_used, 0) + 1
 
             # Accumulate confidence
             total_confidence += anchor.confidence
 
-        avg_confidence = (
-            round(total_confidence / len(self._anchors), 10) if self._anchors else 0.0
-        )
+        avg_confidence = round(total_confidence / len(self._anchors), 10) if self._anchors else 0.0
 
         return {
             "total_anchors": len(self._anchors),

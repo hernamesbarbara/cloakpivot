@@ -4,7 +4,7 @@ import hashlib
 import logging
 import random
 import string
-from typing import Any, Optional
+from typing import Any
 
 from ..core.strategies import Strategy, StrategyKind
 from ..core.surrogate import SurrogateGenerator
@@ -46,7 +46,7 @@ class StrategyApplicator:
         >>> assert result == "*********4567"
     """
 
-    def __init__(self, seed: Optional[str] = None) -> None:
+    def __init__(self, seed: str | None = None) -> None:
         """
         Initialize the strategy applicator.
 
@@ -92,13 +92,9 @@ class StrategyApplicator:
 
         try:
             # Try the primary strategy
-            return self._apply_single_strategy(
-                original_text, entity_type, strategy, confidence
-            )
+            return self._apply_single_strategy(original_text, entity_type, strategy, confidence)
         except Exception as e:
-            logger.warning(
-                f"Strategy {strategy.kind.value} failed for {entity_type}: {e}"
-            )
+            logger.warning(f"Strategy {strategy.kind.value} failed for {entity_type}: {e}")
 
             # Try fallback strategies
             return self._apply_fallback_strategy(
@@ -115,22 +111,19 @@ class StrategyApplicator:
         """Apply a single strategy without fallback."""
         if strategy.kind == StrategyKind.REDACT:
             return self._apply_redact_strategy(original_text, strategy)
-        elif strategy.kind == StrategyKind.TEMPLATE:
+        if strategy.kind == StrategyKind.TEMPLATE:
             return self._apply_template_strategy(original_text, entity_type, strategy)
-        elif strategy.kind == StrategyKind.HASH:
+        if strategy.kind == StrategyKind.HASH:
             # Pass entity_type to hash strategy for per-entity salting
             hash_strategy = strategy.with_parameters(entity_type=entity_type)
             return self._apply_hash_strategy(original_text, hash_strategy)
-        elif strategy.kind == StrategyKind.PARTIAL:
+        if strategy.kind == StrategyKind.PARTIAL:
             return self._apply_partial_strategy(original_text, strategy)
-        elif strategy.kind == StrategyKind.SURROGATE:
+        if strategy.kind == StrategyKind.SURROGATE:
             return self._apply_surrogate_strategy(original_text, entity_type, strategy)
-        elif strategy.kind == StrategyKind.CUSTOM:
-            return self._apply_custom_strategy(
-                original_text, entity_type, confidence, strategy
-            )
-        else:
-            raise NotImplementedError(f"Strategy {strategy.kind.value} not implemented")
+        if strategy.kind == StrategyKind.CUSTOM:
+            return self._apply_custom_strategy(original_text, entity_type, confidence, strategy)
+        raise NotImplementedError(f"Strategy {strategy.kind.value} not implemented")
 
     def _apply_fallback_strategy(
         self,
@@ -144,32 +137,22 @@ class StrategyApplicator:
         # Define fallback chain
         fallback_strategies = [
             Strategy(StrategyKind.TEMPLATE, {"template": f"[{entity_type}]"}),
-            Strategy(
-                StrategyKind.REDACT, {"redact_char": "*", "preserve_length": True}
-            ),
-            Strategy(
-                StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False}
-            ),
+            Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": True}),
+            Strategy(StrategyKind.REDACT, {"redact_char": "*", "preserve_length": False}),
         ]
 
         for fallback_strategy in fallback_strategies:
             try:
-                logger.info(
-                    f"Trying fallback {fallback_strategy.kind.value} for {entity_type}"
-                )
+                logger.info(f"Trying fallback {fallback_strategy.kind.value} for {entity_type}")
                 return self._apply_single_strategy(
                     original_text, entity_type, fallback_strategy, confidence
                 )
             except Exception as fallback_error:
-                logger.warning(
-                    f"Fallback {fallback_strategy.kind.value} failed: {fallback_error}"
-                )
+                logger.warning(f"Fallback {fallback_strategy.kind.value} failed: {fallback_error}")
                 continue
 
         # Ultimate fallback - simple asterisk masking
-        logger.error(
-            f"All fallback strategies failed for {entity_type}, using ultimate fallback"
-        )
+        logger.error(f"All fallback strategies failed for {entity_type}, using ultimate fallback")
         return "*" * max(1, len(original_text))
 
     def compose_strategies(
@@ -195,9 +178,7 @@ class StrategyApplicator:
             raise ValueError("At least one strategy must be provided")
 
         if len(strategies) == 1:
-            return self.apply_strategy(
-                original_text, entity_type, strategies[0], confidence
-            )
+            return self.apply_strategy(original_text, entity_type, strategies[0], confidence)
 
         # For now, implement sequential composition
         # Could be extended to support parallel composition with voting
@@ -221,10 +202,9 @@ class StrategyApplicator:
 
         if preserve_length:
             return str(redact_char) * len(original_text)
-        else:
-            # Fixed length redaction
-            redaction_length = int(strategy.get_parameter("redaction_length", 8))
-            return str(redact_char) * redaction_length
+        # Fixed length redaction
+        redaction_length = int(strategy.get_parameter("redaction_length", 8))
+        return str(redact_char) * redaction_length
 
     def _apply_template_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
@@ -286,66 +266,47 @@ class StrategyApplicator:
     def _generate_phone_template(self, original_text: str) -> str:
         """Generate format-preserving template for phone numbers."""
         # Common phone patterns
-        if len(original_text) == 10 and original_text.isdigit():
+        if len(original_text) == 10 and original_text.isdigit() or len(original_text) == 12 and original_text[3] == "-" and original_text[7] == "-":
             return "XXX-XXX-XXXX"
-        elif (
-            len(original_text) == 12
-            and original_text[3] == "-"
-            and original_text[7] == "-"
-        ):
-            return "XXX-XXX-XXXX"
-        elif (
-            len(original_text) == 14
-            and original_text.startswith("(")
-            and ")" in original_text
-        ):
+        if len(original_text) == 14 and original_text.startswith("(") and ")" in original_text:
             return "(XXX) XXX-XXXX"
-        elif "+" in original_text:
+        if "+" in original_text:
             # International format
             return "+X " + "X" * (len(original_text) - 3)
-        else:
-            # Generic phone template
-            return "X" * len([c for c in original_text if c.isdigit()]) + "".join(
-                c for c in original_text if not c.isdigit()
-            )
+        # Generic phone template
+        return "X" * len([c for c in original_text if c.isdigit()]) + "".join(
+            c for c in original_text if not c.isdigit()
+        )
 
     def _generate_ssn_template(self, original_text: str) -> str:
         """Generate format-preserving template for SSN."""
-        if (
-            len(original_text) == 11
-            and original_text[3] == "-"
-            and original_text[6] == "-"
-        ):
+        if len(original_text) == 11 and original_text[3] == "-" and original_text[6] == "-":
             return "XXX-XX-XXXX"
-        elif len(original_text) == 9 and original_text.isdigit():
+        if len(original_text) == 9 and original_text.isdigit():
             return "XXXXXXXXX"
-        else:
-            # Preserve structure but mask digits
-            result = ""
-            for char in original_text:
-                if char.isdigit():
-                    result += "X"
-                else:
-                    result += char
-            return result
+        # Preserve structure but mask digits
+        result = ""
+        for char in original_text:
+            if char.isdigit():
+                result += "X"
+            else:
+                result += char
+        return result
 
     def _generate_credit_card_template(self, original_text: str) -> str:
         """Generate format-preserving template for credit cards."""
-        if len(original_text) == 16 and original_text.isdigit():
+        if len(original_text) == 16 and original_text.isdigit() or len(original_text) == 19 and original_text.count("-") == 3:
             return "XXXX-XXXX-XXXX-XXXX"
-        elif len(original_text) == 19 and original_text.count("-") == 3:
-            return "XXXX-XXXX-XXXX-XXXX"
-        elif len(original_text) == 19 and original_text.count(" ") == 3:
+        if len(original_text) == 19 and original_text.count(" ") == 3:
             return "XXXX XXXX XXXX XXXX"
-        else:
-            # Preserve structure but mask digits
-            result = ""
-            for char in original_text:
-                if char.isdigit():
-                    result += "X"
-                else:
-                    result += char
-            return result
+        # Preserve structure but mask digits
+        result = ""
+        for char in original_text:
+            if char.isdigit():
+                result += "X"
+            else:
+                result += char
+        return result
 
     def _generate_email_template(self, original_text: str) -> str:
         """Generate format-preserving template for email addresses."""
@@ -418,9 +379,7 @@ class StrategyApplicator:
         prefix = str(strategy.get_parameter("prefix", ""))
         format_output = str(strategy.get_parameter("format_output", "hex"))
         consistent_length = bool(strategy.get_parameter("consistent_length", True))
-        preserve_format_structure = bool(
-            strategy.get_parameter("preserve_format_structure", False)
-        )
+        preserve_format_structure = bool(strategy.get_parameter("preserve_format_structure", False))
 
         # Build deterministic salt
         effective_salt = self._build_deterministic_salt(
@@ -461,9 +420,7 @@ class StrategyApplicator:
 
         # Apply format structure preservation if requested
         if preserve_format_structure:
-            hash_result = self._preserve_format_in_hash(
-                original_text, hash_result, prefix
-            )
+            hash_result = self._preserve_format_in_hash(original_text, hash_result, prefix)
 
         return str(prefix) + str(hash_result)
 
@@ -479,9 +436,7 @@ class StrategyApplicator:
 
         # Add per-entity-type salt for security isolation
         if per_entity_salt and isinstance(per_entity_salt, dict):
-            entity_salt = per_entity_salt.get(
-                entity_type, per_entity_salt.get("default", "")
-            )
+            entity_salt = per_entity_salt.get(entity_type, per_entity_salt.get("default", ""))
             salt_components.append(str(entity_salt))
 
         # Add content-length-based component for additional entropy
@@ -496,16 +451,15 @@ class StrategyApplicator:
         """Get hash algorithm object."""
         if algorithm == "md5":
             return hashlib.md5()
-        elif algorithm == "sha1":
+        if algorithm == "sha1":
             return hashlib.sha1()
-        elif algorithm == "sha256":
+        if algorithm == "sha256":
             return hashlib.sha256()
-        elif algorithm == "sha384":
+        if algorithm == "sha384":
             return hashlib.sha384()
-        elif algorithm == "sha512":
+        if algorithm == "sha512":
             return hashlib.sha512()
-        else:
-            raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+        raise ValueError(f"Unsupported hash algorithm: {algorithm}")
 
     def _apply_consistent_truncation(
         self, hash_result: str, truncate: int, original_text: str, algorithm: str
@@ -519,9 +473,7 @@ class StrategyApplicator:
         offset = hash(original_text + algorithm) % max(1, len(hash_result) - truncate)
         return hash_result[offset : offset + truncate]
 
-    def _preserve_format_in_hash(
-        self, original_text: str, hash_result: str, prefix: str
-    ) -> str:
+    def _preserve_format_in_hash(self, original_text: str, hash_result: str, prefix: str) -> str:
         """Preserve format structure in hash output."""
         # Detect structural elements in original text
         delimiters = []
@@ -542,9 +494,7 @@ class StrategyApplicator:
         hash_len = len(hash_result)
         orig_len = len(original_text)
 
-        for _i, (delimiter, orig_pos) in enumerate(
-            zip(delimiters, delimiter_positions)
-        ):
+        for _i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions, strict=False)):
             # Calculate proportional position in hash
             if orig_len > 0:
                 hash_pos = int((orig_pos / orig_len) * hash_len)
@@ -586,23 +536,18 @@ class StrategyApplicator:
             # Would show everything, apply minimal masking
             if len(original_text) <= 2:
                 return mask_char * len(original_text)
-            else:
-                return (
-                    original_text[0]
-                    + mask_char * (len(original_text) - 2)
-                    + original_text[-1]
-                )
+            return original_text[0] + mask_char * (len(original_text) - 2) + original_text[-1]
 
         # Apply partial masking based on position
         if position == "start":
             visible_part = original_text[:visible_chars]
             masked_part = mask_char * (len(original_text) - visible_chars)
             return visible_part + masked_part
-        elif position == "end":
+        if position == "end":
             visible_part = original_text[-visible_chars:]
             masked_part = mask_char * (len(original_text) - visible_chars)
             return masked_part + visible_part
-        elif position == "middle":
+        if position == "middle":
             # Show chars at both ends
             chars_per_side = visible_chars // 2
             remaining = visible_chars % 2
@@ -622,8 +567,7 @@ class StrategyApplicator:
             masked_part = mask_char * middle_length
 
             return start_part + masked_part + end_part
-        else:
-            raise ValueError(f"Invalid position for partial strategy: {position}")
+        raise ValueError(f"Invalid position for partial strategy: {position}")
 
     def _apply_format_aware_partial_masking(
         self,
@@ -687,9 +631,9 @@ class StrategyApplicator:
 
         if position == "start":
             return set(range(visible_chars))
-        elif position == "end":
+        if position == "end":
             return set(range(total_chars - visible_chars, total_chars))
-        elif position == "middle":
+        if position == "middle":
             # Show chars at both ends
             chars_per_side = visible_chars // 2
             remaining = visible_chars % 2
@@ -707,12 +651,11 @@ class StrategyApplicator:
             visible_indices.update(range(start_chars))
             visible_indices.update(range(total_chars - end_chars, total_chars))
             return visible_indices
-        elif position == "random":
+        if position == "random":
             return self._select_random_characters(
                 total_chars, visible_chars, deterministic, original_text
             )
-        else:
-            raise ValueError(f"Invalid position for partial strategy: {position}")
+        raise ValueError(f"Invalid position for partial strategy: {position}")
 
     def _select_alternating_characters(
         self,
@@ -752,11 +695,10 @@ class StrategyApplicator:
             indices = list(range(total_chars))
             local_random.shuffle(indices)
             return set(indices[:visible_chars])
-        else:
-            # Non-deterministic random selection
-            indices = list(range(total_chars))
-            self._random.shuffle(indices)
-            return set(indices[:visible_chars])
+        # Non-deterministic random selection
+        indices = list(range(total_chars))
+        self._random.shuffle(indices)
+        return set(indices[:visible_chars])
 
     def _apply_surrogate_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
@@ -769,18 +711,12 @@ class StrategyApplicator:
 
         # Use the enhanced surrogate generator for format-preserving generation
         try:
-            return self._surrogate_generator.generate_surrogate(
-                original_text, entity_type
-            )
+            return self._surrogate_generator.generate_surrogate(original_text, entity_type)
         except Exception as e:
-            logger.warning(
-                f"Enhanced surrogate generation failed for {entity_type}: {e}"
-            )
+            logger.warning(f"Enhanced surrogate generation failed for {entity_type}: {e}")
 
             # Fallback to legacy generation methods for backward compatibility
-            return self._apply_legacy_surrogate_strategy(
-                original_text, entity_type, strategy
-            )
+            return self._apply_legacy_surrogate_strategy(original_text, entity_type, strategy)
 
     def _apply_legacy_surrogate_strategy(
         self, original_text: str, entity_type: str, strategy: Strategy
@@ -794,15 +730,15 @@ class StrategyApplicator:
 
         if format_type in ["phone", "phone_number"]:
             return self._generate_surrogate_phone(local_random)
-        elif format_type in ["email", "email_address"]:
+        if format_type in ["email", "email_address"]:
             return self._generate_surrogate_email(local_random)
-        elif format_type in ["ssn", "us_ssn"]:
+        if format_type in ["ssn", "us_ssn"]:
             return self._generate_surrogate_ssn(local_random)
-        elif format_type == "credit_card":
+        if format_type == "credit_card":
             return self._generate_surrogate_credit_card(local_random)
-        elif format_type == "name":
+        if format_type == "name":
             return self._generate_surrogate_name(local_random)
-        elif format_type == "custom":
+        if format_type == "custom":
             pattern = strategy.get_parameter("pattern")
             if pattern:
                 return self._generate_from_pattern(pattern, local_random)

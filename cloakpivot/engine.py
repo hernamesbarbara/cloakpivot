@@ -1,23 +1,24 @@
 """CloakEngine - Simplified high-level API for PII masking/unmasking operations."""
 
-from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
+from typing import Any
 
 from docling_core.types import DoclingDocument
 from presidio_analyzer import AnalyzerEngine
 
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.analyzer import AnalyzerConfig
+from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor
-from cloakpivot.masking.engine import MaskingEngine, MaskingResult
+from cloakpivot.masking.engine import MaskingEngine
 from cloakpivot.unmasking.engine import UnmaskingEngine
 
 
 @dataclass
 class MaskResult:
     """Result of a masking operation."""
+
     document: DoclingDocument
     cloakmap: CloakMap
     entities_found: int
@@ -27,8 +28,9 @@ class MaskResult:
 @dataclass
 class TextExtractionResult:
     """Simple wrapper for text extraction results."""
+
     full_text: str
-    segments: List[Any]  # List of TextSegment objects
+    segments: list[Any]  # List of TextSegment objects
 
 
 class CloakEngine:
@@ -55,9 +57,9 @@ class CloakEngine:
 
     def __init__(
         self,
-        analyzer_config: Optional[Dict[str, Any]] = None,
-        default_policy: Optional[MaskingPolicy] = None,
-        conflict_resolution_config: Optional[Dict[str, Any]] = None
+        analyzer_config: dict[str, Any] | None = None,
+        default_policy: MaskingPolicy | None = None,
+        conflict_resolution_config: dict[str, Any] | None = None,
     ):
         """Initialize CloakEngine with sensible defaults for all components.
 
@@ -70,18 +72,23 @@ class CloakEngine:
         if analyzer_config:
             # Map common parameter names to AnalyzerConfig fields
             config_dict = {}
-            if 'languages' in analyzer_config:
-                config_dict['language'] = analyzer_config['languages'][0]  # Take first language
-            elif 'language' in analyzer_config:
-                config_dict['language'] = analyzer_config['language']
+            if "languages" in analyzer_config:
+                config_dict["language"] = analyzer_config["languages"][0]  # Take first language
+            elif "language" in analyzer_config:
+                config_dict["language"] = analyzer_config["language"]
 
-            if 'confidence_threshold' in analyzer_config:
-                config_dict['min_confidence'] = analyzer_config['confidence_threshold']
-            elif 'min_confidence' in analyzer_config:
-                config_dict['min_confidence'] = analyzer_config['min_confidence']
+            if "confidence_threshold" in analyzer_config:
+                config_dict["min_confidence"] = analyzer_config["confidence_threshold"]
+            elif "min_confidence" in analyzer_config:
+                config_dict["min_confidence"] = analyzer_config["min_confidence"]
 
             # Pass through other fields
-            for key in ['enabled_recognizers', 'disabled_recognizers', 'custom_recognizers', 'nlp_engine_name']:
+            for key in [
+                "enabled_recognizers",
+                "disabled_recognizers",
+                "custom_recognizers",
+                "nlp_engine_name",
+            ]:
                 if key in analyzer_config:
                     config_dict[key] = analyzer_config[key]
 
@@ -100,6 +107,7 @@ class CloakEngine:
 
         # Convert conflict_resolution_config dict to object if needed
         from cloakpivot.core.normalization import ConflictResolutionConfig
+
         conflict_config_obj = None
         if conflict_resolution_config:
             if isinstance(conflict_resolution_config, dict):
@@ -112,15 +120,15 @@ class CloakEngine:
             resolve_conflicts=bool(conflict_config_obj),
             conflict_resolution_config=conflict_config_obj,
             store_original_text=True,
-            use_presidio_engine=True
+            use_presidio_engine=True,
         )
         self._unmasking_engine = UnmaskingEngine()
 
     def mask_document(
         self,
         document: DoclingDocument,
-        entities: Optional[List[str]] = None,
-        policy: Optional[MaskingPolicy] = None
+        entities: list[str] | None = None,
+        policy: MaskingPolicy | None = None,
     ) -> MaskResult:
         """One-line masking with auto-detection if entities not specified.
 
@@ -161,9 +169,7 @@ class CloakEngine:
         # Detect entities using Presidio analyzer
         # Run Presidio analysis
         detected_entities = self._analyzer.analyze(
-            text=full_text,
-            entities=entity_types,
-            language=self._analyzer_config.language
+            text=full_text, entities=entity_types, language=self._analyzer_config.language
         )
 
         # Call MaskingEngine with correct parameters
@@ -171,7 +177,7 @@ class CloakEngine:
             document=document,
             entities=detected_entities,
             policy=masking_policy,
-            text_segments=segments
+            text_segments=segments,
         )
 
         # Count entities
@@ -183,14 +189,10 @@ class CloakEngine:
             document=mask_result.masked_document,
             cloakmap=mask_result.cloakmap,
             entities_found=entities_found,
-            entities_masked=entities_masked
+            entities_masked=entities_masked,
         )
 
-    def unmask_document(
-        self,
-        document: DoclingDocument,
-        cloakmap: CloakMap
-    ) -> DoclingDocument:
+    def unmask_document(self, document: DoclingDocument, cloakmap: CloakMap) -> DoclingDocument:
         """Simple unmasking using stored CloakMap.
 
         Args:
@@ -207,7 +209,7 @@ class CloakEngine:
         return result.unmasked_document
 
     @classmethod
-    def builder(cls) -> 'CloakEngineBuilder':
+    def builder(cls) -> "CloakEngineBuilder":
         """Create a builder for advanced configuration.
 
         Returns:
@@ -221,16 +223,14 @@ class CloakEngine:
                 .build()
         """
         from cloakpivot.engine_builder import CloakEngineBuilder
+
         return CloakEngineBuilder()
 
     def _get_default_analyzer_config(self) -> AnalyzerConfig:
         """Get optimized default analyzer configuration."""
-        return AnalyzerConfig(
-            language="en",
-            min_confidence=0.7
-        )
+        return AnalyzerConfig(language="en", min_confidence=0.7)
 
-    def _get_default_entities(self) -> List[str]:
+    def _get_default_entities(self) -> list[str]:
         """Get default list of common PII entity types."""
         return [
             "EMAIL_ADDRESS",

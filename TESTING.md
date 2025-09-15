@@ -5,17 +5,37 @@ This document provides comprehensive guidance for running and contributing to th
 ## Quick Start
 
 ```bash
-# Install test dependencies
-pip install -e ".[test]"
+# Setup development environment (includes test dependencies)
+make dev
 
-# Run all tests
-pytest tests/
+# Run all tests with coverage
+make test
 
-# Run tests with coverage
-pytest --cov=cloakpivot --cov-report=html tests/
+# Run full CI/CD pipeline locally
+make all
+```
 
-# Run specific test files
-pytest tests/test_cloak_engine_simple.py -v
+## Development Workflow
+
+The project uses a centralized Makefile for all testing operations:
+
+```bash
+# Show all available commands
+make help
+
+# Quick validation before committing
+make check          # Format + lint
+
+# Run different test types
+make test           # All tests with coverage
+make test-unit      # Unit tests only
+make test-integration # Integration tests only
+make test-e2e       # End-to-end tests only
+make test-fast      # Tests without coverage (faster)
+make test-verbose   # Tests with verbose output
+
+# Generate coverage reports
+make coverage-html  # HTML report in htmlcov/
 ```
 
 ## Test Suite Architecture
@@ -56,21 +76,53 @@ Global fixtures for test data, mock objects, and test environment setup.
 - `policies/`: Test policy configurations
 - `golden_files/`: Expected outputs for regression testing
 
+## Test Configuration
+
+All test configuration is centralized in `pyproject.toml`:
+
+### Pytest Configuration
+```toml
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (component interaction)",
+    "e2e: End-to-end tests (full workflow)",
+    "slow: Slow running tests (> 5 seconds)",
+]
+```
+
+### Coverage Configuration
+```toml
+[tool.coverage.run]
+source = ["cloakpivot"]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+```
+
 ## Running Tests
 
-### Using the Test Runner
-
-The `run_tests.py` script provides convenient access to all test categories:
+### Using Make Commands (Recommended)
 
 ```bash
-# Basic usage
-python run_tests.py <test_type> [options]
+# Basic test execution
+make test           # Run all tests with coverage
+make test-fast      # Run without coverage (faster)
 
-# Examples
-python run_tests.py unit --verbose --coverage
-python run_tests.py integration
-python run_tests.py fast  # All tests except slow/performance
-python run_tests.py all   # Complete test suite
+# Specific test categories
+make test-unit      # Unit tests only
+make test-integration # Integration tests
+make test-e2e       # End-to-end tests
+
+# Coverage reports
+make coverage-html  # Generate HTML report
+open htmlcov/index.html  # View report
 ```
 
 ### Direct pytest Usage
@@ -97,9 +149,7 @@ Use pytest markers to run specific test subsets:
 pytest -m unit          # Unit tests only
 pytest -m integration   # Integration tests
 pytest -m "not slow"    # Exclude slow tests
-pytest -m golden        # Golden file regression tests
-pytest -m performance   # Performance benchmarks
-pytest -m property      # Property-based tests
+pytest -m e2e           # End-to-end tests
 ```
 
 ## Test Development Guidelines
@@ -115,7 +165,7 @@ class TestMaskingPolicy:
         """Test basic policy creation."""
         policy = MaskingPolicy(locale="en", privacy_level="MEDIUM")
         assert policy.locale == "en"
-    
+
     @pytest.mark.parametrize("privacy_level", ["LOW", "MEDIUM", "HIGH"])
     def test_privacy_levels(self, privacy_level):
         """Test all privacy levels."""
@@ -159,7 +209,7 @@ def test_threshold_property(text, threshold):
 ### Writing Performance Tests
 
 ```python
-@pytest.mark.performance
+@pytest.mark.slow
 def test_cloakengine_performance():
     """Benchmark CloakEngine processing performance."""
     from cloakpivot.engine import CloakEngine
@@ -176,210 +226,174 @@ def test_cloakengine_performance():
     assert result.entities_masked > 0
 ```
 
-## Golden File Testing
+## Code Quality
 
-Golden files contain expected outputs for regression testing. When outputs change:
+The project enforces code quality through automated tools:
 
-1. **Review Changes**: Ensure changes are intentional
-2. **Update Golden Files**: Delete old golden files to regenerate them
-3. **Commit Updates**: Include golden file updates in your commits
+### Before Committing
 
 ```bash
-# Regenerate golden files
-rm tests/fixtures/golden_files/*.json
-python run_tests.py golden
+# Quick validation
+make check  # Runs format + lint
+
+# Or run individually
+make format  # Black formatting
+make lint    # Ruff linting
+make type    # MyPy type checking
+```
+
+### CI/CD Pipeline
+
+```bash
+# Run complete pipeline locally
+make all  # format + lint + type + test
+
+# This is what CI runs
+make ci-test
 ```
 
 ## Coverage Requirements
 
-- **Unit Tests**: > 90% line coverage
-- **Integration Tests**: > 85% branch coverage
-- **Overall Project**: > 80% combined coverage
+The project maintains the following coverage standards:
+
+- **Minimum Coverage**: 60% (configured in pyproject.toml)
+- **Target Coverage**: 80%+ for core modules
+- **Branch Coverage**: Enabled for all tests
 
 ```bash
-# Generate detailed coverage report
-pytest --cov=cloakpivot --cov-report=html --cov-report=term-missing
-open htmlcov/index.html  # View detailed report
+# Check current coverage
+make test
+
+# Generate detailed HTML report
+make coverage-html
+open htmlcov/index.html
+
+# View coverage in terminal
+pytest --cov=cloakpivot --cov-report=term-missing
 ```
-
-## Performance Benchmarking
-
-Performance tests establish baselines and detect regressions:
-
-```bash
-# Run performance benchmarks
-python run_tests.py performance
-
-# Run with benchmark comparison
-pytest --benchmark-compare tests/performance/
-```
-
-### Performance Expectations
-
-| Document Size | Max Processing Time | Max Memory Usage |
-|---------------|-------------------|------------------|
-| Small (< 1KB) | 2 seconds        | 50 MB           |
-| Medium (1-10KB) | 5 seconds      | 100 MB          |
-| Large (10-100KB) | 30 seconds     | 500 MB          |
 
 ## Continuous Integration
 
-### Pre-commit Hooks
+### Local CI Simulation
 
 ```bash
-# Install pre-commit hooks
-pip install pre-commit
-pre-commit install
-
-# Run manually
-pre-commit run --all-files
+# Run exactly what CI runs
+make ci-install  # Setup CI environment
+make ci-test     # Run CI test suite
 ```
 
-### CI Pipeline
+### Pre-commit Validation
 
-The CI pipeline runs:
+```bash
+# Before committing
+make pre-commit  # Same as 'make check'
 
-1. **Code Quality**: Black, Ruff, MyPy
-2. **Fast Tests**: Unit and integration tests
-3. **Coverage**: Minimum 80% coverage requirement
-4. **Performance**: Regression detection
+# Before pushing
+make pre-push    # Same as 'make all'
+```
 
 ## Debugging Test Failures
 
 ### Common Issues
 
-1. **Flaky Tests**: Use `pytest --lf` to run last failed tests
-2. **Slow Tests**: Use `pytest --durations=10` to identify slow tests
-3. **Memory Issues**: Use `pytest --tb=short` for concise tracebacks
+1. **Import Errors**: Ensure development environment is set up
+   ```bash
+   make dev
+   ```
+
+2. **Slow Tests**: Identify slow tests
+   ```bash
+   pytest --durations=10
+   ```
+
+3. **Flaky Tests**: Re-run failed tests
+   ```bash
+   pytest --lf  # Run last failed
+   ```
 
 ### Debugging Commands
 
 ```bash
-# Run single test with full output
+# Run single test with output
 pytest tests/test_analyzer.py::TestAnalyzer::test_basic -v -s
 
 # Debug with pdb
 pytest tests/test_analyzer.py::TestAnalyzer::test_basic --pdb
 
-# Show test coverage for specific module
+# Show coverage for specific module
 pytest --cov=cloakpivot.core.analyzer --cov-report=term-missing tests/
 ```
+
+## Project Configuration
+
+All testing tools are configured in `pyproject.toml`:
+
+- **Black**: line-length=100, target-version=py311
+- **Ruff**: Comprehensive linting with integrated isort
+- **MyPy**: Gradual typing with per-module overrides
+- **Pytest**: Coverage integration, markers, and test discovery
+- **Coverage**: Branch coverage, multiple report formats
+
+See [PROJECT_CONFIG.md](PROJECT_CONFIG.md) for complete configuration details.
 
 ## Contributing Test Guidelines
 
 ### Test Quality Standards
 
-1. **Descriptive Names**: Test names should describe the scenario being tested
-2. **Single Assertion**: Each test should verify one specific behavior
-3. **Independent Tests**: Tests should not depend on other tests
-4. **Fast Execution**: Unit tests should complete in < 1 second
-5. **Deterministic**: Tests should produce consistent results
+1. **Descriptive Names**: Test names should describe the scenario
+2. **Single Assertion**: Each test verifies one behavior
+3. **Independent**: Tests don't depend on other tests
+4. **Fast**: Unit tests complete in < 1 second
+5. **Deterministic**: Consistent results every run
+
+### Adding New Tests
+
+1. Choose appropriate test category (unit/integration/e2e)
+2. Use existing fixtures and utilities where possible
+3. Add appropriate markers for test categorization
+4. Ensure tests pass with `make test`
+5. Check coverage hasn't decreased
 
 ### Code Review Checklist
 
-- [ ] Tests cover all new functionality
-- [ ] Tests include edge cases and error conditions
-- [ ] Performance impact is measured and acceptable
-- [ ] Golden files are updated if outputs change
-- [ ] Documentation is updated for new test categories
+- [ ] Tests cover new functionality
+- [ ] Tests include edge cases
+- [ ] Tests pass locally with `make test`
+- [ ] Coverage maintained or improved
+- [ ] Test documentation updated if needed
 
-### Adding New Test Categories
-
-To add a new test category:
-
-1. Create marker in `pyproject.toml`
-2. Add category to `run_tests.py`
-3. Update this documentation
-4. Add examples and guidelines
-
-## Troubleshooting
-
-### Common Test Errors
-
-#### Import Errors
-```bash
-# Fix Python path issues
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-pip install -e .
-```
-
-#### Timeout Errors
-```bash
-# Increase timeout for slow tests
-pytest --timeout=600 tests/
-```
-
-#### Memory Errors
-```bash
-# Run tests with memory monitoring
-pytest --memory-profile tests/
-```
-
-#### Permission Errors
-```bash
-# Fix file permissions in test fixtures
-chmod -R 644 tests/fixtures/
-```
-
-### Getting Help
-
-- Check existing test examples in the codebase
-- Review test utility functions in `tests/utils/`
-- Consult pytest documentation for advanced features
-- Ask questions in code reviews or team discussions
-
-## Performance Monitoring
-
-### Tracking Test Performance
-
-Monitor test execution time to prevent test suite slowdown:
+## Maintenance Commands
 
 ```bash
-# Track slowest tests
-pytest --durations=0 tests/
+# Clean all test artifacts
+make clean
 
-# Benchmark test execution
-pytest --benchmark-autosave tests/performance/
+# Verify tool configuration
+make verify
+
+# Check for outdated dependencies
+make deps-check
+
+# Update dependencies
+make deps-update
 ```
 
-### Memory Monitoring
-
-Track memory usage during test execution:
+## Getting Help
 
 ```bash
-# Profile memory usage
-pytest --memory-profile tests/
+# Show all available commands
+make help
 
-# Monitor peak memory usage
-python -m memory_profiler run_tests.py unit
+# Show project information
+make info
+
+# Verify tools are installed
+make verify
 ```
 
-## Test Data Management
+For more details on the project configuration and development workflow, see:
+- [PROJECT_CONFIG.md](PROJECT_CONFIG.md) - Complete configuration guide
+- [README.md](README.md) - Project overview and usage
+- [Makefile](Makefile) - All available commands
 
-### Generating Test Data
-
-Use the test data generators for consistent test scenarios:
-
-```python
-from tests.utils.generators import DocumentGenerator, PolicyGenerator
-
-# Generate test documents
-doc = DocumentGenerator.generate_document_with_pii(
-    ["PHONE_NUMBER", "EMAIL_ADDRESS"],
-    "test_document"
-)
-
-# Generate test policies
-policy = PolicyGenerator.generate_comprehensive_policy(
-    PrivacyLevel.MEDIUM
-)
-```
-
-### Managing Test Fixtures
-
-- Keep test fixtures minimal and focused
-- Use parametrized tests for multiple input scenarios
-- Clean up resources in fixture teardown
-- Document complex fixture behavior
-
-This comprehensive testing infrastructure ensures CloakPivot maintains high quality, performance, and reliability across all supported use cases.
+This testing infrastructure ensures CloakPivot maintains high quality, performance, and reliability across all supported use cases.

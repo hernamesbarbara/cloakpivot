@@ -2,7 +2,7 @@
 
 import hashlib
 import logging
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from docling_core.types.doc.document import (
     CodeItem,
@@ -63,7 +63,7 @@ class DocumentUnmasker:
         document: DoclingDocument,
         resolved_anchors: list[ResolvedAnchor],
         cloakmap: CloakMap,
-        original_content_provider: Optional[Any] = None,
+        original_content_provider: Any | None = None,
     ) -> dict[str, Any]:
         """
         Apply unmasking operations to a DoclingDocument in-place.
@@ -93,9 +93,7 @@ class DocumentUnmasker:
                 "success_rate": 100.0,
             }
 
-        logger.info(
-            f"Applying unmasking to {len(resolved_anchors)} locations in document"
-        )
+        logger.info(f"Applying unmasking to {len(resolved_anchors)} locations in document")
 
         # Group resolved anchors by node ID for efficient processing
         anchors_by_node = self._group_resolved_anchors_by_node(resolved_anchors)
@@ -125,7 +123,7 @@ class DocumentUnmasker:
         stats = self._calculate_restoration_stats(restoration_results)
 
         # Sync _main_text if it exists (for backward compatibility with tests)
-        if hasattr(document, '_main_text') and document.texts:
+        if hasattr(document, "_main_text") and document.texts:
             document._main_text = document.texts[0].text
 
         logger.info(
@@ -159,7 +157,7 @@ class DocumentUnmasker:
         document: DoclingDocument,
         node_id: str,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a specific node in the document."""
         logger.debug(f"Unmasking node {node_id} with {len(resolved_anchors)} anchors")
@@ -176,14 +174,7 @@ class DocumentUnmasker:
         if self._is_text_bearing_node(node_item):
             results = self._unmask_text_node(
                 cast(
-                    Union[
-                        TextItem,
-                        TitleItem,
-                        SectionHeaderItem,
-                        ListItem,
-                        CodeItem,
-                        FormulaItem,
-                    ],
+                    TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
                     node_item,
                 ),
                 resolved_anchors,
@@ -226,16 +217,9 @@ class DocumentUnmasker:
 
     def _unmask_text_node(
         self,
-        node_item: Union[
-            TextItem,
-            TitleItem,
-            SectionHeaderItem,
-            ListItem,
-            CodeItem,
-            FormulaItem,
-        ],
+        node_item: TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a text-bearing node."""
         results: list[Any] = []
@@ -260,9 +244,7 @@ class DocumentUnmasker:
             anchor = resolved_anchor.anchor
 
             # Get the original content for this anchor
-            original_content = self._get_original_content(
-                anchor, original_content_provider
-            )
+            original_content = self._get_original_content(anchor, original_content_provider)
 
             if original_content is None:
                 # For now, use placeholder restoration
@@ -279,10 +261,11 @@ class DocumentUnmasker:
             if 0 <= start_pos < end_pos <= len(modified_text):
                 found_text = modified_text[start_pos:end_pos]
                 # Check if we found the right masked value or the expected text
-                if found_text == anchor.masked_value or found_text == resolved_anchor.found_text:
-                    position_valid = True
-                # For asterisks, be more lenient - any asterisk sequence is ok
-                elif anchor.masked_value and all(c == "*" for c in anchor.masked_value) and all(c == "*" for c in found_text):
+                if found_text == anchor.masked_value or found_text == resolved_anchor.found_text or (
+                    anchor.masked_value
+                    and all(c == "*" for c in anchor.masked_value)
+                    and all(c == "*" for c in found_text)
+                ):
                     position_valid = True
 
             if not position_valid:
@@ -359,14 +342,10 @@ class DocumentUnmasker:
                 continue
 
             # Replace the masked text with original content
-            modified_text = (
-                modified_text[:start_pos] + original_content + modified_text[end_pos:]
-            )
+            modified_text = modified_text[:start_pos] + original_content + modified_text[end_pos:]
 
             # Verify original content if possible
-            content_verified = self._verify_original_content(
-                resolved_anchor, original_content
-            )
+            content_verified = self._verify_original_content(resolved_anchor, original_content)
 
             results.append(
                 {
@@ -394,7 +373,7 @@ class DocumentUnmasker:
         table_item: TableItem,
         node_id: str,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a table node."""
         results: list[Any] = []
@@ -485,7 +464,7 @@ class DocumentUnmasker:
         kv_item: KeyValueItem,
         node_id: str,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
     ) -> list[dict[str, Any]]:
         """Apply unmasking to a key-value node."""
         results: list[Any] = []
@@ -526,7 +505,7 @@ class DocumentUnmasker:
         self,
         cell: Any,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
     ) -> list[dict[str, Any]]:
         """Unmask text content in a table cell."""
         results: list[Any] = []
@@ -534,9 +513,7 @@ class DocumentUnmasker:
         modified_text = original_text
 
         # Sort anchors by position (reverse order)
-        sorted_anchors = sorted(
-            resolved_anchors, key=lambda ra: ra.found_position[0], reverse=True
-        )
+        sorted_anchors = sorted(resolved_anchors, key=lambda ra: ra.found_position[0], reverse=True)
 
         for resolved_anchor in sorted_anchors:
             anchor = resolved_anchor.anchor
@@ -553,16 +530,12 @@ class DocumentUnmasker:
                 continue
 
             # Get original content
-            original_content = self._get_original_content(
-                anchor, original_content_provider
-            )
+            original_content = self._get_original_content(anchor, original_content_provider)
             if original_content is None:
                 original_content = self._generate_placeholder_content(resolved_anchor)
 
             # Replace the text
-            modified_text = (
-                modified_text[:start_pos] + original_content + modified_text[end_pos:]
-            )
+            modified_text = modified_text[:start_pos] + original_content + modified_text[end_pos:]
 
             results.append(
                 {
@@ -581,7 +554,7 @@ class DocumentUnmasker:
         self,
         text_item: Any,
         resolved_anchors: list[ResolvedAnchor],
-        original_content_provider: Optional[Any],
+        original_content_provider: Any | None,
         part_type: str,
     ) -> list[dict[str, Any]]:
         """Unmask text content in a key-value part."""
@@ -590,9 +563,7 @@ class DocumentUnmasker:
         modified_text = original_text
 
         # Sort anchors by position (reverse order)
-        sorted_anchors = sorted(
-            resolved_anchors, key=lambda ra: ra.found_position[0], reverse=True
-        )
+        sorted_anchors = sorted(resolved_anchors, key=lambda ra: ra.found_position[0], reverse=True)
 
         for resolved_anchor in sorted_anchors:
             anchor = resolved_anchor.anchor
@@ -609,16 +580,12 @@ class DocumentUnmasker:
                 continue
 
             # Get original content
-            original_content = self._get_original_content(
-                anchor, original_content_provider
-            )
+            original_content = self._get_original_content(anchor, original_content_provider)
             if original_content is None:
                 original_content = self._generate_placeholder_content(resolved_anchor)
 
             # Replace the text
-            modified_text = (
-                modified_text[:start_pos] + original_content + modified_text[end_pos:]
-            )
+            modified_text = modified_text[:start_pos] + original_content + modified_text[end_pos:]
 
             results.append(
                 {
@@ -648,9 +615,9 @@ class DocumentUnmasker:
 
     def _get_original_content(
         self,
-        anchor: Union[AnchorEntry, ResolvedAnchor],
-        original_content_provider: Optional[Any],
-    ) -> Optional[str]:
+        anchor: AnchorEntry | ResolvedAnchor,
+        original_content_provider: Any | None,
+    ) -> str | None:
         """
         Get the original content for an anchor.
 
@@ -669,18 +636,14 @@ class DocumentUnmasker:
 
         # Fallback to content provider if available
         actual_anchor = anchor.anchor if isinstance(anchor, ResolvedAnchor) else anchor
-        if original_content_provider and hasattr(
-            original_content_provider, "get_content"
-        ):
+        if original_content_provider and hasattr(original_content_provider, "get_content"):
             try:
                 result = original_content_provider.get_content(
                     actual_anchor.replacement_id, actual_anchor.entity_type
                 )
-                return cast(Optional[str], result)
+                return cast(str | None, result)
             except Exception as e:
-                logger.warning(
-                    f"Content provider failed for {actual_anchor.replacement_id}: {e}"
-                )
+                logger.warning(f"Content provider failed for {actual_anchor.replacement_id}: {e}")
 
         # Return None to trigger placeholder generation as last resort
         actual_anchor = anchor.anchor if isinstance(anchor, ResolvedAnchor) else anchor
@@ -731,23 +694,17 @@ class DocumentUnmasker:
 
         return placeholder
 
-    def _verify_original_content(
-        self, anchor: ResolvedAnchor, original_content: str
-    ) -> bool:
+    def _verify_original_content(self, anchor: ResolvedAnchor, original_content: str) -> bool:
         """
         Verify that the original content matches the stored checksum.
 
         This validates that the content we're restoring is authentic.
         """
         try:
-            computed_checksum = hashlib.sha256(
-                original_content.encode("utf-8")
-            ).hexdigest()
+            computed_checksum = hashlib.sha256(original_content.encode("utf-8")).hexdigest()
             return bool(computed_checksum == anchor.anchor.original_checksum)
         except Exception as e:
-            logger.warning(
-                f"Content verification failed for {anchor.anchor.replacement_id}: {e}"
-            )
+            logger.warning(f"Content verification failed for {anchor.anchor.replacement_id}: {e}")
             return False
 
     def _calculate_restoration_stats(
@@ -761,9 +718,7 @@ class DocumentUnmasker:
         failed_restorations = total_anchors - successful_restorations
 
         success_rate = (
-            (successful_restorations / total_anchors * 100)
-            if total_anchors > 0
-            else 100.0
+            (successful_restorations / total_anchors * 100) if total_anchors > 0 else 100.0
         )
 
         # Calculate content verification stats

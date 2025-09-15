@@ -8,7 +8,7 @@ behavior control, caching configuration, and performance tuning options.
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class PerformanceConfig:
 
     # Performance tuning
     enable_parallel_processing: bool = True
-    max_worker_threads: Optional[int] = None
+    max_worker_threads: int | None = None
 
     # Memory optimization
     enable_memory_optimization: bool = True
@@ -72,10 +72,7 @@ class PerformanceConfig:
 
     def _validate_cache_size(self) -> None:
         """Validate and normalize analyzer_cache_size."""
-        if (
-            not isinstance(self.analyzer_cache_size, int)
-            or self.analyzer_cache_size <= 0
-        ):
+        if not isinstance(self.analyzer_cache_size, int) or self.analyzer_cache_size <= 0:
             logger.warning(
                 f"analyzer_cache_size must be positive integer, got "
                 f"{self.analyzer_cache_size}, using 8"
@@ -85,10 +82,7 @@ class PerformanceConfig:
     def _validate_worker_threads(self) -> None:
         """Validate max_worker_threads."""
         if self.max_worker_threads is not None:
-            if (
-                not isinstance(self.max_worker_threads, int)
-                or self.max_worker_threads <= 0
-            ):
+            if not isinstance(self.max_worker_threads, int) or self.max_worker_threads <= 0:
                 logger.warning(
                     f"max_worker_threads must be positive integer or None, got "
                     f"{self.max_worker_threads}, using None"
@@ -153,9 +147,7 @@ class PerformanceConfig:
             return config
 
         except Exception as e:
-            logger.error(
-                f"Error loading configuration from environment: {e}, using defaults"
-            )
+            logger.error(f"Error loading configuration from environment: {e}, using defaults")
             return cls()
 
     @staticmethod
@@ -180,16 +172,13 @@ class PerformanceConfig:
         cleaned_value = value.strip().lower()
         if cleaned_value == "true":
             return True
-        elif cleaned_value == "false":
+        if cleaned_value == "false":
             return False
-        else:
-            # Invalid value, return default
-            return default
+        # Invalid value, return default
+        return default
 
     @staticmethod
-    def _get_env_int(
-        key: str, default: Optional[int], allow_none: bool = False
-    ) -> Optional[int]:
+    def _get_env_int(key: str, default: int | None, allow_none: bool = False) -> int | None:
         """Get integer value from environment with default fallback."""
         value = os.getenv(key)
         if value is None:
@@ -218,9 +207,7 @@ class PerformanceConfig:
         """
         from .model_info import MODEL_CHARACTERISTICS
 
-        return MODEL_CHARACTERISTICS.get(
-            self.model_size, MODEL_CHARACTERISTICS["small"]
-        )
+        return MODEL_CHARACTERISTICS.get(self.model_size, MODEL_CHARACTERISTICS["small"])
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary for serialization."""

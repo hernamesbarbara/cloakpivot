@@ -162,33 +162,64 @@ cloakpivot/
 
 ## 🔧 Development
 
-### Running Tests
+### Setup
 
 ```bash
-# Run all tests
-python -m pytest
+# Clone the repository
+git clone https://github.com/hernamesbarbara/cloakpivot.git
+cd cloakpivot
 
-# Run with coverage
-python -m pytest --cov=cloakpivot
-
-# Run specific test categories
-python -m pytest -m unit        # Unit tests
-python -m pytest -m integration # Integration tests
-python -m pytest -m e2e         # End-to-end tests
+# Setup development environment (one command!)
+make dev
 ```
 
-### Code Quality
+### Development Workflow
 
 ```bash
-# Format code
-black cloakpivot/ tests/
+# Show all available commands
+make help
 
-# Lint code
-ruff check cloakpivot/ tests/
+# Quick validation before committing
+make check  # Runs format + lint
 
-# Type checking
-mypy cloakpivot/
+# Run full CI/CD pipeline locally
+make all    # Runs format + lint + type + test
+
+# Individual commands
+make format      # Format with Black
+make lint        # Lint with Ruff
+make type        # Type check with MyPy
+make test        # Run tests with coverage
 ```
+
+### Testing
+
+```bash
+# Run all tests with coverage
+make test
+
+# Run specific test types
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
+make test-e2e         # End-to-end tests only
+
+# Generate HTML coverage report
+make coverage-html    # Open htmlcov/index.html
+
+# Run tests without coverage (faster)
+make test-fast
+```
+
+### Project Configuration
+
+All project configuration is centralized in `pyproject.toml`:
+- **Black**: line-length=100, target-version=py311
+- **Ruff**: Comprehensive rules with integrated isort
+- **MyPy**: Gradual typing with per-module overrides
+- **Pytest**: Coverage integration, test markers
+- **Coverage**: Branch coverage, multiple report formats
+
+See [PROJECT_CONFIG.md](PROJECT_CONFIG.md) for complete configuration details.
 
 ## 🏥 Common Use Cases
 

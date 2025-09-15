@@ -99,8 +99,7 @@ class PresidioConfig:
             engine = data["engine"]
             if engine not in ["auto", "presidio", "legacy"]:
                 raise ValueError(
-                    f"Invalid engine type: {engine}. "
-                    "Must be 'auto', 'presidio', or 'legacy'"
+                    f"Invalid engine type: {engine}. " "Must be 'auto', 'presidio', or 'legacy'"
                 )
             config.engine = engine
 
@@ -121,7 +120,11 @@ class PresidioConfig:
 
         if "max_batch_size" in data:
             batch_size = data["max_batch_size"]
-            if not isinstance(batch_size, int) or batch_size < MIN_BATCH_SIZE or batch_size > MAX_BATCH_SIZE:
+            if (
+                not isinstance(batch_size, int)
+                or batch_size < MIN_BATCH_SIZE
+                or batch_size > MAX_BATCH_SIZE
+            ):
                 raise ValueError(
                     f"Invalid max_batch_size: {batch_size}. "
                     f"Must be an integer between {MIN_BATCH_SIZE} and {MAX_BATCH_SIZE}"
@@ -131,8 +134,9 @@ class PresidioConfig:
         if "confidence_threshold" in data:
             threshold = data["confidence_threshold"]
             if (
-                not isinstance(threshold, (int, float)) or
-                threshold < MIN_CONFIDENCE_THRESHOLD or threshold > MAX_CONFIDENCE_THRESHOLD
+                not isinstance(threshold, (int, float))
+                or threshold < MIN_CONFIDENCE_THRESHOLD
+                or threshold > MAX_CONFIDENCE_THRESHOLD
             ):
                 raise ValueError(
                     f"Invalid confidence_threshold: {threshold}. "
@@ -287,9 +291,11 @@ def get_config_from_env() -> dict[str, Any]:
 
     # Check for fallback setting
     if "CLOAKPIVOT_PRESIDIO_FALLBACK" in os.environ:
-        config["fallback_on_error"] = (
-            os.environ["CLOAKPIVOT_PRESIDIO_FALLBACK"].lower() in ["true", "1", "yes"]
-        )
+        config["fallback_on_error"] = os.environ["CLOAKPIVOT_PRESIDIO_FALLBACK"].lower() in [
+            "true",
+            "1",
+            "yes",
+        ]
 
     # Check for batch size
     if "CLOAKPIVOT_MAX_BATCH_SIZE" in os.environ:

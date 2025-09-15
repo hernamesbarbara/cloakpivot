@@ -1,7 +1,8 @@
 """Strategy to Presidio OperatorConfig mapping functionality."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from presidio_anonymizer.entities import OperatorConfig
@@ -12,12 +13,15 @@ else:
         raise TimeoutError("Import timed out")
 
     # Try to import with timeout
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler) if hasattr(signal, 'SIGALRM') else None
+    old_handler = (
+        signal.signal(signal.SIGALRM, timeout_handler) if hasattr(signal, "SIGALRM") else None
+    )
     if old_handler is not None:
         signal.alarm(2)  # 2 second timeout
 
     try:
         from presidio_anonymizer.entities import OperatorConfig
+
         if old_handler is not None:
             signal.alarm(0)  # Cancel alarm
             signal.signal(signal.SIGALRM, old_handler)
@@ -25,11 +29,13 @@ else:
         if old_handler is not None:
             signal.alarm(0)  # Cancel alarm
             signal.signal(signal.SIGALRM, old_handler)
+
         # Create a mock OperatorConfig for when Presidio is not available
         class OperatorConfig:
             def __init__(self, operator_name: str, params: dict[str, Any] = None):
                 self.operator_name = operator_name
                 self.params = params or {}
+
 
 from .policies import MaskingPolicy
 from .strategies import Strategy, StrategyKind
@@ -63,9 +69,7 @@ class StrategyToOperatorMapper:
 
     def __init__(self) -> None:
         """Initialize the mapper with strategy mapping functions."""
-        self._strategy_mapping: dict[
-            StrategyKind, Callable[[Strategy], OperatorConfig]
-        ] = {
+        self._strategy_mapping: dict[StrategyKind, Callable[[Strategy], OperatorConfig]] = {
             StrategyKind.REDACT: self._map_redact_strategy,
             StrategyKind.TEMPLATE: self._map_template_strategy,
             StrategyKind.HASH: self._map_hash_strategy,
@@ -94,9 +98,7 @@ class StrategyToOperatorMapper:
         try:
             return self._strategy_mapping[strategy.kind](strategy)
         except Exception as e:
-            logger.warning(
-                f"Failed to map strategy {strategy.kind}: {e}. Using fallback."
-            )
+            logger.warning(f"Failed to map strategy {strategy.kind}: {e}. Using fallback.")
             # Fallback to redaction with error logging
             return OperatorConfig("redact", {"redact_char": "*"})
 
@@ -122,9 +124,7 @@ class StrategyToOperatorMapper:
             except Exception as e:
                 logger.warning(f"Failed to map strategy for {entity_type}: {e}")
                 # Use default strategy as fallback
-                operators[entity_type] = self.strategy_to_operator(
-                    policy.default_strategy
-                )
+                operators[entity_type] = self.strategy_to_operator(policy.default_strategy)
 
         # Note: Default strategy is not included in the operators dict as Presidio
         # will use the default_operator parameter in AnonymizerEngine.anonymize()
@@ -144,9 +144,7 @@ class StrategyToOperatorMapper:
         if "preserve_length" in params and not params.get("preserve_length", True):
             # If preserve_length is False, we could potentially use a different approach
             # but Presidio's redact operator always preserves length, so we log this
-            logger.info(
-                "preserve_length=False not supported by Presidio redact operator"
-            )
+            logger.info("preserve_length=False not supported by Presidio redact operator")
 
         return OperatorConfig("redact", operator_params)
 
@@ -208,9 +206,7 @@ class StrategyToOperatorMapper:
         ]
         for param in unsupported:
             if param in params:
-                logger.info(
-                    f"Hash parameter '{param}' not directly supported by Presidio"
-                )
+                logger.info(f"Hash parameter '{param}' not directly supported by Presidio")
 
         return OperatorConfig("hash", operator_params)
 
@@ -260,9 +256,7 @@ class StrategyToOperatorMapper:
         ]
         for param in unsupported:
             if param in params:
-                logger.info(
-                    f"Partial parameter '{param}' not directly supported by Presidio"
-                )
+                logger.info(f"Partial parameter '{param}' not directly supported by Presidio")
 
         return OperatorConfig("mask", operator_params)
 
@@ -307,9 +301,7 @@ class StrategyToOperatorMapper:
         # Simple template generation - could be enhanced with entity type detection
         return "[MASKED]"
 
-    def _generate_surrogate_value(
-        self, format_type: str, params: dict[str, Any]
-    ) -> str:
+    def _generate_surrogate_value(self, format_type: str, params: dict[str, Any]) -> str:
         """Generate surrogate value based on format type."""
         # Static surrogate values - real implementation would use faker
         surrogate_map = {

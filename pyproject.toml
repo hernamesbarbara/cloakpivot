@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 keywords = ["pii", "privacy", "document", "masking", "presidio", "docling", "data-privacy", "gdpr", "anonymization"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -19,9 +19,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Security",
@@ -42,29 +39,17 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "types-click",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "mypy>=1.5.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
-    "mypy>=1.5.0",
-    "pre-commit>=3.0.0",
+    "types-click",
     "types-PyYAML",
-]
-
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "hypothesis>=6.88.0",  # Property-based testing
-    "pytest-xdist>=3.0.0", # Parallel test execution
-    "pytest-timeout>=2.1.0", # Test timeout support
 ]
 
 [project.scripts]
 cloakpivot = "cloakpivot.cli.main:main"
-
-# Plugin entry points removed in v2.0 for simplification
 
 [project.urls]
 "Homepage" = "https://github.com/hernamesbarbara/cloakpivot"
@@ -77,58 +62,104 @@ where = ["."]
 include = ["cloakpivot*"]
 exclude = ["tests*"]
 
+# ========================================================================================
+# Tool Configurations - Single Source of Truth
+# ========================================================================================
+
+# ----------------------------------------------------------------------------------------
+# Black - Code Formatter
+# ----------------------------------------------------------------------------------------
 [tool.black]
-line-length = 88
-target-version = ['py39']
+line-length = 100
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
-  # directories
   \.eggs
   | \.git
   | \.hg
   | \.mypy_cache
   | \.tox
   | \.venv
+  | venv
   | _build
   | buck-out
   | build
   | dist
+  | __pycache__
 )/
 '''
 
+# ----------------------------------------------------------------------------------------
+# Ruff - Fast Python Linter with Integrated isort
+# ----------------------------------------------------------------------------------------
 [tool.ruff]
-line-length = 88
-target-version = "py39"
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+]
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "DTZ",  # flake8-datetimez
+    "T20",  # flake8-print
+    "RET",  # flake8-return
+    "SIM",  # flake8-simplify
+    "PTH",  # flake8-use-pathlib
 ]
 ignore = [
-    "E501",  # line too long, handled by black
+    "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+    "T201",  # print found (allow in CLI tools)
+    "T203",  # pprint found (allow for debugging)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
+"__init__.py" = ["F401"]  # unused imports in __init__ files
+"tests/**/*.py" = ["T20"]  # allow print in tests
 
+[tool.ruff.lint.isort]
+known-first-party = ["cloakpivot"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+# ----------------------------------------------------------------------------------------
+# MyPy - Static Type Checker with Gradual Typing
+# ----------------------------------------------------------------------------------------
 [tool.mypy]
-files = ["cloakpivot/cli"]
-python_version = "3.9"
-warn_return_any = true
+python_version = "3.11"
+files = ["cloakpivot"]
+exclude = [
+    "build",
+    "dist",
+    "tests",
+    "scripts",
+    "venv",
+]
+
+# Gradual typing approach - start permissive, tighten over time
+warn_return_any = false
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 check_untyped_defs = true
-disallow_untyped_decorators = true
+disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -136,18 +167,38 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
+# Per-module overrides for gradual adoption
+[[tool.mypy.overrides]]
+module = "cloakpivot.cli.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
 [[tool.mypy.overrides]]
 module = [
     "presidio_analyzer.*",
     "presidio_anonymizer.*",
     "docpivot.*",
-    "pytest_xdist.*",
+    "docling.*",
+    "docling_core.*",
 ]
 ignore_missing_imports = true
 
+# ----------------------------------------------------------------------------------------
+# Pytest - Testing Framework Configuration
+# ----------------------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=cloakpivot",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=60",
+]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
@@ -158,16 +209,11 @@ filterwarnings = [
     "ignore::DeprecationWarning",
 ]
 markers = [
-    "asyncio: marks tests as asyncio tests",
-    "unit: marks tests as unit tests (fast, isolated component tests)",
-    "integration: marks tests as integration tests (component interaction tests)",
-    "e2e: marks tests as end-to-end tests (full workflow tests)",
-    "golden: marks tests as golden file regression tests",
-    "performance: marks tests as performance benchmark tests",
-    "slow: marks tests as slow running tests (> 30 seconds)",
-    "property: marks tests as property-based tests using Hypothesis",
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (component interaction)",
+    "e2e: End-to-end tests (full workflow)",
+    "slow: Slow running tests (> 5 seconds)",
 ]
-# Test discovery
 norecursedirs = [
     "*.egg",
     ".eggs",
@@ -176,31 +222,50 @@ norecursedirs = [
     "docs",
     ".tox",
     ".git",
-    "__pycache__"
+    "__pycache__",
+    "venv",
+    ".venv",
 ]
-# Timeout settings - requires pytest-timeout plugin
-timeout = 300
-timeout_method = "thread"
 
-# Parallel execution configuration
-# Use environment variables to control parallel execution:
-# - PYTEST_WORKERS: explicit worker count override
-# - PYTEST_DIST: distribution strategy (loadfile, loadscope, worksteal)
-# - PYTEST_MAX_WORKERS: maximum worker limit
-# Default behavior: auto-detect optimal worker count based on CPU cores
-
+# ----------------------------------------------------------------------------------------
+# Coverage - Test Coverage Configuration
+# ----------------------------------------------------------------------------------------
 [tool.coverage.run]
 source = ["cloakpivot"]
-omit = ["tests/*", "setup.py"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+    "*/setup.py",
+    "*/scripts/*",
+    "*/benchmarks/*",
+]
 
 [tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+sort = "cover"
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
+    "def __str__",
     "if self.debug:",
     "if settings.DEBUG",
     "raise AssertionError",
     "raise NotImplementedError",
     "if 0:",
+    "if False:",
     "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
