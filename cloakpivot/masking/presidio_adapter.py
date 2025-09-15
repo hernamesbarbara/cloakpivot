@@ -311,6 +311,7 @@ class PresidioMaskingAdapter:
                 if hasattr(document, "key_value_items")
                 else []
             ),
+            origin=document.origin if hasattr(document, "origin") else None,
         )
 
         # Instead of trying to split the masked text, apply masking to each segment individually
@@ -375,6 +376,28 @@ class PresidioMaskingAdapter:
                             )
 
                     # Create new text item preserving original structure
+                    # Map labels that aren't valid for TextItem to TEXT
+                    valid_text_labels = {
+                        DocItemLabel.CAPTION,
+                        DocItemLabel.CHECKBOX_SELECTED,
+                        DocItemLabel.CHECKBOX_UNSELECTED,
+                        DocItemLabel.FOOTNOTE,
+                        DocItemLabel.PAGE_FOOTER,
+                        DocItemLabel.PAGE_HEADER,
+                        DocItemLabel.PARAGRAPH,
+                        DocItemLabel.REFERENCE,
+                        DocItemLabel.TEXT,
+                        DocItemLabel.EMPTY_VALUE,
+                    }
+
+                    item_label = DocItemLabel.TEXT
+                    if hasattr(original_item, "label"):
+                        item_label = (
+                            original_item.label
+                            if original_item.label in valid_text_labels
+                            else DocItemLabel.TEXT
+                        )
+
                     masked_text_item = TextItem(
                         text=masked_segment_text,
                         self_ref=(
@@ -382,11 +405,7 @@ class PresidioMaskingAdapter:
                             if hasattr(original_item, "self_ref")
                             else f"#/texts/{i}"
                         ),
-                        label=(
-                            original_item.label
-                            if hasattr(original_item, "label")
-                            else DocItemLabel.TEXT
-                        ),
+                        label=item_label,
                         orig=masked_segment_text,
                     )
 

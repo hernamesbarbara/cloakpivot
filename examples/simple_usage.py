@@ -93,6 +93,10 @@ Emergency contact: Jane Doe (555-987-6543)
     else:
         print("  ⚠ Warning: Unmasked document differs from original")
     
+    # Cleanup temporary file
+    if test_doc.exists():
+        test_doc.unlink()
+
     print("\n" + "=" * 60)
     print("✓ Example completed successfully!")
     print("=" * 60)

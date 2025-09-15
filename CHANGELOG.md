@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **DoclingDocument Compatibility**: Fixed version mismatch issues with Docling v1.7.0 format
+  - Updated dependencies to `docling>=2.52.0` and `docling-core>=2.0.0` to match DocPivot requirements
+  - Fixed masking process to preserve `origin` field in masked documents (required for v1.7.0)
+  - Resolved validation errors when loading masked DoclingDocument files
+- **TextItem Label Validation**: Fixed Pydantic validation errors for unsupported labels
+  - Added automatic mapping of invalid labels (like 'title', 'section_header') to valid TextItem labels
+  - Ensures masked documents maintain compatibility with DoclingDocument schema
+- **Example Scripts**: Fixed all example scripts to work with current test data
+  - Replaced non-existent `StrategyKind.KEEP` with `StrategyKind.TEMPLATE` in docling_integration.py
+  - Updated examples to use existing test data in `data/json/` and `data/pdf/` directories
+  - Fixed `main_text` attribute error by using `texts` attribute instead
+  - Updated DoclingJsonReader import from docpivot for proper document loading
+
 ### Added
+- **Advanced Builder Features Example**: New `advanced_builder_features.py` demonstrating:
+  - `ConflictResolutionConfig` for controlling entity grouping behavior with `merge_threshold_chars`
+  - `.with_conflict_resolution()` builder method for custom entity handling
+  - `.with_presidio_engine()` explicit configuration for enabling/disabling Presidio
+  - Direct `DocPivotEngine` usage for format conversion (optional)
+  - Combining multiple advanced features using the builder pattern
 - **Project Configuration Standardization**: Adopted DocPivot's cleaner configuration approach
   - Simplified `pyproject.toml` by removing excessive comments and verbose configurations
   - Streamlined `Makefile` from 248 lines to 158 lines, removing redundant targets
@@ -43,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance**: Improved performance with direct JSON loading and single engine instance
 
 ### Removed
+- Helper scripts `pdf2docling.py` and `docling2cloaked.py` (functionality now in examples)
 - Excessive configuration comments in `pyproject.toml` (reduced by ~60%)
 - Redundant Makefile targets (90+ lines removed)
 - `PROJECT_CONFIG.md` documentation file (content already in README)
