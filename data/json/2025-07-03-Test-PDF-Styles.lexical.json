@@ -299,9 +299,9 @@
         "direction": "ltr",
         "format": "",
         "indent": 0,
-        "listType": "ordered",
+        "listType": "unordered",
         "start": 1,
-        "tag": "ol",
+        "tag": "ul",
         "type": "list",
         "version": 1
       },
@@ -328,7 +328,7 @@
         "children": [
           {
             "detail": 0,
-            "format": 0,
+            "format": 2,
             "mode": "normal",
             "style": "",
             "text": "In legal documents, italics are primarily used for emphasis , to highlight key terms or phrases, and to distinguish specific elements like case names or foreign words .",
@@ -834,5 +834,15 @@
     "indent": 0,
     "type": "root",
     "version": 1
+  },
+  "metadata": {
+    "document_name": "2025-07-03-Test-PDF-Styles",
+    "version": "1.7.0",
+    "origin": {
+      "mimetype": "application/pdf",
+      "filename": "2025-07-03-Test-PDF-Styles.pdf",
+      "binary_hash": 5427049392642740635,
+      "uri": null
+    }
   }
 }
