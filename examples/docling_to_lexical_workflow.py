@@ -17,8 +17,8 @@ from docling_core.types import DoclingDocument
 from cloakpivot.compat import load_document, to_lexical
 
 def main():
-    # Setup paths
-    pdf_file = Path("data/pdf/sample.pdf")  # Update with your PDF path
+    # Setup paths - use existing test PDFs
+    pdf_file = Path("data/pdf/email.pdf")  # Using existing test PDF
     output_dir = Path("./output/")
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -57,7 +57,7 @@ def main():
 
     print(f"  ✓ Successfully loaded document")
     print(f"  - Document type: {type(loaded_doc).__name__}")
-    print(f"  - Has content: {bool(loaded_doc.main_text)}")
+    print(f"  - Has content: {bool(loaded_doc.texts)}")
 
     # Step 3: Convert to Lexical JSON using docpivot
     print("\n🎯 Step 3: Converting to Lexical JSON format")

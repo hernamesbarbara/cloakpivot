@@ -117,7 +117,7 @@ def main():
     print("=" * 60)
 
     # Setup paths
-    pdf_path = Path("data/pdf/sample.pdf")
+    pdf_path = Path("data/pdf/email.pdf")  # Using existing test PDF
     output_dir = Path("output")
     output_dir.mkdir(parents=True, exist_ok=True)
 

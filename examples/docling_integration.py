@@ -15,6 +15,7 @@ This demonstrates:
 import json
 from pathlib import Path
 from typing import List, Tuple
+from docpivot import DoclingJsonReader
 from docling_core.types import DoclingDocument
 from cloakpivot import CloakEngine
 from cloakpivot.core.policies import MaskingPolicy
@@ -24,9 +25,8 @@ from cloakpivot.core.cloakmap import CloakMap
 
 def load_docling_document(json_path: Path) -> DoclingDocument:
     """Load a DoclingDocument from a JSON file."""
-    with open(json_path, "r", encoding="utf-8") as f:
-        doc_dict = json.load(f)
-    return DoclingDocument(**doc_dict)
+    reader = DoclingJsonReader()
+    return reader.load_data(json_path)
 
 
 def create_custom_policy() -> MaskingPolicy:
@@ -58,15 +58,15 @@ def create_custom_policy() -> MaskingPolicy:
                 StrategyKind.REDACT,
                 {}
             ),
-            # Locations: Keep for context
+            # Locations: Template for context
             "LOCATION": Strategy(
-                StrategyKind.KEEP,
-                {}
+                StrategyKind.TEMPLATE,
+                {"template": "[LOCATION]"}
             ),
-            # Dates: Keep for context
+            # Dates: Template for context
             "DATE_TIME": Strategy(
-                StrategyKind.KEEP,
-                {}
+                StrategyKind.TEMPLATE,
+                {"template": "[DATE]"}
             ),
         },
         default_strategy=Strategy(
@@ -185,39 +185,19 @@ def main():
     print("CloakPivot DoclingDocument Integration Example")
     print("=" * 60)
 
-    # Setup paths
-    input_dir = Path("data/docling")
+    # Setup paths - use existing test data
+    input_dir = Path("data/json")
     output_dir = Path("output/masked")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create sample DoclingDocument if needed
-    sample_path = input_dir / "sample.docling.json"
-    if not sample_path.exists():
-        print(f"\n📝 Creating sample DoclingDocument...")
-        input_dir.mkdir(parents=True, exist_ok=True)
+    # Check if we have test data
+    docling_files = list(input_dir.glob("*.docling.json"))
+    if not docling_files:
+        print(f"\n❌ No .docling.json files found in {input_dir}")
+        print("Please ensure you have test data in data/json/")
+        return
 
-        from docling_core.types import DoclingDocument
-        from docling_core.types.doc.document import TextItem
-
-        doc = DoclingDocument(name="sample.pdf")
-        doc.texts = [
-            TextItem(
-                text="Contact John Smith at john.smith@example.com or 555-123-4567.",
-                self_ref="#/texts/0",
-                label="text",
-                orig="Contact John Smith at john.smith@example.com or 555-123-4567."
-            ),
-            TextItem(
-                text="Payment card: 4111-1111-1111-1111, SSN: 123-45-6789",
-                self_ref="#/texts/1",
-                label="text",
-                orig="Payment card: 4111-1111-1111-1111, SSN: 123-45-6789"
-            )
-        ]
-
-        with open(sample_path, "w") as f:
-            json.dump(doc.export_to_dict(), f, indent=2)
-        print(f"  ✓ Created: {sample_path}")
+    print(f"\n📝 Found {len(docling_files)} DoclingDocument files to process")
 
     # Process documents
     print("\n🚀 Processing documents...")
