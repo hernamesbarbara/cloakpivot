@@ -334,7 +334,7 @@ All testing tools are configured in `pyproject.toml`:
 - **Pytest**: Coverage integration, markers, and test discovery
 - **Coverage**: Branch coverage, multiple report formats
 
-See [PROJECT_CONFIG.md](PROJECT_CONFIG.md) for complete configuration details.
+All configuration details are in `pyproject.toml`.
 
 ## Contributing Test Guidelines
 
@@ -392,8 +392,8 @@ make verify
 ```
 
 For more details on the project configuration and development workflow, see:
-- [PROJECT_CONFIG.md](PROJECT_CONFIG.md) - Complete configuration guide
 - [README.md](README.md) - Project overview and usage
 - [Makefile](Makefile) - All available commands
+- `pyproject.toml` - Complete configuration details
 
 This testing infrastructure ensures CloakPivot maintains high quality, performance, and reliability across all supported use cases.

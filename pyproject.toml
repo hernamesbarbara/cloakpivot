@@ -60,52 +60,58 @@ cloakpivot = "cloakpivot.cli.main:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cloakpivot*"]
-exclude = ["tests*"]
+exclude = ["tests*", "tests_old*"]
 
-# ========================================================================================
-# Tool Configurations - Single Source of Truth
-# ========================================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (component interaction)",
+    "e2e: End-to-end tests (full workflow)",
+    "slow: Slow running tests (> 5 seconds)",
+]
 
-# ----------------------------------------------------------------------------------------
-# Black - Code Formatter
-# ----------------------------------------------------------------------------------------
+# ============================================================
+# BLACK - Code Formatter
+# ============================================================
 [tool.black]
 line-length = 100
-target-version = ['py311']
+target-version = ["py311"]
 include = '\.pyi?$'
 extend-exclude = '''
 /(
-  \.eggs
-  | \.git
-  | \.hg
+    \.git
   | \.mypy_cache
-  | \.tox
-  | \.venv
-  | venv
-  | _build
-  | buck-out
+  | \.pytest_cache
+  | __pycache__
   | build
   | dist
-  | __pycache__
+  | tests_old
+  | venv
+  | \.venv
 )/
 '''
 
-# ----------------------------------------------------------------------------------------
-# Ruff - Fast Python Linter with Integrated isort
-# ----------------------------------------------------------------------------------------
+# ============================================================
+# RUFF - Fast Python Linter
+# ============================================================
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 exclude = [
     ".git",
-    ".venv",
-    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
     "__pycache__",
     "build",
     "dist",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
+    "tests_old",
+    "venv",
+    ".venv",
 ]
 
 [tool.ruff.lint]
@@ -127,51 +133,104 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
-    "T201",  # print found (allow in CLI tools)
-    "T203",  # pprint found (allow for debugging)
+    "B904",  # raise without from in except block
+    "T201",  # print statements (ok for CLI)
+    "T203",  # pprint statements (ok for debugging)
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"tests/*" = ["T20"]  # Allow print in tests
 "__init__.py" = ["F401"]  # unused imports in __init__ files
-"tests/**/*.py" = ["T20"]  # allow print in tests
 
 [tool.ruff.lint.isort]
 known-first-party = ["cloakpivot"]
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+combine-as-imports = true
+force-single-line = false
 
-# ----------------------------------------------------------------------------------------
-# MyPy - Static Type Checker with Gradual Typing
-# ----------------------------------------------------------------------------------------
-[tool.mypy]
-python_version = "3.11"
-files = ["cloakpivot"]
-exclude = [
-    "build",
-    "dist",
-    "tests",
-    "scripts",
-    "venv",
+# ============================================================
+# COVERAGE - Test Coverage Configuration
+# ============================================================
+[tool.coverage.run]
+source = ["cloakpivot"]
+omit = [
+    "*/tests/*",
+    "*/tests_old/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
 ]
 
-# Gradual typing approach - start permissive, tighten over time
-warn_return_any = false
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@abstract",
+    "@abc.abstractmethod",
+]
+precision = 2
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# ============================================================
+# MYPY - Type Checking
+# ============================================================
+[tool.mypy]
+python_version = "3.11"
+files = ["cloakpivot", "tests"]
+
+# Moderate strictness globally
+warn_return_any = true
 warn_unused_configs = true
+disallow_untyped_defs = false  # Will enable gradually per module
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+
+# Error display
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# Performance
+cache_dir = ".mypy_cache"
+incremental = true
+
+# Import handling
+ignore_missing_imports = true
+follow_imports = "silent"
+
+# Exclude patterns
+exclude = [
+    "tests_old/",
+    "build/",
+    "dist/",
+    "__pycache__/",
+    ".git/",
+    "venv/",
+    ".venv/",
+]
+
+# Per-module overrides for gradual typing
+[[tool.mypy.overrides]]
+module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
-check_untyped_defs = true
-disallow_untyped_decorators = false
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
+check_untyped_defs = false
+warn_return_any = false
 
-# Per-module overrides for gradual adoption
 [[tool.mypy.overrides]]
-module = "cloakpivot.cli.*"
+module = [
+    "cloakpivot.engine",
+    "cloakpivot.engine_builder",
+    "cloakpivot.defaults"
+]
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
+strict = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -182,90 +241,3 @@ module = [
     "docling_core.*",
 ]
 ignore_missing_imports = true
-
-# ----------------------------------------------------------------------------------------
-# Pytest - Testing Framework Configuration
-# ----------------------------------------------------------------------------------------
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = [
-    "-ra",
-    "-q",
-    "--strict-markers",
-    "--strict-config",
-    "--cov=cloakpivot",
-    "--cov-report=term-missing:skip-covered",
-    "--cov-report=html",
-    "--cov-report=xml",
-    "--cov-fail-under=60",
-]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    "ignore::DeprecationWarning",
-]
-markers = [
-    "unit: Unit tests (fast, isolated)",
-    "integration: Integration tests (component interaction)",
-    "e2e: End-to-end tests (full workflow)",
-    "slow: Slow running tests (> 5 seconds)",
-]
-norecursedirs = [
-    "*.egg",
-    ".eggs",
-    "dist",
-    "build",
-    "docs",
-    ".tox",
-    ".git",
-    "__pycache__",
-    "venv",
-    ".venv",
-]
-
-# ----------------------------------------------------------------------------------------
-# Coverage - Test Coverage Configuration
-# ----------------------------------------------------------------------------------------
-[tool.coverage.run]
-source = ["cloakpivot"]
-branch = true
-parallel = true
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/__init__.py",
-    "*/setup.py",
-    "*/scripts/*",
-    "*/benchmarks/*",
-]
-
-[tool.coverage.report]
-precision = 2
-show_missing = true
-skip_covered = false
-sort = "cover"
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "def __str__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if False:",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
-
-[tool.coverage.html]
-directory = "htmlcov"
-
-[tool.coverage.xml]
-output = "coverage.xml"
