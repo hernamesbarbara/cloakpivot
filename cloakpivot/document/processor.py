@@ -1,17 +1,10 @@
 """Document processor for loading and managing DoclingDocument objects."""
 
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union, cast
-
-from docpivot import load_document
-from docpivot.io.readers.exceptions import (
-    FileAccessError,
-    TransformationError,
-    UnsupportedFormatError,
-    ValidationError,
-)
+from typing import Any, Optional, Union
 
 from cloakpivot.core.types import DoclingDocument
 
@@ -83,10 +76,9 @@ class DocumentProcessor:
             DoclingDocument: The loaded document
 
         Raises:
-            FileAccessError: If the file cannot be accessed or read
-            UnsupportedFormatError: If no reader can handle the file format
-            ValidationError: If the file format is invalid or document validation fails
-            TransformationError: If document loading fails
+            FileNotFoundError: If the file cannot be found
+            ValueError: If the JSON is invalid or document validation fails
+            RuntimeError: If document loading fails
 
         Examples:
             >>> processor = DocumentProcessor()
@@ -97,8 +89,10 @@ class DocumentProcessor:
         logger.info(f"Loading document from {file_path_obj}")
 
         try:
-            # Use DocPivot's load_document workflow
-            document = cast(DoclingDocument, load_document(file_path, **kwargs))
+            # Load Docling JSON directly (no DocPivot needed)
+            with open(file_path, 'r') as f:
+                doc_dict = json.load(f)
+            document = DoclingDocument.model_validate(doc_dict)
             self._stats.files_processed += 1
 
             if validate:
@@ -123,24 +117,20 @@ class DocumentProcessor:
 
             return document
 
-        except (
-            FileAccessError,
-            UnsupportedFormatError,
-            ValidationError,
-            TransformationError,
-        ):
-            # Re-raise DocPivot exceptions as-is
+        except FileNotFoundError as e:
             self._stats.errors_encountered += 1
-            raise
+            logger.error(f"File not found: {file_path}")
+            raise FileNotFoundError(f"File not found: {file_path}") from e
+        except json.JSONDecodeError as e:
+            self._stats.errors_encountered += 1
+            logger.error(f"Invalid JSON in file {file_path}: {e}")
+            raise ValueError(f"Invalid JSON: {e}") from e
         except Exception as e:
             # Wrap unexpected errors
             self._stats.errors_encountered += 1
             logger.error(f"Unexpected error loading document {file_path}: {e}")
-            raise TransformationError(
-                f"Unexpected error loading document from '{file_path}': {e}",
-                transformation_type="document_loading",
-                context={"file_path": str(file_path), "kwargs": kwargs},
-                cause=e,
+            raise RuntimeError(
+                f"Unexpected error loading document from '{file_path}': {e}"
             ) from e
 
     def _validate_document_structure(self, document: DoclingDocument) -> None:
@@ -151,12 +141,11 @@ class DocumentProcessor:
             document: The DoclingDocument to validate
 
         Raises:
-            ValidationError: If the document structure is invalid
+            ValueError: If the document structure is invalid
         """
         if not isinstance(document, DoclingDocument):
-            raise ValidationError(
-                f"Expected DoclingDocument, got {type(document).__name__}",
-                validation_errors=["invalid_document_type"],
+            raise ValueError(
+                f"Expected DoclingDocument, got {type(document).__name__}"
             )
 
         # Check that the document has a name

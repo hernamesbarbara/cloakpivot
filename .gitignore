@@ -164,3 +164,5 @@ temp/
 tmp/
 docling2cloaked.py
 pdf2docling.py
+output/
+test_doc.docling.json

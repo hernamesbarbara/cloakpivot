@@ -5,6 +5,27 @@ All notable changes to CloakPivot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **DocPivot v2.0.1 Migration**: Updated to use DocPivot v2.0.1 with new `DocPivotEngine` API
+  - Replaced `SerializerProvider` with `DocPivotEngine` in format registry
+  - Replaced `LexicalDocSerializer` with `engine.convert_to_lexical()`
+  - Replaced `load_document()` with direct JSON loading for Docling files
+  - Added `cloakpivot.compat` module for backward compatibility
+- **Document Loading**: Simplified to load Docling JSON files directly without DocPivot
+- **Performance**: Improved performance with direct JSON loading and single engine instance
+
+### Added
+- **Compatibility Module**: New `cloakpivot.compat` module providing:
+  - `load_document()` - Direct Docling JSON loading
+  - `to_lexical()` - Conversion using new DocPivotEngine
+- **Migration Guide**: Added `specification/CLOAKPIVOT_MIGRATION_GUIDE.md` for DocPivot v2.0.1 migration
+
+### Fixed
+- Import errors with DocPivot v2.0.1 API changes
+- Test compatibility with new DocPivot API
+
 ## [2.0.0] - 2025-09-13
 
 ### Added

@@ -642,13 +642,13 @@ class BatchProcessor:
 
         # Save masked document
         if file_item.output_path:
-            from docpivot import LexicalDocSerializer
+            from docpivot import DocPivotEngine
 
-            serializer = LexicalDocSerializer(masking_result.masked_document)
-            result = serializer.serialize()
+            engine = DocPivotEngine()
+            result = engine.convert_to_lexical(masking_result.masked_document)
 
             with open(file_item.output_path, "w", encoding="utf-8") as f:
-                f.write(result.text)
+                f.write(result.content)
 
         # Save CloakMap
         if file_item.cloakmap_path:
@@ -687,13 +687,13 @@ class BatchProcessor:
 
         # Save restored document
         if file_item.output_path:
-            from docpivot import LexicalDocSerializer
+            from docpivot import DocPivotEngine
 
-            serializer = LexicalDocSerializer(unmasking_result.restored_document)
-            result = serializer.serialize()
+            engine = DocPivotEngine()
+            result = engine.convert_to_lexical(unmasking_result.restored_document)
 
             with open(file_item.output_path, "w", encoding="utf-8") as f:
-                f.write(result.text)
+                f.write(result.content)
 
         file_item.entities_processed = len(cloakmap.anchors)
 
