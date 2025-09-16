@@ -548,6 +548,9 @@ class PresidioMaskingAdapter:
             for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
                 entity_type = getattr(entity, "entity_type", "UNKNOWN")
                 strategy = strategies.get(entity_type)
+                if not strategy:
+                    # This shouldn't happen as we filtered for SURROGATE entities
+                    continue
                 original_value = text[entity.start : entity.end]
 
                 # Generate surrogate value
