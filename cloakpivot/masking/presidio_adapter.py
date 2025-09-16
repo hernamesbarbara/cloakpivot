@@ -432,6 +432,9 @@ class PresidioMaskingAdapter:
         if hasattr(document, "_main_text"):
             masked_document._main_text = masked_text  # type: ignore[attr-defined]
 
+        # Update table cells with masked values
+        self._update_table_cells(masked_document, text_segments, anchor_entries)
+
         # Create base CloakMap
         base_cloakmap = CloakMap.create(
             doc_id=document.name,
@@ -818,10 +821,11 @@ class PresidioMaskingAdapter:
             Node ID of the containing segment, or None if not found
         """
         for segment in segments:
+            # TextSegment uses start_offset and end_offset
             if (
-                hasattr(segment, "start")
-                and hasattr(segment, "end")
-                and segment.start <= position < segment.end
+                hasattr(segment, "start_offset")
+                and hasattr(segment, "end_offset")
+                and segment.start_offset <= position < segment.end_offset
             ):
                 # Return segment's node_id if available, otherwise construct one
                 if hasattr(segment, "node_id"):
@@ -833,6 +837,67 @@ class PresidioMaskingAdapter:
 
         # Fallback to default if no segment found
         return "#/texts/0"
+
+    def _update_table_cells(
+        self,
+        masked_document: DoclingDocument,
+        text_segments: list[TextSegment],
+        anchor_entries: list[AnchorEntry],
+    ) -> None:
+        """Update table cells with masked values based on anchors.
+
+        Args:
+            masked_document: The document with tables to update
+            text_segments: Original text segments with metadata
+            anchor_entries: Anchors containing masked values
+        """
+        if not hasattr(masked_document, "tables") or not masked_document.tables:
+            return
+
+        # Create a mapping from text segment node_id to anchor masked values
+        node_to_masked_value: dict[str, str] = {}
+        for anchor in anchor_entries:
+            node_to_masked_value[anchor.node_id] = anchor.masked_value
+
+        # Process each table
+        for table_idx, table_item in enumerate(masked_document.tables):
+            if not hasattr(table_item, "data") or not table_item.data:
+                continue
+
+            table_data = table_item.data
+            if not hasattr(table_data, "table_cells") or not table_data.table_cells:
+                continue
+
+            # Get the base node ID for this table
+            base_node_id = self._get_table_node_id(table_item)
+
+            # Update each cell that has a corresponding masked value
+            for row_idx, row in enumerate(table_data.table_cells):
+                for col_idx, cell in enumerate(row):
+                    # Construct the cell node_id
+                    cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+
+                    # Check if we have a masked value for this cell
+                    if cell_node_id in node_to_masked_value:
+                        masked_value = node_to_masked_value[cell_node_id]
+
+                        # Update the cell text
+                        if hasattr(cell, "text"):
+                            cell.text = masked_value
+                            logger.debug(
+                                f"Updated table cell ({row_idx}, {col_idx}) with masked value"
+                            )
+
+    def _get_table_node_id(self, table_item: Any) -> str:
+        """Get the node ID for a table item."""
+        # Try to get from self_ref first
+        if hasattr(table_item, "self_ref"):
+            return table_item.self_ref
+
+        # Try to get from position in tables list
+        # This would need access to the document but we don't have it here
+        # Default fallback
+        return "#/tables/0"
 
     def _cleanup_large_results(self, results: list[OperatorResult]) -> None:
         """Clean up large result sets for memory efficiency.

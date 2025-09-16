@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests use real test data from `data/json/` and `data/pdf/` directories
   - Fixtures properly configured for v2.0 API usage patterns
   - All tests passing with 31.68% code coverage
+- **Table Masking Tests**: Comprehensive test suite for table cell PII masking
+  - 10 unit tests covering various table masking scenarios
+  - Tests for structure preservation, round-trip consistency, and different masking strategies
 
 ### Removed
 - **Build Artifacts and Cache Files**:
@@ -48,6 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Advanced Builder Features Example**: New `advanced_builder_features.py` demonstrating:
   - `ConflictResolutionConfig` for controlling entity grouping behavior with `merge_threshold_chars`
   - `.with_conflict_resolution()` builder method for custom entity handling
+- **Table Cell Masking**: Fixed critical bug where PII in table cells was not being masked
+  - Fixed `_find_segment_for_position` to correctly map text positions to table cell segments
+  - Added `_update_table_cells` method to apply masked values to table cells
+  - Table cells now properly masked while preserving table structure
+- **SURROGATE Strategy with Faker**: Enhanced SURROGATE strategy to generate realistic fake data
+  - Fixed integration between SurrogateGenerator and Presidio adapter
+  - SURROGATE entities now processed separately to ensure Faker is used
+  - Produces realistic replacements (e.g., "John Doe" → "Morgan Williams") instead of asterisks
   - `.with_presidio_engine()` explicit configuration for enabling/disabling Presidio
   - Direct `DocPivotEngine` usage for format conversion (optional)
   - Combining multiple advanced features using the builder pattern
