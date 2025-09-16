@@ -68,7 +68,7 @@ class PresidioMaskingAdapter:
     def anonymizer(self) -> AnonymizerEngine:
         """Lazy-load the AnonymizerEngine on first access."""
         if self._anonymizer_instance is None:
-            self._anonymizer_instance = AnonymizerEngine()  # type: ignore[no-untyped-call]
+            self._anonymizer_instance = AnonymizerEngine()
             logger.debug("AnonymizerEngine initialized")
         return self._anonymizer_instance
 
@@ -304,10 +304,8 @@ class PresidioMaskingAdapter:
             entity_to_op_result.append((entity, matched_result))
 
         # Create masked document preserving original structure
-        from docling_core.types.doc.document import (  # type: ignore[attr-defined]
-            DocItemLabel,
-            TextItem,
-        )
+        from docling_core.types.doc import DocItemLabel
+        from docling_core.types.doc.document import TextItem
 
         masked_document = DoclingDocument(
             name=document.name,

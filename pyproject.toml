@@ -219,7 +219,7 @@ exclude = [
 
 # Per-module overrides for gradual typing
 [[tool.mypy.overrides]]
-module = "tests.*"
+module = "tests"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
@@ -243,3 +243,12 @@ module = [
     "docling_core.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cloakpivot.masking.presidio_adapter",
+    "cloakpivot.unmasking.presidio_adapter",
+]
+disallow_untyped_calls = false
+allow_untyped_defs = true
+disable_error_code = ["attr-defined"]
