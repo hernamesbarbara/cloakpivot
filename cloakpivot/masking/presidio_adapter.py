@@ -696,6 +696,16 @@ class PresidioMaskingAdapter:
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
         """Apply surrogate strategy with high-quality fake data generation."""
         try:
+            # Check if strategy has a seed parameter
+            seed = None
+            if strategy.parameters and "seed" in strategy.parameters:
+                seed = strategy.parameters["seed"]
+
+            # If seed is different from current one, recreate generator
+            if seed != getattr(self._surrogate_generator, "seed", None):
+                self._surrogate_generator = SurrogateGenerator(seed=seed)
+                logger.debug(f"Updated SurrogateGenerator with seed: {seed}")
+
             # Use the surrogate generator for quality fake data
             return self._surrogate_generator.generate_surrogate(text, entity_type)
         except Exception as e:

@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed integration between SurrogateGenerator and Presidio adapter
   - SURROGATE entities now processed separately to ensure Faker is used
   - Produces realistic replacements (e.g., "John Doe" → "Morgan Williams") instead of asterisks
+  - Fixed seed parameter usage for deterministic fake data generation
+  - Same seed now produces consistent results across multiple runs
   - `.with_presidio_engine()` explicit configuration for enabling/disabling Presidio
   - Direct `DocPivotEngine` usage for format conversion (optional)
   - Combining multiple advanced features using the builder pattern

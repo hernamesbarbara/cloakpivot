@@ -316,3 +316,104 @@ class TestSurrogateStrategy:
             assert (
                 should_have in masked_text
             ), f"Format indicator '{should_have}' not found in {masked_text}"
+
+    def test_surrogate_seed_parameter_actually_used(self):
+        """Test that the seed parameter is actually used for deterministic generation."""
+        # Test with first seed
+        policy1 = MaskingPolicy(
+            default_strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "seed-one"})
+        )
+        engine1 = CloakEngine(default_policy=policy1)
+
+        # Test with different seed
+        policy2 = MaskingPolicy(
+            default_strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "seed-two"})
+        )
+        engine2 = CloakEngine(default_policy=policy2)
+
+        # Test with same seed as first
+        policy3 = MaskingPolicy(
+            default_strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "seed-one"})
+        )
+        engine3 = CloakEngine(default_policy=policy3)
+
+        # Create identical document
+        def create_doc():
+            doc = DoclingDocument(name="test.txt")
+            doc.texts = [
+                TextItem(
+                    text="John Doe works at john.doe@example.com",
+                    label=DocItemLabel.TEXT,
+                    self_ref="#/texts/0",
+                    orig="John Doe works at john.doe@example.com",
+                )
+            ]
+            return doc
+
+        # Mask with different seeds
+        result1 = engine1.mask_document(create_doc())
+        result2 = engine2.mask_document(create_doc())
+        result3 = engine3.mask_document(create_doc())
+
+        text1 = result1.document.texts[0].text
+        text2 = result2.document.texts[0].text
+        text3 = result3.document.texts[0].text
+
+        # Same seed should produce same result
+        assert text1 == text3, f"Same seed produced different results:\n{text1}\nvs\n{text3}"
+
+        # Different seeds should produce different results
+        assert text1 != text2, f"Different seeds produced same result:\n{text1}\nvs\n{text2}"
+
+        # No asterisks in any result
+        assert "*" not in text1
+        assert "*" not in text2
+        assert "*" not in text3
+
+    def test_surrogate_no_seed_produces_random(self):
+        """Test that without seed, SURROGATE produces random fake data."""
+        # Create two engines without seed
+        policy = MaskingPolicy(default_strategy=Strategy(kind=StrategyKind.SURROGATE))
+
+        # Create identical documents but separate instances
+        doc1 = DoclingDocument(name="test.txt")
+        doc1.texts = [
+            TextItem(
+                text="Alice Smith at alice@test.com",
+                label=DocItemLabel.TEXT,
+                self_ref="#/texts/0",
+                orig="Alice Smith at alice@test.com",
+            )
+        ]
+
+        doc2 = DoclingDocument(name="test.txt")
+        doc2.texts = [
+            TextItem(
+                text="Alice Smith at alice@test.com",
+                label=DocItemLabel.TEXT,
+                self_ref="#/texts/0",
+                orig="Alice Smith at alice@test.com",
+            )
+        ]
+
+        # Mask twice with new engines to ensure no internal state affects results
+        engine1 = CloakEngine(default_policy=policy)
+        result1 = engine1.mask_document(doc1)
+
+        # Create fresh engine to avoid any internal caching
+        engine2 = CloakEngine(default_policy=policy)
+        result2 = engine2.mask_document(doc2)
+
+        text1 = result1.document.texts[0].text
+        text2 = result2.document.texts[0].text
+
+        # Without seed, results might be different (not guaranteed but likely)
+        # At minimum, they should not contain asterisks
+        assert "*" not in text1
+        assert "*" not in text2
+
+        # Original data should be masked
+        assert "Alice Smith" not in text1
+        assert "alice@test.com" not in text1
+        assert "Alice Smith" not in text2
+        assert "alice@test.com" not in text2
