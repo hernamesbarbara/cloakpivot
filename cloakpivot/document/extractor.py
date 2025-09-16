@@ -290,8 +290,8 @@ class TextExtractor:
             for row_idx, row in enumerate(table_data.table_cells):
                 for col_idx, cell in enumerate(row):
                     # mypy thinks cell is a tuple, but it's actually the cell object
-                    if hasattr(cell, "text") and cell.text:  # type: ignore
-                        text = cell.text  # type: ignore
+                    if hasattr(cell, "text") and cell.text:  # type: ignore[attr-defined]
+                        text = cell.text  # type: ignore[attr-defined]
                         if self.normalize_whitespace:
                             text = self._normalize_whitespace(text)
 
@@ -373,7 +373,7 @@ class TextExtractor:
         """
         # Try to use existing self_ref
         if hasattr(node_item, "self_ref") and node_item.self_ref:
-            return node_item.self_ref
+            return str(node_item.self_ref)
 
         # Generate a deterministic ID based on node properties
         node_type = type(node_item).__name__

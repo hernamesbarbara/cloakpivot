@@ -136,7 +136,7 @@ class PresidioMaskingAdapter:
                 operators={entity_type: operator_config},
             )
 
-            return result.text
+            return str(result.text)
 
         except Exception as e:
             logger.warning(
@@ -641,7 +641,7 @@ class PresidioMaskingAdapter:
             if isinstance(truncate_length, int) and truncate_length > 0:
                 hashed_value = hashed_value[:truncate_length]
 
-        return hashed_value
+        return str(hashed_value)
 
     def _apply_partial_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
@@ -681,7 +681,7 @@ class PresidioMaskingAdapter:
             text=text, analyzer_results=[entity], operators={entity_type: operator_config}
         )
 
-        return result.text
+        return str(result.text)
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""

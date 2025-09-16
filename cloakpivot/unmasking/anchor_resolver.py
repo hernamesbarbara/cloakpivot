@@ -430,7 +430,7 @@ class AnchorResolver:
     def _get_node_id(self, node_item: NodeItem) -> str:
         """Get the node ID for a node item."""
         if hasattr(node_item, "self_ref") and node_item.self_ref:
-            return node_item.self_ref
+            return str(node_item.self_ref)
 
         # Generate fallback ID
         node_type = type(node_item).__name__
