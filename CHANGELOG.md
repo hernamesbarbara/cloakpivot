@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CI/CD Pipeline Optimization**: Reduced GitHub Actions runtime from 20+ minutes to ~5 minutes
+  - Added CPU-only PyTorch installation to eliminate 1.4GB CUDA package downloads
+  - Implemented dependency caching for pip and spaCy models
+  - Split workflow into parallel jobs (lint, test, test-full)
+  - Configured smaller spaCy model for PR checks (en_core_web_sm)
+- **Type Checking Compatibility**: Fixed mypy errors between local and CI environments
+  - Created centralized `type_imports.py` module for third-party type handling
+  - Replaced scattered `# type: ignore` comments with proper type fixes
+  - Used `setattr()` for dynamic attribute assignment (clearer intent)
+  - Fixed DoclingDocument import issues caused by missing `__all__` declaration
+  - Only 4 necessary `type: ignore` comments remain (for genuinely untyped Presidio calls)
+- **SURROGATE Strategy Bug**: Fixed seed parameter not being used for deterministic generation
+  - SurrogateGenerator now correctly uses seed parameter when provided
+  - Same seed produces consistent fake data across multiple runs
+  - Added comprehensive example in `examples/surrogate_faker_strategy.py`
+
 ### Added
 - **New Test Suite**: Complete rewrite of test infrastructure based on v2.0 API
   - Created clean test structure with `unit/` and `integration/` directories
@@ -14,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests use real test data from `data/json/` and `data/pdf/` directories
   - Fixtures properly configured for v2.0 API usage patterns
   - All tests passing with 31.68% code coverage
+- **Table Masking Tests**: Comprehensive test suite for table cell PII masking
+  - 10 unit tests covering various table masking scenarios
+  - Tests for structure preservation, round-trip consistency, and different masking strategies
 
 ### Removed
 - **Build Artifacts and Cache Files**:
@@ -48,6 +68,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Advanced Builder Features Example**: New `advanced_builder_features.py` demonstrating:
   - `ConflictResolutionConfig` for controlling entity grouping behavior with `merge_threshold_chars`
   - `.with_conflict_resolution()` builder method for custom entity handling
+- **Table Cell Masking**: Fixed critical bug where PII in table cells was not being masked
+  - Fixed `_find_segment_for_position` to correctly map text positions to table cell segments
+  - Added `_update_table_cells` method to apply masked values to table cells
+  - Table cells now properly masked while preserving table structure
+- **SURROGATE Strategy with Faker**: Enhanced SURROGATE strategy to generate realistic fake data
+  - Fixed integration between SurrogateGenerator and Presidio adapter
+  - SURROGATE entities now processed separately to ensure Faker is used
+  - Produces realistic replacements (e.g., "John Doe" → "Morgan Williams") instead of asterisks
+  - Fixed seed parameter usage for deterministic fake data generation
+  - Same seed now produces consistent results across multiple runs
   - `.with_presidio_engine()` explicit configuration for enabling/disabling Presidio
   - Direct `DocPivotEngine` usage for format conversion (optional)
   - Combining multiple advanced features using the builder pattern

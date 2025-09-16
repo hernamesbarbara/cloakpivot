@@ -2,10 +2,9 @@
 
 from typing import Any
 
-from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
-
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
+from cloakpivot.type_imports import DoclingDocument
 
 
 class CloakedDocument:

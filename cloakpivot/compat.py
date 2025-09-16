@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
 from docpivot import DocPivotEngine
+
+from cloakpivot.type_imports import DoclingDocument
 
 
 def load_document(file_path: str | Path) -> DoclingDocument:

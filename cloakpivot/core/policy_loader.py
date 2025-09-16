@@ -1,5 +1,7 @@
 """Policy loading system with inheritance and composition support."""
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,14 +49,14 @@ class StrategyConfig(BaseModel):
 
     @field_validator("kind")
     @classmethod
-    def validate_kind(cls, v: Any) -> Any:
+    def validate_kind(cls, v: Any) -> str:
         """Validate strategy kind is supported."""
         try:
             StrategyKind(v)
         except ValueError as e:
             valid_kinds = [k.value for k in StrategyKind]
             raise ValueError(f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}") from e
-        return v
+        return str(v)
 
 
 class EntityConfig(BaseModel):
@@ -67,7 +69,7 @@ class EntityConfig(BaseModel):
 
     @field_validator("kind")
     @classmethod
-    def validate_kind(cls, v: Any) -> Any:
+    def validate_kind(cls, v: Any) -> str | None:
         """Validate strategy kind if provided."""
         if v is not None:
             try:
@@ -75,7 +77,7 @@ class EntityConfig(BaseModel):
             except ValueError as e:
                 valid_kinds = [k.value for k in StrategyKind]
                 raise ValueError(f"Invalid strategy kind '{v}'. Valid kinds: {valid_kinds}") from e
-        return v
+        return str(v) if v is not None else None
 
 
 class LocaleConfig(BaseModel):

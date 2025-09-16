@@ -68,7 +68,7 @@ class PresidioMaskingAdapter:
     def anonymizer(self) -> AnonymizerEngine:
         """Lazy-load the AnonymizerEngine on first access."""
         if self._anonymizer_instance is None:
-            self._anonymizer_instance = AnonymizerEngine()  # type: ignore[no-untyped-call]
+            self._anonymizer_instance = AnonymizerEngine()
             logger.debug("AnonymizerEngine initialized")
         return self._anonymizer_instance
 
@@ -136,7 +136,7 @@ class PresidioMaskingAdapter:
                 operators={entity_type: operator_config},
             )
 
-            return result.text
+            return str(result.text)
 
         except Exception as e:
             logger.warning(
@@ -304,10 +304,8 @@ class PresidioMaskingAdapter:
             entity_to_op_result.append((entity, matched_result))
 
         # Create masked document preserving original structure
-        from docling_core.types.doc.document import (  # type: ignore[attr-defined]
-            DocItemLabel,
-            TextItem,
-        )
+        from docling_core.types.doc import DocItemLabel
+        from docling_core.types.doc.document import TextItem
 
         masked_document = DoclingDocument(
             name=document.name,
@@ -413,7 +411,7 @@ class PresidioMaskingAdapter:
                             if hasattr(original_item, "self_ref")
                             else f"#/texts/{i}"
                         ),
-                        label=item_label,  # type: ignore[arg-type]
+                        label=item_label,
                         orig=masked_segment_text,
                     )
 
@@ -430,7 +428,11 @@ class PresidioMaskingAdapter:
 
         # Also preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
-            masked_document._main_text = masked_text  # type: ignore[attr-defined]
+            # Set _main_text attribute for backward compatibility
+            setattr(masked_document, "_main_text", masked_text)  # noqa: B010
+
+        # Update table cells with masked values
+        self._update_table_cells(masked_document, text_segments, anchor_entries)
 
         # Create base CloakMap
         base_cloakmap = CloakMap.create(
@@ -542,7 +544,7 @@ class PresidioMaskingAdapter:
 
             # Process SURROGATE entities manually
             text_result = text
-            surrogate_results = []
+            surrogate_results: list[OperatorResult] = []
 
             # Process surrogate entities in reverse order to maintain positions
             for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
@@ -594,10 +596,9 @@ class PresidioMaskingAdapter:
                     text=text_result, analyzer_results=presidio_entities, operators=operators
                 )
 
-                # Combine results
-                if hasattr(result, "items"):
-                    return surrogate_results + result.items
-                return surrogate_results
+                # Combine results with explicit typing to avoid Any
+                items_list: list[OperatorResult] = list(getattr(result, "items", []))
+                return [*surrogate_results, *items_list]
             # Only surrogate entities were processed
             return surrogate_results
 
@@ -638,7 +639,7 @@ class PresidioMaskingAdapter:
             if isinstance(truncate_length, int) and truncate_length > 0:
                 hashed_value = hashed_value[:truncate_length]
 
-        return hashed_value
+        return str(hashed_value)
 
     def _apply_partial_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
@@ -678,7 +679,7 @@ class PresidioMaskingAdapter:
             text=text, analyzer_results=[entity], operators={entity_type: operator_config}
         )
 
-        return result.text
+        return str(result.text)
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
@@ -693,6 +694,16 @@ class PresidioMaskingAdapter:
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
         """Apply surrogate strategy with high-quality fake data generation."""
         try:
+            # Check if strategy has a seed parameter
+            seed = None
+            if strategy.parameters and "seed" in strategy.parameters:
+                seed = strategy.parameters["seed"]
+
+            # If seed is different from current one, recreate generator
+            if seed != getattr(self._surrogate_generator, "seed", None):
+                self._surrogate_generator = SurrogateGenerator(seed=seed)
+                logger.debug(f"Updated SurrogateGenerator with seed: {seed}")
+
             # Use the surrogate generator for quality fake data
             return self._surrogate_generator.generate_surrogate(text, entity_type)
         except Exception as e:
@@ -818,10 +829,11 @@ class PresidioMaskingAdapter:
             Node ID of the containing segment, or None if not found
         """
         for segment in segments:
+            # TextSegment uses start_offset and end_offset
             if (
-                hasattr(segment, "start")
-                and hasattr(segment, "end")
-                and segment.start <= position < segment.end
+                hasattr(segment, "start_offset")
+                and hasattr(segment, "end_offset")
+                and segment.start_offset <= position < segment.end_offset
             ):
                 # Return segment's node_id if available, otherwise construct one
                 if hasattr(segment, "node_id"):
@@ -833,6 +845,70 @@ class PresidioMaskingAdapter:
 
         # Fallback to default if no segment found
         return "#/texts/0"
+
+    def _update_table_cells(
+        self,
+        masked_document: DoclingDocument,
+        text_segments: list[TextSegment],
+        anchor_entries: list[AnchorEntry],
+    ) -> None:
+        """Update table cells with masked values based on anchors.
+
+        Args:
+            masked_document: The document with tables to update
+            text_segments: Original text segments with metadata
+            anchor_entries: Anchors containing masked values
+        """
+        if not hasattr(masked_document, "tables") or not masked_document.tables:
+            return
+
+        # Create a mapping from text segment node_id to anchor masked values
+        node_to_masked_value: dict[str, str] = {}
+        for anchor in anchor_entries:
+            node_to_masked_value[anchor.node_id] = anchor.masked_value
+
+        # Process each table
+        for table_item in masked_document.tables:
+            if not hasattr(table_item, "data") or not table_item.data:
+                continue
+
+            table_data = table_item.data
+            if not hasattr(table_data, "table_cells") or not table_data.table_cells:
+                continue
+
+            # Get the base node ID for this table
+            base_node_id = self._get_table_node_id(table_item)
+
+            # Update each cell that has a corresponding masked value
+            for row_idx, row in enumerate(table_data.table_cells):
+                for col_idx, cell_item in enumerate(row):
+                    # Cast to Any to handle the tuple type annotation issue
+                    cell = cast(Any, cell_item)
+
+                    # Construct the cell node_id
+                    cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+
+                    # Check if we have a masked value for this cell
+                    if cell_node_id in node_to_masked_value:
+                        masked_value = node_to_masked_value[cell_node_id]
+
+                        # Update the cell text
+                        if hasattr(cell, "text"):
+                            cell.text = masked_value
+                            logger.debug(
+                                f"Updated table cell ({row_idx}, {col_idx}) with masked value"
+                            )
+
+    def _get_table_node_id(self, table_item: Any) -> str:
+        """Get the node ID for a table item."""
+        # Try to get from self_ref first
+        if hasattr(table_item, "self_ref"):
+            return str(table_item.self_ref)
+
+        # Try to get from position in tables list
+        # This would need access to the document but we don't have it here
+        # Default fallback
+        return "#/tables/0"
 
     def _cleanup_large_results(self, results: list[OperatorResult]) -> None:
         """Clean up large result sets for memory efficiency.

@@ -55,7 +55,8 @@ class PresidioUnmaskingAdapter:
 
     def __init__(self) -> None:
         """Initialize the Presidio unmasking adapter."""
-        self.deanonymizer = DeanonymizeEngine()  # type: ignore[no-untyped-call]
+        # DeanonymizeEngine doesn't have type hints in presidio-anonymizer
+        self.deanonymizer: DeanonymizeEngine = DeanonymizeEngine()
         self.cloakmap_enhancer = CloakMapEnhancer()
         self.anchor_resolver = AnchorResolver()
         self.document_unmasker = DocumentUnmasker()
