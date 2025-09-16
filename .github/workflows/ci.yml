@@ -84,9 +84,15 @@ jobs:
         path: ~/.cache/spacy
         key: ${{ runner.os }}-spacy-sm-v1
 
-    - name: Install dependencies
+    - name: Install CPU-only torch (avoid CUDA packages)
       run: |
         python -m pip install --upgrade pip
+        # Install CPU-only torch first to satisfy dependencies without CUDA
+        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+    - name: Install dependencies
+      run: |
+        # Now install our package - torch requirement is already satisfied
         pip install -e ".[dev]"
 
     - name: Download small spaCy model (fast)
@@ -141,9 +147,15 @@ jobs:
         path: ~/.cache/spacy
         key: ${{ runner.os }}-spacy-lg-v1
 
-    - name: Install dependencies
+    - name: Install CPU-only torch (avoid CUDA packages)
       run: |
         python -m pip install --upgrade pip
+        # Install CPU-only torch first to satisfy dependencies without CUDA
+        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+    - name: Install dependencies
+      run: |
+        # Now install our package - torch requirement is already satisfied
         pip install -e ".[dev]"
 
     - name: Download large spaCy model

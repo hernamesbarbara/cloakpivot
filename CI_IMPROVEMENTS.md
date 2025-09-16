@@ -5,17 +5,24 @@ GitHub Actions CI was taking 20+ minutes, with dependency installation being the
 
 ## Implemented Solutions
 
-### 1. Dependency Caching
+### 1. CPU-Only Torch (NEW - Biggest Impact!)
+- **Installs CPU-only torch to avoid CUDA packages**
+- Reduces torch download from 887.9 MB → ~140 MB (6x smaller)
+- Eliminates nvidia-cublas-cu12 (594.3 MB) entirely
+- Saves ~9 minutes of download time per run
+- Uses PyTorch CPU index: `https://download.pytorch.org/whl/cpu`
+
+### 2. Dependency Caching
 - Added pip package caching to avoid re-downloading dependencies
 - Added spacy model caching with separate keys for small/large models
 - Cache keys based on `pyproject.toml` hash for automatic invalidation
 
-### 2. Small Spacy Model for PRs
+### 3. Small Spacy Model for PRs
 - Switched from `en_core_web_lg` (500MB+) to `en_core_web_sm` (12MB) for PR tests
 - CloakPivot already supports `MODEL_SIZE` environment variable (defaults to "small")
 - Large model only used for full test suite on main branch
 
-### 3. Workflow Split & Parallelization
+### 4. Workflow Split & Parallelization
 - **lint**: Fast linting and type checking (runs first, fails fast)
 - **test**: Unit and integration tests with small model (runs on PRs)
 - **test-full**: Complete test suite with large model (main branch only)
@@ -26,12 +33,13 @@ GitHub Actions CI was taking 20+ minutes, with dependency installation being the
 
 | Before | After | Savings |
 |--------|-------|---------|
-| 20+ min | ~5-7 min | ~70% |
+| 20+ min | ~3-4 min | ~85% |
 
 ### Breakdown:
-- Dependency installation: 10+ min → 1-2 min (cached)
+- Torch/CUDA downloads: 9+ min → ~30 sec (CPU-only, 1.4GB → 140MB)
+- Other dependencies: 3+ min → ~30 sec (cached after first run)
 - Spacy model download: 2-3 min → 10 sec (small model, cached)
-- Test execution: ~8 min → ~3-4 min (parallel jobs, single Python version)
+- Test execution: ~8 min → ~2-3 min (parallel jobs, single Python version)
 
 ## Configuration
 
