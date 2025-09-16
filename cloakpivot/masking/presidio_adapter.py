@@ -860,7 +860,7 @@ class PresidioMaskingAdapter:
             node_to_masked_value[anchor.node_id] = anchor.masked_value
 
         # Process each table
-        for table_idx, table_item in enumerate(masked_document.tables):
+        for table_item in masked_document.tables:
             if not hasattr(table_item, "data") or not table_item.data:
                 continue
 
@@ -873,7 +873,10 @@ class PresidioMaskingAdapter:
 
             # Update each cell that has a corresponding masked value
             for row_idx, row in enumerate(table_data.table_cells):
-                for col_idx, cell in enumerate(row):
+                for col_idx, cell_item in enumerate(row):
+                    # Cast to Any to handle the tuple type annotation issue
+                    cell = cast(Any, cell_item)
+
                     # Construct the cell node_id
                     cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
 
@@ -892,7 +895,7 @@ class PresidioMaskingAdapter:
         """Get the node ID for a table item."""
         # Try to get from self_ref first
         if hasattr(table_item, "self_ref"):
-            return table_item.self_ref
+            return str(table_item.self_ref)
 
         # Try to get from position in tables list
         # This would need access to the document but we don't have it here

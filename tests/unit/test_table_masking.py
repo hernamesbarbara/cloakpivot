@@ -1,7 +1,13 @@
 """Unit tests for table masking functionality."""
 
 import pytest
-from docling_core.types.doc.document import DoclingDocument, DocItemLabel, TableData, TableItem, TextItem
+from docling_core.types.doc.document import (
+    DocItemLabel,
+    DoclingDocument,
+    TableData,
+    TableItem,
+    TextItem,
+)
 
 from cloakpivot import CloakEngine
 from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
@@ -9,6 +15,7 @@ from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
 class Cell:
     """Simple cell class for testing."""
+
     def __init__(self, text):
         self.text = text
 
@@ -60,8 +67,7 @@ class TestTableMasking:
         # Create masking policy
         policy = MaskingPolicy(
             default_strategy=Strategy(
-                kind=StrategyKind.TEMPLATE,
-                parameters={"template": "[REDACTED]"}
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[REDACTED]"}
             )
         )
 
@@ -127,9 +133,7 @@ class TestTableMasking:
         ]
 
         # Mask document
-        policy = MaskingPolicy(
-            default_strategy=Strategy(kind=StrategyKind.REDACT)
-        )
+        policy = MaskingPolicy(default_strategy=Strategy(kind=StrategyKind.REDACT))
         engine = CloakEngine(default_policy=policy)
         result = engine.mask_document(doc)
 
@@ -165,8 +169,7 @@ class TestTableMasking:
         # Mask document
         policy = MaskingPolicy(
             default_strategy=Strategy(
-                kind=StrategyKind.TEMPLATE,
-                parameters={"template": "[MASKED]"}
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[MASKED]"}
             )
         )
         engine = CloakEngine(default_policy=policy)
@@ -232,7 +235,7 @@ class TestTableMasking:
             default_strategy=Strategy(kind=StrategyKind.REDACT),
             per_entity={
                 "PERSON": Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[NAME]"}),
-            }
+            },
         )
         engine = CloakEngine(default_policy=policy)
         result = engine.mask_document(doc, entities=["PERSON"])
@@ -321,10 +324,7 @@ class TestTableMasking:
 
         # Mask with template strategy
         policy = MaskingPolicy(
-            default_strategy=Strategy(
-                kind=StrategyKind.TEMPLATE,
-                parameters={"template": "[PII]"}
-            )
+            default_strategy=Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[PII]"})
         )
         engine = CloakEngine(default_policy=policy)
         result = engine.mask_document(doc)
@@ -342,12 +342,15 @@ class TestTableMasking:
             assert "john@example.com" not in table_text
             assert "jane@test.com" not in table_text
 
-    @pytest.mark.parametrize("strategy_kind", [
-        StrategyKind.REDACT,
-        StrategyKind.TEMPLATE,
-        StrategyKind.HASH,
-        StrategyKind.PARTIAL,
-    ])
+    @pytest.mark.parametrize(
+        "strategy_kind",
+        [
+            StrategyKind.REDACT,
+            StrategyKind.TEMPLATE,
+            StrategyKind.HASH,
+            StrategyKind.PARTIAL,
+        ],
+    )
     def test_table_with_different_strategies(self, strategy_kind):
         """Test table masking with different strategy types."""
         doc = DoclingDocument(name=f"test_{strategy_kind.value}.txt")
@@ -380,9 +383,7 @@ class TestTableMasking:
         elif strategy_kind == StrategyKind.PARTIAL:
             params = {"visible_chars": 4, "position": "end"}
 
-        policy = MaskingPolicy(
-            default_strategy=Strategy(kind=strategy_kind, parameters=params)
-        )
+        policy = MaskingPolicy(default_strategy=Strategy(kind=strategy_kind, parameters=params))
         engine = CloakEngine(default_policy=policy)
         result = engine.mask_document(doc)
 
@@ -399,11 +400,10 @@ class TestTableMasking:
             # Template strategy should show [EMAIL]
             if result.entities_masked > 0:
                 assert "[EMAIL]" in table_text or "user@example.com" not in table_text
-        elif strategy_kind == StrategyKind.REDACT:
+        elif strategy_kind == StrategyKind.REDACT and result.entities_masked > 0:
             # Redact should show asterisks
-            if result.entities_masked > 0:
-                cells = result.document.tables[0].data.table_cells
-                email_cell = cells[1][0].text
-                if "user@example.com" not in email_cell:
-                    # If masked, should have some masking characters
-                    assert "*" in email_cell or len(email_cell) < len("user@example.com")
+            cells = result.document.tables[0].data.table_cells
+            email_cell = cells[1][0].text
+            if "user@example.com" not in email_cell:
+                # If masked, should have some masking characters
+                assert "*" in email_cell or len(email_cell) < len("user@example.com")
