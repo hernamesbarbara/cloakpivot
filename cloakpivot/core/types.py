@@ -11,7 +11,7 @@ else:
     try:
         from .cloakmap import CloakMap
     except ImportError:
-        CloakMap = Any  # type: ignore[misc,assignment]
+        CloakMap = Any
 
 
 @dataclass

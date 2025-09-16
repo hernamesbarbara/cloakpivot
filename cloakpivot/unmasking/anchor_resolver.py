@@ -501,12 +501,12 @@ class AnchorResolver:
         # Check for key-specific node ID
         if node_id == f"{base_node_id}/key":
             if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
-                return kv_item.key.text  # type: ignore[no-any-return]
+                return str(kv_item.key.text)
 
         # Check for value-specific node ID
         elif node_id == f"{base_node_id}/value":
             if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
-                return kv_item.value.text  # type: ignore[no-any-return]
+                return str(kv_item.value.text)
 
         # Return concatenated key-value text if node_id matches the item
         elif node_id == base_node_id:
