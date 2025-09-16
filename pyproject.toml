@@ -182,6 +182,7 @@ directory = "htmlcov"
 [tool.mypy]
 python_version = "3.11"
 files = ["cloakpivot", "tests"]
+plugins = ["pydantic.mypy"]
 
 # Moderate strictness globally
 warn_return_any = true

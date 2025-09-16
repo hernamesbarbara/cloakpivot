@@ -413,7 +413,7 @@ class PresidioMaskingAdapter:
                             if hasattr(original_item, "self_ref")
                             else f"#/texts/{i}"
                         ),
-                        label=item_label,  # type: ignore[arg-type]
+                        label=item_label,
                         orig=masked_segment_text,
                     )
 
@@ -431,7 +431,7 @@ class PresidioMaskingAdapter:
         # Also preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
             # Set _main_text attribute for backward compatibility
-            masked_document._main_text = masked_text
+            setattr(masked_document, "_main_text", masked_text)  # noqa: B010
 
         # Update table cells with masked values
         self._update_table_cells(masked_document, text_segments, anchor_entries)

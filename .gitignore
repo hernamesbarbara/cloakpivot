@@ -177,3 +177,4 @@ TODO_table_masking_fix.md
 fast_ci_playbook.txt
 fast_ci_playbook.md
 TYPE_CHECKING_LESSONS.md
+mypy_ci_fix_tips.md
