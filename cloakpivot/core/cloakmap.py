@@ -3,7 +3,7 @@
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -99,7 +99,7 @@ class CloakMap:
 
         # Set default timestamp if not provided
         if self.created_at is None:
-            object.__setattr__(self, "created_at", datetime.utcnow())
+            object.__setattr__(self, "created_at", datetime.now(UTC))
 
         # Auto-set version to 2.0 if presidio_metadata is present
         if self.presidio_metadata is not None and self.version == "1.0":
@@ -342,11 +342,12 @@ class CloakMap:
         json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
 
         # Use enhanced crypto utilities
-        (
-            self.crypto.get("signature_algorithm", config.hmac_algorithm)
-            if self.crypto
-            else config.hmac_algorithm
-        )
+        if config is not None:
+            (
+                self.crypto.get("signature_algorithm", config.hmac_algorithm)
+                if self.crypto
+                else config.hmac_algorithm
+            )
         # CryptoUtils removed in v2.0 - signature verification disabled
         return False
 
@@ -397,13 +398,14 @@ class CloakMap:
 
         # Update crypto metadata with signing information
         crypto_data = self.crypto.copy() if self.crypto else {}
-        crypto_data.update(
-            {
-                "signature_algorithm": config.hmac_algorithm,
-                "key_id": key_id,
-                "signed_at": datetime.utcnow().isoformat(),
-            }
-        )
+        if config is not None:
+            crypto_data.update(
+                {
+                    "signature_algorithm": config.hmac_algorithm,
+                    "key_id": key_id,
+                    "signed_at": datetime.now(UTC).isoformat(),
+                }
+            )
 
         return CloakMap(
             version=self.version,
@@ -457,7 +459,13 @@ class CloakMap:
         """
         if key_manager:
             try:
-                return key_manager.get_key(key_id)
+                key = key_manager.get_key(key_id)
+                if isinstance(key, bytes):
+                    return key
+                # If key is not bytes, convert it
+                if isinstance(key, str):
+                    return key.encode("utf-8")
+                # Otherwise, skip this key_manager
             except (KeyError, ValueError):
                 pass
 
@@ -565,7 +573,7 @@ class CloakMap:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(path, "w", encoding="utf-8"):
+            with path.open("w", encoding="utf-8"):
                 # encrypted_map no longer exists
                 pass
         except Exception as e:
@@ -603,13 +611,14 @@ class CloakMap:
             raise FileNotFoundError(f"Encrypted CloakMap file not found: {file_path}")
 
         if key_manager is None:
-            key_manager = create_default_key_manager()
+            # Key manager functionality removed in v2.0
+            pass
 
         if config is None:
             config = None  # Security config removed
 
         try:
-            with open(path, encoding="utf-8"):
+            with path.open(encoding="utf-8"):
                 # Encryption removed - this method no longer works
                 raise NotImplementedError("Encrypted loading has been removed")
 
@@ -646,7 +655,7 @@ class CloakMap:
             raise FileNotFoundError(f"CloakMap file not found: {file_path}")
 
         try:
-            with open(path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 content = f.read()
                 data = json.loads(content)
 
@@ -774,7 +783,7 @@ class CloakMap:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            with path.open("w", encoding="utf-8") as f:
                 f.write(self.to_json(indent=indent))
         except Exception as e:
             raise ValueError(f"Failed to save CloakMap to {file_path}: {e}") from e

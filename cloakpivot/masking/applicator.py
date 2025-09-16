@@ -266,7 +266,13 @@ class StrategyApplicator:
     def _generate_phone_template(self, original_text: str) -> str:
         """Generate format-preserving template for phone numbers."""
         # Common phone patterns
-        if len(original_text) == 10 and original_text.isdigit() or len(original_text) == 12 and original_text[3] == "-" and original_text[7] == "-":
+        if (
+            len(original_text) == 10
+            and original_text.isdigit()
+            or len(original_text) == 12
+            and original_text[3] == "-"
+            and original_text[7] == "-"
+        ):
             return "XXX-XXX-XXXX"
         if len(original_text) == 14 and original_text.startswith("(") and ")" in original_text:
             return "(XXX) XXX-XXXX"
@@ -295,7 +301,12 @@ class StrategyApplicator:
 
     def _generate_credit_card_template(self, original_text: str) -> str:
         """Generate format-preserving template for credit cards."""
-        if len(original_text) == 16 and original_text.isdigit() or len(original_text) == 19 and original_text.count("-") == 3:
+        if (
+            len(original_text) == 16
+            and original_text.isdigit()
+            or len(original_text) == 19
+            and original_text.count("-") == 3
+        ):
             return "XXXX-XXXX-XXXX-XXXX"
         if len(original_text) == 19 and original_text.count(" ") == 3:
             return "XXXX XXXX XXXX XXXX"
@@ -494,7 +505,9 @@ class StrategyApplicator:
         hash_len = len(hash_result)
         orig_len = len(original_text)
 
-        for _i, (delimiter, orig_pos) in enumerate(zip(delimiters, delimiter_positions, strict=False)):
+        for _i, (delimiter, orig_pos) in enumerate(
+            zip(delimiters, delimiter_positions, strict=False)
+        ):
             # Calculate proportional position in hash
             if orig_len > 0:
                 hash_pos = int((orig_pos / orig_len) * hash_len)

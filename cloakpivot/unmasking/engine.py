@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -102,7 +102,7 @@ class UnmaskingEngine:
                     "total_anchors_processed": 0,
                     "successful_restorations": 0,
                     "failed_restorations": 0,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -142,17 +142,16 @@ class UnmaskingEngine:
         if verify_integrity:
             # Get resolved anchors from stats if available
             resolved_anchors_data = {}
-            if hasattr(result, "stats") and result.stats:
-                if "resolved_anchors" in result.stats:
-                    # If it's already a dict, use it directly
-                    if isinstance(result.stats["resolved_anchors"], dict):
-                        resolved_anchors_data = result.stats["resolved_anchors"]
-                    # If it's a number, create a dict format
-                    elif isinstance(result.stats["resolved_anchors"], int):
-                        resolved_anchors_data = {
-                            "resolved": [None] * result.stats["resolved_anchors"],
-                            "failed": [],
-                        }
+            if hasattr(result, "stats") and result.stats and "resolved_anchors" in result.stats:
+                # If it's already a dict, use it directly
+                if isinstance(result.stats["resolved_anchors"], dict):
+                    resolved_anchors_data = result.stats["resolved_anchors"]
+                # If it's a number, create a dict format
+                elif isinstance(result.stats["resolved_anchors"], int):
+                    resolved_anchors_data = {
+                        "resolved": [None] * result.stats["resolved_anchors"],
+                        "failed": [],
+                    }
 
             result.integrity_report = self._verify_restoration_integrity(
                 original_document=result.restored_document,
@@ -192,7 +191,7 @@ class UnmaskingEngine:
 
         # For now, assume we can load JSON documents
         # Real implementation would use docpivot.load_document()
-        with open(doc_path, encoding="utf-8") as f:
+        with doc_path.open(encoding="utf-8") as f:
             json.load(f)
 
         # Create a minimal DoclingDocument for testing
@@ -429,7 +428,6 @@ class UnmaskingEngine:
         )
 
         # Additional fields are already handled by the CloakMap dataclass
-
 
     def migrate_to_presidio(self, cloakmap_path: str | Path) -> Path:
         """Migrate a v1.0 CloakMap to v2.0 with Presidio metadata.

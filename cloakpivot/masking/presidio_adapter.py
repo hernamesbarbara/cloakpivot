@@ -753,9 +753,7 @@ class PresidioMaskingAdapter:
 
         return list(set(reversible))  # Remove duplicates
 
-    def _find_segment_for_position(
-        self, position: int, segments: list[TextSegment]
-    ) -> str | None:
+    def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment node_id for a given character position.
 
         Args:
@@ -766,15 +764,18 @@ class PresidioMaskingAdapter:
             Node ID of the containing segment, or None if not found
         """
         for segment in segments:
-            if hasattr(segment, "start") and hasattr(segment, "end"):
-                if segment.start <= position < segment.end:
-                    # Return segment's node_id if available, otherwise construct one
-                    if hasattr(segment, "node_id"):
-                        return segment.node_id
-                    if hasattr(segment, "segment_index"):
-                        return f"#/texts/{segment.segment_index}"
-                    # Default to index in segment list
-                    return f"#/texts/{segments.index(segment)}"
+            if (
+                hasattr(segment, "start")
+                and hasattr(segment, "end")
+                and segment.start <= position < segment.end
+            ):
+                # Return segment's node_id if available, otherwise construct one
+                if hasattr(segment, "node_id"):
+                    return segment.node_id
+                if hasattr(segment, "segment_index"):
+                    return f"#/texts/{segment.segment_index}"
+                # Default to index in segment list
+                return f"#/texts/{segments.index(segment)}"
 
         # Fallback to default if no segment found
         return "#/texts/0"
@@ -788,22 +789,25 @@ class PresidioMaskingAdapter:
         - Release references to large intermediate objects
         """
         # Define thresholds for memory management
-        MAX_TEXT_LENGTH = 10000  # Characters per text field
-        MAX_RESULTS = 1000  # Maximum results to keep in memory
+        max_text_length = 10000  # Characters per text field
+        max_results = 1000  # Maximum results to keep in memory
 
-        if len(results) > MAX_RESULTS:
+        if len(results) > max_results:
             # For very large result sets, clear text from older results
             # Keep only essential metadata for audit trail
             for result in results[:-100]:  # Keep last 100 results intact
-                if hasattr(result, "text") and result.text and len(result.text) > MAX_TEXT_LENGTH:
+                if hasattr(result, "text") and result.text and len(result.text) > max_text_length:
                     # Clear large text fields while preserving structure
                     result.text = f"[Text truncated - {len(result.text)} chars]"
 
                 # Clear large metadata fields if present
-                if hasattr(result, "operator_metadata") and result.operator_metadata:
-                    if "original_text" in result.operator_metadata:
-                        orig_len = len(str(result.operator_metadata.get("original_text", "")))
-                        if orig_len > MAX_TEXT_LENGTH:
-                            result.operator_metadata["original_text"] = (
-                                f"[Truncated - {orig_len} chars]"
-                            )
+                if (
+                    hasattr(result, "operator_metadata")
+                    and result.operator_metadata
+                    and "original_text" in result.operator_metadata
+                ):
+                    orig_len = len(str(result.operator_metadata.get("original_text", "")))
+                    if orig_len > max_text_length:
+                        result.operator_metadata["original_text"] = (
+                            f"[Truncated - {orig_len} chars]"
+                        )

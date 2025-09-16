@@ -44,7 +44,7 @@ class SerializationResult:
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "w", encoding="utf-8") as f:
+        with path.open("w", encoding="utf-8") as f:
             f.write(self.content)
 
         logger.info(f"Serialized content saved to {path} ({self.size_kb:.1f} KB)")

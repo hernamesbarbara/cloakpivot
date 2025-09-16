@@ -1,11 +1,15 @@
 """Method registration system for adding masking/unmasking methods to DoclingDocument."""
 
 import warnings
+from typing import TYPE_CHECKING
 
-from docling_core.types import DoclingDocument
+from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
 
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.engine import CloakEngine
+
+if TYPE_CHECKING:
+    from cloakpivot.wrappers import CloakedDocument
 
 # Global engine instance for method registration
 _global_engine: CloakEngine | None = None
@@ -47,12 +51,15 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
         warnings.warn(
             "CloakPivot methods already registered on DoclingDocument. "
             "Re-registering with new engine.",
-            UserWarning, stacklevel=2,
+            UserWarning,
+            stacklevel=2,
         )
 
     def mask_pii(
-        self, entities: list[str] | None = None, policy: MaskingPolicy | None = None
-    ):
+        self: DoclingDocument,
+        entities: list[str] | None = None,
+        policy: MaskingPolicy | None = None,
+    ) -> "CloakedDocument":
         """Mask PII in this document and return a CloakedDocument wrapper.
 
         Args:
@@ -67,7 +74,7 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
         result = _global_engine.mask_document(self, entities, policy)
         return CloakedDocument(result.document, result.cloakmap)
 
-    def unmask_pii(self):
+    def unmask_pii(self: DoclingDocument) -> DoclingDocument:
         """Unmask this document if it's a CloakedDocument.
 
         Returns:
@@ -79,17 +86,19 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
             return _global_engine.unmask_document(self._doc, self._cloakmap)
         # This is a regular DoclingDocument, return as-is
         warnings.warn(
-            "unmask_pii() called on non-masked document. Returning document as-is.", UserWarning, stacklevel=2
+            "unmask_pii() called on non-masked document. Returning document as-is.",
+            UserWarning,
+            stacklevel=2,
         )
         return self
 
     # Register methods on DoclingDocument class
-    DoclingDocument.mask_pii = mask_pii
-    DoclingDocument.unmask_pii = unmask_pii
+    DoclingDocument.mask_pii = mask_pii  # type: ignore[attr-defined]
+    DoclingDocument.unmask_pii = unmask_pii  # type: ignore[attr-defined]
 
     # Mark as registered
-    DoclingDocument._cloak_methods_registered = True
-    DoclingDocument._cloak_engine = _global_engine
+    DoclingDocument._cloak_methods_registered = True  # type: ignore[attr-defined]
+    DoclingDocument._cloak_engine = _global_engine  # type: ignore[attr-defined]
 
 
 def unregister_cloak_methods() -> None:
@@ -149,4 +158,4 @@ def update_engine(engine: CloakEngine) -> None:
         )
 
     _global_engine = engine
-    DoclingDocument._cloak_engine = engine
+    DoclingDocument._cloak_engine = engine  # type: ignore[attr-defined]

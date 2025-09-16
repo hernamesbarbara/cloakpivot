@@ -202,7 +202,7 @@ class DocumentValidator:
         import json
 
         try:
-            with open(path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 data = json.load(f)
 
             # Check if it's a valid docling document structure
@@ -442,7 +442,8 @@ class InputValidator:
         import json
 
         try:
-            with open(cloakmap_path, encoding="utf-8") as f:
+            cloakmap_path_obj = Path(cloakmap_path)
+            with cloakmap_path_obj.open(encoding="utf-8") as f:
                 cloakmap_data = json.load(f)
             self.cloakmap_validator.validate_cloakmap_structure(cloakmap_data)
         except json.JSONDecodeError as e:

@@ -459,9 +459,8 @@ class AnalyzerEngineWrapper:
                 "models": [{"lang_code": self.config.language, "model_name": model_name}],
             }
 
-            if not TYPE_CHECKING:
-                if NlpEngineProvider is None or AnalyzerEngine is None:
-                    raise ImportError("Presidio modules not properly imported")
+            if not TYPE_CHECKING and (NlpEngineProvider is None or AnalyzerEngine is None):
+                raise ImportError("Presidio modules not properly imported")
 
             nlp_engine_provider = NlpEngineProvider(nlp_configuration=nlp_configuration)
             nlp_engine = nlp_engine_provider.create_engine()

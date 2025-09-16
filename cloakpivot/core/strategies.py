@@ -80,9 +80,10 @@ class Strategy:
     def _validate_redact_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for redact strategy."""
         # Default redaction character is '*'
-        if "redact_char" in params:
-            if not isinstance(params["redact_char"], str) or len(params["redact_char"]) != 1:
-                raise ValueError("redact_char must be a single character string")
+        if "redact_char" in params and (
+            not isinstance(params["redact_char"], str) or len(params["redact_char"]) != 1
+        ):
+            raise ValueError("redact_char must be a single character string")
 
         # Optional: maintain original length
         if "preserve_length" in params and not isinstance(params["preserve_length"], bool):
@@ -112,13 +113,16 @@ class Strategy:
             raise ValueError("preserve_format must be a boolean")
 
         # Optional: template validation (check for placeholders)
-        if "validate_placeholders" in params and params["validate_placeholders"]:
-            if "template" in params:
-                template = params["template"]
-                # Check for common placeholder patterns like {entity_type}, {index}, etc.
-                placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
-                if not re.search(placeholder_pattern, template):
-                    raise ValueError("Template should contain placeholders like {entity_type}")
+        if (
+            "validate_placeholders" in params
+            and params["validate_placeholders"]
+            and "template" in params
+        ):
+            template = params["template"]
+            # Check for common placeholder patterns like {entity_type}, {index}, etc.
+            placeholder_pattern = r"\{[a-zA-Z_][a-zA-Z0-9_]*\}"
+            if not re.search(placeholder_pattern, template):
+                raise ValueError("Template should contain placeholders like {entity_type}")
 
     def _validate_hash_params(self, params: dict[str, Any]) -> None:
         """Validate parameters for hash strategy."""

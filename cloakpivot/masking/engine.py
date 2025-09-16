@@ -8,7 +8,7 @@ import logging
 import os
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -179,9 +179,7 @@ class MaskingEngine:
             return self._mask_with_presidio(
                 document, entities, policy, text_segments, original_format
             )
-        return self._mask_with_legacy(
-            document, entities, policy, text_segments, original_format
-        )
+        return self._mask_with_legacy(document, entities, policy, text_segments, original_format)
 
     def _mask_with_presidio(
         self,
@@ -594,5 +592,5 @@ class MaskingEngine:
             "total_entities_masked": len(anchor_entries),
             "entity_type_counts": entity_counts,
             "strategy_counts": strategy_counts,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

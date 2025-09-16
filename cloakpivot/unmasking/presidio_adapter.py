@@ -20,7 +20,7 @@ Key Features:
 
 import copy
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from presidio_anonymizer import DeanonymizeEngine
@@ -331,7 +331,7 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": presidio_failed,
             "anchor_restored": anchor_restored,
             "non_reversible_count": non_reversible_count,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
@@ -369,7 +369,7 @@ class PresidioUnmaskingAdapter:
                     "method": "anchor_based",
                     "presidio_restored": 0,
                     "anchor_restored": 0,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -398,7 +398,7 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": 0,
             "anchor_restored": restoration_stats.get("successful_restorations", 0),
             "anchor_failed": restoration_stats.get("failed_restorations", 0),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)

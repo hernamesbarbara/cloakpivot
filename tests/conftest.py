@@ -67,26 +67,14 @@ def conservative_engine() -> CloakEngine:
     """Create a CloakEngine with conservative settings."""
     from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
-    policy = MaskingPolicy(
-        default_strategy=Strategy(StrategyKind.REDACT)
-    )
-    return (
-        CloakEngineBuilder()
-        .with_custom_policy(policy)
-        .with_confidence_threshold(0.9)
-        .build()
-    )
+    policy = MaskingPolicy(default_strategy=Strategy(StrategyKind.REDACT))
+    return CloakEngineBuilder().with_custom_policy(policy).with_confidence_threshold(0.9).build()
 
 
 @pytest.fixture
 def custom_engine() -> CloakEngine:
     """Create a CloakEngine with custom configuration using builder."""
-    return (
-        CloakEngineBuilder()
-        .with_confidence_threshold(0.7)
-        .with_languages(["en", "es"])
-        .build()
-    )
+    return CloakEngineBuilder().with_confidence_threshold(0.7).with_languages(["en", "es"]).build()
 
 
 @pytest.fixture
@@ -133,4 +121,3 @@ def cleanup() -> Generator[None, None, None]:
             temp_file.unlink(missing_ok=True)
         elif temp_file.is_dir():
             shutil.rmtree(temp_file, ignore_errors=True)
-

@@ -88,7 +88,7 @@ class DocumentProcessor:
 
         try:
             # Load Docling JSON directly (no DocPivot needed)
-            with open(file_path) as f:
+            with file_path_obj.open() as f:
                 doc_dict = json.load(f)
             document = DoclingDocument.model_validate(doc_dict)
             self._stats.files_processed += 1
@@ -219,4 +219,6 @@ class DocumentProcessor:
             return True
 
         # Check for specific format indicators in filename
-        return bool(any(pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"]))
+        return bool(
+            any(pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"])
+        )

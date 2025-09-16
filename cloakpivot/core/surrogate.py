@@ -574,7 +574,12 @@ class SurrogateGenerator:
 
         for _i, (orig_char, surr_char) in enumerate(zip(original, surrogate, strict=False)):
             # Check character class preservation
-            if orig_char.isdigit() and not surr_char.isdigit() or orig_char.isalpha() and not surr_char.isalpha():
+            if (
+                orig_char.isdigit()
+                and not surr_char.isdigit()
+                or orig_char.isalpha()
+                and not surr_char.isalpha()
+            ):
                 return False
             if not orig_char.isalnum() and orig_char != surr_char:
                 # Non-alphanumeric characters should be preserved exactly
