@@ -1,8 +1,6 @@
 # CloakPivot
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/hernamesbarbara/cloakpivot)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/hernamesbarbara/cloakpivot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hernamesbarbara/cloakpivot/actions/workflows/ci.yml)
 
 **Simple, reversible PII masking for documents.** One-line masking and unmasking while preserving document structure.
 
