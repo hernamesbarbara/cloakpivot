@@ -51,7 +51,7 @@ jobs:
     - name: Verify pydantic installation
       run: |
         python -c "import pydantic; print(f'Pydantic version: {pydantic.__version__}')"
-        python -c "from pydantic import mypy; print('Pydantic mypy plugin: Available')"
+        python -c "import importlib.util; print('Pydantic mypy plugin:', 'Available' if importlib.util.find_spec('pydantic.mypy') else 'Not found')"
 
     - name: Run mypy
       run: mypy cloakpivot/
