@@ -278,8 +278,23 @@ class MaskingEngine:
         # Create a copy of the document to modify
         masked_document = self._copy_document(document)
 
-        # Apply masking to the document
-        self.document_masker.apply_masking(document=masked_document, anchor_entries=anchor_entries)
+        # Apply masking to the document directly using anchor entries
+        # Since DocumentMasker was removed, we apply masking inline
+        for anchor in anchor_entries:
+            # Apply the masked value to the document segment
+            if anchor.metadata:
+                segment_idx = anchor.metadata.get("segment_idx")
+                if segment_idx is not None and hasattr(masked_document, "texts"):
+                    # Find the text item and apply masking
+                    for text_item in masked_document.texts:
+                        if text_item.text == anchor.metadata.get("segment_text"):
+                            # Replace the original text with masked value
+                            text_item.text = (
+                                text_item.text[: anchor.start]
+                                + anchor.masked_value
+                                + text_item.text[anchor.end :]
+                            )
+                            break
 
         # Generate document hash for CloakMap
         doc_hash = self._compute_document_hash(document)

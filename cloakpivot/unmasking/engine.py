@@ -453,3 +453,6 @@ class UnmaskingEngine:
         logger.info(f"Migrated CloakMap from v1.0 to v2.0: {new_path}")
 
         return new_path
+
+
+__all__ = ["UnmaskingEngine", "UnmaskingResult"]

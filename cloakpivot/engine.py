@@ -226,7 +226,7 @@ class CloakEngine:
         """
         from cloakpivot.engine_builder import CloakEngineBuilder
 
-        return CloakEngineBuilder()  # type: ignore[no-untyped-call]
+        return CloakEngineBuilder()
 
     def _get_default_analyzer_config(self) -> AnalyzerConfig:
         """Get optimized default analyzer configuration."""

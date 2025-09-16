@@ -1000,3 +1000,6 @@ def validate_cloakmap_integrity(
         "anchor_count": len(cloakmap.anchors),
         "version": cloakmap.version,
     }
+
+
+__all__ = ["CloakMap", "AnchorEntry", "AnchorIndex"]

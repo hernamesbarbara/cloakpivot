@@ -55,7 +55,7 @@ class PresidioUnmaskingAdapter:
 
     def __init__(self) -> None:
         """Initialize the Presidio unmasking adapter."""
-        self.deanonymizer = DeanonymizeEngine()
+        self.deanonymizer = DeanonymizeEngine()  # type: ignore[no-untyped-call]
         self.cloakmap_enhancer = CloakMapEnhancer()
         self.anchor_resolver = AnchorResolver()
         self.document_unmasker = DocumentUnmasker()
@@ -272,14 +272,14 @@ class PresidioUnmaskingAdapter:
                     )
 
                 # Count successful restorations by checking what changed
-                for result in reversible_results:
-                    if isinstance(result, dict):
-                        masked_val = result.get("text", "")
-                        original_val = result.get("original_text", "")
+                for restoration_result in reversible_results:
+                    if isinstance(restoration_result, dict):
+                        masked_val = restoration_result.get("text", "")
+                        original_val = restoration_result.get("original_text", "")
                     else:
                         # Handle OperatorResult type
-                        masked_val = getattr(result, "text", "")
-                        original_val = getattr(result, "original_text", "")
+                        masked_val = getattr(restoration_result, "text", "")
+                        original_val = getattr(restoration_result, "original_text", "")
 
                     # Check if restoration was successful
                     if (
