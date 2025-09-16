@@ -1,11 +1,11 @@
 {
   "folders": [
-    { "path": ".", "name": "cloakpivot" }
+    { "path": ".", "name": "cloakpivot" },
+    { "path": "${env:REPOS}/docpivot", "name": "docpivot" }
   ],
   "settings": {
-    // Use the venv under cloakpivot for files opened from that folder
+    // Always use the cloakpivot venv in this workspace
     "python.defaultInterpreterPath": "${workspaceFolder:cloakpivot}/venv/bin/python",
-    // Make the terminal auto-activate
     "python.terminal.activateEnvironment": true
   }
 }

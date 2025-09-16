@@ -167,3 +167,4 @@ pdf2docling.py
 output/
 test_doc.docling.json
 tests_old/
+cloakpivot.code-workspace
