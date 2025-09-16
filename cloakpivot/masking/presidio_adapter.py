@@ -529,31 +529,68 @@ class PresidioMaskingAdapter:
             List of OperatorResult objects
         """
         try:
-            # Map strategies to operators
-            operators = {}
-            for entity_type, strategy in strategies.items():
-                if strategy.kind == StrategyKind.CUSTOM:
-                    # Handle custom strategies separately
-                    operators[entity_type] = OperatorConfig("custom")
-                elif strategy.kind == StrategyKind.SURROGATE:
-                    # Use replace operator with fake data
-                    operators[entity_type] = OperatorConfig("replace", {"new_value": "[SURROGATE]"})
+            # Separate SURROGATE entities from others
+            surrogate_entities = []
+            presidio_entities = []
+            for entity in entities:
+                entity_type = getattr(entity, "entity_type", "UNKNOWN")
+                strategy = strategies.get(entity_type)
+                if strategy and strategy.kind == StrategyKind.SURROGATE:
+                    surrogate_entities.append(entity)
                 else:
-                    operators[entity_type] = self.operator_mapper.strategy_to_operator(strategy)
+                    presidio_entities.append(entity)
 
-            # Use Presidio to process all entities
-            result = self.anonymizer.anonymize(
-                text=text, analyzer_results=entities, operators=operators
-            )
+            # Process SURROGATE entities manually
+            text_result = text
+            surrogate_results = []
 
-            # Extract operator results
-            if hasattr(result, "items"):
-                return result.items
-            # Fallback: create synthetic results
-            return [
-                self._create_synthetic_result(entity, strategies[entity.entity_type], text)
-                for entity in entities
-            ]
+            # Process surrogate entities in reverse order to maintain positions
+            for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
+                entity_type = getattr(entity, "entity_type", "UNKNOWN")
+                strategy = strategies.get(entity_type)
+                original_value = text[entity.start:entity.end]
+
+                # Generate surrogate value
+                surrogate_value = self._apply_surrogate_strategy(original_value, entity_type, strategy)
+                logger.debug(f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}")
+
+                # Replace in text
+                text_result = text_result[:entity.start] + surrogate_value + text_result[entity.end:]
+
+                # Create an OperatorResult for tracking
+                op_result = OperatorResult(
+                    start=entity.start,
+                    end=entity.end,
+                    entity_type=entity_type,
+                    text=surrogate_value,
+                    operator="surrogate"
+                )
+                surrogate_results.append(op_result)
+
+            # Process remaining entities with Presidio if any
+            if presidio_entities:
+                # Map strategies to operators for non-surrogate entities
+                operators = {}
+                for entity_type, strategy in strategies.items():
+                    if strategy.kind != StrategyKind.SURROGATE:
+                        if strategy.kind == StrategyKind.CUSTOM:
+                            operators[entity_type] = OperatorConfig("custom")
+                        else:
+                            operators[entity_type] = self.operator_mapper.strategy_to_operator(strategy)
+
+                # Use Presidio for non-surrogate entities
+                result = self.anonymizer.anonymize(
+                    text=text_result, analyzer_results=presidio_entities, operators=operators
+                )
+
+                # Combine results
+                if hasattr(result, "items"):
+                    return surrogate_results + result.items
+                else:
+                    return surrogate_results
+            else:
+                # Only surrogate entities were processed
+                return surrogate_results
 
         except Exception as e:
             logger.error(f"Batch processing failed: {e}")
