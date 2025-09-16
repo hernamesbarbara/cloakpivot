@@ -53,10 +53,10 @@ jobs:
         python -c "import pydantic; print(f'Pydantic version: {pydantic.__version__}')"
         python -c "import importlib.util; print('Pydantic mypy plugin:', 'Available' if importlib.util.find_spec('pydantic.mypy') else 'Not found')"
 
-    - name: No stray type: ignore
+    - name: Check for stray type ignore comments
       run: |
-        if git grep -n "type: ignore" -- 'cloakpivot/*.py' 'cloakpivot/**/*.py'; then
-          echo "Found stray 'type: ignore' comments. Please remove or justify them."
+        if git grep -n "type: ignore" cloakpivot/; then
+          echo "Found stray type: ignore comments. Please remove or justify them."
           exit 1
         fi
 
