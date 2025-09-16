@@ -48,25 +48,10 @@ jobs:
     - name: Run ruff
       run: ruff check cloakpivot/ tests/
 
-    - name: Verify environment (debugging)
+    - name: Verify pydantic installation
       run: |
-        echo "Python version:"
-        python --version
-        echo "Mypy version:"
-        mypy --version
-        echo "Checking pydantic availability:"
-        python -c "
-import importlib
-import sys
-for module_name in ['pydantic', 'pydantic.mypy']:
-    try:
-        mod = importlib.import_module(module_name)
-        version = getattr(mod, '__version__', '<no version>')
-        print(f'{module_name}: OK (version: {version})')
-    except ImportError as e:
-        print(f'{module_name}: NOT AVAILABLE - {e}')
-        sys.exit(1)
-"
+        python -c "import pydantic; print(f'Pydantic version: {pydantic.__version__}')"
+        python -c "from pydantic import mypy; print('Pydantic mypy plugin: Available')"
 
     - name: Run mypy
       run: mypy cloakpivot/
