@@ -174,3 +174,5 @@ BUG_surrogate_seed_not_used.md
 FEAT_table_masking_forward_masking.md
 TODO_table_masking_fix.md
 /test_table_masking.py  # Only the root-level test script, not tests/unit/test_table_masking.py
+fast_ci_playbook.txt
+fast_ci_playbook.md
