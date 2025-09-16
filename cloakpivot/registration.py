@@ -47,7 +47,7 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
         warnings.warn(
             "CloakPivot methods already registered on DoclingDocument. "
             "Re-registering with new engine.",
-            UserWarning,
+            UserWarning, stacklevel=2,
         )
 
     def mask_pii(
@@ -79,7 +79,7 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
             return _global_engine.unmask_document(self._doc, self._cloakmap)
         # This is a regular DoclingDocument, return as-is
         warnings.warn(
-            "unmask_pii() called on non-masked document. Returning document as-is.", UserWarning
+            "unmask_pii() called on non-masked document. Returning document as-is.", UserWarning, stacklevel=2
         )
         return self
 

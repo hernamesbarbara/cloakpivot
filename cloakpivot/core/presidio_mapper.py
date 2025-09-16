@@ -317,7 +317,7 @@ class StrategyToOperatorMapper:
         # Check for custom dictionary
         if "dictionary" in params and params["dictionary"]:
             dictionary = params["dictionary"]
-            if isinstance(dictionary, (list, tuple)) and dictionary:
+            if isinstance(dictionary, list | tuple) and dictionary:
                 return str(dictionary[0])  # Use first item as static replacement
 
         # Check for custom pattern

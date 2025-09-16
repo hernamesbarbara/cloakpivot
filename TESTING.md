@@ -40,41 +40,31 @@ make coverage-html  # HTML report in htmlcov/
 
 ## Test Suite Architecture
 
-### CloakEngine Test Suite
+### CloakEngine Test Suite (v2.0 API)
 
-The test suite has been refactored to focus on the simplified CloakEngine API:
+The test suite has been completely rewritten for the v2.0 API with 32 comprehensive tests:
 
-#### Core CloakEngine Tests
-- `test_cloak_engine_simple.py`: Basic masking/unmasking functionality
-- `test_cloak_engine_builder.py`: Builder pattern and configuration tests
-- `test_cloak_engine_examples.py`: Specification and documentation examples
-- `test_defaults.py`: Default configuration and policy presets
+#### Unit Tests (`tests/unit/`)
+- `test_engine.py`: Core CloakEngine functionality (11 tests)
+- `test_builder.py`: CloakEngineBuilder pattern tests (14 tests)
 
-#### Functional Tests
-- `test_masking_engine.py`: Masking functionality via CloakEngine
-- `test_unmasking_engine.py`: Unmasking and round-trip tests
-- `test_masking_integration.py`: End-to-end integration tests
-- `test_property_masking.py`: Property-based testing with Hypothesis
-
-#### Performance Tests
-- **Markers**: `@pytest.mark.performance`, `@pytest.mark.slow`
-- **Purpose**: Benchmark CloakEngine performance
-- **Coverage**: Processing speed, memory usage, engine reuse benefits
+#### Integration Tests (`tests/integration/`)
+- `test_masking_workflow.py`: Complete masking/unmasking workflows (7 tests)
 
 ### Test Infrastructure
 
 #### Fixtures (`tests/conftest.py`)
-Global fixtures for test data, mock objects, and test environment setup.
+- `test_data_dir`: Path to test data directory
+- `pdf_dir`, `json_dir`: Paths to PDF and JSON test files
+- `email_docling_document`: Pre-loaded email DoclingDocument
+- `pdf_styles_docling_document`: Pre-loaded PDF styles DoclingDocument
+- `basic_engine`, `conservative_engine`, `custom_engine`: Pre-configured engines
+- `sample_text`, `sample_markdown`: Sample text with PII for testing
 
-#### Test Utilities (`tests/utils/`)
-- `assertions.py`: Custom assertion helpers for domain-specific validation
-- `generators.py`: Test data generators using Hypothesis strategies
-- `fixtures.py`: Complex fixture builders for specialized test scenarios
-
-#### Test Data (`tests/fixtures/`)
-- `documents/`: Sample documents for testing various formats
-- `policies/`: Test policy configurations
-- `golden_files/`: Expected outputs for regression testing
+#### Test Data (`data/`)
+- `data/json/`: Docling JSON test files (email, PDF styles)
+- `data/pdf/`: Source PDF files for testing
+- `data/text/`: Plain text test files
 
 ## Test Configuration
 

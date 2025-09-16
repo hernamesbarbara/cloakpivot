@@ -430,7 +430,6 @@ class TextExtractor:
         text = re.sub(r"   +", "  ", text)  # Reduce 3+ spaces to 2 spaces
 
         # Only collapse excessive line breaks (4 or more), preserve structure
-        text = re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
+        return re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
 
         # Do NOT strip leading/trailing whitespace as it may be significant
-        return text

@@ -219,7 +219,4 @@ class DocumentProcessor:
             return True
 
         # Check for specific format indicators in filename
-        if any(pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"]):
-            return True
-
-        return False
+        return bool(any(pattern in file_path_obj.name.lower() for pattern in ["docling", "lexical"]))

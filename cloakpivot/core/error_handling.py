@@ -462,5 +462,4 @@ def with_circuit_breaker(
     expected_exception: type[Exception] = Exception,
 ) -> CircuitBreaker:
     """Decorator to add circuit breaker pattern to a function."""
-    breaker = CircuitBreaker(failure_threshold, recovery_timeout, expected_exception)
-    return breaker
+    return CircuitBreaker(failure_threshold, recovery_timeout, expected_exception)

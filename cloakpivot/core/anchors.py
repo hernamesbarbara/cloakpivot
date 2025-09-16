@@ -102,7 +102,7 @@ class AnchorEntry:
 
     def _validate_confidence(self) -> None:
         """Validate confidence score."""
-        if not isinstance(self.confidence, (int, float)):
+        if not isinstance(self.confidence, int | float):
             raise ValueError("confidence must be a number")
 
         if not 0.0 <= self.confidence <= 1.0:

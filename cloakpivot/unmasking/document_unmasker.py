@@ -205,14 +205,7 @@ class DocumentUnmasker:
         """Check if a node item contains editable text."""
         return isinstance(
             node_item,
-            (
-                TextItem,
-                TitleItem,
-                SectionHeaderItem,
-                ListItem,
-                CodeItem,
-                FormulaItem,
-            ),
+            TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
         )
 
     def _unmask_text_node(

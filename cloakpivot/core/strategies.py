@@ -175,7 +175,7 @@ class Strategy:
         if "seed" in params and not isinstance(params["seed"], str):
             raise ValueError("Seed must be a string")
 
-        if "dictionary" in params and not isinstance(params["dictionary"], (list, tuple)):
+        if "dictionary" in params and not isinstance(params["dictionary"], list | tuple):
             raise ValueError("Dictionary must be a list or tuple")
 
         # Custom format pattern validation

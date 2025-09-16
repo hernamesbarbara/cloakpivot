@@ -74,7 +74,7 @@ def _validate_confidence(confidence: float) -> None:
     Raises:
         ConfigurationError: If confidence is invalid
     """
-    if not isinstance(confidence, (int, float)):
+    if not isinstance(confidence, int | float):
         raise ConfigurationError(f"Confidence must be a number, got {type(confidence).__name__}")
 
     if not (0.0 <= confidence <= 1.0):
@@ -310,7 +310,7 @@ def get_presidio_analyzer_from_config(config: AnalyzerConfig) -> AnalyzerEngineW
         )
     except Exception as e:
         logger.error(f"Failed to create analyzer from config: {e}")
-        if isinstance(e, (ConfigurationError, InitializationError)):
+        if isinstance(e, ConfigurationError | InitializationError):
             raise
         raise InitializationError(f"Failed to create analyzer from config: {e}") from e
 
@@ -411,7 +411,7 @@ def get_detection_pipeline(
 
     except Exception as e:
         logger.error(f"Failed to create EntityDetectionPipeline: {e}")
-        if isinstance(e, (ConfigurationError, InitializationError)):
+        if isinstance(e, ConfigurationError | InitializationError):
             raise
         raise InitializationError(f"Failed to initialize detection pipeline: {e}") from e
 
@@ -463,7 +463,7 @@ def get_detection_pipeline_from_policy(
             f"Failed to create pipeline from policy: {e} "
             f"(locale={getattr(policy, 'locale', 'unknown')})"
         )
-        if isinstance(e, (ConfigurationError, InitializationError)):
+        if isinstance(e, ConfigurationError | InitializationError):
             raise
         raise InitializationError(f"Failed to create pipeline from policy: {e}") from e
 

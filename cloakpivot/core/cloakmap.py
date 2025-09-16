@@ -339,23 +339,16 @@ class CloakMap:
         )
 
         # Compute expected signature
-        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
+        json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
 
         # Use enhanced crypto utilities
-        algorithm = (
+        (
             self.crypto.get("signature_algorithm", config.hmac_algorithm)
             if self.crypto
             else config.hmac_algorithm
         )
-        CryptoUtils.compute_hmac(content, signing_key, algorithm)
-
-        return CryptoUtils.verify_hmac(
-            content,
-            signing_key,
-            self.signature,
-            algorithm,
-            config.constant_time_verification,
-        )
+        # CryptoUtils removed in v2.0 - signature verification disabled
+        return False
 
     def with_signature(
         self,
@@ -398,8 +391,9 @@ class CloakMap:
         )
 
         # Generate signature with enhanced crypto
-        content = json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
-        signature = CryptoUtils.compute_hmac(content, signing_key, config.hmac_algorithm)
+        json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
+        # CryptoUtils removed in v2.0 - signature generation disabled
+        signature = None
 
         # Update crypto metadata with signing information
         crypto_data = self.crypto.copy() if self.crypto else {}
@@ -472,8 +466,8 @@ class CloakMap:
 
         # Try default key manager as fallback
         try:
-            default_manager = create_default_key_manager()
-            return default_manager.get_key(key_id)
+            # Default key manager removed in v2.0
+            return None
         except (KeyError, ValueError):
             pass
 
@@ -564,14 +558,16 @@ class CloakMap:
             KeyError: If encryption key is not found
             ValueError: If encryption or save fails
         """
-        encrypted_map = self.encrypt(key_manager, key_id, key_version, config)
+        # Encryption removed in v2.0
+        raise NotImplementedError("Encryption has been removed in v2.0")
 
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(encrypted_map.to_json(indent=indent))
+            with open(path, "w", encoding="utf-8"):
+                # encrypted_map no longer exists
+                pass
         except Exception as e:
             raise ValueError(f"Failed to save encrypted CloakMap to {file_path}: {e}") from e
 
@@ -613,12 +609,12 @@ class CloakMap:
             config = None  # Security config removed
 
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(path, encoding="utf-8"):
                 # Encryption removed - this method no longer works
                 raise NotImplementedError("Encrypted loading has been removed")
 
-            encryption = CloakMapEncryption(key_manager, config)
-            return encryption.decrypt_cloakmap(encrypted_map)
+            # CloakMapEncryption removed in v2.0
+            raise NotImplementedError("Encryption has been removed in v2.0")
 
         except Exception as e:
             raise ValueError(f"Failed to load encrypted CloakMap from {file_path}: {e}") from e

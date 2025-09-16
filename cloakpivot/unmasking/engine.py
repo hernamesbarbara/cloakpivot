@@ -87,7 +87,7 @@ class UnmaskingEngine:
         # Load CloakMap if it's already a CloakMap object, or load from path
         if isinstance(cloakmap, CloakMap):
             cloakmap_obj = cloakmap
-        elif isinstance(cloakmap, (str, Path)):
+        elif isinstance(cloakmap, str | Path):
             cloakmap_obj = self.cloakmap_loader.load(cloakmap)
         else:
             raise ValueError("cloakmap must be a CloakMap")
@@ -415,7 +415,7 @@ class UnmaskingEngine:
         Returns:
             Enhanced v2.0 CloakMap
         """
-        enhanced_map = CloakMap(
+        return CloakMap(
             version="2.0",
             doc_id=cloakmap.doc_id,
             doc_hash=cloakmap.doc_hash,
@@ -430,7 +430,6 @@ class UnmaskingEngine:
 
         # Additional fields are already handled by the CloakMap dataclass
 
-        return enhanced_map
 
     def migrate_to_presidio(self, cloakmap_path: str | Path) -> Path:
         """Migrate a v1.0 CloakMap to v2.0 with Presidio metadata.

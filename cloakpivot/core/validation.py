@@ -301,7 +301,7 @@ class PolicyValidator:
     def validate_thresholds(thresholds: dict[str, float]) -> None:
         """Validate confidence thresholds are within valid range."""
         for entity_type, threshold in thresholds.items():
-            if not isinstance(threshold, (int, float)):
+            if not isinstance(threshold, int | float):
                 raise create_validation_error(
                     f"Threshold for {entity_type} must be numeric",
                     f"thresholds.{entity_type}",
