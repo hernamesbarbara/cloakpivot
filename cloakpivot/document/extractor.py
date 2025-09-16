@@ -289,9 +289,10 @@ class TextExtractor:
         if hasattr(table_data, "table_cells"):
             for row_idx, row in enumerate(table_data.table_cells):
                 for col_idx, cell in enumerate(row):
-                    # mypy thinks cell is a tuple, but it's actually the cell object
-                    if hasattr(cell, "text") and cell.text:  # type: ignore[attr-defined]
-                        text = cell.text  # type: ignore[attr-defined]
+                    # Cell type can vary based on table structure
+                    # Type of cell depends on table structure - could be CellType or tuple
+                    if hasattr(cell, "text"):
+                        text = getattr(cell, "text", "")
                         if self.normalize_whitespace:
                             text = self._normalize_whitespace(text)
 

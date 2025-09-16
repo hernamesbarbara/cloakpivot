@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from cloakpivot.engine_builder import CloakEngineBuilder
 
-from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
+from cloakpivot.type_imports import DoclingDocument
 from presidio_analyzer import AnalyzerEngine
 
 from cloakpivot.core.analyzer import AnalyzerConfig
