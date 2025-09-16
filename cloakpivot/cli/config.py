@@ -134,7 +134,7 @@ class PresidioConfig:
         if "confidence_threshold" in data:
             threshold = data["confidence_threshold"]
             if (
-                not isinstance(threshold, (int, float))
+                not isinstance(threshold, int | float)
                 or threshold < MIN_CONFIDENCE_THRESHOLD
                 or threshold > MAX_CONFIDENCE_THRESHOLD
             ):

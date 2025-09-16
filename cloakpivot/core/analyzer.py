@@ -119,7 +119,7 @@ class AnalyzerConfig:
 
     def _validate_confidence(self) -> None:
         """Validate confidence threshold."""
-        if not isinstance(self.min_confidence, (int, float)):
+        if not isinstance(self.min_confidence, int | float):
             raise ValueError("min_confidence must be a number")
 
         if not 0.0 <= self.min_confidence <= 1.0:

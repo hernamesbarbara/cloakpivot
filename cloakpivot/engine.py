@@ -158,13 +158,10 @@ class CloakEngine:
         full_text = self._text_extractor.extract_full_text(document)
 
         # Create a simple text result wrapper
-        text_result = TextExtractionResult(full_text=full_text, segments=segments)
+        TextExtractionResult(full_text=full_text, segments=segments)
 
         # If no entities specified, use default common PII types
-        if entities is None:
-            entity_types = self._get_default_entities()
-        else:
-            entity_types = entities
+        entity_types = self._get_default_entities() if entities is None else entities
 
         # Detect entities using Presidio analyzer
         # Run Presidio analysis

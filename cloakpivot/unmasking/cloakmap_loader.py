@@ -103,7 +103,7 @@ class CloakMapLoader:
 
         except Exception as e:
             logger.error(f"Failed to load CloakMap from {path}: {e}")
-            if isinstance(e, (CloakMapLoadError, FileNotFoundError)):
+            if isinstance(e, CloakMapLoadError | FileNotFoundError):
                 raise
             raise CloakMapLoadError(f"Unexpected error loading CloakMap: {e}") from e
 

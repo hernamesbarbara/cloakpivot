@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **New Test Suite**: Complete rewrite of test infrastructure based on v2.0 API
+  - Created clean test structure with `unit/` and `integration/` directories
+  - 32 comprehensive tests covering CloakEngine and CloakEngineBuilder functionality
+  - Tests use real test data from `data/json/` and `data/pdf/` directories
+  - Fixtures properly configured for v2.0 API usage patterns
+  - All tests passing with 31.68% code coverage
+
+### Removed
+- **Build Artifacts and Cache Files**:
+  - Removed `.benchmarks/`, `.mypy_cache/`, `.ruff_cache/` directories
+  - Removed `build/` and `cloakpivot.egg-info/` directories
+  - Cleaned up all `__pycache__` directories throughout the project
+- **Outdated Test Suite**:
+  - Removed entire old `tests/` directory that was incompatible with v2.0 API
+  - Old tests referenced non-existent modules and used incorrect API patterns
+
 ### Fixed
+- **Critical Import and Code Issues**:
+  - Fixed duplicate `MaskResult` import in `__init__.py`
+  - Removed references to non-existent `CryptoUtils` module (removed in v2.0)
+  - Fixed test suite to use `Strategy` objects instead of bare `StrategyKind` enums
+  - Updated method calls to use correct names (`save_to_file`, `load_from_file`)
+  - Fixed CloakEngine initialization to not accept presets directly (use CloakEngineBuilder)
 - **DoclingDocument Compatibility**: Fixed version mismatch issues with Docling v1.7.0 format
   - Updated dependencies to `docling>=2.52.0` and `docling-core>=2.0.0` to match DocPivot requirements
   - Fixed masking process to preserve `origin` field in masked documents (required for v1.7.0)

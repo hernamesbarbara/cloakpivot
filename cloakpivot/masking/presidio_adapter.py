@@ -318,7 +318,7 @@ class PresidioMaskingAdapter:
         if hasattr(document, "texts") and document.texts:
             from ..document.mapper import AnchorMapper
 
-            mapper = AnchorMapper()
+            AnchorMapper()
 
             masked_segments = []
 

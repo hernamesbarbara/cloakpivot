@@ -93,7 +93,7 @@ class MaskingPolicy:
     def _validate_thresholds(self) -> None:
         """Validate confidence threshold values."""
         for entity_type, threshold in self.thresholds.items():
-            if not isinstance(threshold, (int, float)):
+            if not isinstance(threshold, int | float):
                 raise ValueError(f"Threshold for {entity_type} must be a number")
 
             if not 0.0 <= threshold <= 1.0:
@@ -142,7 +142,7 @@ class MaskingPolicy:
                 "strategy_overrides",
                 "threshold_overrides",
             }
-            for rule_key in rules.keys():
+            for rule_key in rules:
                 if rule_key not in valid_rule_keys:
                     raise ValueError(
                         f"Unknown rule key '{rule_key}', valid keys: {valid_rule_keys}"
@@ -217,7 +217,7 @@ class MaskingPolicy:
             context_rule = self.context_rules[context]
             if "threshold" in context_rule:
                 threshold = context_rule["threshold"]
-                if isinstance(threshold, (int, float)):
+                if isinstance(threshold, int | float):
                     return float(threshold)
 
         # Check entity-specific threshold

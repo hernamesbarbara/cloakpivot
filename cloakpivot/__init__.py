@@ -63,7 +63,7 @@ from .document import (
 )
 
 # New simplified API
-from .engine import CloakEngine, MaskResult
+from .engine import CloakEngine
 from .engine_builder import CloakEngineBuilder
 
 # Masking system

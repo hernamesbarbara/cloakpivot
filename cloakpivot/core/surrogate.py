@@ -593,10 +593,7 @@ class SurrogateGenerator:
             return False
 
         # Check for obvious real data patterns (basic check)
-        if self._contains_suspicious_patterns(surrogate):
-            return False
-
-        return True
+        return not self._contains_suspicious_patterns(surrogate)
 
     def _contains_suspicious_patterns(self, text: str) -> bool:
         """Check if text contains patterns that might be real data."""

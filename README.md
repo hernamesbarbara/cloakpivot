@@ -154,7 +154,7 @@ cloakpivot/
 │   ├── advanced_usage.py # Builder pattern and policies
 │   ├── pdf_workflow.py   # Complete PDF processing
 │   └── docling_integration.py # Pipeline integration
-├── tests/                # Test suite (60+ tests)
+├── tests/                # Test suite (32 tests, v2.0 API)
 └── config/policies/      # Policy templates
 ```
 

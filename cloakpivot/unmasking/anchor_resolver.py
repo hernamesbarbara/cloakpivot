@@ -445,14 +445,7 @@ class AnchorResolver:
         # Handle text-bearing nodes
         if isinstance(
             node_item,
-            (
-                TextItem,
-                TitleItem,
-                SectionHeaderItem,
-                ListItem,
-                CodeItem,
-                FormulaItem,
-            ),
+            TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
         ):
             return getattr(node_item, "text", None)
 
