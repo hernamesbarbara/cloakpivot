@@ -548,14 +548,20 @@ class PresidioMaskingAdapter:
             for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
                 entity_type = getattr(entity, "entity_type", "UNKNOWN")
                 strategy = strategies.get(entity_type)
-                original_value = text[entity.start:entity.end]
+                original_value = text[entity.start : entity.end]
 
                 # Generate surrogate value
-                surrogate_value = self._apply_surrogate_strategy(original_value, entity_type, strategy)
-                logger.debug(f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}")
+                surrogate_value = self._apply_surrogate_strategy(
+                    original_value, entity_type, strategy
+                )
+                logger.debug(
+                    f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}"
+                )
 
                 # Replace in text
-                text_result = text_result[:entity.start] + surrogate_value + text_result[entity.end:]
+                text_result = (
+                    text_result[: entity.start] + surrogate_value + text_result[entity.end :]
+                )
 
                 # Create an OperatorResult for tracking
                 op_result = OperatorResult(
@@ -563,7 +569,7 @@ class PresidioMaskingAdapter:
                     end=entity.end,
                     entity_type=entity_type,
                     text=surrogate_value,
-                    operator="surrogate"
+                    operator="surrogate",
                 )
                 surrogate_results.append(op_result)
 
@@ -576,7 +582,9 @@ class PresidioMaskingAdapter:
                         if strategy.kind == StrategyKind.CUSTOM:
                             operators[entity_type] = OperatorConfig("custom")
                         else:
-                            operators[entity_type] = self.operator_mapper.strategy_to_operator(strategy)
+                            operators[entity_type] = self.operator_mapper.strategy_to_operator(
+                                strategy
+                            )
 
                 # Use Presidio for non-surrogate entities
                 result = self.anonymizer.anonymize(
@@ -586,11 +594,9 @@ class PresidioMaskingAdapter:
                 # Combine results
                 if hasattr(result, "items"):
                     return surrogate_results + result.items
-                else:
-                    return surrogate_results
-            else:
-                # Only surrogate entities were processed
                 return surrogate_results
+            # Only surrogate entities were processed
+            return surrogate_results
 
         except Exception as e:
             logger.error(f"Batch processing failed: {e}")
