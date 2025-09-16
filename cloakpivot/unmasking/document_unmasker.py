@@ -254,10 +254,14 @@ class DocumentUnmasker:
             if 0 <= start_pos < end_pos <= len(modified_text):
                 found_text = modified_text[start_pos:end_pos]
                 # Check if we found the right masked value or the expected text
-                if found_text == anchor.masked_value or found_text == resolved_anchor.found_text or (
-                    anchor.masked_value
-                    and all(c == "*" for c in anchor.masked_value)
-                    and all(c == "*" for c in found_text)
+                if (
+                    found_text == anchor.masked_value
+                    or found_text == resolved_anchor.found_text
+                    or (
+                        anchor.masked_value
+                        and all(c == "*" for c in anchor.masked_value)
+                        and all(c == "*" for c in found_text)
+                    )
                 ):
                     position_valid = True
 
@@ -282,31 +286,33 @@ class DocumentUnmasker:
                 else:
                     start_pos = -1
 
-            if start_pos == -1:
-                # Try pattern matching for common masking patterns (asterisks)
-                if anchor.masked_value and all(c == "*" for c in anchor.masked_value):
-                    # Look for any sequence of asterisks that might be part of this mask
-                    import re
+            if (
+                start_pos == -1
+                and anchor.masked_value
+                and all(c == "*" for c in anchor.masked_value)
+            ):
+                # Look for any sequence of asterisks that might be part of this mask
+                import re
 
-                    asterisk_pattern = r"\*+"
-                    matches = list(re.finditer(asterisk_pattern, modified_text))
+                asterisk_pattern = r"\*+"
+                matches = list(re.finditer(asterisk_pattern, modified_text))
 
-                    # Find the best match (prefer longer sequences, but accept shorter ones too)
-                    best_match = None
-                    for match in reversed(matches):  # Process in reverse order
-                        match_text = match.group()
-                        # Accept if it's reasonably close in length or contains asterisks
-                        if len(match_text) >= min(3, len(anchor.masked_value) // 2):
-                            best_match = match
-                            break
+                # Find the best match (prefer longer sequences, but accept shorter ones too)
+                best_match = None
+                for match in reversed(matches):  # Process in reverse order
+                    match_text = match.group()
+                    # Accept if it's reasonably close in length or contains asterisks
+                    if len(match_text) >= min(3, len(anchor.masked_value) // 2):
+                        best_match = match
+                        break
 
-                    if best_match:
-                        start_pos = best_match.start()
-                        end_pos = best_match.end()
-                        logger.debug(
-                            f"Found asterisk pattern '{best_match.group()}' at position {start_pos} "
-                            f"for masked_value '{anchor.masked_value}' (anchor {anchor.replacement_id})"
-                        )
+                if best_match:
+                    start_pos = best_match.start()
+                    end_pos = best_match.end()
+                    logger.debug(
+                        f"Found asterisk pattern '{best_match.group()}' at position {start_pos} "
+                        f"for masked_value '{anchor.masked_value}' (anchor {anchor.replacement_id})"
+                    )
 
             if start_pos == -1:
                 logger.warning(
@@ -475,22 +481,25 @@ class DocumentUnmasker:
                 value_anchors.append(resolved_anchor)
 
         # Unmask key part
-        if key_anchors and hasattr(kv_item, "key") and kv_item.key:
-            if hasattr(kv_item.key, "text"):
-                key_results = self._unmask_key_value_text(
-                    kv_item.key, key_anchors, original_content_provider, "key"
-                )
-                results.extend(key_results)
-                logger.debug(f"Unmasked key-value key: {base_node_id}")
+        if key_anchors and hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
+            key_results = self._unmask_key_value_text(
+                kv_item.key, key_anchors, original_content_provider, "key"
+            )
+            results.extend(key_results)
+            logger.debug(f"Unmasked key-value key: {base_node_id}")
 
         # Unmask value part
-        if value_anchors and hasattr(kv_item, "value") and kv_item.value:
-            if hasattr(kv_item.value, "text"):
-                value_results = self._unmask_key_value_text(
-                    kv_item.value, value_anchors, original_content_provider, "value"
-                )
-                results.extend(value_results)
-                logger.debug(f"Unmasked key-value value: {base_node_id}")
+        if (
+            value_anchors
+            and hasattr(kv_item, "value")
+            and kv_item.value
+            and hasattr(kv_item.value, "text")
+        ):
+            value_results = self._unmask_key_value_text(
+                kv_item.value, value_anchors, original_content_provider, "value"
+            )
+            results.extend(value_results)
+            logger.debug(f"Unmasked key-value value: {base_node_id}")
 
         return results
 

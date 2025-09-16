@@ -79,7 +79,7 @@ class PresidioConfig:
         if not config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-        with open(config_path, encoding="utf-8") as f:
+        with config_path.open(encoding="utf-8") as f:
             if config_path.suffix in [".yaml", ".yml"]:
                 data = yaml.safe_load(f)
             elif config_path.suffix == ".json":

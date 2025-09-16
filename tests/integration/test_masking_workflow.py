@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 from docling_core.types import DoclingDocument
 
 from cloakpivot import CloakEngine, CloakEngineBuilder
@@ -23,9 +22,7 @@ class TestMaskingWorkflow:
         assert mask_result.entities_found >= 0
 
         # Verify PII was masked
-        masked_text = " ".join(
-            [item.text for item in mask_result.document.texts if item.text]
-        )
+        masked_text = " ".join([item.text for item in mask_result.document.texts if item.text])
         # Should not contain obvious email patterns
         assert "@example.com" not in masked_text.lower()
 
@@ -40,14 +37,8 @@ class TestMaskingWorkflow:
         """Test workflow with PDF styles document."""
         from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
-        policy = MaskingPolicy(
-            default_strategy=Strategy(StrategyKind.REDACT)
-        )
-        engine = (
-            CloakEngineBuilder()
-            .with_custom_policy(policy)
-            .build()
-        )
+        policy = MaskingPolicy(default_strategy=Strategy(StrategyKind.REDACT))
+        engine = CloakEngineBuilder().with_custom_policy(policy).build()
 
         # Mask the document
         mask_result = engine.mask_document(pdf_styles_docling_document)
@@ -59,15 +50,9 @@ class TestMaskingWorkflow:
         restored = engine.unmask_document(mask_result.document, mask_result.cloakmap)
         assert isinstance(restored, DoclingDocument)
 
-    def test_custom_configuration_workflow(
-        self, email_docling_document: DoclingDocument
-    ):
+    def test_custom_configuration_workflow(self, email_docling_document: DoclingDocument):
         """Test workflow with custom configuration."""
-        engine = (
-            CloakEngineBuilder()
-            .with_confidence_threshold(0.7)
-            .build()
-        )
+        engine = CloakEngineBuilder().with_confidence_threshold(0.7).build()
 
         # Mask the document
         mask_result = engine.mask_document(email_docling_document)
@@ -77,9 +62,7 @@ class TestMaskingWorkflow:
         restored = engine.unmask_document(mask_result.document, mask_result.cloakmap)
         assert isinstance(restored, DoclingDocument)
 
-    def test_save_and_load_cloakmap(
-        self, email_docling_document: DoclingDocument, tmp_path: Path
-    ):
+    def test_save_and_load_cloakmap(self, email_docling_document: DoclingDocument, tmp_path: Path):
         """Test saving and loading CloakMap."""
         engine = CloakEngine()
         cloakmap_path = tmp_path / "test.cloakmap.json"
@@ -111,22 +94,13 @@ class TestMaskingWorkflow:
         from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
         # First document with low confidence threshold
-        minimal_engine = (
-            CloakEngineBuilder()
-            .with_confidence_threshold(0.5)
-            .build()
-        )
+        minimal_engine = CloakEngineBuilder().with_confidence_threshold(0.5).build()
         result1 = minimal_engine.mask_document(email_docling_document)
 
         # Second document with strict policy
-        policy = MaskingPolicy(
-            default_strategy=Strategy(StrategyKind.REDACT)
-        )
+        policy = MaskingPolicy(default_strategy=Strategy(StrategyKind.REDACT))
         conservative_engine = (
-            CloakEngineBuilder()
-            .with_custom_policy(policy)
-            .with_confidence_threshold(0.9)
-            .build()
+            CloakEngineBuilder().with_custom_policy(policy).with_confidence_threshold(0.9).build()
         )
         result2 = conservative_engine.mask_document(pdf_styles_docling_document)
 
@@ -136,12 +110,8 @@ class TestMaskingWorkflow:
         assert result2.entities_found >= 0
 
         # Unmask each with appropriate engine
-        restored1 = minimal_engine.unmask_document(
-            result1.document, result1.cloakmap
-        )
-        restored2 = conservative_engine.unmask_document(
-            result2.document, result2.cloakmap
-        )
+        restored1 = minimal_engine.unmask_document(result1.document, result1.cloakmap)
+        restored2 = conservative_engine.unmask_document(result2.document, result2.cloakmap)
 
         assert isinstance(restored1, DoclingDocument)
         assert isinstance(restored2, DoclingDocument)
@@ -152,19 +122,11 @@ class TestMaskingWorkflow:
 
         # Engine with tight merging threshold
         tight_config = ConflictResolutionConfig(merge_threshold_chars=5)
-        engine_tight = (
-            CloakEngineBuilder()
-            .with_conflict_resolution(tight_config)
-            .build()
-        )
+        engine_tight = CloakEngineBuilder().with_conflict_resolution(tight_config).build()
 
         # Engine with loose merging threshold
         loose_config = ConflictResolutionConfig(merge_threshold_chars=50)
-        engine_loose = (
-            CloakEngineBuilder()
-            .with_conflict_resolution(loose_config)
-            .build()
-        )
+        engine_loose = CloakEngineBuilder().with_conflict_resolution(loose_config).build()
 
         result_tight = engine_tight.mask_document(email_docling_document)
         result_loose = engine_loose.mask_document(email_docling_document)
@@ -178,36 +140,21 @@ class TestMaskingWorkflow:
         assert result_tight.entities_found >= 0
         assert result_loose.entities_found >= 0
 
-    def test_all_policies(
-        self, email_docling_document: DoclingDocument
-    ):
+    def test_all_policies(self, email_docling_document: DoclingDocument):
         """Test different policy configurations."""
         from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
         # Test strict policy
-        strict_policy = MaskingPolicy(
-            default_strategy=Strategy(StrategyKind.REDACT)
-        )
-        strict = (
-            CloakEngineBuilder()
-            .with_custom_policy(strict_policy)
-            .build()
-        )
+        strict_policy = MaskingPolicy(default_strategy=Strategy(StrategyKind.REDACT))
+        strict = CloakEngineBuilder().with_custom_policy(strict_policy).build()
         result = strict.mask_document(email_docling_document)
         assert result.cloakmap is not None
 
         # Test template policy
         template_policy = MaskingPolicy(
-            default_strategy=Strategy(
-                StrategyKind.TEMPLATE,
-                parameters={"template": "[MASKED]"}
-            )
+            default_strategy=Strategy(StrategyKind.TEMPLATE, parameters={"template": "[MASKED]"})
         )
-        template = (
-            CloakEngineBuilder()
-            .with_custom_policy(template_policy)
-            .build()
-        )
+        template = CloakEngineBuilder().with_custom_policy(template_policy).build()
         result = template.mask_document(email_docling_document)
         assert result.cloakmap is not None
 
@@ -215,4 +162,3 @@ class TestMaskingWorkflow:
         default = CloakEngine()
         result = default.mask_document(email_docling_document)
         assert result.cloakmap is not None
-

@@ -9,3 +9,10 @@
 # Keep sample synthetic data files that are explicitly safe
 !text/employee_record.txt
 !docling/financial_report.docling.json
+
+# Keep test data files needed for CI
+!json/
+!json/email.docling.json
+!json/email.lexical.json
+!json/2025-07-03-Test-PDF-Styles.docling.json
+!json/2025-07-03-Test-PDF-Styles.lexical.json

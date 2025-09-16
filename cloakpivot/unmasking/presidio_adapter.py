@@ -20,7 +20,7 @@ Key Features:
 
 import copy
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from presidio_anonymizer import DeanonymizeEngine
@@ -55,7 +55,7 @@ class PresidioUnmaskingAdapter:
 
     def __init__(self) -> None:
         """Initialize the Presidio unmasking adapter."""
-        self.deanonymizer = DeanonymizeEngine()
+        self.deanonymizer = DeanonymizeEngine()  # type: ignore[no-untyped-call]
         self.cloakmap_enhancer = CloakMapEnhancer()
         self.anchor_resolver = AnchorResolver()
         self.document_unmasker = DocumentUnmasker()
@@ -272,14 +272,14 @@ class PresidioUnmaskingAdapter:
                     )
 
                 # Count successful restorations by checking what changed
-                for result in reversible_results:
-                    if isinstance(result, dict):
-                        masked_val = result.get("text", "")
-                        original_val = result.get("original_text", "")
+                for restoration_result in reversible_results:
+                    if isinstance(restoration_result, dict):
+                        masked_val = restoration_result.get("text", "")
+                        original_val = restoration_result.get("original_text", "")
                     else:
                         # Handle OperatorResult type
-                        masked_val = getattr(result, "text", "")
-                        original_val = getattr(result, "original_text", "")
+                        masked_val = getattr(restoration_result, "text", "")
+                        original_val = getattr(restoration_result, "original_text", "")
 
                     # Check if restoration was successful
                     if (
@@ -331,7 +331,7 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": presidio_failed,
             "anchor_restored": anchor_restored,
             "non_reversible_count": non_reversible_count,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
@@ -369,7 +369,7 @@ class PresidioUnmaskingAdapter:
                     "method": "anchor_based",
                     "presidio_restored": 0,
                     "anchor_restored": 0,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -398,7 +398,7 @@ class PresidioUnmaskingAdapter:
             "presidio_failed": 0,
             "anchor_restored": restoration_stats.get("successful_restorations", 0),
             "anchor_failed": restoration_stats.get("failed_restorations", 0),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)

@@ -2,7 +2,7 @@
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 # Security features removed - simplified implementation
@@ -83,7 +83,7 @@ class AnchorEntry:
 
         # Set default timestamp if not provided
         if self.timestamp is None:
-            object.__setattr__(self, "timestamp", datetime.utcnow())
+            object.__setattr__(self, "timestamp", datetime.now(UTC))
 
         # Initialize empty metadata if not provided
         if self.metadata is None:

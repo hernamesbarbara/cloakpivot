@@ -1,9 +1,12 @@
 """CloakEngine - Simplified high-level API for PII masking/unmasking operations."""
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from docling_core.types import DoclingDocument
+if TYPE_CHECKING:
+    from cloakpivot.engine_builder import CloakEngineBuilder
+
+from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
 from presidio_analyzer import AnalyzerEngine
 
 from cloakpivot.core.analyzer import AnalyzerConfig
@@ -11,6 +14,8 @@ from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor
+
+# CloakEngineBuilder import moved to avoid circular import
 from cloakpivot.masking.engine import MaskingEngine
 from cloakpivot.unmasking.engine import UnmaskingEngine
 

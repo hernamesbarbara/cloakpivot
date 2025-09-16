@@ -68,7 +68,7 @@ class PresidioMaskingAdapter:
     def anonymizer(self) -> AnonymizerEngine:
         """Lazy-load the AnonymizerEngine on first access."""
         if self._anonymizer_instance is None:
-            self._anonymizer_instance = AnonymizerEngine()
+            self._anonymizer_instance = AnonymizerEngine()  # type: ignore[no-untyped-call]
             logger.debug("AnonymizerEngine initialized")
         return self._anonymizer_instance
 
@@ -108,7 +108,7 @@ class PresidioMaskingAdapter:
             # Special handling for REDACT strategy since Presidio's redact operator has issues
             if strategy.kind == StrategyKind.REDACT:
                 params = strategy.parameters or {}
-                char = params.get("char", params.get("redact_char", "*"))
+                char = str(params.get("char", params.get("redact_char", "*")))
                 return char * len(original_text)
 
             # Special handling for HASH strategy to support prefix
@@ -184,7 +184,7 @@ class PresidioMaskingAdapter:
 
         # Build the full document text from segments (preserving structure)
         document_text = ""
-        segment_boundaries = []
+        segment_boundaries: list[dict[str, Any]] = []
         for i, segment in enumerate(text_segments):
             segment_boundaries.append(
                 {
@@ -231,11 +231,11 @@ class PresidioMaskingAdapter:
         for entity in sorted_entities:
             # Find matching operator result by position
             key = (entity.start, entity.end)
-            op_result: OperatorResult | None = op_results_by_pos.get(key)
+            matched_result: OperatorResult | None = op_results_by_pos.get(key)
 
             # If no exact match, create a synthetic result
-            if op_result is None:
-                op_result = self._create_synthetic_result(
+            if matched_result is None:
+                matched_result = self._create_synthetic_result(
                     entity,
                     strategies.get(
                         entity.entity_type, Strategy(StrategyKind.REDACT, {"char": "*"})
@@ -248,7 +248,9 @@ class PresidioMaskingAdapter:
 
             # Get masked value from operator result
             masked_value = (
-                op_result.text if hasattr(op_result, "text") else self._fallback_redaction(original)
+                matched_result.text
+                if hasattr(matched_result, "text")
+                else self._fallback_redaction(original)
             )
 
             # Apply mask to text
@@ -291,16 +293,21 @@ class PresidioMaskingAdapter:
                 metadata={
                     "original_text": original,  # Store for reversibility in metadata
                     "presidio_operator": (
-                        op_result.operator if hasattr(op_result, "operator") else "fallback"
+                        matched_result.operator
+                        if hasattr(matched_result, "operator")
+                        else "fallback"
                     ),
                 },
             )
             anchor_entries.append(anchor)
             # Track entity to operator result mapping for metadata
-            entity_to_op_result.append((entity, op_result))
+            entity_to_op_result.append((entity, matched_result))
 
         # Create masked document preserving original structure
-        from docling_core.types.doc.document import DocItemLabel, TextItem
+        from docling_core.types.doc.document import (  # type: ignore[attr-defined]
+            DocItemLabel,
+            TextItem,
+        )
 
         masked_document = DoclingDocument(
             name=document.name,
@@ -328,7 +335,7 @@ class PresidioMaskingAdapter:
                     segment_text = original_item.text
 
                     # Find entities that affect this segment
-                    segment_entities = []
+                    segment_entities: list[dict[str, Any]] = []
                     for entity in sorted_entities:
                         # Check if entity overlaps with this segment
                         if entity.start < segment.end_offset and entity.end > segment.start_offset:
@@ -352,26 +359,27 @@ class PresidioMaskingAdapter:
                     segment_entities.sort(key=lambda x: x["local_start"], reverse=True)
 
                     for entity_info in segment_entities:
-                        entity = entity_info["entity"]
-                        local_start = entity_info["local_start"]
-                        local_end = entity_info["local_end"]
+                        entity = cast(RecognizerResult, entity_info["entity"])
+                        local_start = cast(int, entity_info["local_start"])
+                        local_end = cast(int, entity_info["local_end"])
 
                         # Find the anchor entry for this entity
-                        anchor = next(
+                        matching_anchor: AnchorEntry | None = next(
                             (
                                 a
                                 for a in anchor_entries
-                                if a.metadata.get("original_text")
+                                if a.metadata
+                                and a.metadata.get("original_text")
                                 == document_text[entity.start : entity.end]
                             ),
                             None,
                         )
 
-                        if anchor:
+                        if matching_anchor:
                             # Apply the mask
                             masked_segment_text = (
                                 masked_segment_text[:local_start]
-                                + anchor.masked_value
+                                + matching_anchor.masked_value
                                 + masked_segment_text[local_end:]
                             )
 
@@ -405,7 +413,7 @@ class PresidioMaskingAdapter:
                             if hasattr(original_item, "self_ref")
                             else f"#/texts/{i}"
                         ),
-                        label=item_label,
+                        label=item_label,  # type: ignore[arg-type]
                         orig=masked_segment_text,
                     )
 
@@ -753,9 +761,7 @@ class PresidioMaskingAdapter:
 
         return list(set(reversible))  # Remove duplicates
 
-    def _find_segment_for_position(
-        self, position: int, segments: list[TextSegment]
-    ) -> str | None:
+    def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment node_id for a given character position.
 
         Args:
@@ -766,15 +772,18 @@ class PresidioMaskingAdapter:
             Node ID of the containing segment, or None if not found
         """
         for segment in segments:
-            if hasattr(segment, "start") and hasattr(segment, "end"):
-                if segment.start <= position < segment.end:
-                    # Return segment's node_id if available, otherwise construct one
-                    if hasattr(segment, "node_id"):
-                        return segment.node_id
-                    if hasattr(segment, "segment_index"):
-                        return f"#/texts/{segment.segment_index}"
-                    # Default to index in segment list
-                    return f"#/texts/{segments.index(segment)}"
+            if (
+                hasattr(segment, "start")
+                and hasattr(segment, "end")
+                and segment.start <= position < segment.end
+            ):
+                # Return segment's node_id if available, otherwise construct one
+                if hasattr(segment, "node_id"):
+                    return segment.node_id
+                if hasattr(segment, "segment_index"):
+                    return f"#/texts/{segment.segment_index}"
+                # Default to index in segment list
+                return f"#/texts/{segments.index(segment)}"
 
         # Fallback to default if no segment found
         return "#/texts/0"
@@ -788,22 +797,25 @@ class PresidioMaskingAdapter:
         - Release references to large intermediate objects
         """
         # Define thresholds for memory management
-        MAX_TEXT_LENGTH = 10000  # Characters per text field
-        MAX_RESULTS = 1000  # Maximum results to keep in memory
+        max_text_length = 10000  # Characters per text field
+        max_results = 1000  # Maximum results to keep in memory
 
-        if len(results) > MAX_RESULTS:
+        if len(results) > max_results:
             # For very large result sets, clear text from older results
             # Keep only essential metadata for audit trail
             for result in results[:-100]:  # Keep last 100 results intact
-                if hasattr(result, "text") and result.text and len(result.text) > MAX_TEXT_LENGTH:
+                if hasattr(result, "text") and result.text and len(result.text) > max_text_length:
                     # Clear large text fields while preserving structure
                     result.text = f"[Text truncated - {len(result.text)} chars]"
 
                 # Clear large metadata fields if present
-                if hasattr(result, "operator_metadata") and result.operator_metadata:
-                    if "original_text" in result.operator_metadata:
-                        orig_len = len(str(result.operator_metadata.get("original_text", "")))
-                        if orig_len > MAX_TEXT_LENGTH:
-                            result.operator_metadata["original_text"] = (
-                                f"[Truncated - {orig_len} chars]"
-                            )
+                if (
+                    hasattr(result, "operator_metadata")
+                    and result.operator_metadata
+                    and "original_text" in result.operator_metadata
+                ):
+                    orig_len = len(str(result.operator_metadata.get("original_text", "")))
+                    if orig_len > max_text_length:
+                        result.operator_metadata["original_text"] = (
+                            f"[Truncated - {orig_len} chars]"
+                        )

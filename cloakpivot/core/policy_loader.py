@@ -148,9 +148,7 @@ class PolicyFileSchema(BaseModel):
     version: str | None = Field("1.0", description="Policy schema version")
     name: str | None = Field(None, description="Policy name")
     description: str | None = Field(None, description="Policy description")
-    extends: str | list[str] | None = Field(
-        None, description="Base policy files to inherit from"
-    )
+    extends: str | list[str] | None = Field(None, description="Base policy files to inherit from")
 
     # Core configuration
     locale: str | None = Field("en", description="Default locale")
@@ -166,13 +164,9 @@ class PolicyFileSchema(BaseModel):
     thresholds: dict[str, float] | None = Field(
         None, description="Per-entity confidence thresholds"
     )
-    allow_list: list[str | AllowListItem] | None = Field(
-        None, description="Values to never mask"
-    )
+    allow_list: list[str | AllowListItem] | None = Field(None, description="Values to never mask")
     deny_list: list[str] | None = Field(None, description="Values to always mask")
-    min_entity_length: int | None = Field(
-        1, ge=0, description="Minimum entity length to consider"
-    )
+    min_entity_length: int | None = Field(1, ge=0, description="Minimum entity length to consider")
 
     # Locale support
     locales: dict[str, LocaleConfig] | None = Field(
@@ -305,7 +299,7 @@ class PolicyLoader:
             raise FileNotFoundError(f"Policy file not found: {policy_path}")
 
         try:
-            with open(policy_path, encoding="utf-8") as f:
+            with policy_path.open(encoding="utf-8") as f:
                 policy_data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
             raise PolicyValidationError(f"Invalid YAML in {policy_path}: {e}") from e

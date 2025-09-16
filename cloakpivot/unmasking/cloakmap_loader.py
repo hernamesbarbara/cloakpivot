@@ -250,7 +250,7 @@ class CloakMapLoader:
 
         try:
             # Test if file is readable by attempting to open it
-            with open(path, encoding="utf-8"):
+            with path.open(encoding="utf-8"):
                 pass
         except PermissionError as e:
             raise CloakMapLoadError(f"Cannot read CloakMap file: {path}") from e
@@ -258,7 +258,7 @@ class CloakMapLoader:
     def _load_file_content(self, path: Path) -> str:
         """Load raw file content as string."""
         try:
-            with open(path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 return f.read()
         except UnicodeDecodeError as e:
             raise CloakMapLoadError(f"CloakMap file contains invalid UTF-8: {path} - {e}") from e
@@ -358,7 +358,7 @@ class CloakMapLoader:
 
         # Try to extract basic info from JSON without full parsing
         try:
-            with open(path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 # Read just enough to get basic metadata
                 first_chunk = f.read(1024)
                 if first_chunk:

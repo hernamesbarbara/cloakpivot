@@ -81,13 +81,14 @@ class PerformanceConfig:
 
     def _validate_worker_threads(self) -> None:
         """Validate max_worker_threads."""
-        if self.max_worker_threads is not None:
-            if not isinstance(self.max_worker_threads, int) or self.max_worker_threads <= 0:
-                logger.warning(
-                    f"max_worker_threads must be positive integer or None, got "
-                    f"{self.max_worker_threads}, using None"
-                )
-                self.max_worker_threads = None
+        if self.max_worker_threads is not None and (
+            not isinstance(self.max_worker_threads, int) or self.max_worker_threads <= 0
+        ):
+            logger.warning(
+                f"max_worker_threads must be positive integer or None, got "
+                f"{self.max_worker_threads}, using None"
+            )
+            self.max_worker_threads = None
 
     def _validate_gc_frequency(self) -> None:
         """Validate gc_frequency."""

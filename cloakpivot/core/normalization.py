@@ -289,7 +289,9 @@ class EntityNormalizer:
             matching_groups = []
 
             for group in groups:
-                if group.overlaps_with(entity) or group.is_adjacent_to(entity, self.config.merge_threshold_chars):
+                if group.overlaps_with(entity) or group.is_adjacent_to(
+                    entity, self.config.merge_threshold_chars
+                ):
                     matching_groups.append(group)
 
             if not matching_groups:

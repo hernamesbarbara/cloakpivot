@@ -27,7 +27,7 @@ class CloakEngineBuilder:
             .build()
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize builder with default values."""
         self._languages: list[str] = ["en"]
         self._confidence_threshold: float = 0.7
@@ -200,5 +200,14 @@ class CloakEngineBuilder:
         Returns:
             Self for method chaining
         """
-        self.__init__()
+        # Reset all attributes to their default values
+        self._languages = ["en"]
+        self._confidence_threshold = 0.7
+        self._return_decision_process = False
+        self._custom_policy = None
+        self._conflict_resolution_config = None
+        self._use_presidio = True
+        self._analyzer_config = None
+        self._additional_recognizers = []
+        self._resolve_conflicts = False
         return self

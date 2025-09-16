@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from docling_core.types import DoclingDocument
+from docling_core.types import DoclingDocument  # type: ignore[attr-defined]
 
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
@@ -165,11 +165,11 @@ class CloakedDocument:
         doc = result.document
 
         # Load CloakMap
-        cloakmap_path = Path(cloakmap_path)
-        cloakmap_data = cloakmap_path.read_text()
+        cloakmap_path_obj = Path(cloakmap_path)
+        cloakmap_data = cloakmap_path_obj.read_text()
 
         # Detect format and deserialize
-        if cloakmap_path.suffix in [".yaml", ".yml"]:
+        if cloakmap_path_obj.suffix in [".yaml", ".yml"]:
             from cloakpivot.formats.yaml import YAMLSerializer
 
             serializer = YAMLSerializer()

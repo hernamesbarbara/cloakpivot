@@ -1,6 +1,5 @@
 """Unit tests for CloakEngine."""
 
-import pytest
 from docling_core.types import DoclingDocument
 
 from cloakpivot import CloakEngine
@@ -24,9 +23,7 @@ class TestCloakEngine:
         """Test creating engine with custom default policy."""
         from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
-        policy = MaskingPolicy(
-            default_strategy=Strategy(StrategyKind.REDACT)
-        )
+        policy = MaskingPolicy(default_strategy=Strategy(StrategyKind.REDACT))
         engine = CloakEngine(default_policy=policy)
         assert engine is not None
 
@@ -44,14 +41,10 @@ class TestCloakEngine:
     def test_mask_document_with_entities_param(self, email_docling_document: DoclingDocument):
         """Test masking with specific entities."""
         engine = CloakEngine()
-        result = engine.mask_document(
-            email_docling_document, entities=["EMAIL_ADDRESS", "PERSON"]
-        )
+        result = engine.mask_document(email_docling_document, entities=["EMAIL_ADDRESS", "PERSON"])
         assert result.cloakmap is not None
 
-    def test_mask_document_returns_mask_result(
-        self, email_docling_document: DoclingDocument
-    ):
+    def test_mask_document_returns_mask_result(self, email_docling_document: DoclingDocument):
         """Test that mask_document returns a MaskResult."""
         engine = CloakEngine()
         result = engine.mask_document(email_docling_document)
@@ -62,9 +55,7 @@ class TestCloakEngine:
         assert result.entities_found >= 0
         assert result.entities_masked >= 0
 
-    def test_mask_and_unmask_roundtrip(
-        self, email_docling_document: DoclingDocument
-    ):
+    def test_mask_and_unmask_roundtrip(self, email_docling_document: DoclingDocument):
         """Test that masking and unmasking returns to original."""
         engine = CloakEngine()
 
@@ -118,4 +109,3 @@ class TestCloakEngine:
         assert result.entities_found >= 0
         assert result.entities_masked >= 0
         assert result.entities_masked <= result.entities_found
-
