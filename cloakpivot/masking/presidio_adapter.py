@@ -546,7 +546,7 @@ class PresidioMaskingAdapter:
 
             # Process SURROGATE entities manually
             text_result = text
-            surrogate_results = []
+            surrogate_results: list[OperatorResult] = []
 
             # Process surrogate entities in reverse order to maintain positions
             for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
@@ -598,10 +598,9 @@ class PresidioMaskingAdapter:
                     text=text_result, analyzer_results=presidio_entities, operators=operators
                 )
 
-                # Combine results
-                if hasattr(result, "items"):
-                    return surrogate_results + result.items
-                return surrogate_results
+                # Combine results with explicit typing to avoid Any
+                items_list: list[OperatorResult] = list(getattr(result, "items", []))
+                return [*surrogate_results, *items_list]
             # Only surrogate entities were processed
             return surrogate_results
 
