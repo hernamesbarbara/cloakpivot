@@ -431,7 +431,7 @@ class PresidioMaskingAdapter:
         # Also preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
             # Set _main_text attribute for backward compatibility
-            setattr(masked_document, "_main_text", masked_text)
+            masked_document._main_text = masked_text
 
         # Update table cells with masked values
         self._update_table_cells(masked_document, text_segments, anchor_entries)

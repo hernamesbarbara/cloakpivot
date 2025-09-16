@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CI/CD Pipeline Optimization**: Reduced GitHub Actions runtime from 20+ minutes to ~5 minutes
+  - Added CPU-only PyTorch installation to eliminate 1.4GB CUDA package downloads
+  - Implemented dependency caching for pip and spaCy models
+  - Split workflow into parallel jobs (lint, test, test-full)
+  - Configured smaller spaCy model for PR checks (en_core_web_sm)
+- **Type Checking Compatibility**: Fixed mypy errors between local and CI environments
+  - Created centralized `type_imports.py` module for third-party type handling
+  - Replaced scattered `# type: ignore` comments with proper type fixes
+  - Used `setattr()` for dynamic attribute assignment (clearer intent)
+  - Fixed DoclingDocument import issues caused by missing `__all__` declaration
+  - Only 4 necessary `type: ignore` comments remain (for genuinely untyped Presidio calls)
+- **SURROGATE Strategy Bug**: Fixed seed parameter not being used for deterministic generation
+  - SurrogateGenerator now correctly uses seed parameter when provided
+  - Same seed produces consistent fake data across multiple runs
+  - Added comprehensive example in `examples/surrogate_faker_strategy.py`
+
 ### Added
 - **New Test Suite**: Complete rewrite of test infrastructure based on v2.0 API
   - Created clean test structure with `unit/` and `integration/` directories

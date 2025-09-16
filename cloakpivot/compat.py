@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from cloakpivot.type_imports import DoclingDocument
 from docpivot import DocPivotEngine
+
+from cloakpivot.type_imports import DoclingDocument
 
 
 def load_document(file_path: str | Path) -> DoclingDocument:

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from cloakpivot.engine_builder import CloakEngineBuilder
 
-from cloakpivot.type_imports import DoclingDocument
 from presidio_analyzer import AnalyzerEngine
 
 from cloakpivot.core.analyzer import AnalyzerConfig
@@ -17,6 +16,7 @@ from cloakpivot.document.extractor import TextExtractor
 
 # CloakEngineBuilder import moved to avoid circular import
 from cloakpivot.masking.engine import MaskingEngine
+from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
 
 

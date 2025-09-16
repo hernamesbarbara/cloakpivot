@@ -2,10 +2,9 @@
 
 from typing import Any
 
-from cloakpivot.type_imports import DoclingDocument
-
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
+from cloakpivot.type_imports import DoclingDocument
 
 
 class CloakedDocument:

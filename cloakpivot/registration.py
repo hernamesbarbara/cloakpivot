@@ -3,10 +3,9 @@
 import warnings
 from typing import TYPE_CHECKING
 
-from cloakpivot.type_imports import DoclingDocument
-
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.engine import CloakEngine
+from cloakpivot.type_imports import DoclingDocument
 
 if TYPE_CHECKING:
     from cloakpivot.wrappers import CloakedDocument
@@ -94,10 +93,10 @@ def register_cloak_methods(engine: CloakEngine | None = None) -> None:
 
     # Register methods on DoclingDocument class
     # These are dynamic attributes added at runtime
-    setattr(DoclingDocument, "mask_pii", mask_pii)
-    setattr(DoclingDocument, "unmask_pii", unmask_pii)
-    setattr(DoclingDocument, "_cloak_methods_registered", True)
-    setattr(DoclingDocument, "_cloak_engine", _global_engine)
+    DoclingDocument.mask_pii = mask_pii
+    DoclingDocument.unmask_pii = unmask_pii
+    DoclingDocument._cloak_methods_registered = True
+    DoclingDocument._cloak_engine = _global_engine
 
 
 def unregister_cloak_methods() -> None:
@@ -157,4 +156,4 @@ def update_engine(engine: CloakEngine) -> None:
         )
 
     _global_engine = engine
-    setattr(DoclingDocument, "_cloak_engine", engine)
+    DoclingDocument._cloak_engine = engine
