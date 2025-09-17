@@ -304,20 +304,17 @@ class PresidioMaskingAdapter:
             entity_to_op_result.append((entity, matched_result))
 
         # Create masked document preserving original structure
+        # Serialize the document to preserve all structure
+        import json
+
         from docling_core.types.doc import DocItemLabel
         from docling_core.types.doc.document import TextItem
 
-        masked_document = DoclingDocument(
-            name=document.name,
-            texts=[],
-            tables=copy.deepcopy(document.tables) if hasattr(document, "tables") else [],
-            key_value_items=(
-                copy.deepcopy(document.key_value_items)
-                if hasattr(document, "key_value_items")
-                else []
-            ),
-            origin=document.origin if hasattr(document, "origin") else None,
-        )
+        doc_dict = json.loads(document.model_dump_json())
+
+        # We'll update the texts in the dictionary later with masked versions
+        # For now, create the masked document from the original structure
+        masked_document = DoclingDocument.model_validate(doc_dict)
 
         # Instead of trying to split the masked text, apply masking to each segment individually
         if hasattr(document, "texts") and document.texts:
@@ -424,7 +421,13 @@ class PresidioMaskingAdapter:
                     # Fallback: copy original item if no boundary found
                     masked_segments.append(copy.deepcopy(original_item))
 
-            masked_document.texts = masked_segments
+            # Update texts in place to preserve references
+            for i, masked_item in enumerate(masked_segments):
+                if i < len(masked_document.texts):
+                    # Update the text content in place
+                    masked_document.texts[i].text = masked_item.text
+                    if hasattr(masked_item, "orig"):
+                        masked_document.texts[i].orig = masked_item.orig
 
         # Also preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
@@ -862,10 +865,12 @@ class PresidioMaskingAdapter:
         if not hasattr(masked_document, "tables") or not masked_document.tables:
             return
 
-        # Create a mapping from text segment node_id to anchor masked values
+        # Create a mapping from node_id to masked value for table cells
         node_to_masked_value: dict[str, str] = {}
         for anchor in anchor_entries:
-            node_to_masked_value[anchor.node_id] = anchor.masked_value
+            # Only process anchors for table cells
+            if "/cell_" in anchor.node_id:
+                node_to_masked_value[anchor.node_id] = anchor.masked_value
 
         # Process each table
         for table_item in masked_document.tables:
@@ -873,31 +878,95 @@ class PresidioMaskingAdapter:
                 continue
 
             table_data = table_item.data
-            if not hasattr(table_data, "table_cells") or not table_data.table_cells:
-                continue
 
             # Get the base node ID for this table
             base_node_id = self._get_table_node_id(table_item)
 
-            # Update each cell that has a corresponding masked value
-            for row_idx, row in enumerate(table_data.table_cells):
-                for col_idx, cell_item in enumerate(row):
-                    # Cast to Any to handle the tuple type annotation issue
-                    cell = cast(Any, cell_item)
+            # If table uses grid (computed property from table_cells)
+            if hasattr(table_data, "grid") and hasattr(table_data, "table_cells"):
+                # First, get the grid to identify which cells exist
+                grid = table_data.grid
 
-                    # Construct the cell node_id
-                    cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+                # If table_cells is empty, populate it from grid
+                if not table_data.table_cells:
+                    table_data.table_cells = []
+                    for row in grid:
+                        for cell in row:
+                            if cell and hasattr(cell, "text") and cell.text:
+                                table_data.table_cells.append(cell)
 
-                    # Check if we have a masked value for this cell
-                    if cell_node_id in node_to_masked_value:
-                        masked_value = node_to_masked_value[cell_node_id]
+                # Create a map of positions to cells in table_cells
+                cell_map: dict[tuple[int, int], Any] = {}
+                for cell in table_data.table_cells:
+                    if hasattr(cell, "start_row_offset_idx") and hasattr(
+                        cell, "start_col_offset_idx"
+                    ):
+                        # Map by starting position
+                        key = (cell.start_row_offset_idx, cell.start_col_offset_idx)
+                        cell_map[key] = cell
 
-                        # Update the cell text
-                        if hasattr(cell, "text"):
-                            cell.text = masked_value
-                            logger.debug(
-                                f"Updated table cell ({row_idx}, {col_idx}) with masked value"
+                # Now check each position in the grid for masked values
+                for row_idx in range(len(grid)):
+                    for col_idx in range(len(grid[row_idx])):
+                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+
+                        if cell_node_id in node_to_masked_value:
+                            masked_value = node_to_masked_value[cell_node_id]
+
+                            # Find the cell in table_cells that corresponds to this position
+                            cell_key = (row_idx, col_idx)
+                            if cell_key in cell_map:
+                                # Update existing cell
+                                cell = cell_map[cell_key]
+                                if hasattr(cell, "text"):
+                                    cell.text = masked_value
+                                    logger.debug(
+                                        f"Updated table cell ({row_idx}, {col_idx}) with masked value"
+                                    )
+                            else:
+                                # Need to add a new cell to table_cells
+                                from docling_core.types.doc.document import TableCell
+
+                                new_cell = TableCell(
+                                    text=masked_value,
+                                    start_row_offset_idx=row_idx,
+                                    end_row_offset_idx=row_idx + 1,
+                                    start_col_offset_idx=col_idx,
+                                    end_col_offset_idx=col_idx + 1,
+                                )
+                                table_data.table_cells.append(new_cell)
+                                logger.debug(
+                                    f"Added new table cell ({row_idx}, {col_idx}) with masked value"
+                                )
+            # Fallback for tables that only use table_cells (1D list)
+            elif hasattr(table_data, "table_cells") and table_data.table_cells:
+                # For old-style flat table_cells, update directly by matching node IDs
+                for idx, cell in enumerate(table_data.table_cells):
+                    if hasattr(cell, "text"):
+                        # Try to determine row/col from cell properties or index
+                        row_idx = (
+                            cell.start_row_offset_idx
+                            if hasattr(cell, "start_row_offset_idx")
+                            else (
+                                idx // table_data.num_cols
+                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
+                                else 0
                             )
+                        )
+                        col_idx = (
+                            cell.start_col_offset_idx
+                            if hasattr(cell, "start_col_offset_idx")
+                            else (
+                                idx % table_data.num_cols
+                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
+                                else idx
+                            )
+                        )
+                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+
+                        if cell_node_id in node_to_masked_value:
+                            cell.text = node_to_masked_value[cell_node_id]
+                            logger.debug(f"Updated table cell at index {idx} with masked value")
 
     def _get_table_node_id(self, table_item: Any) -> str:
         """Get the node ID for a table item."""

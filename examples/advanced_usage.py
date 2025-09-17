@@ -8,7 +8,7 @@ This example demonstrates advanced CloakEngine features:
 4. Loading CloakMaps from files
 5. Using different policy presets
 """
-
+import sys
 from pathlib import Path
 from docling.document_converter import DocumentConverter
 from cloakpivot import (
@@ -276,4 +276,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

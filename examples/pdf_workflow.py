@@ -36,11 +36,17 @@ def convert_pdf_to_docling(pdf_path: Path, output_dir: Path):
 
     # Also save as markdown for human reading
     md_path = output_dir / f"{doc_filename}.original.md"
+    original_markdown = html.unescape(doc.export_to_markdown())
     with open(md_path, "w", encoding="utf-8") as f:
-        f.write(html.unescape(doc.export_to_markdown()))
+        f.write(original_markdown)
 
     print(f"  ✓ Saved DoclingDocument: {docling_path}")
     print(f"  ✓ Saved original markdown: {md_path}")
+
+    # Validate original markdown is not empty
+    if not original_markdown:
+        raise ValueError("Original markdown export is empty - document may have structural issues")
+    print(f"    (Original markdown: {len(original_markdown)} characters)")
 
     return doc, docling_path
 
@@ -68,8 +74,9 @@ def mask_document(doc: DoclingDocument, output_dir: Path):
 
     # Save masked markdown for viewing
     masked_md_path = output_dir / f"{doc_filename}.masked.md"
+    masked_markdown = html.unescape(result.document.export_to_markdown())
     with open(masked_md_path, "w", encoding="utf-8") as f:
-        f.write(html.unescape(result.document.export_to_markdown()))
+        f.write(masked_markdown)
 
     # Save CloakMap for unmasking
     cloakmap_path = output_dir / f"{doc_filename}.cloakmap.json"
@@ -78,6 +85,11 @@ def mask_document(doc: DoclingDocument, output_dir: Path):
     print(f"  ✓ Saved masked document: {masked_json_path}")
     print(f"  ✓ Saved masked markdown: {masked_md_path}")
     print(f"  ✓ Saved CloakMap: {cloakmap_path}")
+
+    # Validate masked markdown is not empty
+    if not masked_markdown:
+        raise ValueError("❌ ERROR: Masked markdown export is empty - document structure was lost during masking")
+    print(f"    (Masked markdown: {len(masked_markdown)} characters)")
 
     return result, cloakmap_path
 
@@ -102,10 +114,16 @@ def unmask_document(masked_doc_path: Path, cloakmap_path: Path, output_dir: Path
     # Save unmasked document
     doc_filename = masked_doc_path.stem.replace('.masked', '')
     unmasked_md_path = output_dir / f"{doc_filename}.unmasked.md"
+    unmasked_markdown = html.unescape(unmasked_doc.export_to_markdown())
     with open(unmasked_md_path, "w", encoding="utf-8") as f:
-        f.write(html.unescape(unmasked_doc.export_to_markdown()))
+        f.write(unmasked_markdown)
 
     print(f"  ✓ Saved unmasked document: {unmasked_md_path}")
+
+    # Validate unmasked markdown is not empty
+    if not unmasked_markdown:
+        raise ValueError("❌ ERROR: Unmasked markdown export is empty - unmasking failed to restore document structure")
+    print(f"    (Unmasked markdown: {len(unmasked_markdown)} characters)")
 
     return unmasked_doc
 
@@ -144,12 +162,32 @@ def main():
     # Verify round-trip
     print("\n✅ Verification:")
     original_text = doc.export_to_markdown()
+    masked_text = mask_result.document.export_to_markdown()
     restored_text = unmasked_doc.export_to_markdown()
+
+    # Check if masking actually worked
+    if original_text == masked_text:
+        print("  ❌ ERROR: Masked text is identical to original - masking didn't work!")
+    else:
+        print(f"  ✓ Masking worked: Content was successfully masked")
+        print(f"    Original: {len(original_text)} chars, Masked: {len(masked_text)} chars")
 
     if original_text == restored_text:
         print("  ✓ Perfect round-trip: Original content fully restored!")
     else:
         print("  ⚠ Content differs (check for formatting issues)")
+        # Show a snippet of the difference for debugging
+        import difflib
+        diff = list(difflib.unified_diff(
+            original_text[:200].splitlines(keepends=True),
+            restored_text[:200].splitlines(keepends=True),
+            fromfile='original',
+            tofile='restored',
+            n=1
+        ))
+        if diff:
+            print("\n  First differences (showing first 200 chars):")
+            print(''.join(diff[:10]))
 
     print("\n" + "=" * 60)
     print("Workflow complete! Check the output/ directory for:")

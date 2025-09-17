@@ -7,7 +7,7 @@ This example demonstrates advanced CloakEngine features not shown in other examp
 3. .with_presidio_engine() explicit Presidio configuration
 4. Direct DocPivotEngine usage for format conversion
 """
-
+import sys
 import json
 from pathlib import Path
 from docling.document_converter import DocumentConverter
@@ -467,4 +467,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

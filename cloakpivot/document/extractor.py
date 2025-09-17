@@ -286,8 +286,30 @@ class TextExtractor:
 
         # Extract text from table cells
         table_data = table_item.data
-        if hasattr(table_data, "table_cells"):
-            for row_idx, row in enumerate(table_data.table_cells):
+
+        # Try grid first (modern TableData structure), then fall back to table_cells
+        cells = None
+        if hasattr(table_data, "grid") and table_data.grid:
+            cells = table_data.grid
+        elif hasattr(table_data, "table_cells") and table_data.table_cells:
+            # table_cells is a flat list, need to convert to 2D structure
+            # This is for backward compatibility with old table structures
+            flat_cells = table_data.table_cells
+            if flat_cells and hasattr(table_data, "num_rows") and hasattr(table_data, "num_cols"):
+                # Convert flat list to 2D grid
+                cells = []
+                num_cols = table_data.num_cols
+                for i in range(table_data.num_rows):
+                    row = []
+                    for j in range(num_cols):
+                        idx = i * num_cols + j
+                        if idx < len(flat_cells):
+                            row.append(flat_cells[idx])
+                    if row:
+                        cells.append(row)
+
+        if cells:
+            for row_idx, row in enumerate(cells):
                 for col_idx, cell in enumerate(row):
                     # Cell type can vary based on table structure
                     # Type of cell depends on table structure - could be CellType or tuple
