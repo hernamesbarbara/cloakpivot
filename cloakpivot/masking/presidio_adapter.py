@@ -307,17 +307,13 @@ class PresidioMaskingAdapter:
         from docling_core.types.doc import DocItemLabel
         from docling_core.types.doc.document import TextItem
 
-        masked_document = DoclingDocument(
-            name=document.name,
-            texts=[],
-            tables=copy.deepcopy(document.tables) if hasattr(document, "tables") else [],
-            key_value_items=(
-                copy.deepcopy(document.key_value_items)
-                if hasattr(document, "key_value_items")
-                else []
-            ),
-            origin=document.origin if hasattr(document, "origin") else None,
-        )
+        # Serialize the document to preserve all structure
+        import json
+        doc_dict = json.loads(document.model_dump_json())
+
+        # We'll update the texts in the dictionary later with masked versions
+        # For now, create the masked document from the original structure
+        masked_document = DoclingDocument.model_validate(doc_dict)
 
         # Instead of trying to split the masked text, apply masking to each segment individually
         if hasattr(document, "texts") and document.texts:
@@ -424,7 +420,13 @@ class PresidioMaskingAdapter:
                     # Fallback: copy original item if no boundary found
                     masked_segments.append(copy.deepcopy(original_item))
 
-            masked_document.texts = masked_segments
+            # Update texts in place to preserve references
+            for i, masked_item in enumerate(masked_segments):
+                if i < len(masked_document.texts):
+                    # Update the text content in place
+                    masked_document.texts[i].text = masked_item.text
+                    if hasattr(masked_item, "orig"):
+                        masked_document.texts[i].orig = masked_item.orig
 
         # Also preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
