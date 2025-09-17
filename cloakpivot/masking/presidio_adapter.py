@@ -1,5 +1,6 @@
 """Presidio-based masking adapter for CloakPivot."""
 
+import base64
 import bisect
 import copy
 import hashlib
@@ -161,46 +162,20 @@ class PresidioMaskingAdapter:
             )
             return self._fallback_redaction(original_text)
 
-    def mask_document(
-        self,
-        document: DoclingDocument,
-        entities: list[RecognizerResult],
-        policy: MaskingPolicy,
-        text_segments: list[TextSegment],
-        original_format: str | None = None,
-    ) -> MaskingResult:
-        """
-        Mask PII entities in a document using Presidio.
-
-        This method maintains compatibility with the existing MaskingEngine API
-        while using Presidio for all masking operations.
+    def _build_full_text_and_boundaries(
+        self, text_segments: list[TextSegment]
+    ) -> tuple[str, list[SegmentBoundary]]:
+        """Build the full document text and segment boundaries.
 
         Args:
-            document: The DoclingDocument to mask
-            entities: List of detected PII entities
-            policy: Masking policy defining strategies per entity type
-            text_segments: Text segments extracted from the document
-            original_format: Original document format
+            text_segments: List of text segments from document
 
         Returns:
-            MaskingResult containing masked document and enhanced CloakMap
+            Tuple of (full_text, segment_boundaries)
         """
-        logger.info(
-            f"Masking document {document.name} with {len(entities)} entities using Presidio"
-        )
-
-        # Filter out overlapping entities to avoid conflicts
-        filtered_entities = self._filter_overlapping_entities(entities)
-
-        # Prepare strategies for each entity type
-        strategies = {}
-        for entity in filtered_entities:
-            if entity.entity_type not in strategies:
-                strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
-
-        # Build the full document text from segments (preserving structure)
         document_text = ""
         segment_boundaries: list[SegmentBoundary] = []
+
         for i, segment in enumerate(text_segments):
             start = len(document_text)
             end = start + len(segment.text)
@@ -214,25 +189,69 @@ class PresidioMaskingAdapter:
             )
             document_text += segment.text
             if i < len(text_segments) - 1:
-                document_text += SEGMENT_SEPARATOR  # Add separator between segments
+                document_text += SEGMENT_SEPARATOR
 
-        # Validate entity positions against document text length
+        return document_text, segment_boundaries
+
+    def _validate_entities(
+        self, entities: list[RecognizerResult], document_length: int
+    ) -> list[RecognizerResult]:
+        """Validate entity positions against document length.
+
+        Args:
+            entities: List of entities to validate
+            document_length: Total length of document text
+
+        Returns:
+            List of valid entities within document bounds
+        """
         valid_entities = []
-        for entity in filtered_entities:
-            if entity.end <= len(document_text):
+        for entity in entities:
+            if entity.end <= document_length:
                 valid_entities.append(entity)
             else:
                 logger.warning(
                     f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                    f"exceeds document text length {len(document_text)}, skipping"
+                    f"exceeds document text length {document_length}, skipping"
                 )
+        return valid_entities
 
-        # Process all valid entities in batch
-        operator_results = self._batch_process_entities(document_text, valid_entities, strategies)
+    def _prepare_strategies(
+        self, entities: list[RecognizerResult], policy: MaskingPolicy
+    ) -> dict[str, Strategy]:
+        """Prepare masking strategies for each entity type.
 
-        # Create anchor entries for CloakMap
-        anchor_entries = []
-        masked_text = document_text
+        Args:
+            entities: List of entities to process
+            policy: Masking policy to use
+
+        Returns:
+            Dictionary mapping entity types to strategies
+        """
+        strategies = {}
+        for entity in entities:
+            if entity.entity_type not in strategies:
+                strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
+        return strategies
+
+    def _compute_replacements(
+        self,
+        document_text: str,
+        entities: list[RecognizerResult],
+        strategies: dict[str, Strategy],
+    ) -> tuple[list[OperatorResultLike], dict[tuple[int, int], OperatorResultLike]]:
+        """Compute replacement operations for all entities.
+
+        Args:
+            document_text: Full document text
+            entities: List of entities to mask
+            strategies: Masking strategies per entity type
+
+        Returns:
+            Tuple of (operator_results, results_by_position)
+        """
+        # Process all entities in batch
+        operator_results = self._batch_process_entities(document_text, entities, strategies)
 
         # Map operator results by position for correct matching
         op_results_by_pos: dict[tuple[int, int], OperatorResultLike] = {}
@@ -240,14 +259,39 @@ class PresidioMaskingAdapter:
             key = (op_result.start, op_result.end)
             op_results_by_pos[key] = op_result
 
+        return operator_results, op_results_by_pos
+
+    def _create_anchor_entries(
+        self,
+        document_text: str,
+        entities: list[RecognizerResult],
+        strategies: dict[str, Strategy],
+        op_results_by_pos: dict[tuple[int, int], OperatorResultLike],
+        text_segments: list[TextSegment],
+    ) -> list[AnchorEntry]:
+        """Create anchor entries for the CloakMap.
+
+        Args:
+            document_text: Full document text
+            entities: List of entities being masked
+            strategies: Masking strategies per entity type
+            op_results_by_pos: Operator results mapped by position
+            text_segments: Original text segments
+
+        Returns:
+            List of anchor entries for CloakMap
+        """
+        anchor_entries = []
+        import secrets
+        import uuid
+
         # Process entities in reverse order to maintain positions
-        sorted_entities = sorted(valid_entities, key=lambda x: x.start, reverse=True)
-        entity_to_op_result = []
+        sorted_entities = sorted(entities, key=lambda x: x.start, reverse=True)
 
         for entity in sorted_entities:
             # Find matching operator result by position
             key = (entity.start, entity.end)
-            matched_result: OperatorResultLike | None = op_results_by_pos.get(key)
+            matched_result = op_results_by_pos.get(key)
 
             # If no exact match, create a synthetic result
             if matched_result is None:
@@ -263,34 +307,23 @@ class PresidioMaskingAdapter:
             original = document_text[entity.start : entity.end]
 
             # Get masked value from operator result
-            masked_value = (
-                matched_result.text if matched_result else self._fallback_redaction(original)
-            )
+            masked_value = matched_result.text if matched_result else self._fallback_redaction(original)
 
-            # Apply mask to text
-            masked_text = masked_text[: entity.start] + masked_value + masked_text[entity.end :]
-
-            # Create anchor entry with proper fields
-            import base64
-            import secrets
-            import uuid
-
-            # Generate secure salt using secrets module
-            salt_bytes = secrets.token_bytes(8)  # 8 bytes = 64 bits of entropy
+            # Generate secure salt
+            salt_bytes = secrets.token_bytes(8)
             salt = base64.b64encode(salt_bytes).decode()
             checksum_hash = hashlib.sha256(f"{salt}{original}".encode()).hexdigest()
 
-            # Ensure masked value is not empty (for anchor validation)
+            # Ensure masked value is not empty
             if not masked_value:
-                masked_value = "*"  # Use single char as fallback
+                masked_value = "*"
 
             # Find the segment containing this entity
-            found_node_id = (
+            node_id = (
                 self._find_segment_for_position(entity.start, text_segments)
                 if text_segments
-                else None
-            )
-            node_id = found_node_id if found_node_id is not None else "#/texts/0"
+                else "#/texts/0"
+            ) or "#/texts/0"
 
             anchor = AnchorEntry(
                 node_id=node_id,
@@ -303,35 +336,77 @@ class PresidioMaskingAdapter:
                 original_checksum=checksum_hash,
                 checksum_salt=salt,
                 strategy_used=strategies[entity.entity_type].kind.value,
-                timestamp=None,  # Will be set by CloakMap creation
+                timestamp=None,
                 metadata={
-                    "original_text": original,  # Store for reversibility in metadata
+                    "original_text": original,
                     "presidio_operator": matched_result.operator if matched_result else "fallback",
                 },
             )
             anchor_entries.append(anchor)
-            # Track entity to operator result mapping for metadata
-            entity_to_op_result.append((entity, matched_result))
 
-        # Create masked document preserving original structure
+        return anchor_entries
+
+    def _apply_masks_to_text(
+        self,
+        document_text: str,
+        entities: list[RecognizerResult],
+        op_results_by_pos: dict[tuple[int, int], OperatorResultLike],
+    ) -> str:
+        """Apply all masks to the document text.
+
+        Args:
+            document_text: Original document text
+            entities: List of entities to mask
+            op_results_by_pos: Operator results by position
+
+        Returns:
+            Masked text
+        """
+        masked_text = document_text
+        sorted_entities = sorted(entities, key=lambda x: x.start, reverse=True)
+
+        for entity in sorted_entities:
+            key = (entity.start, entity.end)
+            matched_result = op_results_by_pos.get(key)
+
+            if matched_result:
+                masked_value = matched_result.text
+            else:
+                original = document_text[entity.start : entity.end]
+                masked_value = self._fallback_redaction(original)
+
+            masked_text = masked_text[: entity.start] + masked_value + masked_text[entity.end :]
+
+        return masked_text
+
+    def _create_masked_document(
+        self,
+        document: DoclingDocument,
+        text_segments: list[TextSegment],
+        anchor_entries: list[AnchorEntry],
+        masked_text: str,
+    ) -> DoclingDocument:
+        """Create the masked document preserving structure.
+
+        Args:
+            document: Original document
+            text_segments: Text segments from document
+            anchor_entries: Anchor entries with masked values
+            masked_text: Fully masked document text
+
+        Returns:
+            Masked DoclingDocument
+        """
         # Serialize the document to preserve all structure
         import json
-
         from docling_core.types.doc import DocItemLabel
         from docling_core.types.doc.document import TextItem
 
         doc_dict = json.loads(document.model_dump_json())
-
-        # We'll update the texts in the dictionary later with masked versions
-        # For now, create the masked document from the original structure
         masked_document = DoclingDocument.model_validate(doc_dict)
 
-        # Instead of trying to split the masked text, apply masking to each segment individually
+        # Apply masking to each segment individually
         if hasattr(document, "texts") and document.texts:
-            from ..document.mapper import AnchorMapper
-
-            AnchorMapper()
-
             masked_segments = []
 
             for i, original_item in enumerate(document.texts):
@@ -340,19 +415,23 @@ class PresidioMaskingAdapter:
                     segment_text = original_item.text
 
                     # Find entities that affect this segment
-                    segment_entities: list[dict[str, Any]] = []
-                    for entity in sorted_entities:
-                        # Check if entity overlaps with this segment
-                        if entity.start < segment.end_offset and entity.end > segment.start_offset:
-                            # Calculate local positions within the segment
-                            local_start = max(0, entity.start - segment.start_offset)
-                            local_end = min(len(segment_text), entity.end - segment.start_offset)
-
-                            # Only add if there's actual overlap
+                    segment_entities = []
+                    for anchor in anchor_entries:
+                        # Check if anchor overlaps with this segment
+                        if (
+                            anchor.metadata
+                            and "original_text" in anchor.metadata
+                            and segment.start_offset <= anchor.start < segment.end_offset
+                        ):
+                            local_start = anchor.start - segment.start_offset
+                            local_end = min(
+                                local_start + len(anchor.metadata["original_text"]),
+                                len(segment_text),
+                            )
                             if local_start < local_end:
                                 segment_entities.append(
                                     {
-                                        "entity": entity,
+                                        "anchor": anchor,
                                         "local_start": local_start,
                                         "local_end": local_end,
                                     }
@@ -360,36 +439,19 @@ class PresidioMaskingAdapter:
 
                     # Apply masks to this segment
                     masked_segment_text = segment_text
-                    # Sort by position (reverse to maintain positions)
                     segment_entities.sort(key=lambda x: x["local_start"], reverse=True)
 
                     for entity_info in segment_entities:
-                        entity = cast(RecognizerResult, entity_info["entity"])
-                        local_start = cast(int, entity_info["local_start"])
-                        local_end = cast(int, entity_info["local_end"])
-
-                        # Find the anchor entry for this entity
-                        matching_anchor: AnchorEntry | None = next(
-                            (
-                                a
-                                for a in anchor_entries
-                                if a.metadata
-                                and a.metadata.get("original_text")
-                                == document_text[entity.start : entity.end]
-                            ),
-                            None,
+                        anchor = entity_info["anchor"]
+                        local_start = entity_info["local_start"]
+                        local_end = entity_info["local_end"]
+                        masked_segment_text = (
+                            masked_segment_text[:local_start]
+                            + anchor.masked_value
+                            + masked_segment_text[local_end:]
                         )
 
-                        if matching_anchor:
-                            # Apply the mask
-                            masked_segment_text = (
-                                masked_segment_text[:local_start]
-                                + matching_anchor.masked_value
-                                + masked_segment_text[local_end:]
-                            )
-
                     # Create new text item preserving original structure
-                    # Map labels that aren't valid for TextItem to TEXT
                     valid_text_labels = {
                         DocItemLabel.CAPTION,
                         DocItemLabel.CHECKBOX_SELECTED,
@@ -422,32 +484,88 @@ class PresidioMaskingAdapter:
                         orig=masked_segment_text,
                     )
 
-                    # Preserve other attributes if they exist
                     if hasattr(original_item, "prov"):
                         masked_text_item.prov = original_item.prov
 
                     masked_segments.append(masked_text_item)
                 else:
-                    # Fallback: copy original item if no boundary found
                     masked_segments.append(copy.deepcopy(original_item))
 
-            # Update texts in place to preserve references
+            # Update texts in place
             for i, masked_item in enumerate(masked_segments):
                 if i < len(masked_document.texts):
-                    # Update the text content in place
                     masked_document.texts[i].text = masked_item.text
                     if hasattr(masked_item, "orig"):
                         masked_document.texts[i].orig = masked_item.orig
 
-        # Also preserve _main_text for backward compatibility
+        # Preserve _main_text for backward compatibility
         if hasattr(document, "_main_text"):
-            # Set _main_text attribute for backward compatibility
             setattr(masked_document, "_main_text", masked_text)  # noqa: B010
 
-        # Update table cells with masked values
+        # Update table cells
         self._update_table_cells(masked_document, text_segments, anchor_entries)
 
-        # Create base CloakMap
+        return masked_document
+
+    def mask_document(
+        self,
+        document: DoclingDocument,
+        entities: list[RecognizerResult],
+        policy: MaskingPolicy,
+        text_segments: list[TextSegment],
+        original_format: str | None = None,
+    ) -> MaskingResult:
+        """
+        Mask PII entities in a document using Presidio.
+
+        This method orchestrates the masking process by delegating to
+        specialized helper methods, making the flow clear and testable.
+
+        Args:
+            document: The DoclingDocument to mask
+            entities: List of detected PII entities
+            policy: Masking policy defining strategies per entity type
+            text_segments: Text segments extracted from the document
+            original_format: Original document format
+
+        Returns:
+            MaskingResult containing masked document and enhanced CloakMap
+        """
+        logger.info(
+            f"Masking document {document.name} with {len(entities)} entities using Presidio"
+        )
+
+        # Step 1: Filter overlapping entities
+        filtered_entities = self._filter_overlapping_entities(entities)
+
+        # Step 2: Prepare strategies
+        strategies = self._prepare_strategies(filtered_entities, policy)
+
+        # Step 3: Build full text and boundaries
+        document_text, segment_boundaries = self._build_full_text_and_boundaries(text_segments)
+
+        # Step 4: Validate entities
+        valid_entities = self._validate_entities(filtered_entities, len(document_text))
+
+        # Step 5: Compute replacements
+        operator_results, op_results_by_pos = self._compute_replacements(
+            document_text, valid_entities, strategies
+        )
+
+        # Step 6: Create anchor entries
+        anchor_entries = self._create_anchor_entries(
+            document_text, valid_entities, strategies, op_results_by_pos, text_segments
+        )
+
+        # Step 7: Apply masks to get masked text
+        masked_text = self._apply_masks_to_text(document_text, valid_entities, op_results_by_pos)
+
+        # Step 8: Create masked document
+        masked_document = self._create_masked_document(
+            document, text_segments, anchor_entries, masked_text
+        )
+
+        # Step 9: Build CloakMap
         base_cloakmap = CloakMap.create(
             doc_id=document.name,
             doc_hash=hashlib.sha256(document_text.encode()).hexdigest(),
@@ -456,32 +574,16 @@ class PresidioMaskingAdapter:
             metadata={"original_format": original_format} if original_format else {},
         )
 
-        # Enhance with Presidio metadata - include original text only for reversible operations
-        enhanced_operator_results = []
-        reversible_operators = self._get_reversible_operators(strategies)
+        # Step 10: Enhance with metadata
+        enhanced_cloakmap = self._enhance_cloakmap_with_metadata(
+            base_cloakmap,
+            valid_entities,
+            op_results_by_pos,
+            strategies,
+            document_text,
+        )
 
-        for entity, op_result in entity_to_op_result:
-            op_dict = self._operator_result_to_dict(op_result)
-
-            # Only add original text for reversible operations
-            operator = op_dict.get("operator", "")
-            if operator in reversible_operators:
-                op_dict["original_text"] = document_text[entity.start : entity.end]
-
-            enhanced_operator_results.append(op_dict)
-
-        # Only enhance with Presidio metadata if there are results
-        if enhanced_operator_results:
-            enhanced_cloakmap = self.cloakmap_enhancer.add_presidio_metadata(
-                base_cloakmap,
-                operator_results=enhanced_operator_results,
-                engine_version=PRESIDIO_VERSION,
-                reversible_operators=self._get_reversible_operators(strategies),
-            )
-        else:
-            enhanced_cloakmap = base_cloakmap
-
-        # Calculate statistics
+        # Step 11: Calculate statistics
         stats = {
             "entities_masked": len(entities),
             "unique_entity_types": len(strategies),
@@ -495,6 +597,53 @@ class PresidioMaskingAdapter:
         return MaskingResult(
             masked_document=masked_document, cloakmap=enhanced_cloakmap, stats=stats
         )
+
+    def _enhance_cloakmap_with_metadata(
+        self,
+        base_cloakmap: CloakMap,
+        entities: list[RecognizerResult],
+        op_results_by_pos: dict[tuple[int, int], OperatorResultLike],
+        strategies: dict[str, Strategy],
+        document_text: str,
+    ) -> CloakMap:
+        """Enhance CloakMap with Presidio metadata.
+
+        Args:
+            base_cloakmap: Base CloakMap to enhance
+            entities: List of entities that were masked
+            op_results_by_pos: Operator results by position
+            strategies: Strategies used for masking
+            document_text: Original document text
+
+        Returns:
+            Enhanced CloakMap
+        """
+        enhanced_operator_results = []
+        reversible_operators = self._get_reversible_operators(strategies)
+
+        for entity in entities:
+            key = (entity.start, entity.end)
+            op_result = op_results_by_pos.get(key)
+
+            if op_result:
+                op_dict = self._operator_result_to_dict(op_result)
+
+                # Only add original text for reversible operations
+                operator = op_dict.get("operator", "")
+                if operator in reversible_operators:
+                    op_dict["original_text"] = document_text[entity.start : entity.end]
+
+                enhanced_operator_results.append(op_dict)
+
+        # Only enhance if there are results
+        if enhanced_operator_results:
+            return self.cloakmap_enhancer.add_presidio_metadata(
+                base_cloakmap,
+                operator_results=enhanced_operator_results,
+                engine_version=PRESIDIO_VERSION,
+                reversible_operators=reversible_operators,
+            )
+        return base_cloakmap
 
     def _filter_overlapping_entities(
         self, entities: list[RecognizerResult]
