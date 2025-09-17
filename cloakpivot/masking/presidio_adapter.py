@@ -307,7 +307,9 @@ class PresidioMaskingAdapter:
             original = document_text[entity.start : entity.end]
 
             # Get masked value from operator result
-            masked_value = matched_result.text if matched_result else self._fallback_redaction(original)
+            masked_value = (
+                matched_result.text if matched_result else self._fallback_redaction(original)
+            )
 
             # Generate secure salt
             salt_bytes = secrets.token_bytes(8)
@@ -346,9 +348,7 @@ class PresidioMaskingAdapter:
 
         return anchor_entries
 
-    def _apply_spans(
-        self, text: str, spans: list[tuple[int, int, str]]
-    ) -> str:
+    def _apply_spans(self, text: str, spans: list[tuple[int, int, str]]) -> str:
         """Apply non-overlapping replacement spans to text in O(n + k) time.
 
         This is much more efficient than repeated string slicing which is O(n²).
@@ -382,7 +382,7 @@ class PresidioMaskingAdapter:
         if cursor < len(text):
             result.append(text[cursor:])
 
-        return ''.join(result)
+        return "".join(result)
 
     def _apply_masks_to_text(
         self,
@@ -438,6 +438,7 @@ class PresidioMaskingAdapter:
         """
         # Serialize the document to preserve all structure
         import json
+
         from docling_core.types.doc import DocItemLabel
         from docling_core.types.doc.document import TextItem
 
@@ -454,7 +455,7 @@ class PresidioMaskingAdapter:
                     segment_text = original_item.text
 
                     # Find entities that affect this segment
-                    segment_entities = []
+                    segment_entities: list[dict[str, Any]] = []
                     for anchor in anchor_entries:
                         # Check if anchor overlaps with this segment
                         if (
@@ -479,7 +480,7 @@ class PresidioMaskingAdapter:
                     # Apply masks to this segment using efficient O(n) approach
                     if segment_entities:
                         # Build spans for this segment
-                        segment_spans = [
+                        segment_spans: list[tuple[int, int, str]] = [
                             (
                                 entity_info["local_start"],
                                 entity_info["local_end"],

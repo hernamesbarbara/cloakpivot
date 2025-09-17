@@ -1,11 +1,10 @@
 """Edge case tests for presidio_adapter improvements."""
 
-import pytest
 from docling_core.types.doc import DocItemLabel, DoclingDocument, TextItem
 from presidio_analyzer.recognizer_result import RecognizerResult
 
 from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
-from cloakpivot.document.extractor import TextExtractor, TextSegment
+from cloakpivot.document.extractor import TextExtractor
 from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
 
 
@@ -22,8 +21,18 @@ class TestEdgeCases:
         # Create document with multiple segments
         doc = DoclingDocument(name="test.txt")
         doc.texts = [
-            TextItem(text="First segment with email@test.com", label=DocItemLabel.TEXT, self_ref="#/texts/0", orig="First segment with email@test.com"),
-            TextItem(text="test@example.com starts this segment", label=DocItemLabel.TEXT, self_ref="#/texts/1", orig="test@example.com starts this segment"),
+            TextItem(
+                text="First segment with email@test.com",
+                label=DocItemLabel.TEXT,
+                self_ref="#/texts/0",
+                orig="First segment with email@test.com",
+            ),
+            TextItem(
+                text="test@example.com starts this segment",
+                label=DocItemLabel.TEXT,
+                self_ref="#/texts/1",
+                orig="test@example.com starts this segment",
+            ),
         ]
 
         # Extract segments
@@ -71,10 +80,9 @@ class TestEdgeCases:
             text="abc",
             entity_type="TEST",
             strategy=Strategy(
-                kind=StrategyKind.PARTIAL,
-                parameters={"visible_chars": 5, "position": "end"}
+                kind=StrategyKind.PARTIAL, parameters={"visible_chars": 5, "position": "end"}
             ),
-            confidence=0.95
+            confidence=0.95,
         )
 
         # Should return original when text is shorter than visible_chars
@@ -85,10 +93,9 @@ class TestEdgeCases:
             text="12345",
             entity_type="TEST",
             strategy=Strategy(
-                kind=StrategyKind.PARTIAL,
-                parameters={"visible_chars": 5, "position": "end"}
+                kind=StrategyKind.PARTIAL, parameters={"visible_chars": 5, "position": "end"}
             ),
-            confidence=0.95
+            confidence=0.95,
         )
 
         # Should show all chars when length equals visible_chars
@@ -102,11 +109,8 @@ class TestEdgeCases:
         result = adapter._apply_hash_strategy(
             text="test@example.com",
             entity_type="EMAIL",
-            strategy=Strategy(
-                kind=StrategyKind.HASH,
-                parameters={"truncate": 5, "prefix": "H:"}
-            ),
-            confidence=0.95
+            strategy=Strategy(kind=StrategyKind.HASH, parameters={"truncate": 5, "prefix": "H:"}),
+            confidence=0.95,
         )
 
         assert result.startswith("H:")
@@ -116,11 +120,8 @@ class TestEdgeCases:
         result = adapter._apply_hash_strategy(
             text="test",
             entity_type="TEXT",
-            strategy=Strategy(
-                kind=StrategyKind.HASH,
-                parameters={"truncate": 100}
-            ),
-            confidence=0.95
+            strategy=Strategy(kind=StrategyKind.HASH, parameters={"truncate": 100}),
+            confidence=0.95,
         )
 
         # Should not exceed actual hash length
@@ -134,20 +135,14 @@ class TestEdgeCases:
         result1 = adapter._apply_surrogate_strategy(
             text="John Doe",
             entity_type="PERSON",
-            strategy=Strategy(
-                kind=StrategyKind.SURROGATE,
-                parameters={"seed": "42"}
-            )
+            strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "42"}),
         )
 
         # Second call with same seed should give same result
         result2 = adapter._apply_surrogate_strategy(
             text="John Doe",
             entity_type="PERSON",
-            strategy=Strategy(
-                kind=StrategyKind.SURROGATE,
-                parameters={"seed": "42"}
-            )
+            strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "42"}),
         )
 
         assert result1 == result2
@@ -156,10 +151,7 @@ class TestEdgeCases:
         result3 = adapter._apply_surrogate_strategy(
             text="John Doe",
             entity_type="PERSON",
-            strategy=Strategy(
-                kind=StrategyKind.SURROGATE,
-                parameters={"seed": "123"}
-            )
+            strategy=Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "123"}),
         )
 
         assert result1 != result3
@@ -185,21 +177,26 @@ class TestEdgeCases:
         """Test entity at the exact end of document."""
         adapter = PresidioMaskingAdapter()
         policy = MaskingPolicy(
-            default_strategy=Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[MASKED]"})
+            default_strategy=Strategy(
+                kind=StrategyKind.TEMPLATE, parameters={"template": "[MASKED]"}
+            )
         )
 
         doc = DoclingDocument(name="test.txt")
         doc.texts = [
-            TextItem(text="Contact us at test@example.com", label=DocItemLabel.TEXT, self_ref="#/texts/0", orig="Contact us at test@example.com")
+            TextItem(
+                text="Contact us at test@example.com",
+                label=DocItemLabel.TEXT,
+                self_ref="#/texts/0",
+                orig="Contact us at test@example.com",
+            )
         ]
 
         extractor = TextExtractor()
         segments = extractor.extract_text_segments(doc)
 
         # Entity at exact end of text
-        entities = [
-            RecognizerResult(entity_type="EMAIL", start=14, end=30, score=0.95)
-        ]
+        entities = [RecognizerResult(entity_type="EMAIL", start=14, end=30, score=0.95)]
 
         result = adapter.mask_document(doc, entities, policy, segments)
 
@@ -240,23 +237,26 @@ class TestEdgeCases:
 
         doc = DoclingDocument(name="test.txt")
         doc.texts = [
-            TextItem(text="Short text", label=DocItemLabel.TEXT, self_ref="#/texts/0", orig="Short text")
+            TextItem(
+                text="Short text", label=DocItemLabel.TEXT, self_ref="#/texts/0", orig="Short text"
+            )
         ]
 
         extractor = TextExtractor()
         segments = extractor.extract_text_segments(doc)
 
         # Entity beyond text length
-        entities = [
-            RecognizerResult(entity_type="TEST", start=5, end=100, score=0.95)
-        ]
+        entities = [RecognizerResult(entity_type="TEST", start=5, end=100, score=0.95)]
 
         result = adapter.mask_document(doc, entities, policy, segments)
 
         # Should handle gracefully without crashing
         assert result.stats["entities_masked"] == 1
         # But the out-of-bounds entity should be skipped
-        assert "Short text" in result.masked_document.texts[0].text or "*****" in result.masked_document.texts[0].text
+        assert (
+            "Short text" in result.masked_document.texts[0].text
+            or "*****" in result.masked_document.texts[0].text
+        )
 
     def test_partial_masking_positions(self):
         """Test all position options for partial masking."""
@@ -269,9 +269,9 @@ class TestEdgeCases:
             entity_type="TEST",
             strategy=Strategy(
                 kind=StrategyKind.PARTIAL,
-                parameters={"visible_chars": 3, "position": "start", "mask_char": "X"}
+                parameters={"visible_chars": 3, "position": "start", "mask_char": "X"},
             ),
-            confidence=0.95
+            confidence=0.95,
         )
         assert result == "123XXXXXXX"
 
@@ -281,9 +281,9 @@ class TestEdgeCases:
             entity_type="TEST",
             strategy=Strategy(
                 kind=StrategyKind.PARTIAL,
-                parameters={"visible_chars": 3, "position": "end", "mask_char": "X"}
+                parameters={"visible_chars": 3, "position": "end", "mask_char": "X"},
             ),
-            confidence=0.95
+            confidence=0.95,
         )
         assert result == "XXXXXXX890"
 
@@ -293,9 +293,9 @@ class TestEdgeCases:
             entity_type="TEST",
             strategy=Strategy(
                 kind=StrategyKind.PARTIAL,
-                parameters={"visible_chars": 3, "position": "middle", "mask_char": "X"}
+                parameters={"visible_chars": 3, "position": "middle", "mask_char": "X"},
             ),
-            confidence=0.95
+            confidence=0.95,
         )
         assert result == "XXXXXXX890"
 
@@ -326,8 +326,8 @@ class TestPerformanceOptimizations:
 
         text = "The quick brown fox jumps over the lazy dog"
         spans = [
-            (4, 9, "[FAST]"),   # "quick" -> "[FAST]"
-            (16, 19, "[ANIMAL]"), # "fox" -> "[ANIMAL]"
+            (4, 9, "[FAST]"),  # "quick" -> "[FAST]"
+            (16, 19, "[ANIMAL]"),  # "fox" -> "[ANIMAL]"
             (35, 39, "[TIRED]"),  # "lazy" -> "[TIRED]"
         ]
 
