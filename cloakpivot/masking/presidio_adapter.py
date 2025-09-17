@@ -8,7 +8,7 @@ import logging
 import threading
 from typing import Any, cast
 
-from presidio_anonymizer import AnonymizerEngine, OperatorResult
+from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
 
 try:
@@ -75,6 +75,7 @@ class PresidioMaskingAdapter:
         self._fallback_char = "*"
         self.engine_config = engine_config or {}
         self._surrogate_generator = SurrogateGenerator()
+        self._segment_starts: list[int] | None = None  # Cache for binary search
 
         logger.debug(f"PresidioMaskingAdapter initialized with config: {self.engine_config}")
 
@@ -175,6 +176,9 @@ class PresidioMaskingAdapter:
         """
         document_text = ""
         segment_boundaries: list[SegmentBoundary] = []
+
+        # Cache segment starts for later binary search
+        self._segment_starts = [s.start_offset for s in text_segments]
 
         for i, segment in enumerate(text_segments):
             start = len(document_text)
@@ -311,7 +315,7 @@ class PresidioMaskingAdapter:
                 matched_result.text if matched_result else self._fallback_redaction(original)
             )
 
-            # Generate secure salt
+            # Generate secure salt (must be valid base64)
             salt_bytes = secrets.token_bytes(8)
             salt = base64.b64encode(salt_bytes).decode()
             checksum_hash = hashlib.sha256(f"{salt}{original}".encode()).hexdigest()
@@ -330,7 +334,7 @@ class PresidioMaskingAdapter:
             anchor = AnchorEntry(
                 node_id=node_id,
                 start=entity.start,
-                end=entity.start + len(masked_value),
+                end=entity.end,  # Use original end position
                 entity_type=entity.entity_type,
                 masked_value=masked_value,
                 confidence=entity.score,
@@ -746,11 +750,10 @@ class PresidioMaskingAdapter:
                     presidio_entities.append(entity)
 
             # Process SURROGATE entities manually
-            text_result = text
             surrogate_results: list[OperatorResultLike] = []
 
-            # Process surrogate entities in reverse order to maintain positions
-            for entity in sorted(surrogate_entities, key=lambda x: x.start, reverse=True):
+            # Process surrogate entities WITHOUT mutating the text
+            for entity in surrogate_entities:
                 entity_type = getattr(entity, "entity_type", "UNKNOWN")
                 strategy = strategies.get(entity_type)
                 if not strategy:
@@ -766,12 +769,7 @@ class PresidioMaskingAdapter:
                     f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}"
                 )
 
-                # Replace in text
-                text_result = (
-                    text_result[: entity.start] + surrogate_value + text_result[entity.end :]
-                )
-
-                # Create a SyntheticOperatorResult for tracking
+                # Create a SyntheticOperatorResult for tracking (using original coordinates)
                 op_result = SyntheticOperatorResult(
                     start=entity.start,
                     end=entity.end,
@@ -794,9 +792,9 @@ class PresidioMaskingAdapter:
                                 strategy
                             )
 
-                # Use Presidio for non-surrogate entities
+                # Use Presidio for non-surrogate entities with ORIGINAL text
                 result = self.anonymizer.anonymize(
-                    text=text_result, analyzer_results=presidio_entities, operators=operators
+                    text=text, analyzer_results=presidio_entities, operators=operators
                 )
 
                 # Combine results with explicit typing
@@ -922,11 +920,11 @@ class PresidioMaskingAdapter:
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
         """Convert OperatorResult to dictionary for storage."""
         return {
-            "entity_type": result.entity_type if hasattr(result, "entity_type") else UNKNOWN_ENTITY,
-            "start": result.start if hasattr(result, "start") else 0,
-            "end": result.end if hasattr(result, "end") else 0,
-            "operator": result.operator if hasattr(result, "operator") else "unknown",
-            "text": result.text if hasattr(result, "text") else "",
+            "entity_type": result.entity_type,
+            "start": result.start,
+            "end": result.end,
+            "operator": result.operator,
+            "text": result.text,
         }
 
     def _create_synthetic_result(
@@ -1003,9 +1001,14 @@ class PresidioMaskingAdapter:
             if strategy.kind in {StrategyKind.TEMPLATE, StrategyKind.CUSTOM}:
                 try:
                     operator_config = self.operator_mapper.strategy_to_operator(strategy)
-                    operator_name = operator_config.operator_name
+                    # Guard against different field names
+                    operator_name = getattr(
+                        operator_config, "operator_name", getattr(operator_config, "name", None)
+                    )
                     # Only mark reversible if the operator preserves original in metadata
-                    if operator_name in {"replace"}:  # Keep explicit and conservative
+                    if operator_name and operator_name in {
+                        "replace"
+                    }:  # Keep explicit and conservative
                         reversible.add(operator_name)
                 except Exception:
                     # If we can't map the strategy, assume not reversible
@@ -1025,8 +1028,10 @@ class PresidioMaskingAdapter:
         if not segments:
             return "#/texts/0"
 
-        # Use binary search for O(log n) lookup
-        starts = [s.start_offset for s in segments]
+        # Use cached starts if available, otherwise build it
+        starts = (
+            self._segment_starts if self._segment_starts else [s.start_offset for s in segments]
+        )
         idx = bisect.bisect_right(starts, position) - 1
 
         if 0 <= idx < len(segments):
@@ -1171,7 +1176,7 @@ class PresidioMaskingAdapter:
         # Default fallback
         return "#/tables/0"
 
-    def _cleanup_large_results(self, results: list[OperatorResult]) -> None:
+    def _cleanup_large_results(self, results: list[OperatorResultLike]) -> None:
         """Clean up large result sets for memory efficiency.
 
         For results exceeding memory thresholds:
