@@ -8,7 +8,7 @@ import logging
 import threading
 from typing import Any, cast
 
-from presidio_anonymizer import AnonymizerEngine, OperatorResult
+from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
 
 try:
@@ -1002,9 +1002,13 @@ class PresidioMaskingAdapter:
                 try:
                     operator_config = self.operator_mapper.strategy_to_operator(strategy)
                     # Guard against different field names
-                    operator_name = getattr(operator_config, "operator_name", getattr(operator_config, "name", None))
+                    operator_name = getattr(
+                        operator_config, "operator_name", getattr(operator_config, "name", None)
+                    )
                     # Only mark reversible if the operator preserves original in metadata
-                    if operator_name and operator_name in {"replace"}:  # Keep explicit and conservative
+                    if operator_name and operator_name in {
+                        "replace"
+                    }:  # Keep explicit and conservative
                         reversible.add(operator_name)
                 except Exception:
                     # If we can't map the strategy, assume not reversible
@@ -1025,7 +1029,9 @@ class PresidioMaskingAdapter:
             return "#/texts/0"
 
         # Use cached starts if available, otherwise build it
-        starts = self._segment_starts if self._segment_starts else [s.start_offset for s in segments]
+        starts = (
+            self._segment_starts if self._segment_starts else [s.start_offset for s in segments]
+        )
         idx = bisect.bisect_right(starts, position) - 1
 
         if 0 <= idx < len(segments):
