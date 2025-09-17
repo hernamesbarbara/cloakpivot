@@ -304,11 +304,12 @@ class PresidioMaskingAdapter:
             entity_to_op_result.append((entity, matched_result))
 
         # Create masked document preserving original structure
+        # Serialize the document to preserve all structure
+        import json
+
         from docling_core.types.doc import DocItemLabel
         from docling_core.types.doc.document import TextItem
 
-        # Serialize the document to preserve all structure
-        import json
         doc_dict = json.loads(document.model_dump_json())
 
         # We'll update the texts in the dictionary later with masked versions
