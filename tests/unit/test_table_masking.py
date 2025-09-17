@@ -4,6 +4,7 @@ import pytest
 from docling_core.types.doc.document import (
     DocItemLabel,
     DoclingDocument,
+    TableCell,
     TableData,
     TableItem,
     TextItem,
@@ -11,13 +12,6 @@ from docling_core.types.doc.document import (
 
 from cloakpivot import CloakEngine
 from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
-
-
-class Cell:
-    """Simple cell class for testing."""
-
-    def __init__(self, text):
-        self.text = text
 
 
 class TestTableMasking:
@@ -29,12 +23,25 @@ class TestTableMasking:
         doc = DoclingDocument(name="test_table.txt")
 
         # Create a simple table with PII
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Name"), Cell("Email"), Cell("Date")],
-            [Cell("John Doe"), Cell("john@example.com"), Cell("2020-01-01")],
-            [Cell("Jane Smith"), Cell("jane@example.com"), Cell("2020-02-15")],
+        table_data = TableData(num_rows=3, num_cols=3)
+
+        # Properly populate table_cells with TableCell objects
+        cells_data = [
+            ["Name", "Email", "Date"],
+            ["John Doe", "john@example.com", "2020-01-01"],
+            ["Jane Smith", "jane@example.com", "2020-02-15"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -77,7 +84,7 @@ class TestTableMasking:
 
         # Check that table cells were masked
         masked_table = result.document.tables[0]
-        cells = masked_table.data.table_cells
+        cells = masked_table.data.grid
 
         # Check that PII is not in table cells
         table_text_all = ""
@@ -109,12 +116,24 @@ class TestTableMasking:
         doc = DoclingDocument(name="test_structure.txt")
 
         # Create table with known structure
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Col1"), Cell("Col2"), Cell("Col3")],
-            [Cell("Data1"), Cell("john@test.com"), Cell("Data3")],
-            [Cell("Data4"), Cell("jane@test.com"), Cell("Data6")],
+        table_data = TableData(num_rows=3, num_cols=3)
+
+        cells_data = [
+            ["Col1", "Col2", "Col3"],
+            ["Data1", "john@test.com", "Data3"],
+            ["Data4", "jane@test.com", "Data6"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -140,25 +159,37 @@ class TestTableMasking:
         # Check structure is preserved
         assert len(result.document.tables) == 1
         masked_table = result.document.tables[0]
-        assert len(masked_table.data.table_cells) == 3  # Same number of rows
-        assert len(masked_table.data.table_cells[0]) == 3  # Same number of columns
+        assert len(masked_table.data.grid) == 3  # Same number of rows
+        assert len(masked_table.data.grid[0]) == 3  # Same number of columns
 
         # Check that non-PII data is preserved
-        assert masked_table.data.table_cells[0][0].text == "Col1"
-        assert masked_table.data.table_cells[1][0].text == "Data1"
-        assert masked_table.data.table_cells[2][0].text == "Data4"
+        assert masked_table.data.grid[0][0].text == "Col1"
+        assert masked_table.data.grid[1][0].text == "Data1"
+        assert masked_table.data.grid[2][0].text == "Data4"
 
     def test_table_round_trip(self):
         """Test that masked tables maintain structure through round trip."""
         # Create document with table
         doc = DoclingDocument(name="test_roundtrip.txt")
 
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Employee"), Cell("Contact")],
-            [Cell("Bob Wilson"), Cell("bob@company.com")],
-            [Cell("Alice Brown"), Cell("alice@company.com")],
+        table_data = TableData(num_rows=3, num_cols=2)
+
+        cells_data = [
+            ["Employee", "Contact"],
+            ["Bob Wilson", "bob@company.com"],
+            ["Alice Brown", "alice@company.com"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -178,12 +209,12 @@ class TestTableMasking:
         # Check that table structure is preserved after masking
         assert len(mask_result.document.tables) == 1
         masked_table = mask_result.document.tables[0]
-        assert len(masked_table.data.table_cells) == 3  # Same number of rows
-        assert len(masked_table.data.table_cells[0]) == 2  # Same number of columns
+        assert len(masked_table.data.grid) == 3  # Same number of rows
+        assert len(masked_table.data.grid[0]) == 2  # Same number of columns
 
         # Check that some masking occurred
         table_text = ""
-        for row in masked_table.data.table_cells:
+        for row in masked_table.data.grid:
             for cell in row:
                 if hasattr(cell, "text"):
                     table_text += cell.text + " "
@@ -197,8 +228,8 @@ class TestTableMasking:
 
         # Check structure is preserved after unmasking
         assert len(restored.tables) == 1
-        assert len(restored.tables[0].data.table_cells) == 3
-        assert len(restored.tables[0].data.table_cells[0]) == 2
+        assert len(restored.tables[0].data.grid) == 3
+        assert len(restored.tables[0].data.grid[0]) == 2
 
         # Note: TEMPLATE strategy is not reversible, so we can't check for exact restoration
         # The cells will contain [MASKED] after unmasking since original data is lost
@@ -207,12 +238,24 @@ class TestTableMasking:
         """Test tables with both PII and non-PII content."""
         doc = DoclingDocument(name="test_mixed.txt")
 
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Product"), Cell("Price"), Cell("Customer")],
-            [Cell("Widget A"), Cell("$99.99"), Cell("John Smith")],
-            [Cell("Widget B"), Cell("$149.99"), Cell("Jane Doe")],
+        table_data = TableData(num_rows=3, num_cols=3)
+
+        cells_data = [
+            ["Product", "Price", "Customer"],
+            ["Widget A", "$99.99", "John Smith"],
+            ["Widget B", "$149.99", "Jane Doe"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -243,15 +286,15 @@ class TestTableMasking:
         masked_table = result.document.tables[0]
 
         # Check that product names and prices are preserved
-        assert masked_table.data.table_cells[1][0].text == "Widget A"
-        assert masked_table.data.table_cells[2][0].text == "Widget B"
-        assert "$99.99" in masked_table.data.table_cells[1][1].text
-        assert "$149.99" in masked_table.data.table_cells[2][1].text
+        assert masked_table.data.grid[1][0].text == "Widget A"
+        assert masked_table.data.grid[2][0].text == "Widget B"
+        assert "$99.99" in masked_table.data.grid[1][1].text
+        assert "$149.99" in masked_table.data.grid[2][1].text
 
         # Check that names are masked (if detected)
         # Note: Names might not always be detected depending on context
         table_text = ""
-        for row in masked_table.data.table_cells:
+        for row in masked_table.data.grid:
             for cell in row:
                 if hasattr(cell, "text"):
                     table_text += cell.text + " "
@@ -265,12 +308,24 @@ class TestTableMasking:
         """Test handling of empty table cells."""
         doc = DoclingDocument(name="test_empty.txt")
 
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Name"), Cell("Email")],
-            [Cell(""), Cell("test@example.com")],
-            [Cell("Alice"), Cell("")],
+        table_data = TableData(num_rows=3, num_cols=2)
+
+        cells_data = [
+            ["Name", "Email"],
+            ["", "test@example.com"],
+            ["Alice", ""],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -293,19 +348,31 @@ class TestTableMasking:
         result = engine.mask_document(doc)
 
         # Check that the table still has the same structure
-        assert len(result.document.tables[0].data.table_cells) == 3
-        assert len(result.document.tables[0].data.table_cells[0]) == 2
+        assert len(result.document.tables[0].data.grid) == 3
+        assert len(result.document.tables[0].data.grid[0]) == 2
 
     def test_table_multiple_entities_per_cell(self):
         """Test cells containing multiple PII entities."""
         doc = DoclingDocument(name="test_multiple.txt")
 
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Contact Info")],
-            [Cell("John Doe - john@example.com - 555-1234")],
-            [Cell("Jane Smith (jane@test.com)")],
+        table_data = TableData(num_rows=3, num_cols=1)
+
+        cells_data = [
+            ["Contact Info"],
+            ["John Doe - john@example.com - 555-1234"],
+            ["Jane Smith (jane@test.com)"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -331,7 +398,7 @@ class TestTableMasking:
 
         # Check that PII is masked
         table_text = ""
-        for row in result.document.tables[0].data.table_cells:
+        for row in result.document.tables[0].data.grid:
             for cell in row:
                 if hasattr(cell, "text"):
                     table_text += cell.text + " "
@@ -355,11 +422,23 @@ class TestTableMasking:
         """Test table masking with different strategy types."""
         doc = DoclingDocument(name=f"test_{strategy_kind.value}.txt")
 
-        table_data = TableData()
-        table_data.table_cells = [
-            [Cell("Email")],
-            [Cell("user@example.com")],
+        table_data = TableData(num_rows=2, num_cols=1)
+
+        cells_data = [
+            ["Email"],
+            ["user@example.com"],
         ]
+        table_data.table_cells = []
+        for i, row in enumerate(cells_data):
+            for j, text in enumerate(row):
+                cell = TableCell(
+                    text=text,
+                    start_row_offset_idx=i,
+                    end_row_offset_idx=i + 1,
+                    start_col_offset_idx=j,
+                    end_col_offset_idx=j + 1,
+                )
+                table_data.table_cells.append(cell)
 
         table_item = TableItem(
             data=table_data,
@@ -389,7 +468,7 @@ class TestTableMasking:
 
         # Check that email was masked
         table_text = ""
-        for row in result.document.tables[0].data.table_cells:
+        for row in result.document.tables[0].data.grid:
             for cell in row:
                 if hasattr(cell, "text"):
                     table_text += cell.text + " "
@@ -402,7 +481,7 @@ class TestTableMasking:
                 assert "[EMAIL]" in table_text or "user@example.com" not in table_text
         elif strategy_kind == StrategyKind.REDACT and result.entities_masked > 0:
             # Redact should show asterisks
-            cells = result.document.tables[0].data.table_cells
+            cells = result.document.tables[0].data.grid
             email_cell = cells[1][0].text
             if "user@example.com" not in email_cell:
                 # If masked, should have some masking characters
