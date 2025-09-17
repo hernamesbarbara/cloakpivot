@@ -346,13 +346,51 @@ class PresidioMaskingAdapter:
 
         return anchor_entries
 
+    def _apply_spans(
+        self, text: str, spans: list[tuple[int, int, str]]
+    ) -> str:
+        """Apply non-overlapping replacement spans to text in O(n + k) time.
+
+        This is much more efficient than repeated string slicing which is O(n²).
+
+        Args:
+            text: Original text
+            spans: List of (start, end, replacement) tuples. Must be non-overlapping.
+
+        Returns:
+            Text with all spans applied
+        """
+        if not spans:
+            return text
+
+        # Sort spans by start position for sequential processing
+        spans = sorted(spans, key=lambda s: s[0])
+
+        # Build result in O(n + k) time using a list
+        result = []
+        cursor = 0
+
+        for start, end, replacement in spans:
+            # Add text between last replacement and this one
+            if cursor < start:
+                result.append(text[cursor:start])
+            # Add the replacement
+            result.append(replacement)
+            cursor = end
+
+        # Add any remaining text after last replacement
+        if cursor < len(text):
+            result.append(text[cursor:])
+
+        return ''.join(result)
+
     def _apply_masks_to_text(
         self,
         document_text: str,
         entities: list[RecognizerResult],
         op_results_by_pos: dict[tuple[int, int], OperatorResultLike],
     ) -> str:
-        """Apply all masks to the document text.
+        """Apply all masks to the document text using efficient O(n) algorithm.
 
         Args:
             document_text: Original document text
@@ -362,10 +400,10 @@ class PresidioMaskingAdapter:
         Returns:
             Masked text
         """
-        masked_text = document_text
-        sorted_entities = sorted(entities, key=lambda x: x.start, reverse=True)
+        # Build spans for efficient application
+        spans = []
 
-        for entity in sorted_entities:
+        for entity in entities:
             key = (entity.start, entity.end)
             matched_result = op_results_by_pos.get(key)
 
@@ -375,9 +413,10 @@ class PresidioMaskingAdapter:
                 original = document_text[entity.start : entity.end]
                 masked_value = self._fallback_redaction(original)
 
-            masked_text = masked_text[: entity.start] + masked_value + masked_text[entity.end :]
+            spans.append((entity.start, entity.end, masked_value))
 
-        return masked_text
+        # Apply all replacements in O(n) time
+        return self._apply_spans(document_text, spans)
 
     def _create_masked_document(
         self,
@@ -437,19 +476,20 @@ class PresidioMaskingAdapter:
                                     }
                                 )
 
-                    # Apply masks to this segment
-                    masked_segment_text = segment_text
-                    segment_entities.sort(key=lambda x: x["local_start"], reverse=True)
-
-                    for entity_info in segment_entities:
-                        anchor = entity_info["anchor"]
-                        local_start = entity_info["local_start"]
-                        local_end = entity_info["local_end"]
-                        masked_segment_text = (
-                            masked_segment_text[:local_start]
-                            + anchor.masked_value
-                            + masked_segment_text[local_end:]
-                        )
+                    # Apply masks to this segment using efficient O(n) approach
+                    if segment_entities:
+                        # Build spans for this segment
+                        segment_spans = [
+                            (
+                                entity_info["local_start"],
+                                entity_info["local_end"],
+                                entity_info["anchor"].masked_value,
+                            )
+                            for entity_info in segment_entities
+                        ]
+                        masked_segment_text = self._apply_spans(segment_text, segment_spans)
+                    else:
+                        masked_segment_text = segment_text
 
                     # Create new text item preserving original structure
                     valid_text_labels = {
