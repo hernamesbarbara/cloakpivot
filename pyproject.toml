@@ -153,6 +153,7 @@ force-single-line = false
 # ============================================================
 [tool.coverage.run]
 source = ["cloakpivot"]
+branch = true
 omit = [
     "*/tests/*",
     "*/tests_old/*",
@@ -173,6 +174,7 @@ exclude_lines = [
 ]
 precision = 2
 show_missing = true
+fail_under = 60
 
 [tool.coverage.html]
 directory = "htmlcov"

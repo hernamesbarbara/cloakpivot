@@ -26,6 +26,11 @@ from cloakpivot import CloakEngine, CloakEngineBuilder
 from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
 
 
+
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
+
 def create_sample_document() -> DoclingDocument:
     """Create a sample document with various PII types."""
     doc = DoclingDocument(name="employee_records.txt")

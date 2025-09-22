@@ -16,10 +16,11 @@ Follow these guidelines precisely when working with this codebase.
    - Public APIs must have docstrings
    - Functions must be focused and small
    - Follow existing patterns exactly
-   - Line length: 88 chars maximum
+   - Line length: 100 chars maximum
 
 3. Testing Requirements
 
+   - Respect our detailed testing philosophy and guidelines outlined in TESTING.md
    - Testing with pytest via `make test` command
    - Coverage report generated via `make test` command
    - New features require tests
@@ -73,6 +74,12 @@ Always keep in mind that CloakPivot is meant to make using Docling and Presidio 
 - `pyproject.toml`: project configuration, dependencies, testing tools, and other project settings
 - `Makefile`: build pipeline, testing pipeline, linting rules, CI pipeline used locally and remotely via github checks
 - `.github/workflows/ci.yml`: github actions should match `Makefile`
+
+## Sample Data for Testing, Debugging, and New Feature Dev
+
+- Always remember to use realistic data included in the project in the data/ directory.
+- Various formats are available data/json/, data/pdf/, data/md/, etc. 
+- Example scripts in examples/ should always use realistic data rather than generate mock data internally.
 
 ## Error Resolution
 

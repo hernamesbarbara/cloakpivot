@@ -20,6 +20,8 @@ from cloakpivot import (
 from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
 from cloakpivot.core.cloakmap import CloakMap
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
 
 def example_builder_pattern():
     """Demonstrate using the builder pattern for configuration."""

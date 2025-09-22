@@ -32,10 +32,7 @@ make test-unit      # Unit tests only
 make test-integration # Integration tests only
 make test-e2e       # End-to-end tests only
 make test-fast      # Tests without coverage (faster)
-make test-verbose   # Tests with verbose output
 
-# Generate coverage reports
-make coverage-html  # HTML report in htmlcov/
 ```
 
 ## Test Suite Architecture
@@ -85,15 +82,12 @@ markers = [
 
 ### Coverage Configuration
 ```toml
-[tool.coverage.run]
-source = ["cloakpivot"]
-branch = true
-parallel = true
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
-skip_covered = false
+fail_under = 60
+
 ```
 
 ## Running Tests
@@ -236,10 +230,8 @@ make type    # MyPy type checking
 
 ```bash
 # Run complete pipeline locally
-make all  # format + lint + type + test
+make all 
 
-# This is what CI runs
-make ci-test
 ```
 
 ## Coverage Requirements
@@ -255,63 +247,11 @@ The project maintains the following coverage standards:
 make test
 
 # Generate detailed HTML report
-make coverage-html
+make coverage
 open htmlcov/index.html
 
 # View coverage in terminal
 pytest --cov=cloakpivot --cov-report=term-missing
-```
-
-## Continuous Integration
-
-### Local CI Simulation
-
-```bash
-# Run exactly what CI runs
-make ci-install  # Setup CI environment
-make ci-test     # Run CI test suite
-```
-
-### Pre-commit Validation
-
-```bash
-# Before committing
-make pre-commit  # Same as 'make check'
-
-# Before pushing
-make pre-push    # Same as 'make all'
-```
-
-## Debugging Test Failures
-
-### Common Issues
-
-1. **Import Errors**: Ensure development environment is set up
-   ```bash
-   make dev
-   ```
-
-2. **Slow Tests**: Identify slow tests
-   ```bash
-   pytest --durations=10
-   ```
-
-3. **Flaky Tests**: Re-run failed tests
-   ```bash
-   pytest --lf  # Run last failed
-   ```
-
-### Debugging Commands
-
-```bash
-# Run single test with output
-pytest tests/test_analyzer.py::TestAnalyzer::test_basic -v -s
-
-# Debug with pdb
-pytest tests/test_analyzer.py::TestAnalyzer::test_basic --pdb
-
-# Show coverage for specific module
-pytest --cov=cloakpivot.core.analyzer --cov-report=term-missing tests/
 ```
 
 ## Project Configuration
@@ -358,14 +298,6 @@ All configuration details are in `pyproject.toml`.
 # Clean all test artifacts
 make clean
 
-# Verify tool configuration
-make verify
-
-# Check for outdated dependencies
-make deps-check
-
-# Update dependencies
-make deps-update
 ```
 
 ## Getting Help
@@ -377,8 +309,6 @@ make help
 # Show project information
 make info
 
-# Verify tools are installed
-make verify
 ```
 
 For more details on the project configuration and development workflow, see:

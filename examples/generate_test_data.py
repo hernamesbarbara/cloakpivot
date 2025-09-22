@@ -13,6 +13,10 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import TextItem
 
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
+
 def create_sample_text_file():
     """Create a sample text file with synthetic PII."""
     data_dir = Path("data/text")

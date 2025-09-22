@@ -15,6 +15,8 @@ from docpivot import DocPivotEngine, DoclingJsonReader
 from cloakpivot import CloakEngine, MaskingPolicy, Strategy, StrategyKind
 from cloakpivot.core.normalization import ConflictResolutionConfig, ConflictResolutionStrategy
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
 
 def demonstrate_conflict_resolution():
     """Show how ConflictResolutionConfig controls entity grouping."""
