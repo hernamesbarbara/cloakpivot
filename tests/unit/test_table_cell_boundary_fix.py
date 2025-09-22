@@ -184,3 +184,121 @@ class TestTableCellBoundaryFix:
 
         # Entity should be skipped because truncation results in whitespace only
         assert len(validated_entities) == 0
+
+    def test_empty_segment_boundaries_list(self):
+        """Test behavior with empty segment boundaries list."""
+        adapter = PresidioMaskingAdapter()
+
+        document_text = "John Smith was born on 1958-04-21"
+        segment_boundaries = []  # Empty list
+
+        entities = [
+            RecognizerResult(
+                entity_type="PERSON",
+                start=0,
+                end=10,
+                score=0.95,
+            ),
+            RecognizerResult(
+                entity_type="DATE_TIME",
+                start=23,
+                end=34,
+                score=0.95,
+            ),
+        ]
+
+        # When no boundaries, entities are skipped as they cannot be validated
+        validated_entities = adapter._validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
+
+        # With empty boundaries, entities cannot be contained in any segment, so they're skipped
+        assert len(validated_entities) == 0
+
+    def test_entity_without_separator_passes_through(self):
+        """Test that entities without separator in text pass through unchanged."""
+        adapter = PresidioMaskingAdapter()
+
+        document_text = "John Smith\n\nBorden Ashley\n\n1958-04-21"
+        segment_boundaries = [
+            SegmentBoundary(segment_index=0, start=0, end=10, node_id="#/texts/0"),
+            SegmentBoundary(segment_index=1, start=12, end=25, node_id="#/texts/1"),
+            SegmentBoundary(segment_index=2, start=27, end=37, node_id="#/texts/2"),
+        ]
+
+        # Entities that don't span boundaries (no separator in entity text)
+        entities = [
+            RecognizerResult(entity_type="PERSON", start=0, end=10, score=0.95),  # "John Smith"
+            RecognizerResult(entity_type="PERSON", start=12, end=18, score=0.95),  # "Borden"
+            RecognizerResult(entity_type="DATE_TIME", start=27, end=37, score=0.95),  # "1958-04-21"
+        ]
+
+        validated_entities = adapter._validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
+
+        # All entities should pass through unchanged
+        assert len(validated_entities) == 3
+        for original, validated in zip(entities, validated_entities, strict=False):
+            assert validated.start == original.start
+            assert validated.end == original.end
+            assert validated.entity_type == original.entity_type
+
+    def test_entity_at_segment_edge(self):
+        """Test entity that ends exactly at segment boundary."""
+        adapter = PresidioMaskingAdapter()
+
+        document_text = "John Smith\n\nNext segment"
+        segment_boundaries = [
+            SegmentBoundary(segment_index=0, start=0, end=10, node_id="#/texts/0"),
+            SegmentBoundary(segment_index=1, start=12, end=24, node_id="#/texts/1"),
+        ]
+
+        # Entity ends exactly at segment boundary
+        entities = [
+            RecognizerResult(
+                entity_type="PERSON",
+                start=0,
+                end=10,  # Exactly at boundary
+                score=0.95,
+            )
+        ]
+
+        validated_entities = adapter._validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
+
+        # Should pass through unchanged
+        assert len(validated_entities) == 1
+        assert validated_entities[0].start == 0
+        assert validated_entities[0].end == 10
+
+    def test_multiple_separators_in_entity(self):
+        """Test entity containing multiple separators gets truncated at first."""
+        adapter = PresidioMaskingAdapter()
+
+        document_text = "Start\n\nMiddle\n\nEnd"
+        segment_boundaries = [
+            SegmentBoundary(segment_index=0, start=0, end=5, node_id="#/texts/0"),
+            SegmentBoundary(segment_index=1, start=7, end=13, node_id="#/texts/1"),
+            SegmentBoundary(segment_index=2, start=15, end=18, node_id="#/texts/2"),
+        ]
+
+        # Entity spans multiple segments
+        entities = [
+            RecognizerResult(
+                entity_type="MISC",
+                start=0,
+                end=18,  # Spans all three segments
+                score=0.95,
+            )
+        ]
+
+        validated_entities = adapter._validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
+
+        # Should truncate at first separator
+        assert len(validated_entities) == 1
+        assert validated_entities[0].start == 0
+        assert validated_entities[0].end == 5  # Truncated at first separator
