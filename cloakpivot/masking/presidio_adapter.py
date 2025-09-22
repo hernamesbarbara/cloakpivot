@@ -220,6 +220,102 @@ class PresidioMaskingAdapter:
                 )
         return valid_entities
 
+    def _validate_entities_against_boundaries(
+        self,
+        entities: list[RecognizerResult],
+        document_text: str,
+        segment_boundaries: list[SegmentBoundary],
+    ) -> list[RecognizerResult]:
+        """Validate and adjust entities to not span across segment boundaries.
+
+        This prevents the issue where entities detected by Presidio span across
+        table cell boundaries or other segment separators, which causes text from
+        multiple segments to be incorrectly concatenated in the masked value.
+
+        If an entity spans across boundaries, it will be truncated to fit within
+        the first segment it appears in.
+
+        Args:
+            entities: List of entities to validate
+            document_text: Full document text
+            segment_boundaries: List of segment boundaries with start/end positions
+
+        Returns:
+            List of valid entities that don't cross segment boundaries
+        """
+        from copy import copy
+
+        valid_entities = []
+        adjusted_count = 0
+
+        for entity in entities:
+            # Extract the actual text for this entity
+            entity_text = document_text[entity.start : entity.end]
+
+            # Check if the entity text contains the segment separator
+            separator_pos = entity_text.find(SEGMENT_SEPARATOR)
+            if separator_pos >= 0:
+                # Entity spans across segments - truncate it to the first segment
+                adjusted_entity = copy(entity)
+                adjusted_entity.end = entity.start + separator_pos
+
+                # Verify the truncated entity still makes sense
+                truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
+                if len(truncated_text.strip()) > 0:
+                    logger.debug(
+                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
+                        f"spans segments. Truncated to {adjusted_entity.start}-{adjusted_entity.end}. "
+                        f"Original: '{entity_text[:30]}...' -> Truncated: '{truncated_text}'"
+                    )
+                    valid_entities.append(adjusted_entity)
+                    adjusted_count += 1
+                else:
+                    logger.warning(
+                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
+                        f"spans segments and truncation results in empty text, skipping"
+                    )
+                continue
+
+            # Additional check: verify entity is fully contained within a single segment
+            entity_contained = False
+            for boundary in segment_boundaries:
+                if boundary.start <= entity.start and entity.end <= boundary.end:
+                    entity_contained = True
+                    break
+
+            if not entity_contained:
+                # Try to find the segment containing the start of the entity and truncate
+                for boundary in segment_boundaries:
+                    if boundary.start <= entity.start < boundary.end:
+                        adjusted_entity = copy(entity)
+                        adjusted_entity.end = min(entity.end, boundary.end)
+                        truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
+                        if len(truncated_text.strip()) > 0:
+                            logger.debug(
+                                f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
+                                f"not contained in segment. Truncated to segment boundary: "
+                                f"{adjusted_entity.start}-{adjusted_entity.end}"
+                            )
+                            valid_entities.append(adjusted_entity)
+                            adjusted_count += 1
+                        break
+                else:
+                    logger.warning(
+                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
+                        f"could not be adjusted to fit within a segment, skipping"
+                    )
+            else:
+                # Entity is fully contained within a segment
+                valid_entities.append(entity)
+
+        if adjusted_count > 0:
+            logger.info(
+                f"Adjusted {adjusted_count} entities to fit within segment boundaries. "
+                f"Total valid entities: {len(valid_entities)}"
+            )
+
+        return valid_entities
+
     def _prepare_strategies(
         self, entities: list[RecognizerResult], policy: MaskingPolicy
     ) -> dict[str, Strategy]:
@@ -591,6 +687,11 @@ class PresidioMaskingAdapter:
 
         # Step 4: Validate entities
         valid_entities = self._validate_entities(filtered_entities, len(document_text))
+
+        # Step 4b: Validate entities don't span segment boundaries
+        valid_entities = self._validate_entities_against_boundaries(
+            valid_entities, document_text, segment_boundaries
+        )
 
         # Step 5: Compute replacements
         operator_results, op_results_by_pos = self._compute_replacements(
