@@ -4,6 +4,12 @@
 
 When CloakEngine masks a DoclingDocument, the resulting masked document loses its ability to export to markdown via the `export_to_markdown()` method. This method returns an empty string instead of properly formatted markdown, forcing downstream consumers to implement workarounds that inevitably lose document formatting fidelity (especially for tables).
 
+## Realistic test data
+
+- PDFs with tables are in the repo's data/pdf/ directory
+- 2025-07-03-Test-PDF-Styles.pdf has tables but does NOT have PII for masking
+- email.pdf has a table and DOES have PII for masking
+
 ## Impact
 
 ### Severity: High
@@ -27,7 +33,7 @@ from cloakpivot.core.strategies import Strategy, StrategyKind
 
 # Convert PDF to DoclingDocument
 converter = DocumentConverter()
-result = converter.convert("document_with_table.pdf")
+result = converter.convert("TEST_PDF_DOC.pdf")
 original_doc = result.document
 
 # Original document exports markdown correctly
@@ -51,9 +57,9 @@ print(len(masked_md))  # Output: 0 (empty string!)
 
 ## Downstream Behavior
 
-### Current Workaround in pii-cloak
+### Current Workaround in pii-cloak script
 
-Projects using cloakpivot are forced to implement fallback rendering:
+Projects (sample script, `pii-cloak` included in project root) using cloakpivot are forced to implement fallback rendering:
 
 ```python
 def render_markdown(doc, *, title: str, entities_found: int, entities_masked: int) -> str:
@@ -232,7 +238,7 @@ for attr in required_attrs:
 def test_export_to_markdown_preserved():
     """Verify export_to_markdown() works after masking."""
     # Load document with tables
-    original = load_test_document("table_document.pdf")
+    original = load_test_document("TEST_PDF_DOC.pdf")
 
     # Verify original exports markdown
     original_md = original.export_to_markdown()
