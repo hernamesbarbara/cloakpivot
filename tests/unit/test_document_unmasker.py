@@ -2,12 +2,13 @@
 
 from unittest.mock import Mock, patch
 
+from docling_core.types.doc.document import TextItem
+
 from cloakpivot.core.types import DoclingDocument
 from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types.cloakmap import CloakMap
-from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
 from cloakpivot.unmasking.anchor_resolver import ResolvedAnchor
-from docling_core.types.doc.document import TextItem
+from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
 
 
 class TestDocumentUnmasker:
