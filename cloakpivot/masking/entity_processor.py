@@ -6,7 +6,6 @@ extracted from the main PresidioMaskingAdapter to improve maintainability.
 
 import logging
 from copy import copy
-from dataclasses import dataclass
 from typing import Any
 
 from presidio_analyzer import RecognizerResult
@@ -15,22 +14,13 @@ from presidio_anonymizer import AnonymizerEngine, OperatorConfig
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.core.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
 from cloakpivot.masking.strategy_processors import StrategyProcessor
-from cloakpivot.masking.protocols import SyntheticOperatorResult
+from cloakpivot.masking.protocols import SyntheticOperatorResult, SegmentBoundary
 
 logger = logging.getLogger(__name__)
 
 # Constants
 SEGMENT_SEPARATOR = "\n\n"
 UNKNOWN_ENTITY = "PII"
-
-
-@dataclass
-class SegmentBoundary:
-    """Represents the boundary of a text segment."""
-
-    start: int
-    end: int
-    node_id: str | None = None
 
 
 class EntityProcessor:

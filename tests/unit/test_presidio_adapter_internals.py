@@ -6,8 +6,9 @@ from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
 
 from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
-from cloakpivot.core.strategies import MaskingStrategy, Strategy
-from cloakpivot.core.types import MaskedEntity
+from cloakpivot.core.strategies import StrategyKind, Strategy
+from cloakpivot.core.policies import MaskingPolicy
+# MaskedEntity replaced with RecognizerResult
 
 
 class TestPresidioAdapterInternals:
@@ -48,24 +49,34 @@ class TestPresidioAdapterInternals:
 
     def test_validate_entities_against_boundaries_edge_cases(self, adapter):
         """Test validation of entities against text boundaries."""
+        from cloakpivot.masking.protocols import SegmentBoundary
+
         text = "Short text with email@test.com"
+        segment_boundaries = [
+            SegmentBoundary(segment_index=0, start=0, end=len(text), node_id="#/texts/0")
+        ]
         entities = [
             RecognizerResult(entity_type="EMAIL", start=16, end=30, score=0.9),
             RecognizerResult(entity_type="PERSON", start=28, end=35, score=0.8),  # Beyond boundary
             RecognizerResult(entity_type="PHONE", start=-5, end=10, score=0.7),  # Negative start
         ]
 
-        validated = adapter._validate_entities_against_boundaries(entities, text)
+        validated = adapter._validate_entities_against_boundaries(entities, text, segment_boundaries)
 
-        # Should only keep valid entity within boundaries
-        assert len(validated) == 1
+        # Should keep EMAIL and truncate PERSON to fit within boundary, skip PHONE (negative start)
+        assert len(validated) == 2
         assert validated[0].entity_type == "EMAIL"
+        assert validated[1].entity_type == "PERSON"
+        assert validated[1].end == 30  # Truncated from 35 to 30
 
     def test_batch_process_entities_large_batches(self, adapter):
         """Test batch processing of large entity batches."""
+        # Create test text
+        text = "x" * 1000  # Large text
+
         # Create a large batch of entities
         entities = []
-        for i in range(100):
+        for i in range(10):  # Reduced from 100 to avoid out of bounds
             entities.append(
                 RecognizerResult(
                     entity_type=f"TYPE_{i % 5}",
@@ -75,46 +86,47 @@ class TestPresidioAdapterInternals:
                 )
             )
 
-        # Process in batches
-        batch_size = 20
-        processed_batches = adapter._batch_process_entities(entities, batch_size)
+        # Create strategies
+        strategies = {}
+        for i in range(5):
+            strategies[f"TYPE_{i}"] = Strategy(kind=StrategyKind.REDACT, parameters={"char": "*"})
 
-        # Verify batching
-        assert len(processed_batches) == 5  # 100 / 20
-        for batch in processed_batches[:-1]:
-            assert len(batch) == batch_size
-        assert len(processed_batches[-1]) == 20  # Last batch
+        # Process entities
+        results = adapter._batch_process_entities(text, entities, strategies)
+
+        # Verify all entities were processed
+        assert len(results) == 10  # All entities should be processed
 
     def test_prepare_strategies_fallback_scenarios(self, adapter):
         """Test strategy preparation with fallback scenarios."""
         # Test with missing strategy
         entities = [
-            MaskedEntity(
+            RecognizerResult(
                 entity_type="CUSTOM_TYPE",
                 start=0,
                 end=10,
-                text="test",
-                score=0.9,
-                strategy_name="non_existent_strategy"
+                score=0.9
             )
         ]
 
-        with patch.object(adapter, '_get_default_strategy') as mock_default:
-            mock_default.return_value = MaskingStrategy(name="default", pattern="<MASK>")
-            strategies = adapter._prepare_strategies(entities)
+        # MaskingPolicy should provide default strategy for unknown types
+        policy = MaskingPolicy()
+        strategies = adapter._prepare_strategies(entities, policy)
 
-            assert "non_existent_strategy" in strategies or "default" in strategies
-            mock_default.assert_called()
+        # Should have strategy for CUSTOM_TYPE
+        assert "CUSTOM_TYPE" in strategies
+        # Default strategy should be created
+        assert isinstance(strategies["CUSTOM_TYPE"], Strategy)
 
     def test_apply_spans_unicode_handling(self, adapter):
         """Test applying spans with unicode characters."""
         text = "Hello 世界 email@test.com 你好"
         spans = [
-            {"start": 6, "end": 8, "replacement": "[REDACTED]"},
-            {"start": 9, "end": 23, "replacement": "[EMAIL]"},
+            (6, 8, "[REDACTED]"),  # Replace 世界
+            (9, 23, "[EMAIL]"),  # Replace email@test.com
         ]
 
-        result = adapter._apply_spans_to_text(text, spans)
+        result = adapter._apply_spans(text, spans)
 
         # Should handle unicode correctly
         assert "[REDACTED]" in result
@@ -240,24 +252,20 @@ class TestPresidioAdapterInternals:
 
     def test_prepare_strategies_creates_dict(self, adapter):
         """Test that prepare_strategies creates proper dict."""
-        from cloakpivot.masking.strategies import Strategy
+        # Strategy already imported from core.strategies
 
         entities = [
-            MaskedEntity(
+            RecognizerResult(
                 entity_type="EMAIL",
                 start=10,
                 end=30,
-                text="test@example.com",
-                score=0.9,
-                strategy_name="hash"
+                score=0.9
             ),
-            MaskedEntity(
+            RecognizerResult(
                 entity_type="PHONE",
                 start=40,
                 end=50,
-                text="555-1234",
-                score=0.85,
-                strategy_name="redact"
+                score=0.85
             ),
         ]
 

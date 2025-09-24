@@ -31,10 +31,13 @@ from ..core.strategies import Strategy, StrategyKind
 from ..core.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
 from ..document.extractor import TextSegment
+from .document_reconstructor import DocumentReconstructor
 from .engine import MaskingResult
-from .entity_processor import EntityProcessor, SegmentBoundary
-from .protocols import OperatorResultLike, SyntheticOperatorResult
+from .entity_processor import EntityProcessor
+from .metadata_manager import MetadataManager
+from .protocols import OperatorResultLike, SegmentBoundary, SyntheticOperatorResult
 from .strategy_processors import StrategyProcessor
+from .text_processor import TextProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,9 @@ class PresidioMaskingAdapter:
         # Initialize processors (will be properly initialized when anonymizer is created)
         self.entity_processor: EntityProcessor | None = None
         self.strategy_processor: StrategyProcessor | None = None
+        self.text_processor: TextProcessor | None = None
+        self.document_reconstructor: DocumentReconstructor | None = None
+        self.metadata_manager: MetadataManager | None = None
 
         logger.debug(f"PresidioMaskingAdapter initialized with config: {self.engine_config}")
 
@@ -98,6 +104,9 @@ class PresidioMaskingAdapter:
                     # Initialize processors now that anonymizer exists
                     self.entity_processor = EntityProcessor(self._anonymizer_instance, self.operator_mapper)
                     self.strategy_processor = StrategyProcessor(self._anonymizer_instance, self.operator_mapper)
+                    self.text_processor = TextProcessor()
+                    self.document_reconstructor = DocumentReconstructor()
+                    self.metadata_manager = MetadataManager()
         return self._anonymizer_instance
 
     def apply_strategy(
@@ -244,20 +253,11 @@ class PresidioMaskingAdapter:
     def _prepare_strategies(
         self, entities: list[RecognizerResult], policy: MaskingPolicy
     ) -> dict[str, Strategy]:
-        """Prepare masking strategies for each entity type.
-
-        Args:
-            entities: List of entities to process
-            policy: Masking policy to use
-
-        Returns:
-            Dictionary mapping entity types to strategies
-        """
-        strategies = {}
-        for entity in entities:
-            if entity.entity_type not in strategies:
-                strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
-        return strategies
+        """Prepare masking strategies for each entity type."""
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processors are initialized
+        return self.metadata_manager.prepare_strategies(entities, policy)
 
     def _compute_replacements(
         self,
@@ -602,7 +602,7 @@ class PresidioMaskingAdapter:
         )
 
         # Step 1: Filter overlapping entities
-        filtered_entities = filter_overlapping_entities(entities)
+        filtered_entities = self._filter_overlapping_entities(entities)
 
         # Step 2: Prepare strategies
         strategies = self._prepare_strategies(filtered_entities, policy)
@@ -689,32 +689,15 @@ class PresidioMaskingAdapter:
         Returns:
             Enhanced CloakMap
         """
-        enhanced_operator_results = []
-        reversible_operators = self._get_reversible_operators(strategies)
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
 
-        for entity in entities:
-            key = (entity.start, entity.end)
-            op_result = op_results_by_pos.get(key)
-
-            if op_result:
-                op_dict = operator_result_to_dict(op_result)
-
-                # Only add original text for reversible operations
-                operator = op_dict.get("operator", "")
-                if operator in reversible_operators:
-                    op_dict["original_text"] = document_text[entity.start : entity.end]
-
-                enhanced_operator_results.append(op_dict)
-
-        # Only enhance if there are results
-        if enhanced_operator_results:
-            return self.cloakmap_enhancer.add_presidio_metadata(
-                base_cloakmap,
-                operator_results=enhanced_operator_results,
-                engine_version=PRESIDIO_VERSION,
-                reversible_operators=reversible_operators,
-            )
-        return base_cloakmap
+        # Convert op_results_by_pos to list for metadata manager
+        op_results = list(op_results_by_pos.values())
+        return self.metadata_manager.enhance_cloakmap_with_metadata(
+            base_cloakmap, strategies, entities, op_results
+        )
 
     # Overlap filtering delegated to EntityProcessor
     def _filter_overlapping_entities(
@@ -777,13 +760,10 @@ class PresidioMaskingAdapter:
 
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
         """Convert OperatorResult to dictionary for storage."""
-        return {
-            "entity_type": result.entity_type,
-            "start": result.start,
-            "end": result.end,
-            "operator": result.operator,
-            "text": result.text,
-        }
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.metadata_manager.operator_result_to_dict(result)
 
     def _create_synthetic_result(
         self, entity: RecognizerResult, strategy: Strategy, text: str
@@ -800,24 +780,10 @@ class PresidioMaskingAdapter:
         Reversible operations are those that can be undone to restore the original text.
         Non-reversible operations like REDACT, HASH, and SURROGATE cannot be reversed.
         """
-        reversible = set()
-        for strategy in strategies.values():
-            if strategy.kind in {StrategyKind.TEMPLATE, StrategyKind.CUSTOM}:
-                try:
-                    operator_config = self.operator_mapper.strategy_to_operator(strategy)
-                    # Guard against different field names
-                    operator_name = getattr(
-                        operator_config, "operator_name", getattr(operator_config, "name", None)
-                    )
-                    # Only mark reversible if the operator preserves original in metadata
-                    if operator_name and operator_name in {
-                        "replace"
-                    }:  # Keep explicit and conservative
-                        reversible.add(operator_name)
-                except Exception:
-                    # If we can't map the strategy, assume not reversible
-                    pass
-        return list(reversible)
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.metadata_manager.get_reversible_operators(strategies)
 
     def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment node_id for a given character position using binary search.
@@ -829,26 +795,10 @@ class PresidioMaskingAdapter:
         Returns:
             Node ID of the containing segment, or None if not found
         """
-        if not segments:
-            return "#/texts/0"
-
-        # Use cached starts if available, otherwise build it
-        starts = (
-            self._segment_starts if self._segment_starts else [s.start_offset for s in segments]
-        )
-        idx = bisect.bisect_right(starts, position) - 1
-
-        if 0 <= idx < len(segments):
-            segment = segments[idx]
-            if segment.start_offset <= position < segment.end_offset:
-                # Return segment's node_id if available, otherwise construct one
-                if hasattr(segment, "node_id"):
-                    return segment.node_id
-                if hasattr(segment, "segment_index"):
-                    return f"#/texts/{segment.segment_index}"
-                return f"#/texts/{idx}"
-
-        return "#/texts/0"
+        # Delegate to TextProcessor
+        if self.text_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.text_processor.find_segment_for_position(position, segments)
 
     def _update_table_cells(
         self,
@@ -863,122 +813,19 @@ class PresidioMaskingAdapter:
             text_segments: Original text segments with metadata
             anchor_entries: Anchors containing masked values
         """
-        if not hasattr(masked_document, "tables") or not masked_document.tables:
-            return
-
-        # Create a mapping from node_id to masked value for table cells
-        node_to_masked_value: dict[str, str] = {}
-        for anchor in anchor_entries:
-            # Only process anchors for table cells
-            if "/cell_" in anchor.node_id:
-                node_to_masked_value[anchor.node_id] = anchor.masked_value
-
-        # Process each table
-        for table_item in masked_document.tables:
-            if not hasattr(table_item, "data") or not table_item.data:
-                continue
-
-            table_data = table_item.data
-
-            # Get the base node ID for this table
-            base_node_id = self._get_table_node_id(table_item)
-
-            # If table uses grid (computed property from table_cells)
-            if hasattr(table_data, "grid") and hasattr(table_data, "table_cells"):
-                # First, get the grid to identify which cells exist
-                grid = table_data.grid
-
-                # If table_cells is empty, populate it from grid
-                if not table_data.table_cells:
-                    table_data.table_cells = []
-                    for row in grid:
-                        for cell in row:
-                            if cell and hasattr(cell, "text") and cell.text:
-                                table_data.table_cells.append(cell)
-
-                # Create a map of positions to cells in table_cells
-                cell_map: dict[tuple[int, int], Any] = {}
-                for cell in table_data.table_cells:
-                    if hasattr(cell, "start_row_offset_idx") and hasattr(
-                        cell, "start_col_offset_idx"
-                    ):
-                        # Map by starting position
-                        key = (cell.start_row_offset_idx, cell.start_col_offset_idx)
-                        cell_map[key] = cell
-
-                # Now check each position in the grid for masked values
-                for row_idx in range(len(grid)):
-                    for col_idx in range(len(grid[row_idx])):
-                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
-
-                        if cell_node_id in node_to_masked_value:
-                            masked_value = node_to_masked_value[cell_node_id]
-
-                            # Find the cell in table_cells that corresponds to this position
-                            cell_key = (row_idx, col_idx)
-                            if cell_key in cell_map:
-                                # Update existing cell
-                                cell = cell_map[cell_key]
-                                if hasattr(cell, "text"):
-                                    cell.text = masked_value
-                                    logger.debug(
-                                        f"Updated table cell ({row_idx}, {col_idx}) with masked value"
-                                    )
-                            else:
-                                # Need to add a new cell to table_cells
-                                from docling_core.types.doc.document import TableCell
-
-                                new_cell = TableCell(
-                                    text=masked_value,
-                                    start_row_offset_idx=row_idx,
-                                    end_row_offset_idx=row_idx + 1,
-                                    start_col_offset_idx=col_idx,
-                                    end_col_offset_idx=col_idx + 1,
-                                )
-                                table_data.table_cells.append(new_cell)
-                                logger.debug(
-                                    f"Added new table cell ({row_idx}, {col_idx}) with masked value"
-                                )
-            # Fallback for tables that only use table_cells (1D list)
-            elif hasattr(table_data, "table_cells") and table_data.table_cells:
-                # For old-style flat table_cells, update directly by matching node IDs
-                for idx, cell in enumerate(table_data.table_cells):
-                    if hasattr(cell, "text"):
-                        # Try to determine row/col from cell properties or index
-                        row_idx = (
-                            cell.start_row_offset_idx
-                            if hasattr(cell, "start_row_offset_idx")
-                            else (
-                                idx // table_data.num_cols
-                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
-                                else 0
-                            )
-                        )
-                        col_idx = (
-                            cell.start_col_offset_idx
-                            if hasattr(cell, "start_col_offset_idx")
-                            else (
-                                idx % table_data.num_cols
-                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
-                                else idx
-                            )
-                        )
-                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
-
-                        if cell_node_id in node_to_masked_value:
-                            cell.text = node_to_masked_value[cell_node_id]
-                            logger.debug(f"Updated table cell at index {idx} with masked value")
+        # Delegate to DocumentReconstructor
+        if self.document_reconstructor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        self.document_reconstructor.update_table_cells(
+            masked_document, text_segments, anchor_entries
+        )
 
     def _get_table_node_id(self, table_item: Any) -> str:
         """Get the node ID for a table item."""
-        # Try to get from self_ref first
-        if hasattr(table_item, "self_ref"):
-            return str(table_item.self_ref)
-
-        # Try to get from position in tables list
-        # This would need access to the document but we don't have it here
-        # Default fallback
-        return "#/tables/0"
+        # Delegate to DocumentReconstructor
+        if self.document_reconstructor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.document_reconstructor._get_table_node_id(table_item)
 
     def _cleanup_large_results(self, results: list[OperatorResultLike]) -> None:
         """Clean up large result sets for memory efficiency.
@@ -988,26 +835,7 @@ class PresidioMaskingAdapter:
         - Remove redundant metadata fields
         - Release references to large intermediate objects
         """
-        # Define thresholds for memory management
-        max_text_length = 10000  # Characters per text field
-        max_results = 1000  # Maximum results to keep in memory
-
-        if len(results) > max_results:
-            # For very large result sets, clear text from older results
-            # Keep only essential metadata for audit trail
-            for result in results[:-100]:  # Keep last 100 results intact
-                if hasattr(result, "text") and result.text and len(result.text) > max_text_length:
-                    # Clear large text fields while preserving structure
-                    result.text = f"[Text truncated - {len(result.text)} chars]"
-
-                # Clear large metadata fields if present
-                if (
-                    hasattr(result, "operator_metadata")
-                    and result.operator_metadata
-                    and "original_text" in result.operator_metadata
-                ):
-                    orig_len = len(str(result.operator_metadata.get("original_text", "")))
-                    if orig_len > max_text_length:
-                        result.operator_metadata["original_text"] = (
-                            f"[Truncated - {orig_len} chars]"
-                        )
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        self.metadata_manager.cleanup_large_results(results)
