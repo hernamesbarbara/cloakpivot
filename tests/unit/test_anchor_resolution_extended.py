@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import Mock, MagicMock
 from cloakpivot.unmasking.anchor_resolver import AnchorResolver
-from cloakpivot.core.types import Anchor
+from cloakpivot.core.anchors import AnchorEntry
 from docling_core.types import DoclingDocument
 
 
@@ -41,7 +41,7 @@ class TestAnchorResolutionExtended:
 
     def test_resolve_anchor_with_text_modifications(self, resolver, complex_document):
         """Test anchor resolution when surrounding text has been modified."""
-        anchor = Anchor(
+        anchor = AnchorEntry(
             entity_type="EMAIL",
             start=15,
             end=25,
@@ -63,7 +63,7 @@ class TestAnchorResolutionExtended:
     def test_resolve_overlapping_anchors(self, resolver, complex_document):
         """Test resolution of overlapping anchor positions."""
         anchors = [
-            Anchor(
+            AnchorEntry(
                 entity_type="NAME",
                 start=10,
                 end=30,
@@ -72,7 +72,7 @@ class TestAnchorResolutionExtended:
                 node_path="texts.1",
                 node_type="text"
             ),
-            Anchor(
+            AnchorEntry(
                 entity_type="FIRST_NAME",
                 start=10,
                 end=20,
@@ -97,7 +97,7 @@ class TestAnchorResolutionExtended:
         # Modified: "Please contact [EMAIL] for more info"
         doc.texts = [MagicMock(text="Please contact [EMAIL] for more info")]
 
-        anchor = Anchor(
+        anchor = AnchorEntry(
             entity_type="EMAIL",
             start=8,  # Original position
             end=24,   # Original position
@@ -125,7 +125,7 @@ class TestAnchorResolutionExtended:
         for i in range(100):
             text_parts.append(f"Text segment {i} with [MASK_{i:04d}] included")
             anchors.append(
-                Anchor(
+                AnchorEntry(
                     entity_type="DATA",
                     start=i * 50,
                     end=i * 50 + 15,
@@ -168,7 +168,7 @@ class TestAnchorResolutionExtended:
             )
         ]
 
-        anchor = Anchor(
+        anchor = AnchorEntry(
             entity_type="DEEP",
             start=15,
             end=28,

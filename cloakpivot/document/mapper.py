@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
 
 from ..core.anchors import AnchorEntry
+from .common import DocumentValidator, NodeIdGenerator, SegmentFinder
 from .extractor import TextSegment
 
 logger = logging.getLogger(__name__)
@@ -53,11 +54,8 @@ class NodeReference:
 
     def __post_init__(self) -> None:
         """Validate reference data after initialization."""
-        if self.end_pos <= self.start_pos:
-            raise ValueError("end_pos must be greater than start_pos")
-
-        if self.global_end <= self.global_start:
-            raise ValueError("global_end must be greater than global_start")
+        DocumentValidator.validate_offsets(self.start_pos, self.end_pos)
+        DocumentValidator.validate_offsets(self.global_start, self.global_end)
 
         if self.segment_index < 0:
             raise ValueError("segment_index must be non-negative")
@@ -136,7 +134,7 @@ class AnchorMapper:
 
         for detection in detections:
             # Find which segment contains this detection
-            segment = self._find_segment_for_global_position(segments, detection.start)
+            segment = SegmentFinder.find_segment_for_global_position(segments, detection.start)
             if not segment:
                 logger.warning(
                     f"No segment found for detection at global position {detection.start}"
@@ -200,7 +198,7 @@ class AnchorMapper:
             Optional[NodeReference]: Node reference or None if mapping fails
         """
         # Find the segment containing the start position
-        containing_segment = self._find_segment_for_global_position(segments, global_start)
+        containing_segment = SegmentFinder.find_segment_for_global_position(segments, global_start)
         if not containing_segment:
             return None
 
@@ -321,14 +319,8 @@ class AnchorMapper:
         logger.info(f"Resolved to {len(resolved_anchors)} non-conflicting anchors")
         return resolved_anchors
 
-    def _find_segment_for_global_position(
-        self, segments: list[TextSegment], global_position: int
-    ) -> TextSegment | None:
-        """Find the text segment that contains a global position."""
-        for segment in segments:
-            if segment.contains_offset(global_position):
-                return segment
-        return None
+    # Note: _find_segment_for_global_position moved to common.py as
+    # SegmentFinder.find_segment_for_global_position
 
     def _create_node_reference(
         self,

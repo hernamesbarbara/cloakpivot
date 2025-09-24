@@ -32,11 +32,9 @@ from ..core.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
 from ..document.extractor import TextSegment
 from .engine import MaskingResult
-from .protocols import (
-    OperatorResultLike,
-    SegmentBoundary,
-    SyntheticOperatorResult,
-)
+from .entity_processor import EntityProcessor, SegmentBoundary
+from .protocols import OperatorResultLike, SyntheticOperatorResult
+from .strategy_processors import StrategyProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +80,10 @@ class PresidioMaskingAdapter:
         self._surrogate_generator = SurrogateGenerator()
         self._segment_starts: list[int] | None = None  # Cache for binary search
 
+        # Initialize processors (will be properly initialized when anonymizer is created)
+        self.entity_processor: EntityProcessor | None = None
+        self.strategy_processor: StrategyProcessor | None = None
+
         logger.debug(f"PresidioMaskingAdapter initialized with config: {self.engine_config}")
 
     @property
@@ -93,6 +95,9 @@ class PresidioMaskingAdapter:
                 if self._anonymizer_instance is None:
                     self._anonymizer_instance = AnonymizerEngine()
                     logger.debug("AnonymizerEngine initialized")
+                    # Initialize processors now that anonymizer exists
+                    self.entity_processor = EntityProcessor(self._anonymizer_instance, self.operator_mapper)
+                    self.strategy_processor = StrategyProcessor(self._anonymizer_instance, self.operator_mapper)
         return self._anonymizer_instance
 
     def apply_strategy(
@@ -202,6 +207,7 @@ class PresidioMaskingAdapter:
 
         return document_text, segment_boundaries
 
+    # Entity validation delegated to EntityProcessor
     def _validate_entities(
         self, entities: list[RecognizerResult], document_length: int
     ) -> list[RecognizerResult]:
@@ -214,112 +220,26 @@ class PresidioMaskingAdapter:
         Returns:
             List of valid entities within document bounds
         """
-        valid_entities = []
-        for entity in entities:
-            if entity.end <= document_length:
-                valid_entities.append(entity)
-            else:
-                logger.warning(
-                    f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                    f"exceeds document text length {document_length}, skipping"
-                )
-        return valid_entities
+        # Delegate to EntityProcessor
+        if self.entity_processor is None:
+            # Ensure processor is initialized
+            _ = self.anonymizer
+        return self.entity_processor.validate_entities(entities, document_length)
 
+    # Entity boundary validation delegated to EntityProcessor
     def _validate_entities_against_boundaries(
         self,
         entities: list[RecognizerResult],
         document_text: str,
         segment_boundaries: list[SegmentBoundary],
     ) -> list[RecognizerResult]:
-        """Validate and adjust entities to not span across segment boundaries.
-
-        This prevents the issue where entities detected by Presidio span across
-        table cell boundaries or other segment separators, which causes text from
-        multiple segments to be incorrectly concatenated in the masked value.
-
-        If an entity spans across boundaries, it will be truncated to fit within
-        the first segment it appears in.
-
-        Args:
-            entities: List of entities to validate
-            document_text: Full document text
-            segment_boundaries: List of segment boundaries with start/end positions
-
-        Returns:
-            List of valid entities that don't cross segment boundaries
-        """
-        from copy import copy
-
-        valid_entities = []
-        adjusted_count = 0
-
-        for entity in entities:
-            # Extract the actual text for this entity
-            entity_text = document_text[entity.start : entity.end]
-
-            # Check if the entity text contains the segment separator
-            separator_pos = entity_text.find(SEGMENT_SEPARATOR)
-            if separator_pos >= 0:
-                # Entity spans across segments - truncate it to the first segment
-                adjusted_entity = copy(entity)
-                adjusted_entity.end = entity.start + separator_pos
-
-                # Verify the truncated entity still makes sense
-                truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
-                if len(truncated_text.strip()) > 0:
-                    logger.debug(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"spans segments. Truncated to {adjusted_entity.start}-{adjusted_entity.end}. "
-                        f"Original: '{entity_text[:30]}...' -> Truncated: '{truncated_text}'"
-                    )
-                    valid_entities.append(adjusted_entity)
-                    adjusted_count += 1
-                else:
-                    logger.warning(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"spans segments and truncation results in empty text, skipping"
-                    )
-                continue
-
-            # Additional check: verify entity is fully contained within a single segment
-            entity_contained = False
-            for boundary in segment_boundaries:
-                if boundary.start <= entity.start and entity.end <= boundary.end:
-                    entity_contained = True
-                    break
-
-            if not entity_contained:
-                # Try to find the segment containing the start of the entity and truncate
-                for boundary in segment_boundaries:
-                    if boundary.start <= entity.start < boundary.end:
-                        adjusted_entity = copy(entity)
-                        adjusted_entity.end = min(entity.end, boundary.end)
-                        truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
-                        if len(truncated_text.strip()) > 0:
-                            logger.debug(
-                                f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                                f"not contained in segment. Truncated to segment boundary: "
-                                f"{adjusted_entity.start}-{adjusted_entity.end}"
-                            )
-                            valid_entities.append(adjusted_entity)
-                            adjusted_count += 1
-                        break
-                else:
-                    logger.warning(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"could not be adjusted to fit within a segment, skipping"
-                    )
-            else:
-                # Entity is fully contained within a segment
-                valid_entities.append(entity)
-
-        if adjusted_count > 0:
-            logger.info(
-                f"Adjusted {adjusted_count} entities to fit within segment boundaries. "
-                f"Total valid entities: {len(valid_entities)}"
-            )
-
-        return valid_entities
+        """Validate and adjust entities to not span across segment boundaries."""
+        # Delegate to EntityProcessor
+        if self.entity_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.entity_processor.validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
 
     def _prepare_strategies(
         self, entities: list[RecognizerResult], policy: MaskingPolicy
@@ -796,232 +716,64 @@ class PresidioMaskingAdapter:
             )
         return base_cloakmap
 
+    # Overlap filtering delegated to EntityProcessor
     def _filter_overlapping_entities(
         self, entities: list[RecognizerResult]
     ) -> list[RecognizerResult]:
-        """Filter out overlapping entities, keeping the highest confidence or longest match.
+        """Filter out overlapping entities, keeping the highest confidence or longest match."""
+        # Delegate to EntityProcessor
+        if self.entity_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.entity_processor.filter_overlapping_entities(entities)
 
-        Args:
-            entities: List of detected entities that may overlap
-
-        Returns:
-            Filtered list with no overlapping entities
-        """
-        if not entities:
-            return []
-
-        # Sort by start position, then by score (descending), then by length (descending)
-        sorted_entities = sorted(entities, key=lambda e: (e.start, -e.score, -(e.end - e.start)))
-
-        filtered = []
-        last_end = -1
-
-        for entity in sorted_entities:
-            # Skip if this entity overlaps with a previously selected one
-            if entity.start >= last_end:
-                filtered.append(entity)
-                last_end = entity.end
-            else:
-                # Log that we're skipping an overlapping entity
-                logger.debug(
-                    f"Skipping overlapping entity: {entity.entity_type} at {entity.start}-{entity.end}"
-                )
-
-        return filtered
-
+    # Batch processing delegated to EntityProcessor
     def _batch_process_entities(
         self, text: str, entities: list[RecognizerResult], strategies: dict[str, Strategy]
     ) -> list[OperatorResultLike]:
-        """
-        Process multiple entities in a single batch for efficiency.
-
-        Args:
-            text: The text containing entities
-            entities: List of entities to mask
-            strategies: Mapping of entity types to strategies
-
-        Returns:
-            List of OperatorResult objects
-        """
-        try:
-            # Separate SURROGATE entities from others
-            surrogate_entities = []
-            presidio_entities = []
-            for entity in entities:
-                entity_type = getattr(entity, "entity_type", "UNKNOWN")
-                strategy = strategies.get(entity_type)
-                if strategy and strategy.kind == StrategyKind.SURROGATE:
-                    surrogate_entities.append(entity)
-                else:
-                    presidio_entities.append(entity)
-
-            # Process SURROGATE entities manually
-            surrogate_results: list[OperatorResultLike] = []
-
-            # Process surrogate entities WITHOUT mutating the text
-            for entity in surrogate_entities:
-                entity_type = getattr(entity, "entity_type", "UNKNOWN")
-                strategy = strategies.get(entity_type)
-                if not strategy:
-                    # This shouldn't happen as we filtered for SURROGATE entities
-                    continue
-                original_value = text[entity.start : entity.end]
-
-                # Generate surrogate value
-                surrogate_value = self._apply_surrogate_strategy(
-                    original_value, entity_type, strategy
-                )
-                logger.debug(
-                    f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}"
-                )
-
-                # Create a SyntheticOperatorResult for tracking (using original coordinates)
-                op_result = SyntheticOperatorResult(
-                    start=entity.start,
-                    end=entity.end,
-                    entity_type=entity_type,
-                    text=surrogate_value,
-                    operator="surrogate",
-                )
-                surrogate_results.append(op_result)
-
-            # Process remaining entities with Presidio if any
-            if presidio_entities:
-                # Map strategies to operators for non-surrogate entities
-                operators = {}
-                for entity_type, strategy in strategies.items():
-                    if strategy.kind != StrategyKind.SURROGATE:
-                        if strategy.kind == StrategyKind.CUSTOM:
-                            operators[entity_type] = OperatorConfig("custom")
-                        else:
-                            operators[entity_type] = self.operator_mapper.strategy_to_operator(
-                                strategy
-                            )
-
-                # Use Presidio for non-surrogate entities with ORIGINAL text
-                result = self.anonymizer.anonymize(
-                    text=text, analyzer_results=presidio_entities, operators=operators
-                )
-
-                # Combine results with explicit typing
-                items_list: list[OperatorResultLike] = list(getattr(result, "items", []))
-                return [*surrogate_results, *items_list]
-            # Only surrogate entities were processed
-            return surrogate_results
-
-        except Exception as e:
-            logger.error(f"Batch processing failed: {e}")
-            # Create fallback results
-            results: list[OperatorResultLike] = []
-            for entity in entities:
-                entity_type = getattr(entity, "entity_type", None) or UNKNOWN_ENTITY
-                strategy = strategies.get(entity_type, Strategy(StrategyKind.REDACT, {"char": "*"}))
-                results.append(self._create_synthetic_result(entity, strategy, text))
-            return results
+        """Process multiple entities in a single batch for efficiency."""
+        # Delegate to EntityProcessor
+        if self.entity_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.entity_processor.batch_process_entities(text, entities, strategies)
 
     def _apply_hash_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
     ) -> str:
         """Apply hash strategy with support for prefix and other parameters."""
-        params = strategy.parameters or {}
-
-        # Create entity for Presidio
-        entity = RecognizerResult(entity_type=entity_type, start=0, end=len(text), score=confidence)
-
-        # Use Presidio for the base hash
-        operator_config = self.operator_mapper.strategy_to_operator(strategy)
-        result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
-        )
-
-        hashed_value = result.text
-
-        # Add prefix if specified
-        if "prefix" in params:
-            hashed_value = params["prefix"] + hashed_value
-
-        # Truncate if specified
-        if "truncate" in params:
-            truncate_length = params["truncate"]
-            if isinstance(truncate_length, int) and truncate_length > 0:
-                hashed_value = hashed_value[:truncate_length]
-
-        return str(hashed_value)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.strategy_processor.apply_hash_strategy(text, entity_type, strategy, confidence)
 
     def _apply_partial_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
     ) -> str:
         """Apply partial masking strategy with proper char count calculation."""
-        params = strategy.parameters or {}
-        visible_chars = max(0, int(params.get("visible_chars", 4)))
-        position = params.get("position", "end")
-        mask_char = params.get("mask_char", "*")
-
-        # Create entity for Presidio
-        entity = RecognizerResult(entity_type=entity_type, start=0, end=len(text), score=confidence)
-
-        # Calculate how many chars to mask based on text length
-        text_length = len(text)
-        visible_chars = min(visible_chars, text_length)  # Can't show more than we have
-
-        if position == "end":
-            # Show last N chars, mask the rest
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = False
-        elif position == "start":
-            # Show first N chars, mask the rest
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = True  # Mask from the end, leaving start visible
-        else:
-            # Default to end behavior
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = False
-
-        # Use Presidio's mask operator
-        operator_config = OperatorConfig(
-            "mask",
-            {"masking_char": mask_char, "chars_to_mask": chars_to_mask, "from_end": from_end},
-        )
-
-        result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
-        )
-
-        return str(result.text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.strategy_processor.apply_partial_strategy(text, entity_type, strategy, confidence)
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
-        callback = strategy.parameters.get("callback") if strategy.parameters else None
-        if callback and callable(callback):
-            try:
-                return cast(str, callback(text))
-            except Exception as e:
-                logger.error(f"Custom callback failed: {e}")
-        return self._fallback_redaction(text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.strategy_processor.apply_custom_strategy(text, strategy)
 
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
         """Apply surrogate strategy with high-quality fake data generation."""
-        try:
-            # Check if strategy has a seed parameter
-            seed = None
-            if strategy.parameters and "seed" in strategy.parameters:
-                seed = strategy.parameters["seed"]
-
-            # If seed is different from current one, recreate generator
-            if seed != getattr(self._surrogate_generator, "seed", None):
-                self._surrogate_generator = SurrogateGenerator(seed=seed)
-                logger.debug(f"Updated SurrogateGenerator with seed: {seed}")
-
-            # Use the surrogate generator for quality fake data
-            return self._surrogate_generator.generate_surrogate(text, entity_type)
-        except Exception as e:
-            logger.warning(f"Surrogate generation failed: {e}")
-            # Fallback to simple replacement
-            return f"[{entity_type}]"
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.strategy_processor.apply_surrogate_strategy(text, entity_type, strategy)
 
     def _fallback_redaction(self, text: str) -> str:
         """Simple fallback redaction when Presidio fails."""
-        return self._fallback_char * len(text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.strategy_processor._fallback_redaction(text)
 
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
         """Convert OperatorResult to dictionary for storage."""
@@ -1037,64 +789,10 @@ class PresidioMaskingAdapter:
         self, entity: RecognizerResult, strategy: Strategy, text: str
     ) -> SyntheticOperatorResult:
         """Create a synthetic OperatorResult for fallback scenarios."""
-        # Handle invalid entity positions
-        start = getattr(entity, "start", 0) or 0
-        end = getattr(entity, "end", len(text)) or len(text)
-        entity_type = getattr(entity, "entity_type", UNKNOWN_ENTITY) or UNKNOWN_ENTITY
-
-        # Ensure valid bounds
-        if start < 0:
-            start = 0
-        if end > len(text):
-            end = len(text)
-        if start >= end:
-            # Invalid range, use single char
-            start = min(start, len(text) - 1)
-            end = start + 1
-
-        original = text[start:end] if start < end else "*"
-
-        # Apply strategy manually
-        params = strategy.parameters or {}
-        if strategy.kind == StrategyKind.REDACT:
-            masked = params.get("char", "*") * len(original)
-        elif strategy.kind == StrategyKind.TEMPLATE:
-            template = params.get("template", f"[{entity_type}]")
-            # Replace {} with a unique ID if present
-            if "{}" in template:
-                import uuid
-
-                unique_id = str(uuid.uuid4())[:8]
-                masked = template.replace("{}", unique_id)
-            else:
-                masked = template
-        elif strategy.kind == StrategyKind.HASH:
-            algo = params.get("algorithm", "sha256")
-            prefix = params.get("prefix", "")
-            hash_obj = hashlib.new(algo)
-            hash_obj.update(original.encode())
-            masked = prefix + hash_obj.hexdigest()[:8]
-        elif strategy.kind == StrategyKind.PARTIAL:
-            visible = params.get("visible_chars", 4)
-            position = params.get("position", "end")
-            mask_char = params.get("mask_char", "*")
-            if position == "end" and len(original) > visible:
-                masked = mask_char * (len(original) - visible) + original[-visible:]
-            elif position == "start" and len(original) > visible:
-                masked = original[:visible] + mask_char * (len(original) - visible)
-            else:
-                masked = original  # Too short to partial mask
-        else:
-            masked = self._fallback_redaction(original)
-
-        # Create synthetic result using type-safe dataclass
-        return SyntheticOperatorResult(
-            entity_type=entity_type,
-            start=start,
-            end=end,
-            operator=strategy.kind.value,
-            text=masked,
-        )
+        # Delegate to EntityProcessor
+        if self.entity_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        return self.entity_processor.create_synthetic_result(entity, strategy, text)
 
     def _get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
         """Identify which operators are reversible.
