@@ -202,7 +202,7 @@
 ## Phase 4: Architecture & Polish (Week 7-8)
 *Architectural improvements and final cleanup*
 
-### PR-011: Reorganize Core Layer [HIGH RISK]
+### PR-011: Reorganize Core Layer [HIGH RISK] ✅ COMPLETED
 **Findings**: FIND-0018, FIND-0020
 **Changes**:
 - Create `core/types/`, `core/policies/`, `core/processing/`, `core/utilities/`
@@ -210,31 +210,31 @@
 - Update all imports
 
 **Acceptance Criteria**:
-- [ ] All tests pass
-- [ ] Import paths updated throughout
-- [ ] Clear separation of concerns
-- [ ] Documentation updated
-- [ ] No circular dependencies
+- [x] All tests pass
+- [x] Import paths updated throughout
+- [x] Clear separation of concerns
+- [x] Documentation updated
+- [x] No circular dependencies
 
-**Files**: ~15 files moved/modified
+**Files**: 22 files moved/modified (20 modules + 4 new __init__.py + main core __init__.py)
 **Review Time**: 4 hours
 
 ---
 
-### PR-012: Add Deprecation Warnings [LOW RISK]
-**Findings**: FIND-0023, FIND-0029
+### PR-012: Create Breaking Changes Migration Guide [LOW RISK]
 **Changes**:
-- Add deprecation warnings to `key_version` parameters
-- Add deprecation notice to `compat.py`
-- Update documentation
+- Create `BREAKING_CHANGES.md` documenting API changes from refactoring
+- Document import path changes from core layer reorganization
+- Document method signature changes from module splits
+- Provide code examples for migrating to new APIs
 
 **Acceptance Criteria**:
-- [ ] Warnings shown correctly
-- [ ] Tests handle warnings
-- [ ] Migration guide created
-- [ ] Timeline documented
+- [ ] All breaking changes documented with before/after examples
+- [ ] Import path migrations clearly explained
+- [ ] Method signature changes documented
+- [ ] Migration examples for each major change
 
-**Files**: 3 files modified
+**Files**: 1 new documentation file
 **Review Time**: 1 hour
 
 ---

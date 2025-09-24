@@ -5,10 +5,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .anchors import AnchorEntry
+from ..types.anchors import AnchorEntry
 
 if TYPE_CHECKING:
-    from .cloakmap import CloakMap
+    from ..types.cloakmap import CloakMap
 
 
 class CloakMapSerializer:
@@ -49,7 +49,7 @@ class CloakMapSerializer:
     def from_dict(data: dict[str, Any]) -> "CloakMap":
         """Create CloakMap from dictionary representation."""
         # Import here to avoid circular dependency
-        from .cloakmap import CloakMap
+        from ..types.cloakmap import CloakMap
 
         # Convert anchors
         anchors = []
@@ -220,7 +220,7 @@ class CloakMapSerializer:
             New CloakMap with signature
         """
         # Import here to avoid circular dependency
-        from .cloakmap import CloakMap
+        from ..types.cloakmap import CloakMap
 
         if config is None:
             config = None  # Security config removed
@@ -334,7 +334,7 @@ class CloakMapSerializer:
             New CloakMap instance (v1.0 format)
         """
         # Import here to avoid circular dependency
-        from .cloakmap import CloakMap
+        from ..types.cloakmap import CloakMap
 
         # Serialize policy if provided
         policy_snapshot = {}
@@ -373,7 +373,7 @@ class CloakMapSerializer:
             New CloakMap instance (v2.0 format with Presidio metadata)
         """
         # Import here to avoid circular dependency
-        from .cloakmap import CloakMap
+        from ..types.cloakmap import CloakMap
 
         # Serialize policy if provided
         policy_snapshot = {}

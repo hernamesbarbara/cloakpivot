@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
-from .exceptions import (
+from ..types.exceptions import (
     CloakPivotError,
     PartialProcessingError,
     ProcessingError,

@@ -5,10 +5,10 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from .anchors import AnchorEntry
+from ..types.anchors import AnchorEntry
 
 if TYPE_CHECKING:
-    from .cloakmap import CloakMap
+    from ..types.cloakmap import CloakMap
 
 
 class CloakMapValidator:
@@ -171,7 +171,7 @@ class CloakMapValidator:
 
         # Create a copy without signature for verification
         # Import here to avoid circular dependency
-        from .cloakmap import CloakMap
+        from ..types.cloakmap import CloakMap
 
         # NOTE: crypto must be None during verification to match signing content
         unsigned_map = CloakMap(
@@ -313,7 +313,7 @@ def merge_cloakmaps(cloakmaps: list["CloakMap"], target_doc_id: str | None = Non
         raise ValueError("Cannot merge empty list of CloakMaps")
 
     # Import here to avoid circular dependency
-    from .cloakmap import CloakMap
+    from ..types.cloakmap import CloakMap
 
     # Check version compatibility
     base_version = cloakmaps[0].version

@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from .cloakmap import CloakMap
+from ..types.cloakmap import CloakMap
 
 logger = logging.getLogger(__name__)
 

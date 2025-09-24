@@ -37,8 +37,8 @@ else:
                 self.params = params or {}
 
 
-from .policies import MaskingPolicy
-from .strategies import Strategy, StrategyKind
+from ..policies.policies import MaskingPolicy
+from ..types.strategies import Strategy, StrategyKind
 
 logger = logging.getLogger(__name__)
 

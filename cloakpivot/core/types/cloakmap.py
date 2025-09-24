@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from .anchors import AnchorEntry, AnchorIndex
-from .cloakmap_serializer import CloakMapSerializer
-from .cloakmap_validator import CloakMapValidator, merge_cloakmaps, validate_cloakmap_integrity
+from ..utilities.cloakmap_serializer import CloakMapSerializer
+from ..utilities.cloakmap_validator import CloakMapValidator, merge_cloakmaps, validate_cloakmap_integrity
 
 # Security features removed - simplified implementation
 

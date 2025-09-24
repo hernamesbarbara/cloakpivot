@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .exceptions import (
+from ..types.exceptions import (
     ConfigurationError,
     DependencyError,
     ValidationError,

@@ -11,7 +11,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .policies import MaskingPolicy
-from .strategies import Strategy, StrategyKind
+from ..types.strategies import Strategy, StrategyKind
 
 
 class PolicyValidationError(Exception):

@@ -8,7 +8,7 @@ from functools import total_ordering
 from typing import TYPE_CHECKING, Any, cast
 
 # Performance profiling removed - simplified implementation
-from .policies import MaskingPolicy
+from ..policies.policies import MaskingPolicy
 
 if TYPE_CHECKING:
     from presidio_analyzer import AnalyzerEngine, RecognizerResult
@@ -431,8 +431,8 @@ class AnalyzerEngineWrapper:
         Returns:
             Full spaCy model name with appropriate size suffix
         """
-        from .config import performance_config
-        from .model_info import get_model_name
+        from ..utilities.config import performance_config
+        from ..types.model_info import get_model_name
 
         # Use global performance config for model size selection
         model_size = performance_config.model_size
