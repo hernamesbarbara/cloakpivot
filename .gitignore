@@ -180,3 +180,6 @@ TYPE_CHECKING_LESSONS.md
 mypy_ci_fix_tips.md
 FEAT_improve_presidio_adapter_ideas.md
 FEAT_improve_presidio_adapter_cleanup.md
+pii-cloak
+DONE_FEAT_improve_presidio_adapter_cleanup.md
+DONE_FEAT_table_masking_forward_masking.md

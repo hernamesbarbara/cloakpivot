@@ -19,6 +19,10 @@ from cloakpivot import CloakEngine
 from cloakpivot.core.cloakmap import CloakMap
 
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
+
 def convert_pdf_to_docling(pdf_path: Path, output_dir: Path):
     """Step 1: Convert PDF to DoclingDocument."""
     print("📄 Converting PDF to DoclingDocument...")
@@ -135,7 +139,7 @@ def main():
     print("=" * 60)
 
     # Setup paths
-    pdf_path = Path("data/pdf/email.pdf")  # Using existing test PDF
+    pdf_path = DATA_DIR / "pdf" / "email.pdf"  # Using existing test PDF
     output_dir = Path("output")
     output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -16,6 +16,11 @@ from docling.datamodel.document import ConversionResult
 from docling_core.types import DoclingDocument
 from cloakpivot.compat import load_document, to_lexical
 
+
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
+
 def main():
     # Setup paths - use existing test PDFs
     pdf_file = Path("data/pdf/email.pdf")  # Using existing test PDF

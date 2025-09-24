@@ -22,6 +22,9 @@ from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.core.strategies import Strategy, StrategyKind
 from cloakpivot.core.cloakmap import CloakMap
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
 
 def load_docling_document(json_path: Path) -> DoclingDocument:
     """Load a DoclingDocument from a JSON file."""
@@ -186,7 +189,7 @@ def main():
     print("=" * 60)
 
     # Setup paths - use existing test data
-    input_dir = Path("data/json")
+    input_dir = DATA_DIR / "json"
     output_dir = Path("output/masked")
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -194,7 +197,6 @@ def main():
     docling_files = list(input_dir.glob("*.docling.json"))
     if not docling_files:
         print(f"\n❌ No .docling.json files found in {input_dir}")
-        print("Please ensure you have test data in data/json/")
         return
 
     print(f"\n📝 Found {len(docling_files)} DoclingDocument files to process")

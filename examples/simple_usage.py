@@ -13,6 +13,10 @@ from docling.document_converter import DocumentConverter
 from cloakpivot import CloakEngine
 
 
+CLOAKPIVOT_ROOT = Path(__file__).parent.parent
+DATA_DIR = CLOAKPIVOT_ROOT / "data"
+
+
 def main():
     """Demonstrate simple PII masking workflow."""
     print("=" * 60)

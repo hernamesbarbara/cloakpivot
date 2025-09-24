@@ -1,1 +1,1279 @@
-{"schema_name": "DoclingDocument", "version": "1.7.0", "name": "email", "origin": {"mimetype": "application/pdf", "binary_hash": 10251300040603033583, "filename": "email.pdf"}, "furniture": {"self_ref": "#/furniture", "children": [], "content_layer": "furniture", "name": "_root_", "label": "unspecified"}, "body": {"self_ref": "#/body", "children": [{"$ref": "#/groups/0"}, {"$ref": "#/texts/5"}, {"$ref": "#/texts/6"}, {"$ref": "#/texts/7"}, {"$ref": "#/texts/8"}, {"$ref": "#/texts/9"}, {"$ref": "#/pictures/0"}, {"$ref": "#/tables/0"}], "content_layer": "body", "name": "_root_", "label": "unspecified"}, "groups": [{"self_ref": "#/groups/0", "parent": {"$ref": "#/body"}, "children": [{"$ref": "#/texts/0"}, {"$ref": "#/texts/1"}, {"$ref": "#/texts/2"}, {"$ref": "#/texts/3"}, {"$ref": "#/texts/4"}], "content_layer": "body", "name": "group", "label": "key_value_area"}], "texts": [{"self_ref": "#/texts/0", "parent": {"$ref": "#/groups/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 717.556, "r": 254.57, "b": 707.839, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 39]}], "orig": "---------- Forwarded message ----------", "text": "---------- Forwarded message ----------"}, {"self_ref": "#/texts/1", "parent": {"$ref": "#/groups/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 703.01, "r": 338.514, "b": 693.293, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 45]}], "orig": "From: Cameron MacIntyre <cameron@example.com>", "text": "From: Cameron MacIntyre <cameron@example.com>"}, {"self_ref": "#/texts/2", "parent": {"$ref": "#/groups/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 688.464, "r": 329.234, "b": 678.746, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 47]}], "orig": "Date: Tuesday, September 2 2025 at 12:19 PM EDT", "text": "Date: Tuesday, September 2 2025 at 12:19 PM EDT"}, {"self_ref": "#/texts/3", "parent": {"$ref": "#/groups/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 673.917, "r": 314.539, "b": 664.2, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 49]}], "orig": "Subject: Re: FYI emailing with from inness robins", "text": "Subject: Re: FYI emailing with from inness robins"}, {"self_ref": "#/texts/4", "parent": {"$ref": "#/groups/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 659.371, "r": 309.616, "b": 649.654, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 43]}], "orig": "To: Julian Margaret <jmargaret@company.com>", "text": "To: Julian Margaret <jmargaret@company.com>"}, {"self_ref": "#/texts/5", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 630.279, "r": 120.265, "b": 620.561, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 10]}], "orig": "Hi Julian,", "text": "Hi Julian,"}, {"self_ref": "#/texts/6", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 615.732, "r": 526.858, "b": 591.469, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 138]}], "orig": "I'd definitely like to meet Inness if you think she'd be open to meeting! Thanks so so much for pounding the pavement so much for me here.", "text": "I'd definitely like to meet Inness if you think she'd be open to meeting! Thanks so so much for pounding the pavement so much for me here."}, {"self_ref": "#/texts/7", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 572.094, "r": 100.105, "b": 562.376, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 5]}], "orig": "Best,", "text": "Best,"}, {"self_ref": "#/texts/8", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 557.547, "r": 120.265, "b": 547.83, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 7]}], "orig": "Cameron", "text": "Cameron"}, {"self_ref": "#/texts/9", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 72.0, "t": 528.455, "r": 348.777, "b": 518.737, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 56]}], "orig": "PS - here are the remaining 3 birthdays you asked for :)", "text": "PS - here are the remaining 3 birthdays you asked for :)"}, {"self_ref": "#/texts/10", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 74.25, "t": 481.816, "r": 123.127, "b": 472.099, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 7]}], "orig": "surname", "text": "surname"}, {"self_ref": "#/texts/11", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 149.25, "t": 481.816, "r": 204.841, "b": 472.099, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 10]}], "orig": "first name", "text": "first name"}, {"self_ref": "#/texts/12", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 224.25, "t": 481.816, "r": 274.329, "b": 472.099, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 9]}], "orig": "birthdate", "text": "birthdate"}, {"self_ref": "#/texts/13", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 74.25, "t": 462.02, "r": 105.404, "b": 452.302, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 5]}], "orig": "White", "text": "White"}, {"self_ref": "#/texts/14", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 149.25, "t": 462.02, "r": 193.865, "b": 452.302, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 7]}], "orig": "Johnson", "text": "Johnson"}, {"self_ref": "#/texts/15", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 224.25, "t": 462.02, "r": 283.534, "b": 452.302, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 10]}], "orig": "1958-04-21", "text": "1958-04-21"}, {"self_ref": "#/texts/16", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 74.25, "t": 442.223, "r": 112.752, "b": 432.506, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 6]}], "orig": "Borden", "text": "Borden"}, {"self_ref": "#/texts/17", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 149.25, "t": 442.223, "r": 185.299, "b": 432.506, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 6]}], "orig": "Ashley", "text": "Ashley"}, {"self_ref": "#/texts/18", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 224.25, "t": 442.223, "r": 283.534, "b": 432.506, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 10]}], "orig": "1944-12-22", "text": "1944-12-22"}, {"self_ref": "#/texts/19", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 74.25, "t": 422.427, "r": 107.857, "b": 412.71, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 5]}], "orig": "Green", "text": "Green"}, {"self_ref": "#/texts/20", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 149.25, "t": 422.427, "r": 192.008, "b": 412.71, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 8]}], "orig": "Marjorie", "text": "Marjorie"}, {"self_ref": "#/texts/21", "parent": {"$ref": "#/pictures/0"}, "children": [], "content_layer": "body", "label": "text", "prov": [{"page_no": 1, "bbox": {"l": 224.25, "t": 422.427, "r": 283.534, "b": 412.71, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 10]}], "orig": "1958-04-21", "text": "1958-04-21"}], "pictures": [{"self_ref": "#/pictures/0", "parent": {"$ref": "#/body"}, "children": [{"$ref": "#/texts/10"}, {"$ref": "#/texts/11"}, {"$ref": "#/texts/12"}, {"$ref": "#/texts/13"}, {"$ref": "#/texts/14"}, {"$ref": "#/texts/15"}, {"$ref": "#/texts/16"}, {"$ref": "#/texts/17"}, {"$ref": "#/texts/18"}, {"$ref": "#/texts/19"}, {"$ref": "#/texts/20"}, {"$ref": "#/texts/21"}], "content_layer": "body", "label": "picture", "prov": [{"page_no": 1, "bbox": {"l": 71.23225402832031, "t": 488.3304443359375, "r": 297.3472900390625, "b": 407.3367919921875, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 0]}], "captions": [], "references": [], "footnotes": [], "annotations": []}], "tables": [{"self_ref": "#/tables/0", "parent": {"$ref": "#/body"}, "children": [], "content_layer": "body", "label": "table", "prov": [{"page_no": 1, "bbox": {"l": 71.23225402832031, "t": 488.3304443359375, "r": 297.3472900390625, "b": 407.3367919921875, "coord_origin": "BOTTOMLEFT"}, "charspan": [0, 0]}], "captions": [], "references": [], "footnotes": [], "data": {"table_cells": [{"bbox": {"l": 74.25, "t": 310.184, "r": 120.075, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "surname", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 310.184, "r": 201.789, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "first name", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 310.184, "r": 271.277, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "birthdate", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 74.25, "t": 329.98, "r": 102.352, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "White", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 329.98, "r": 190.813, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Johnson", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 329.98, "r": 280.482, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1958-04-21", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 74.25, "t": 349.777, "r": 109.7, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "Borden", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 349.777, "r": 182.247, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Ashley", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 349.777, "r": 280.482, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1944-12-22", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 74.25, "t": 369.573, "r": 104.805, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "Green", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 369.573, "r": 188.956, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Marjorie", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 369.573, "r": 280.482, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1958-04-21", "column_header": false, "row_header": false, "row_section": false, "fillable": false}], "num_rows": 4, "num_cols": 3, "grid": [[{"bbox": {"l": 74.25, "t": 310.184, "r": 120.075, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "surname", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 310.184, "r": 201.789, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "first name", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 310.184, "r": 271.277, "b": 319.901, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 0, "end_row_offset_idx": 1, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "birthdate", "column_header": false, "row_header": false, "row_section": false, "fillable": false}], [{"bbox": {"l": 74.25, "t": 329.98, "r": 102.352, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "White", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 329.98, "r": 190.813, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Johnson", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 329.98, "r": 280.482, "b": 339.698, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 1, "end_row_offset_idx": 2, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1958-04-21", "column_header": false, "row_header": false, "row_section": false, "fillable": false}], [{"bbox": {"l": 74.25, "t": 349.777, "r": 109.7, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "Borden", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 349.777, "r": 182.247, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Ashley", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 349.777, "r": 280.482, "b": 359.494, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 2, "end_row_offset_idx": 3, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1944-12-22", "column_header": false, "row_header": false, "row_section": false, "fillable": false}], [{"bbox": {"l": 74.25, "t": 369.573, "r": 104.805, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 0, "end_col_offset_idx": 1, "text": "Green", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 149.25, "t": 369.573, "r": 188.956, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 1, "end_col_offset_idx": 2, "text": "Marjorie", "column_header": false, "row_header": false, "row_section": false, "fillable": false}, {"bbox": {"l": 224.25, "t": 369.573, "r": 280.482, "b": 379.29, "coord_origin": "TOPLEFT"}, "row_span": 1, "col_span": 1, "start_row_offset_idx": 3, "end_row_offset_idx": 4, "start_col_offset_idx": 2, "end_col_offset_idx": 3, "text": "1958-04-21", "column_header": false, "row_header": false, "row_section": false, "fillable": false}]]}, "annotations": []}], "key_value_items": [], "form_items": [], "pages": {"1": {"size": {"width": 612.0, "height": 792.0}, "page_no": 1}}}
+{
+  "schema_name": "DoclingDocument",
+  "version": "1.6.0",
+  "name": "email",
+  "origin": {
+    "mimetype": "application/pdf",
+    "binary_hash": 10251300040603033583,
+    "filename": "email.pdf"
+  },
+  "furniture": {
+    "self_ref": "#/furniture",
+    "children": [],
+    "content_layer": "furniture",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "body": {
+    "self_ref": "#/body",
+    "children": [
+      {
+        "$ref": "#/groups/0"
+      },
+      {
+        "$ref": "#/texts/5"
+      },
+      {
+        "$ref": "#/texts/6"
+      },
+      {
+        "$ref": "#/texts/7"
+      },
+      {
+        "$ref": "#/texts/8"
+      },
+      {
+        "$ref": "#/texts/9"
+      },
+      {
+        "$ref": "#/pictures/0"
+      },
+      {
+        "$ref": "#/tables/0"
+      }
+    ],
+    "content_layer": "body",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "groups": [
+    {
+      "self_ref": "#/groups/0",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [
+        {
+          "$ref": "#/texts/0"
+        },
+        {
+          "$ref": "#/texts/1"
+        },
+        {
+          "$ref": "#/texts/2"
+        },
+        {
+          "$ref": "#/texts/3"
+        },
+        {
+          "$ref": "#/texts/4"
+        }
+      ],
+      "content_layer": "body",
+      "name": "group",
+      "label": "key_value_area"
+    }
+  ],
+  "texts": [
+    {
+      "self_ref": "#/texts/0",
+      "parent": {
+        "$ref": "#/groups/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 717.556,
+            "r": 254.57,
+            "b": 707.839,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            39
+          ]
+        }
+      ],
+      "orig": "---------- Forwarded message ----------",
+      "text": "---------- Forwarded message ----------"
+    },
+    {
+      "self_ref": "#/texts/1",
+      "parent": {
+        "$ref": "#/groups/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 703.01,
+            "r": 338.514,
+            "b": 693.293,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            45
+          ]
+        }
+      ],
+      "orig": "From: Cameron MacIntyre <cameron@example.com>",
+      "text": "From: Cameron MacIntyre <cameron@example.com>"
+    },
+    {
+      "self_ref": "#/texts/2",
+      "parent": {
+        "$ref": "#/groups/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 688.464,
+            "r": 329.234,
+            "b": 678.746,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            47
+          ]
+        }
+      ],
+      "orig": "Date: Tuesday, September 2 2025 at 12:19 PM EDT",
+      "text": "Date: Tuesday, September 2 2025 at 12:19 PM EDT"
+    },
+    {
+      "self_ref": "#/texts/3",
+      "parent": {
+        "$ref": "#/groups/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 673.917,
+            "r": 314.539,
+            "b": 664.2,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            49
+          ]
+        }
+      ],
+      "orig": "Subject: Re: FYI emailing with from inness robins",
+      "text": "Subject: Re: FYI emailing with from inness robins"
+    },
+    {
+      "self_ref": "#/texts/4",
+      "parent": {
+        "$ref": "#/groups/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 659.371,
+            "r": 309.616,
+            "b": 649.654,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            43
+          ]
+        }
+      ],
+      "orig": "To: Julian Margaret <jmargaret@company.com>",
+      "text": "To: Julian Margaret <jmargaret@company.com>"
+    },
+    {
+      "self_ref": "#/texts/5",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 630.279,
+            "r": 120.265,
+            "b": 620.561,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            10
+          ]
+        }
+      ],
+      "orig": "Hi Julian,",
+      "text": "Hi Julian,"
+    },
+    {
+      "self_ref": "#/texts/6",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 615.732,
+            "r": 526.858,
+            "b": 591.469,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            138
+          ]
+        }
+      ],
+      "orig": "I'd definitely like to meet Inness if you think she'd be open to meeting! Thanks so so much for pounding the pavement so much for me here.",
+      "text": "I'd definitely like to meet Inness if you think she'd be open to meeting! Thanks so so much for pounding the pavement so much for me here."
+    },
+    {
+      "self_ref": "#/texts/7",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 572.094,
+            "r": 100.105,
+            "b": 562.376,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            5
+          ]
+        }
+      ],
+      "orig": "Best,",
+      "text": "Best,"
+    },
+    {
+      "self_ref": "#/texts/8",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 557.547,
+            "r": 120.265,
+            "b": 547.83,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            7
+          ]
+        }
+      ],
+      "orig": "Cameron",
+      "text": "Cameron"
+    },
+    {
+      "self_ref": "#/texts/9",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 72.0,
+            "t": 528.455,
+            "r": 348.777,
+            "b": 518.737,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            56
+          ]
+        }
+      ],
+      "orig": "PS - here are the remaining 3 birthdays you asked for :)",
+      "text": "PS - here are the remaining 3 birthdays you asked for :)"
+    },
+    {
+      "self_ref": "#/texts/10",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 74.25,
+            "t": 481.816,
+            "r": 123.127,
+            "b": 472.099,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            7
+          ]
+        }
+      ],
+      "orig": "surname",
+      "text": "surname"
+    },
+    {
+      "self_ref": "#/texts/11",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 149.25,
+            "t": 481.816,
+            "r": 204.841,
+            "b": 472.099,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            10
+          ]
+        }
+      ],
+      "orig": "first name",
+      "text": "first name"
+    },
+    {
+      "self_ref": "#/texts/12",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 224.25,
+            "t": 481.816,
+            "r": 274.329,
+            "b": 472.099,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            9
+          ]
+        }
+      ],
+      "orig": "birthdate",
+      "text": "birthdate"
+    },
+    {
+      "self_ref": "#/texts/13",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 74.25,
+            "t": 462.02,
+            "r": 105.404,
+            "b": 452.302,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            5
+          ]
+        }
+      ],
+      "orig": "White",
+      "text": "White"
+    },
+    {
+      "self_ref": "#/texts/14",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 149.25,
+            "t": 462.02,
+            "r": 193.865,
+            "b": 452.302,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            7
+          ]
+        }
+      ],
+      "orig": "Johnson",
+      "text": "Johnson"
+    },
+    {
+      "self_ref": "#/texts/15",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 224.25,
+            "t": 462.02,
+            "r": 283.534,
+            "b": 452.302,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            10
+          ]
+        }
+      ],
+      "orig": "1958-04-21",
+      "text": "1958-04-21"
+    },
+    {
+      "self_ref": "#/texts/16",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 74.25,
+            "t": 442.223,
+            "r": 112.752,
+            "b": 432.506,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            6
+          ]
+        }
+      ],
+      "orig": "Borden",
+      "text": "Borden"
+    },
+    {
+      "self_ref": "#/texts/17",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 149.25,
+            "t": 442.223,
+            "r": 185.299,
+            "b": 432.506,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            6
+          ]
+        }
+      ],
+      "orig": "Ashley",
+      "text": "Ashley"
+    },
+    {
+      "self_ref": "#/texts/18",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 224.25,
+            "t": 442.223,
+            "r": 283.534,
+            "b": 432.506,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            10
+          ]
+        }
+      ],
+      "orig": "1944-12-22",
+      "text": "1944-12-22"
+    },
+    {
+      "self_ref": "#/texts/19",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 74.25,
+            "t": 422.427,
+            "r": 107.857,
+            "b": 412.71,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            5
+          ]
+        }
+      ],
+      "orig": "Green",
+      "text": "Green"
+    },
+    {
+      "self_ref": "#/texts/20",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 149.25,
+            "t": 422.427,
+            "r": 192.008,
+            "b": 412.71,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            8
+          ]
+        }
+      ],
+      "orig": "Marjorie",
+      "text": "Marjorie"
+    },
+    {
+      "self_ref": "#/texts/21",
+      "parent": {
+        "$ref": "#/pictures/0"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "text",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 224.25,
+            "t": 422.427,
+            "r": 283.534,
+            "b": 412.71,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            10
+          ]
+        }
+      ],
+      "orig": "1958-04-21",
+      "text": "1958-04-21"
+    }
+  ],
+  "pictures": [
+    {
+      "self_ref": "#/pictures/0",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [
+        {
+          "$ref": "#/texts/10"
+        },
+        {
+          "$ref": "#/texts/11"
+        },
+        {
+          "$ref": "#/texts/12"
+        },
+        {
+          "$ref": "#/texts/13"
+        },
+        {
+          "$ref": "#/texts/14"
+        },
+        {
+          "$ref": "#/texts/15"
+        },
+        {
+          "$ref": "#/texts/16"
+        },
+        {
+          "$ref": "#/texts/17"
+        },
+        {
+          "$ref": "#/texts/18"
+        },
+        {
+          "$ref": "#/texts/19"
+        },
+        {
+          "$ref": "#/texts/20"
+        },
+        {
+          "$ref": "#/texts/21"
+        }
+      ],
+      "content_layer": "body",
+      "label": "picture",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 71.23225402832031,
+            "t": 488.3304443359375,
+            "r": 297.3472900390625,
+            "b": 407.3367919921875,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            0
+          ]
+        }
+      ],
+      "captions": [],
+      "references": [],
+      "footnotes": [],
+      "annotations": []
+    }
+  ],
+  "tables": [
+    {
+      "self_ref": "#/tables/0",
+      "parent": {
+        "$ref": "#/body"
+      },
+      "children": [],
+      "content_layer": "body",
+      "label": "table",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": {
+            "l": 71.23225402832031,
+            "t": 488.3304443359375,
+            "r": 297.3472900390625,
+            "b": 407.3367919921875,
+            "coord_origin": "BOTTOMLEFT"
+          },
+          "charspan": [
+            0,
+            0
+          ]
+        }
+      ],
+      "captions": [],
+      "references": [],
+      "footnotes": [],
+      "data": {
+        "table_cells": [
+          {
+            "bbox": {
+              "l": 74.25,
+              "t": 310.184,
+              "r": 120.075,
+              "b": 319.901,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 0,
+            "end_row_offset_idx": 1,
+            "start_col_offset_idx": 0,
+            "end_col_offset_idx": 1,
+            "text": "surname",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 149.25,
+              "t": 310.184,
+              "r": 201.789,
+              "b": 319.901,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 0,
+            "end_row_offset_idx": 1,
+            "start_col_offset_idx": 1,
+            "end_col_offset_idx": 2,
+            "text": "first name",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 224.25,
+              "t": 310.184,
+              "r": 271.277,
+              "b": 319.901,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 0,
+            "end_row_offset_idx": 1,
+            "start_col_offset_idx": 2,
+            "end_col_offset_idx": 3,
+            "text": "birthdate",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 74.25,
+              "t": 329.98,
+              "r": 102.352,
+              "b": 339.698,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 1,
+            "end_row_offset_idx": 2,
+            "start_col_offset_idx": 0,
+            "end_col_offset_idx": 1,
+            "text": "White",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 149.25,
+              "t": 329.98,
+              "r": 190.813,
+              "b": 339.698,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 1,
+            "end_row_offset_idx": 2,
+            "start_col_offset_idx": 1,
+            "end_col_offset_idx": 2,
+            "text": "Johnson",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 224.25,
+              "t": 329.98,
+              "r": 280.482,
+              "b": 339.698,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 1,
+            "end_row_offset_idx": 2,
+            "start_col_offset_idx": 2,
+            "end_col_offset_idx": 3,
+            "text": "1958-04-21",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 74.25,
+              "t": 349.777,
+              "r": 109.7,
+              "b": 359.494,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 2,
+            "end_row_offset_idx": 3,
+            "start_col_offset_idx": 0,
+            "end_col_offset_idx": 1,
+            "text": "Borden",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 149.25,
+              "t": 349.777,
+              "r": 182.247,
+              "b": 359.494,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 2,
+            "end_row_offset_idx": 3,
+            "start_col_offset_idx": 1,
+            "end_col_offset_idx": 2,
+            "text": "Ashley",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 224.25,
+              "t": 349.777,
+              "r": 280.482,
+              "b": 359.494,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 2,
+            "end_row_offset_idx": 3,
+            "start_col_offset_idx": 2,
+            "end_col_offset_idx": 3,
+            "text": "1944-12-22",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 74.25,
+              "t": 369.573,
+              "r": 104.805,
+              "b": 379.29,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 3,
+            "end_row_offset_idx": 4,
+            "start_col_offset_idx": 0,
+            "end_col_offset_idx": 1,
+            "text": "Green",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 149.25,
+              "t": 369.573,
+              "r": 188.956,
+              "b": 379.29,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 3,
+            "end_row_offset_idx": 4,
+            "start_col_offset_idx": 1,
+            "end_col_offset_idx": 2,
+            "text": "Marjorie",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          },
+          {
+            "bbox": {
+              "l": 224.25,
+              "t": 369.573,
+              "r": 280.482,
+              "b": 379.29,
+              "coord_origin": "TOPLEFT"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "start_row_offset_idx": 3,
+            "end_row_offset_idx": 4,
+            "start_col_offset_idx": 2,
+            "end_col_offset_idx": 3,
+            "text": "1958-04-21",
+            "column_header": false,
+            "row_header": false,
+            "row_section": false,
+            "fillable": false
+          }
+        ],
+        "num_rows": 4,
+        "num_cols": 3,
+        "grid": [
+          [
+            {
+              "bbox": {
+                "l": 74.25,
+                "t": 310.184,
+                "r": 120.075,
+                "b": 319.901,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 0,
+              "end_row_offset_idx": 1,
+              "start_col_offset_idx": 0,
+              "end_col_offset_idx": 1,
+              "text": "surname",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 149.25,
+                "t": 310.184,
+                "r": 201.789,
+                "b": 319.901,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 0,
+              "end_row_offset_idx": 1,
+              "start_col_offset_idx": 1,
+              "end_col_offset_idx": 2,
+              "text": "first name",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 224.25,
+                "t": 310.184,
+                "r": 271.277,
+                "b": 319.901,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 0,
+              "end_row_offset_idx": 1,
+              "start_col_offset_idx": 2,
+              "end_col_offset_idx": 3,
+              "text": "birthdate",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            }
+          ],
+          [
+            {
+              "bbox": {
+                "l": 74.25,
+                "t": 329.98,
+                "r": 102.352,
+                "b": 339.698,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 1,
+              "end_row_offset_idx": 2,
+              "start_col_offset_idx": 0,
+              "end_col_offset_idx": 1,
+              "text": "White",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 149.25,
+                "t": 329.98,
+                "r": 190.813,
+                "b": 339.698,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 1,
+              "end_row_offset_idx": 2,
+              "start_col_offset_idx": 1,
+              "end_col_offset_idx": 2,
+              "text": "Johnson",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 224.25,
+                "t": 329.98,
+                "r": 280.482,
+                "b": 339.698,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 1,
+              "end_row_offset_idx": 2,
+              "start_col_offset_idx": 2,
+              "end_col_offset_idx": 3,
+              "text": "1958-04-21",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            }
+          ],
+          [
+            {
+              "bbox": {
+                "l": 74.25,
+                "t": 349.777,
+                "r": 109.7,
+                "b": 359.494,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 2,
+              "end_row_offset_idx": 3,
+              "start_col_offset_idx": 0,
+              "end_col_offset_idx": 1,
+              "text": "Borden",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 149.25,
+                "t": 349.777,
+                "r": 182.247,
+                "b": 359.494,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 2,
+              "end_row_offset_idx": 3,
+              "start_col_offset_idx": 1,
+              "end_col_offset_idx": 2,
+              "text": "Ashley",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 224.25,
+                "t": 349.777,
+                "r": 280.482,
+                "b": 359.494,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 2,
+              "end_row_offset_idx": 3,
+              "start_col_offset_idx": 2,
+              "end_col_offset_idx": 3,
+              "text": "1944-12-22",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            }
+          ],
+          [
+            {
+              "bbox": {
+                "l": 74.25,
+                "t": 369.573,
+                "r": 104.805,
+                "b": 379.29,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 3,
+              "end_row_offset_idx": 4,
+              "start_col_offset_idx": 0,
+              "end_col_offset_idx": 1,
+              "text": "Green",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 149.25,
+                "t": 369.573,
+                "r": 188.956,
+                "b": 379.29,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 3,
+              "end_row_offset_idx": 4,
+              "start_col_offset_idx": 1,
+              "end_col_offset_idx": 2,
+              "text": "Marjorie",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            },
+            {
+              "bbox": {
+                "l": 224.25,
+                "t": 369.573,
+                "r": 280.482,
+                "b": 379.29,
+                "coord_origin": "TOPLEFT"
+              },
+              "row_span": 1,
+              "col_span": 1,
+              "start_row_offset_idx": 3,
+              "end_row_offset_idx": 4,
+              "start_col_offset_idx": 2,
+              "end_col_offset_idx": 3,
+              "text": "1958-04-21",
+              "column_header": false,
+              "row_header": false,
+              "row_section": false,
+              "fillable": false
+            }
+          ]
+        ]
+      },
+      "annotations": []
+    }
+  ],
+  "key_value_items": [],
+  "form_items": [],
+  "pages": {
+    "1": {
+      "size": {
+        "width": 612.0,
+        "height": 792.0
+      },
+      "page_no": 1
+    }
+  }
+}
