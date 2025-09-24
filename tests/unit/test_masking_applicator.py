@@ -66,10 +66,8 @@ class TestStrategyApplicator:
 
     def test_apply_template_strategy_no_template_error(self):
         """Test template strategy without template or auto_generate raises error."""
-        applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.TEMPLATE, {})
         with pytest.raises(ValueError, match="Template strategy requires"):
-            applicator._apply_template_strategy("test", "EMAIL", strategy)
+            Strategy(StrategyKind.TEMPLATE, {})
 
     def test_apply_hash_strategy_default(self):
         """Test hash strategy with default parameters."""
@@ -126,10 +124,8 @@ class TestStrategyApplicator:
 
     def test_apply_hash_strategy_invalid_algorithm(self):
         """Test hash strategy with invalid algorithm."""
-        applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.HASH, {"algorithm": "invalid"})
         with pytest.raises(ValueError, match="Unsupported hash algorithm"):
-            applicator._apply_hash_strategy("test", strategy)
+            Strategy(StrategyKind.HASH, {"algorithm": "invalid"})
 
     def test_apply_partial_strategy_end(self):
         """Test partial strategy showing end characters."""
@@ -231,10 +227,8 @@ class TestStrategyApplicator:
 
     def test_apply_custom_strategy_no_callback(self):
         """Test custom strategy without callback raises error."""
-        applicator = StrategyApplicator()
-        strategy = Strategy(StrategyKind.CUSTOM, {})
-        with pytest.raises(ValueError, match="Custom strategy requires"):
-            applicator._apply_custom_strategy("test", "EMAIL", 0.95, strategy)
+        with pytest.raises(ValueError, match="Custom strategy requires 'callback'"):
+            Strategy(StrategyKind.CUSTOM, {})
 
     def test_apply_custom_strategy_callback_failure(self):
         """Test custom strategy with failing callback."""
@@ -252,8 +246,11 @@ class TestStrategyApplicator:
         """Test apply_strategy with fallback when primary fails."""
         applicator = StrategyApplicator()
 
-        # Create a strategy that will fail
-        strategy = Strategy(StrategyKind.TEMPLATE, {})  # No template will cause failure
+        # Use a strategy that won't fail during creation
+        def failing_callback(text, entity, confidence):
+            raise ValueError("Callback error")
+
+        strategy = Strategy(StrategyKind.CUSTOM, {"callback": failing_callback})
 
         # Should use fallback strategy
         result = applicator.apply_strategy("test@example.com", "EMAIL", strategy, 0.95)
@@ -332,7 +329,7 @@ class TestStrategyApplicator:
         applicator = StrategyApplicator()
 
         assert applicator._detect_format_pattern("ABC123") == "LLLDDD"
-        assert applicator._detect_format_pattern("A-1 B") == "LPDSPL"
+        assert applicator._detect_format_pattern("A-1 B") == "LPDSL"
 
     def test_get_hash_algorithm(self):
         """Test getting hash algorithm."""

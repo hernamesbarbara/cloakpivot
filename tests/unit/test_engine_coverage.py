@@ -32,8 +32,8 @@ class TestEngineBasicCoverage:
         """Test engine with default policy."""
         strategy = Strategy(kind=StrategyKind.REDACT)
         policy = MaskingPolicy(
-            name="test_policy",
-            strategies={"EMAIL": strategy},
+            default_strategy=strategy,
+            per_entity={"EMAIL": strategy},
         )
 
         engine = CloakEngine(default_policy=policy)
@@ -80,8 +80,8 @@ class TestEngineBasicCoverage:
 
         strategy = Strategy(kind=StrategyKind.REDACT)
         policy = MaskingPolicy(
-            name="test",
-            strategies={"EMAIL": strategy},
+            default_strategy=strategy,
+            per_entity={"EMAIL": strategy},
         )
 
         result = engine.mask_document(doc, policy=policy)
@@ -98,7 +98,7 @@ class TestEngineBasicCoverage:
         doc.export_to_markdown.return_value = "Masked document with [EMAIL]"
         doc.name = "masked.txt"
 
-        cloakmap = CloakMap(anchors=[])
+        cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
 
         result = engine.unmask_document(doc, cloakmap)
 
@@ -124,8 +124,8 @@ class TestEngineBasicCoverage:
 
         strategy = Strategy(kind=StrategyKind.SURROGATE)
         policy = MaskingPolicy(
-            name="full_policy",
-            strategies={"PERSON": strategy},
+            default_strategy=strategy,
+            per_entity={"PERSON": strategy},
         )
 
         conflict_config = {
@@ -159,7 +159,7 @@ class TestEngineBasicCoverage:
         doc.export_to_markdown.return_value = "No masked content"
         doc.name = "test.txt"
 
-        cloakmap = CloakMap(anchors=[])
+        cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
 
         result = engine.unmask_document(doc, cloakmap)
         assert result is not None
