@@ -44,7 +44,10 @@ engine = CloakEngine()
 result = engine.mask_document(doc)
 
 print(f"Masked {result.entities_masked} PII entities")
-# Save the masked document and CloakMap...
+print(f"Generated CloakMap with {result.cloakmap.anchor_count} anchors")
+
+# Save the results
+result.cloakmap.save_to_file("document.cloakmap.json")
 
 # Later, restore the original
 original = engine.unmask_document(result.document, result.cloakmap)
@@ -53,11 +56,17 @@ original = engine.unmask_document(result.document, result.cloakmap)
 ### CLI Example
 
 ```bash
-# Mask a document
+# Mask a document with default policy
 cloakpivot mask document.pdf -o masked.md -c document.cloakmap.json
+
+# Mask with specific policy
+cloakpivot mask document.pdf -o masked.md -c document.cloakmap.json --policy conservative
 
 # Unmask later
 cloakpivot unmask masked.md document.cloakmap.json -o restored.md
+
+# View CloakMap statistics
+cloakpivot stats document.cloakmap.json
 ```
 
 ## 📖 More Examples
@@ -70,23 +79,41 @@ from cloakpivot import CloakEngine, get_conservative_policy, get_permissive_poli
 # Maximum privacy - redact everything
 engine = CloakEngine(default_policy=get_conservative_policy())
 result = engine.mask_document(doc)
+print(f"Conservative masking: {result.entities_masked} entities masked")
 
 # Minimal masking - only critical PII
 engine = CloakEngine(default_policy=get_permissive_policy())
 result = engine.mask_document(doc)
+print(f"Permissive masking: {result.entities_masked} entities masked")
+
+# Use specific entity types
+result = engine.mask_document(doc, entities=['EMAIL_ADDRESS', 'CREDIT_CARD'])
+print(f"Targeted masking: {result.entities_masked} entities masked")
 ```
 
 ### Advanced Configuration with Builder
 
 ```python
+from cloakpivot import CloakEngine, MaskingPolicy, Strategy, StrategyKind
+
+# Create custom policy
+custom_policy = MaskingPolicy(
+    per_entity={
+        'EMAIL_ADDRESS': Strategy(StrategyKind.PARTIAL, {'visible_chars': 3, 'position': 'start'}),
+        'PHONE_NUMBER': Strategy(StrategyKind.TEMPLATE, {'template': '[PHONE-NUMBER]'}),
+        'CREDIT_CARD': Strategy(StrategyKind.HASH, {'algorithm': 'sha256', 'truncate': 8})
+    }
+)
+
 # Fine-tune detection and masking
 engine = CloakEngine.builder() \
     .with_confidence_threshold(0.9) \
     .with_languages(['en', 'es']) \
-    .with_custom_policy(my_policy) \
+    .with_custom_policy(custom_policy) \
     .build()
 
 result = engine.mask_document(doc)
+print(f"Custom policy applied to {result.entities_masked} entities")
 ```
 
 ### Detect Specific Entity Types
@@ -99,13 +126,25 @@ result = engine.mask_document(doc, entities=['EMAIL_ADDRESS', 'CREDIT_CARD'])
 ### Working with DocPivot
 
 ```python
-from cloakpivot.compat import load_document, to_lexical
+from docpivot import DocPivotEngine
+from cloakpivot import CloakEngine
+import json
 
-# Load Docling JSON files directly
-doc = load_document('document.docling.json')
+# Load Docling JSON files directly  
+with open('document.docling.json', 'r') as f:
+    docling_data = json.load(f)
 
-# Convert to Lexical format for editor integration
-lexical_doc = to_lexical(doc)
+# Process with CloakPivot
+engine = CloakEngine()
+result = engine.mask_document(docling_data)
+
+# Convert to various formats using DocPivot
+pivot_engine = DocPivotEngine()
+markdown = pivot_engine.to_markdown(result.document)
+lexical = pivot_engine.to_lexical(result.document)
+html = pivot_engine.to_html(result.document)
+
+print(f"Converted masked document to multiple formats")
 ```
 
 ## 🎯 How It Works
@@ -117,6 +156,15 @@ CloakPivot creates a **CloakMap** - a secure mapping between original and masked
 3. **🎭 Smart Masking**: Apply configurable strategies per entity type
 4. **🗺️ CloakMap Creation**: Store original values and positions securely
 5. **♻️ Perfect Restoration**: Unmask with 100% accuracy
+
+### Visual Workflow
+
+For detailed visual representations of the processing pipeline, see our [Workflow Diagrams](docs/WORKFLOW_DIAGRAMS.md) which show:
+- PDF → JSON → Masked JSON → Masked Markdown flow
+- Entity detection and strategy application
+- CloakMap generation and structure  
+- Unmasking and restoration process
+- Performance optimizations and error handling
 
 ### Masking Strategies
 

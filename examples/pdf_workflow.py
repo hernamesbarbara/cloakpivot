@@ -15,8 +15,7 @@ import html
 from pathlib import Path
 from docling.document_converter import DocumentConverter
 from docling_core.types import DoclingDocument
-from cloakpivot import CloakEngine
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot import CloakEngine, CloakMap
 
 
 CLOAKPIVOT_ROOT = Path(__file__).parent.parent

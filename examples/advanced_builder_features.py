@@ -13,7 +13,7 @@ from pathlib import Path
 from docling.document_converter import DocumentConverter
 from docpivot import DocPivotEngine, DoclingJsonReader
 from cloakpivot import CloakEngine, MaskingPolicy, Strategy, StrategyKind
-from cloakpivot.core.normalization import ConflictResolutionConfig, ConflictResolutionStrategy
+from cloakpivot.core.processing.normalization import ConflictResolutionConfig, ConflictResolutionStrategy
 
 CLOAKPIVOT_ROOT = Path(__file__).parent.parent
 DATA_DIR = CLOAKPIVOT_ROOT / "data"

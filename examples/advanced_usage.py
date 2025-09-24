@@ -16,9 +16,11 @@ from cloakpivot import (
     get_default_policy,
     get_conservative_policy,
     get_permissive_policy,
+    MaskingPolicy,
+    Strategy,
+    StrategyKind,
+    CloakMap,
 )
-from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
-from cloakpivot.core.cloakmap import CloakMap
 
 CLOAKPIVOT_ROOT = Path(__file__).parent.parent
 DATA_DIR = CLOAKPIVOT_ROOT / "data"

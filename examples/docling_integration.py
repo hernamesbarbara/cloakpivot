@@ -18,9 +18,7 @@ from typing import List, Tuple
 from docpivot import DoclingJsonReader
 from docling_core.types import DoclingDocument
 from cloakpivot import CloakEngine
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.strategies import Strategy, StrategyKind
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot import MaskingPolicy, Strategy, StrategyKind, CloakMap
 
 CLOAKPIVOT_ROOT = Path(__file__).parent.parent
 DATA_DIR = CLOAKPIVOT_ROOT / "data"

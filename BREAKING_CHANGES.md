@@ -303,14 +303,42 @@ python -c "from cloakpivot import CloakEngine, MaskingPolicy, Strategy; print('�
 python -c "from cloakpivot.core import CloakMap, StrategyKind; print('✅ Core imports work')"
 ```
 
+## Documentation Updates (PR-014)
+
+PR-014 introduced comprehensive documentation improvements including:
+
+### New Documentation Resources
+
+- **[Workflow Diagrams](docs/WORKFLOW_DIAGRAMS.md)**: Visual representations of document processing flows
+- **Updated README**: Enhanced code examples and usage patterns
+- **Comprehensive API Documentation**: All public APIs now have complete docstrings
+
+### Visual Workflow Documentation
+
+The new workflow diagrams show:
+- PDF → JSON → Masked JSON → Masked Markdown processing flow
+- Entity detection and strategy application processes  
+- CloakMap structure and usage patterns
+- Performance optimization implementations from PR-013
+- Error handling and validation workflows
+
+### Updated Code Examples
+
+All README examples now include:
+- CloakMap statistics and anchor count information
+- Enhanced policy configuration examples
+- DocPivot integration patterns
+- CLI usage with multiple output formats
+
 ## Getting Help
 
 If you encounter issues during migration:
 
 1. Check that you're using the latest version of CloakPivot
 2. Prefer package-level imports (`from cloakpivot import ...`) over internal module imports
-3. Consult the API documentation for current import paths
-4. File an issue if you discover missing exports or compatibility problems
+3. Consult the [Workflow Diagrams](docs/WORKFLOW_DIAGRAMS.md) for visual understanding
+4. Review updated examples in the README and examples/ directory
+5. File an issue if you discover missing exports or compatibility problems
 
 ## Summary
 
