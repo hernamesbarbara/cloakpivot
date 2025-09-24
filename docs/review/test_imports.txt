@@ -1,0 +1,67 @@
+tests/conftest.py:10:from cloakpivot import CloakEngine, CloakEngineBuilder
+tests/integration/test_masking_workflow.py:7:from cloakpivot import CloakEngine, CloakEngineBuilder
+tests/unit/test_anchor_resolver.py:12:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_anchor_resolver.py:13:from cloakpivot.core.types import DoclingDocument
+tests/unit/test_anchor_resolver.py:7:from cloakpivot.unmasking.anchor_resolver import (
+tests/unit/test_builder.py:5:from cloakpivot import CloakEngineBuilder
+tests/unit/test_builder.py:6:from cloakpivot.core import StrategyKind
+tests/unit/test_cli_config.py:16:from cloakpivot.cli.config import (
+tests/unit/test_cli_main.py:14:from cloakpivot.cli.main import cli, main
+tests/unit/test_cloakmap_loader.py:10:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_cloakmap_loader.py:11:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_cloakmap_loader.py:9:from cloakpivot.unmasking.cloakmap_loader import CloakMapLoader, CloakMapLoadError
+tests/unit/test_compat.py:16:from cloakpivot.compat import load_document, to_lexical
+tests/unit/test_compat.py:17:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_core_config.py:13:from cloakpivot.core.config import (
+tests/unit/test_core_exceptions.py:7:from cloakpivot.core.exceptions import (
+tests/unit/test_defaults.py:4:from cloakpivot import defaults
+tests/unit/test_document_processor_comprehensive.py:8:from cloakpivot.document.processor import DocumentProcessor, DocumentProcessingStats
+tests/unit/test_document_processor_comprehensive.py:9:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_document_processor_extended.py:10:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_document_processor_extended.py:9:from cloakpivot.document.processor import DocumentProcessor, DocumentProcessingStats
+tests/unit/test_document_processor.py:6:from cloakpivot.document.processor import DocumentProcessor
+tests/unit/test_document_processor.py:7:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_document_unmasker.py:6:from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
+tests/unit/test_document_unmasker.py:7:from cloakpivot.core.types import DoclingDocument, UnmaskingResult
+tests/unit/test_document_unmasker.py:8:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_document_unmasker.py:9:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_engine_coverage.py:5:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_engine_coverage.py:6:from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
+tests/unit/test_engine_coverage.py:7:from cloakpivot.engine import CloakEngine
+tests/unit/test_engine_coverage.py:8:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_engine.py:5:from cloakpivot import CloakEngine
+tests/unit/test_formats_registry.py:10:from cloakpivot.formats.registry import FormatRegistry, SupportedFormat
+tests/unit/test_formats_serialization.py:13:from cloakpivot.formats.serialization import (
+tests/unit/test_loaders.py:10:from cloakpivot.loaders import (
+tests/unit/test_masking_applicator.py:8:from cloakpivot.core.strategies import Strategy, StrategyKind
+tests/unit/test_masking_applicator.py:9:from cloakpivot.masking.applicator import StrategyApplicator
+tests/unit/test_model_info.py:3:from cloakpivot.core.model_info import MODEL_CHARACTERISTICS
+tests/unit/test_policy_loader.py:10:from cloakpivot.core.policy_loader import (
+tests/unit/test_policy_loader.py:23:from cloakpivot.core.strategies import StrategyKind
+tests/unit/test_policy_loader.py:9:from cloakpivot.core.policies import MaskingPolicy
+tests/unit/test_presidio_adapter_edge_cases.py:6:from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
+tests/unit/test_presidio_adapter_edge_cases.py:7:from cloakpivot.document.extractor import TextExtractor
+tests/unit/test_presidio_adapter_edge_cases.py:8:from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
+tests/unit/test_protocols.py:6:from cloakpivot.masking.protocols import (
+tests/unit/test_registration.py:16:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_registration.py:8:from cloakpivot.engine import CloakEngine
+tests/unit/test_registration.py:9:from cloakpivot.registration import (
+tests/unit/test_surrogate_strategy.py:6:from cloakpivot import CloakEngine
+tests/unit/test_surrogate_strategy.py:7:from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
+tests/unit/test_table_cell_boundary_fix.py:10:from cloakpivot.masking.protocols import SegmentBoundary
+tests/unit/test_table_cell_boundary_fix.py:9:from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
+tests/unit/test_table_masking.py:13:from cloakpivot import CloakEngine
+tests/unit/test_table_masking.py:14:from cloakpivot.core import MaskingPolicy, Strategy, StrategyKind
+tests/unit/test_unmasking_engine_coverage.py:10:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_unmasking_engine_coverage.py:11:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_unmasking_engine_coverage.py:12:from cloakpivot.unmasking.engine import UnmaskingEngine
+tests/unit/test_unmasking_engine_coverage.py:9:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_unmasking_presidio_adapter.py:6:from cloakpivot.unmasking.presidio_adapter import PresidioUnmaskingAdapter
+tests/unit/test_unmasking_presidio_adapter.py:7:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_unmasking_presidio_adapter.py:8:from cloakpivot.core.types import DoclingDocument, UnmaskingResult
+tests/unit/test_unmasking_presidio_adapter.py:9:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_wrappers.py:5:from cloakpivot.core.anchors import AnchorEntry
+tests/unit/test_wrappers.py:6:from cloakpivot.core.cloakmap import CloakMap
+tests/unit/test_wrappers.py:7:from cloakpivot.engine import CloakEngine
+tests/unit/test_wrappers.py:8:from cloakpivot.type_imports import DoclingDocument
+tests/unit/test_wrappers.py:9:from cloakpivot.wrappers import CloakedDocument

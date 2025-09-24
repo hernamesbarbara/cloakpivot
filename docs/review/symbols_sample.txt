@@ -1,0 +1,20 @@
+cloakpivot/registration.py | 17:def register_cloak_methods(engine: CloakEngine | None = None) -> None:
+cloakpivot/registration.py | 102:def unregister_cloak_methods() -> None:
+cloakpivot/registration.py | 124:def get_registered_engine() -> CloakEngine | None:
+cloakpivot/registration.py | 133:def is_registered() -> bool:
+cloakpivot/registration.py | 142:def update_engine(engine: CloakEngine) -> None:
+cloakpivot/core/policy_loader.py | 17:class PolicyValidationError(Exception):
+cloakpivot/core/policy_loader.py | 23:class PolicyInheritanceError(Exception):
+cloakpivot/core/policy_loader.py | 30:class PolicyLoadContext:
+cloakpivot/core/policy_loader.py | 44:class StrategyConfig(BaseModel):
+cloakpivot/core/policy_loader.py | 62:class EntityConfig(BaseModel):
+cloakpivot/core/policy_loader.py | 83:class LocaleConfig(BaseModel):
+cloakpivot/core/policy_loader.py | 92:class ContextRuleConfig(BaseModel):
+cloakpivot/core/policy_loader.py | 104:class AllowListItem(BaseModel):
+cloakpivot/core/policy_loader.py | 122:class PolicyCompositionConfig(BaseModel):
+cloakpivot/core/policy_loader.py | 147:class PolicyFileSchema(BaseModel):
+cloakpivot/core/policy_loader.py | 209:class PolicyLoader:
+cloakpivot/core/detection.py | 22:class SegmentAnalysisResult:
+cloakpivot/core/detection.py | 49:class DocumentAnalysisResult:
+cloakpivot/core/detection.py | 109:class EntityDetectionPipeline:
+cloakpivot/core/config.py | 17:class PerformanceConfig:

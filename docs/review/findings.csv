@@ -1,0 +1,21 @@
+id,tag,file,start_line,end_line,summary,proposal,risk,impacted_tests
+FIND-0001,[OVERSIZED],cloakpivot/masking/presidio_adapter.py,1,1310,Module exceeds 1300 LOC with mixed responsibilities,Split into separate strategy/config/transform modules,MEDIUM,test_masking_workflow.py
+FIND-0002,[OVERSIZED],cloakpivot/core/cloakmap.py,1,1005,CloakMap module over 1000 LOC,Extract serialization and validation to separate modules,MEDIUM,test_cloakmap_loader.py
+FIND-0003,[OVERSIZED],cloakpivot/masking/applicator.py,1,861,Large applicator with multiple concerns,Split pre/post processing from core application logic,LOW,test_masking_workflow.py
+FIND-0004,[OVERSIZED],cloakpivot/unmasking/document_unmasker.py,1,772,Document unmasker too large,Extract anchor resolution and mapping logic,MEDIUM,test_document_processor*.py
+FIND-0005,[DRY-SUSPECT],cloakpivot/masking/presidio_adapter.py,1,1310,Duplicate adapter pattern with unmasking version,Extract common presidio utilities to core/presidio_common.py,LOW,Multiple test files
+FIND-0006,[COMPLEXITY],cloakpivot/engine.py,63,73,CloakEngine.__init__ has C(11) complexity,Refactor initialization into builder methods,LOW,test_builder.py
+FIND-0007,[OVERSIZED],cloakpivot/core/surrogate.py,1,632,Surrogate generation module too large,Split generators from policies,LOW,test_surrogate_faker_strategy.py
+FIND-0008,[OVERSIZED],cloakpivot/core/normalization.py,1,618,Normalization has mixed concerns,Separate input/output/internal normalization,MEDIUM,Multiple test files
+FIND-0009,[OVERSIZED],cloakpivot/masking/engine.py,1,611,Masking engine too complex,Extract orchestration from processing logic,HIGH,test_masking_workflow.py
+FIND-0010,[OVERSIZED],cloakpivot/core/analyzer.py,1,597,Analyzer module oversized,Split analysis strategies from core logic,MEDIUM,test_analyzer.py
+FIND-0011,[DRY],masking/engine.py+unmasking/engine.py,1,1069,Engine pattern duplication,Extract common engine patterns to core/engine_common.py,MEDIUM,test_builder.py
+FIND-0012,[DRY],document/*,1,1306,Document processing duplication,Extract shared utilities to document/common.py,LOW,test_document_processor*.py
+FIND-0013,[DRY],core/normalization.py+validation.py,1,1133,Normalization pattern duplication,Consolidate string utilities,LOW,Multiple test files
+FIND-0014,[DRY],error_handling+exceptions,1,846,Error pattern duplication,Unify error handling patterns,LOW,Multiple test files
+FIND-0015,[DRY],anchors+anchor_resolver,1,1033,Anchor logic duplication,Consolidate anchor processing,MEDIUM,test_anchor_resolver.py
+FIND-0016,[LEAKY-BOUNDARY],engine.py,18,20,Top-level engine imports domain engines,Use dependency injection or factory,HIGH,test_builder.py
+FIND-0017,[LEAKY-BOUNDARY],Multiple files,1,1,Relative imports crossing boundaries,Use absolute imports,MEDIUM,Multiple test files
+FIND-0018,[MIXED-RESPONSIBILITY],core/*,1,8000+,Core layer has too many responsibilities,Split into types/policies/processing/utilities,HIGH,All core tests
+FIND-0019,[LEAKY-BOUNDARY],engine.py,1,250,Direct instantiation of domain engines,Introduce factory pattern,MEDIUM,test_builder.py
+FIND-0020,[OVERSIZED],core/*,1,8000+,Core module with 13+ submodules,Reorganize into logical subpackages,HIGH,All core tests
