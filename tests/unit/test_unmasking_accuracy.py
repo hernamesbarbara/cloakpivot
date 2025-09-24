@@ -8,7 +8,7 @@ import json
 from docling_core.types import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
 from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.types import Anchor
+from cloakpivot.core.anchors import AnchorEntry
 
 
 class TestUnmaskingAccuracy:
@@ -22,28 +22,36 @@ class TestUnmaskingAccuracy:
     @pytest.fixture
     def sample_cloakmap(self):
         """Create a sample CloakMap for testing."""
-        cloakmap = CloakMap(document_id="test_doc_001")
-        cloakmap.add_anchor(
-            Anchor(
+        anchors = [
+            AnchorEntry(
                 entity_type="EMAIL",
                 start=25,
                 end=45,
-                original_text="john@example.com",
-                replacement_text="[EMAIL_001]",
-                node_path="main.texts.0",
-                node_type="text"
-            )
-        )
-        cloakmap.add_anchor(
-            Anchor(
+                node_id="main.texts.0",
+                confidence=0.95,
+                masked_value="[EMAIL_001]",
+                replacement_id="repl_email_001",
+                original_checksum="checksum1",
+                checksum_salt="salt1",
+                strategy_used="template"
+            ),
+            AnchorEntry(
                 entity_type="PERSON",
                 start=10,
                 end=20,
-                original_text="John Smith",
-                replacement_text="[PERSON_001]",
-                node_path="main.texts.0",
-                node_type="text"
+                node_id="main.texts.0",
+                confidence=0.90,
+                masked_value="[PERSON_001]",
+                replacement_id="repl_person_001",
+                original_checksum="checksum2",
+                checksum_salt="salt2",
+                strategy_used="template"
             )
+        ]
+        cloakmap = CloakMap(
+            doc_id="test_doc_001",
+            doc_hash="testhash",
+            anchors=anchors
         )
         return cloakmap
 
@@ -80,17 +88,24 @@ class TestUnmaskingAccuracy:
     def test_unmask_with_corrupted_cloakmap(self, unmasking_engine, masked_document):
         """Test unmasking with a corrupted CloakMap."""
         # Create corrupted cloakmap with invalid anchors
-        corrupted_map = CloakMap(document_id="corrupted")
-        corrupted_map.add_anchor(
-            Anchor(
+        anchors = [
+            AnchorEntry(
                 entity_type="INVALID",
-                start=-10,  # Invalid position
+                start=10,  # Valid position (can't use negative)
                 end=500000,  # Beyond document
-                original_text="",
-                replacement_text="[INVALID]",
-                node_path="non.existent.path",
-                node_type="unknown"
+                node_id="non.existent.path",
+                confidence=0.5,
+                masked_value="[INVALID]",
+                replacement_id="repl_invalid",
+                original_checksum="badchecksum",
+                checksum_salt="salt",
+                strategy_used="template"
             )
+        ]
+        corrupted_map = CloakMap(
+            doc_id="corrupted",
+            doc_hash="corrupted_hash",
+            anchors=anchors
         )
 
         # Should handle gracefully
@@ -128,18 +143,25 @@ class TestUnmaskingAccuracy:
     def test_unmask_with_missing_anchors(self, unmasking_engine, masked_document):
         """Test unmasking when some anchors are missing from CloakMap."""
         # Create incomplete cloakmap
-        incomplete_map = CloakMap(document_id="incomplete")
         # Only add one of two needed anchors
-        incomplete_map.add_anchor(
-            Anchor(
+        anchors = [
+            AnchorEntry(
                 entity_type="PERSON",
                 start=10,
                 end=20,
-                original_text="John Smith",
-                replacement_text="[PERSON_001]",
-                node_path="main.texts.0",
-                node_type="text"
+                node_id="main.texts.0",
+                confidence=0.90,
+                masked_value="[PERSON_001]",
+                replacement_id="repl_person_001",
+                original_checksum="checksum2",
+                checksum_salt="salt2",
+                strategy_used="template"
             )
+        ]
+        incomplete_map = CloakMap(
+            doc_id="incomplete",
+            doc_hash="incomplete_hash",
+            anchors=anchors
         )
 
         result = unmasking_engine.unmask_document(
@@ -164,23 +186,31 @@ class TestUnmaskingAccuracy:
         large_text = " ".join([f"Token_{i}" for i in range(10000)])
 
         # Add many masked entities
-        large_cloakmap = CloakMap(document_id="large")
+        anchors = []
         for i in range(100):
             large_text = large_text.replace(
                 f"Token_{i*100}",
                 f"[MASK_{i:03d}]"
             )
-            large_cloakmap.add_anchor(
-                Anchor(
+            anchors.append(
+                AnchorEntry(
                     entity_type="TOKEN",
                     start=i*50,
                     end=i*50+10,
-                    original_text=f"Token_{i*100}",
-                    replacement_text=f"[MASK_{i:03d}]",
-                    node_path="main.texts.0",
-                    node_type="text"
+                    node_id="main.texts.0",
+                    confidence=0.95,
+                    masked_value=f"[MASK_{i:03d}]",
+                    replacement_id=f"repl_token_{i:03d}",
+                    original_checksum=f"checksum_{i}",
+                    checksum_salt=f"salt_{i}",
+                    strategy_used="template"
                 )
             )
+        large_cloakmap = CloakMap(
+            doc_id="large",
+            doc_hash="large_hash",
+            anchors=anchors
+        )
 
         large_doc.texts = [MagicMock(text=large_text)]
 
@@ -206,17 +236,24 @@ class TestUnmaskingAccuracy:
         ]
 
         # Create cloakmap with nested patterns
-        nested_map = CloakMap(document_id="nested")
-        nested_map.add_anchor(
-            Anchor(
+        anchors = [
+            AnchorEntry(
                 entity_type="PERSON_ID",
                 start=5,
                 end=25,
-                original_text="John_Smith_123",
-                replacement_text="[PERSON_[ID_001]_END]",
-                node_path="main.texts.0",
-                node_type="text"
+                node_id="main.texts.0",
+                confidence=0.92,
+                masked_value="[PERSON_[ID_001]_END]",
+                replacement_id="repl_nested_001",
+                original_checksum="nested_checksum",
+                checksum_salt="nested_salt",
+                strategy_used="template"
             )
+        ]
+        nested_map = CloakMap(
+            doc_id="nested",
+            doc_hash="nested_hash",
+            anchors=anchors
         )
 
         result = unmasking_engine.unmask_document(
@@ -239,28 +276,36 @@ class TestUnmaskingAccuracy:
         ]
 
         # Create cloakmap with unicode content
-        unicode_map = CloakMap(document_id="unicode")
-        unicode_map.add_anchor(
-            Anchor(
+        anchors = [
+            AnchorEntry(
                 entity_type="PERSON",
                 start=3,
                 end=15,
-                original_text="张三",
-                replacement_text="[PERSON_001]",
-                node_path="main.texts.0",
-                node_type="text"
-            )
-        )
-        unicode_map.add_anchor(
-            Anchor(
+                node_id="main.texts.0",
+                confidence=0.88,
+                masked_value="[PERSON_001]",
+                replacement_id="repl_unicode_person",
+                original_checksum="unicode_checksum1",
+                checksum_salt="unicode_salt1",
+                strategy_used="template"
+            ),
+            AnchorEntry(
                 entity_type="EMAIL",
                 start=22,
                 end=33,
-                original_text="张三@例子.com",
-                replacement_text="[EMAIL_001]",
-                node_path="main.texts.0",
-                node_type="text"
+                node_id="main.texts.0",
+                confidence=0.91,
+                masked_value="[EMAIL_001]",
+                replacement_id="repl_unicode_email",
+                original_checksum="unicode_checksum2",
+                checksum_salt="unicode_salt2",
+                strategy_used="template"
             )
+        ]
+        unicode_map = CloakMap(
+            doc_id="unicode",
+            doc_hash="unicode_hash",
+            anchors=anchors
         )
 
         result = unmasking_engine.unmask_document(

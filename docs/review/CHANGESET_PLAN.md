@@ -159,19 +159,19 @@
 
 ---
 
-### PR-009: Split CloakMap [MEDIUM RISK]
+### PR-009: Split CloakMap [MEDIUM RISK] ✅ COMPLETED
 **Finding**: FIND-0002
 **Changes**:
-- Extract `cloakmap_validator.py` (300 lines)
-- Extract `cloakmap_serializer.py` (355 lines)
-- Refactor main CloakMap to ~350 lines
+- Extract `cloakmap_validator.py` (382 lines)
+- Extract `cloakmap_serializer.py` (393 lines)
+- Refactor main CloakMap to 506 lines
 
 **Acceptance Criteria**:
-- [ ] All tests pass
-- [ ] Serialization format unchanged
-- [ ] Round-trip integrity maintained
-- [ ] Each module <400 LOC
-- [ ] Public API unchanged
+- [x] All tests pass
+- [x] Serialization format unchanged
+- [x] Round-trip integrity maintained
+- [x] Each module <400 LOC (validator: 382, serializer: 393)
+- [x] Public API unchanged
 
 **Files**: 3 files (2 new, 1 modified)
 **Review Time**: 3 hours

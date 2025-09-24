@@ -1,13 +1,14 @@
 """CloakMap system for secure, reversible masking operations."""
 
 import hashlib
-import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from .anchors import AnchorEntry, AnchorIndex
+from .cloakmap_serializer import CloakMapSerializer
+from .cloakmap_validator import CloakMapValidator, merge_cloakmaps, validate_cloakmap_integrity
 
 # Security features removed - simplified implementation
 
@@ -91,11 +92,12 @@ class CloakMap:
 
     def __post_init__(self) -> None:
         """Validate CloakMap data after initialization."""
-        self._validate_version()
-        self._validate_doc_fields()
-        self._validate_anchors()
-        self._validate_crypto()
-        self._validate_presidio_metadata()
+        # Use validator for all validation
+        CloakMapValidator.validate_version(self.version)
+        CloakMapValidator.validate_doc_fields(self.doc_id, self.doc_hash)
+        CloakMapValidator.validate_anchors(self.anchors)
+        CloakMapValidator.validate_crypto(self.crypto, self.signature)
+        CloakMapValidator.validate_presidio_metadata(self.presidio_metadata)
 
         # Set default timestamp if not provided
         if self.created_at is None:
@@ -104,102 +106,6 @@ class CloakMap:
         # Auto-set version to 2.0 if presidio_metadata is present
         if self.presidio_metadata is not None and self.version == "1.0":
             object.__setattr__(self, "version", "2.0")
-
-    def _validate_version(self) -> None:
-        """Validate version string format."""
-        if not isinstance(self.version, str) or not self.version.strip():
-            raise ValueError("Version cannot be empty")
-
-        # Basic semantic version validation (major.minor format)
-        parts = self.version.split(".")
-        if len(parts) < 2:
-            raise ValueError("version must follow 'major.minor' format at minimum")
-
-        try:
-            for part in parts[:2]:  # At least major.minor must be numeric
-                int(part)
-        except ValueError as e:
-            raise ValueError("version major and minor components must be numeric") from e
-
-    def _validate_doc_fields(self) -> None:
-        """Validate document identification fields."""
-        if not isinstance(self.doc_id, str) or not self.doc_id.strip():
-            raise ValueError("Document ID cannot be empty")
-
-        if not isinstance(self.doc_hash, str) or not self.doc_hash.strip():
-            raise ValueError("Document hash cannot be empty")
-
-        # Basic SHA-256 hash validation if provided
-        if len(self.doc_hash) == 64:
-            try:
-                int(self.doc_hash, 16)
-            except ValueError as e:
-                raise ValueError("doc_hash should be a valid SHA-256 hex string") from e
-
-    def _validate_anchors(self) -> None:
-        """Validate anchor entries."""
-        if not isinstance(self.anchors, list):
-            raise ValueError("anchors must be a list")
-
-        # Check for duplicate replacement IDs
-        replacement_ids = set()
-        for anchor in self.anchors:
-            if not isinstance(anchor, AnchorEntry):
-                raise ValueError("all anchors must be AnchorEntry instances")
-
-            if anchor.replacement_id in replacement_ids:
-                raise ValueError(f"duplicate replacement_id: {anchor.replacement_id}")
-
-            replacement_ids.add(anchor.replacement_id)
-
-    def _validate_crypto(self) -> None:
-        """Validate cryptographic metadata."""
-        if self.crypto is not None and not isinstance(self.crypto, dict):
-            raise ValueError("crypto must be a dictionary or None")
-
-        if self.signature is not None and not isinstance(self.signature, str):
-            raise ValueError("signature must be a string or None")
-
-    def _validate_presidio_metadata(self) -> None:
-        """Validate Presidio metadata structure."""
-        if self.presidio_metadata is None:
-            return
-
-        if not isinstance(self.presidio_metadata, dict):
-            raise ValueError("presidio_metadata must be a dictionary or None")
-
-        # Validate required fields if present
-        if "operator_results" in self.presidio_metadata:
-            results = self.presidio_metadata["operator_results"]
-            if not isinstance(results, list):
-                raise ValueError("operator_results must be a list")
-
-            # Validate each operator result structure
-            for i, result in enumerate(results):
-                if not isinstance(result, dict):
-                    raise ValueError(f"operator_result[{i}] must be a dictionary")
-
-                # Check for required fields in operator result
-                required_fields = ["entity_type", "start", "end", "operator"]
-                for field in required_fields:
-                    if field not in result:
-                        raise ValueError(f"operator_result[{i}] missing required field: {field}")
-
-        # Validate reversible_operators if present
-        if "reversible_operators" in self.presidio_metadata:
-            reversible = self.presidio_metadata["reversible_operators"]
-            if not isinstance(reversible, list):
-                raise ValueError("reversible_operators must be a list")
-
-            for op in reversible:
-                if not isinstance(op, str):
-                    raise ValueError("all reversible_operators must be strings")
-
-        # Validate engine_version if present
-        if "engine_version" in self.presidio_metadata:
-            engine_version = self.presidio_metadata["engine_version"]
-            if not isinstance(engine_version, str) or not engine_version.strip():
-                raise ValueError("engine_version must be a non-empty string")
 
     @property
     def anchor_count(self) -> int:
@@ -284,16 +190,7 @@ class CloakMap:
         Returns:
             True if the content matches the hash, False otherwise
         """
-        if not self.doc_hash:
-            return False
-
-        if isinstance(document_content, str):
-            content_bytes = document_content.encode("utf-8")
-        else:
-            content_bytes = document_content
-
-        computed_hash = hashlib.sha256(content_bytes).hexdigest()
-        return computed_hash == self.doc_hash
+        return CloakMapValidator.verify_document_hash(self.doc_hash, document_content)
 
     def verify_signature(
         self,
@@ -312,44 +209,7 @@ class CloakMap:
         Returns:
             True if the signature is valid, False otherwise
         """
-        if not self.signature:
-            return False
-
-        if config is None:
-            config = None  # Security config removed
-
-        # Get signing key using the key_id from crypto metadata
-        key_id = self.crypto.get("key_id", "default") if self.crypto else "default"
-        signing_key = self._get_signing_key(key_manager, secret_key, key_id)
-        if not signing_key:
-            return False
-
-        # Create a copy without signature for verification
-        # NOTE: crypto must be None during verification to match signing content
-        unsigned_map = CloakMap(
-            version=self.version,
-            doc_id=self.doc_id,
-            doc_hash=self.doc_hash,
-            anchors=self.anchors,
-            policy_snapshot=self.policy_snapshot,
-            crypto=None,  # Must be None to match signing content
-            signature=None,
-            created_at=self.created_at,
-            metadata=self.metadata,
-        )
-
-        # Compute expected signature
-        json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
-
-        # Use enhanced crypto utilities
-        if config is not None:
-            (
-                self.crypto.get("signature_algorithm", config.hmac_algorithm)
-                if self.crypto
-                else config.hmac_algorithm
-            )
-        # CryptoUtils removed in v2.0 - signature verification disabled
-        return False
+        return CloakMapValidator.verify_signature(self, key_manager, secret_key, config)
 
     def with_signature(
         self,
@@ -370,54 +230,7 @@ class CloakMap:
         Returns:
             New CloakMap with signature
         """
-        if config is None:
-            config = None  # Security config removed
-
-        # Get signing key
-        signing_key = self._get_signing_key(key_manager, secret_key, key_id)
-        if not signing_key:
-            raise ValueError("No signing key available")
-
-        # Create unsigned version for signing
-        unsigned_map = CloakMap(
-            version=self.version,
-            doc_id=self.doc_id,
-            doc_hash=self.doc_hash,
-            anchors=self.anchors,
-            policy_snapshot=self.policy_snapshot,
-            crypto=self.crypto,
-            signature=None,
-            created_at=self.created_at,
-            metadata=self.metadata,
-        )
-
-        # Generate signature with enhanced crypto
-        json.dumps(unsigned_map.to_dict(), sort_keys=True).encode("utf-8")
-        # CryptoUtils removed in v2.0 - signature generation disabled
-        signature = None
-
-        # Update crypto metadata with signing information
-        crypto_data = self.crypto.copy() if self.crypto else {}
-        if config is not None:
-            crypto_data.update(
-                {
-                    "signature_algorithm": config.hmac_algorithm,
-                    "key_id": key_id,
-                    "signed_at": datetime.now(UTC).isoformat(),
-                }
-            )
-
-        return CloakMap(
-            version=self.version,
-            doc_id=self.doc_id,
-            doc_hash=self.doc_hash,
-            anchors=self.anchors,
-            policy_snapshot=self.policy_snapshot,
-            crypto=crypto_data,
-            signature=signature,
-            created_at=self.created_at,
-            metadata=self.metadata,
-        )
+        return CloakMapSerializer.sign_cloakmap(self, key_manager, secret_key, key_id, config)
 
     def sign(
         self,
@@ -439,47 +252,6 @@ class CloakMap:
             New CloakMap with signature
         """
         return self.with_signature(key_manager, secret_key, key_id, config)
-
-    def _get_signing_key(
-        self,
-        key_manager: Any | None,
-        secret_key: str | None,
-        key_id: str = "default",
-    ) -> bytes | None:
-        """
-        Get signing key from manager or direct string.
-
-        Args:
-            key_manager: Key manager instance
-            secret_key: Direct secret key string
-            key_id: Key identifier
-
-        Returns:
-            Key bytes or None if not found
-        """
-        if key_manager:
-            try:
-                key = key_manager.get_key(key_id)
-                if isinstance(key, bytes):
-                    return key
-                # If key is not bytes, convert it
-                if isinstance(key, str):
-                    return key.encode("utf-8")
-                # Otherwise, skip this key_manager
-            except (KeyError, ValueError):
-                pass
-
-        if secret_key:
-            return secret_key.encode("utf-8")
-
-        # Try default key manager as fallback
-        try:
-            # Default key manager removed in v2.0
-            return None
-        except (KeyError, ValueError):
-            pass
-
-        return None
 
     def with_encryption_metadata(
         self,
@@ -566,8 +338,9 @@ class CloakMap:
             KeyError: If encryption key is not found
             ValueError: If encryption or save fails
         """
-        # Encryption removed in v2.0
-        raise NotImplementedError("Encryption has been removed in v2.0")
+        CloakMapSerializer.save_encrypted(
+            self, file_path, key_manager, key_id, key_version, config, indent
+        )
 
     @classmethod
     def load_encrypted(
@@ -592,8 +365,7 @@ class CloakMap:
             KeyError: If decryption key is not found
             ValueError: If decryption fails
         """
-        # Security features removed
-        raise NotImplementedError("Encrypted loading has been removed in the simplified version")
+        return CloakMapSerializer.load_encrypted(file_path, key_manager, config)
 
     @classmethod
     def load_from_file(
@@ -617,24 +389,7 @@ class CloakMap:
             FileNotFoundError: If file doesn't exist
             ValueError: If loading fails
         """
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"CloakMap file not found: {file_path}")
-
-        try:
-            with path.open(encoding="utf-8") as f:
-                content = f.read()
-                data = json.loads(content)
-
-            # Check if this is an encrypted format
-            if "encrypted_content" in data:
-                # This is an encrypted CloakMap
-                return cls.load_encrypted(file_path, key_manager, config)
-            # This is a standard unencrypted CloakMap
-            return cls.from_json(content)
-
-        except Exception as e:
-            raise ValueError(f"Failed to load CloakMap from {file_path}: {e}") from e
+        return CloakMapSerializer.load_from_file(file_path, key_manager, config)
 
     def get_stats(self) -> dict[str, Any]:
         """Get comprehensive statistics about the CloakMap."""
@@ -675,85 +430,25 @@ class CloakMap:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert CloakMap to dictionary for serialization."""
-        result = {
-            "version": self.version,
-            "doc_id": self.doc_id,
-            "doc_hash": self.doc_hash,
-            "anchors": [anchor.to_dict() for anchor in self.anchors],
-            "policy_snapshot": self.policy_snapshot,
-            "crypto": self.crypto,
-            "signature": self.signature,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "metadata": self.metadata,
-        }
-
-        # Only include presidio_metadata if present (backward compatibility)
-        if self.presidio_metadata is not None:
-            result["presidio_metadata"] = self.presidio_metadata
-            # If engine_used is in presidio_metadata, also expose it at top level for compatibility
-            if "engine_used" in self.presidio_metadata:
-                result["engine_used"] = self.presidio_metadata["engine_used"]
-
-        return result
+        return CloakMapSerializer.to_dict(self)
 
     def to_json(self, indent: int | None = None) -> str:
         """Convert CloakMap to JSON string."""
-        return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
+        return CloakMapSerializer.to_json(self, indent)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CloakMap":
         """Create CloakMap from dictionary representation."""
-        # Convert anchors
-        anchors = []
-        for anchor_data in data.get("anchors", []):
-            anchors.append(AnchorEntry.from_dict(anchor_data))
-
-        # Convert timestamp
-        created_at = None
-        if data.get("created_at"):
-            created_at = datetime.fromisoformat(data["created_at"])
-
-        # Handle presidio_metadata (optional for backward compatibility)
-        presidio_metadata = data.get("presidio_metadata")
-
-        # If engine_used is at top level, move it to presidio_metadata for storage
-        if "engine_used" in data:
-            if presidio_metadata is None:
-                presidio_metadata = {}
-            presidio_metadata["engine_used"] = data["engine_used"]
-
-        return cls(
-            version=data.get("version", "1.0"),
-            doc_id=data.get("doc_id", ""),
-            doc_hash=data.get("doc_hash", ""),
-            anchors=anchors,
-            policy_snapshot=data.get("policy_snapshot", {}),
-            crypto=data.get("crypto"),
-            signature=data.get("signature"),
-            created_at=created_at,
-            metadata=data.get("metadata", {}),
-            presidio_metadata=presidio_metadata,
-        )
+        return CloakMapSerializer.from_dict(data)
 
     @classmethod
     def from_json(cls, json_str: str) -> "CloakMap":
         """Create CloakMap from JSON string."""
-        try:
-            data = json.loads(json_str)
-            return cls.from_dict(data)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON format: {e}") from e
+        return CloakMapSerializer.from_json(json_str)
 
     def save_to_file(self, file_path: str | Path, indent: int = 2) -> None:
         """Save CloakMap to JSON file."""
-        path = Path(file_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            with path.open("w", encoding="utf-8") as f:
-                f.write(self.to_json(indent=indent))
-        except Exception as e:
-            raise ValueError(f"Failed to save CloakMap to {file_path}: {e}") from e
+        CloakMapSerializer.save_to_file(self, file_path, indent)
 
     @classmethod
     def create(
@@ -777,18 +472,7 @@ class CloakMap:
         Returns:
             New CloakMap instance (v1.0 format)
         """
-        # Serialize policy if provided
-        policy_snapshot = {}
-        if policy is not None and hasattr(policy, "to_dict"):
-            policy_snapshot = policy.to_dict()
-
-        return cls(
-            doc_id=doc_id,
-            doc_hash=doc_hash,
-            anchors=anchors,
-            policy_snapshot=policy_snapshot,
-            metadata=metadata or {},
-        )
+        return CloakMapSerializer.create_cloakmap(doc_id, doc_hash, anchors, policy, metadata)
 
     @classmethod
     def create_with_presidio(
@@ -814,159 +498,10 @@ class CloakMap:
         Returns:
             New CloakMap instance (v2.0 format with Presidio metadata)
         """
-        # Serialize policy if provided
-        policy_snapshot = {}
-        if policy is not None and hasattr(policy, "to_dict"):
-            policy_snapshot = policy.to_dict()
-
-        return cls(
-            version="2.0",
-            doc_id=doc_id,
-            doc_hash=doc_hash,
-            anchors=anchors,
-            policy_snapshot=policy_snapshot,
-            metadata=metadata or {},
-            presidio_metadata=presidio_metadata,
+        return CloakMapSerializer.create_cloakmap_with_presidio(
+            doc_id, doc_hash, anchors, presidio_metadata, policy, metadata
         )
 
 
-# Utility functions for CloakMap operations
-
-
-def merge_cloakmaps(cloakmaps: list[CloakMap], target_doc_id: str | None = None) -> CloakMap:
-    """
-    Merge multiple CloakMaps into a single consolidated map.
-
-    This is useful when processing documents in chunks or combining
-    results from different processing stages.
-
-    Args:
-        cloakmaps: List of CloakMaps to merge
-        target_doc_id: Document ID for the merged result
-
-    Returns:
-        Merged CloakMap
-
-    Raises:
-        ValueError: If CloakMaps have incompatible versions or conflicting data
-    """
-    if not cloakmaps:
-        raise ValueError("Cannot merge empty list of CloakMaps")
-
-    # Check version compatibility
-    base_version = cloakmaps[0].version
-    for cm in cloakmaps[1:]:
-        if cm.version != base_version:
-            raise ValueError("Cannot merge CloakMaps with different versions")
-
-    # Infer target_doc_id if not provided
-    if target_doc_id is None:
-        target_doc_id = cloakmaps[0].doc_id
-        # Check that all have the same doc_id
-        for cm in cloakmaps[1:]:
-            if cm.doc_id != target_doc_id:
-                raise ValueError(
-                    "Cannot merge CloakMaps from different documents without explicit target_doc_id"
-                )
-
-    # Collect all anchors and check for conflicts
-    all_anchors = []
-    replacement_ids = set()
-
-    for cm in cloakmaps:
-        for anchor in cm.anchors:
-            if anchor.replacement_id in replacement_ids:
-                raise ValueError(f"Conflicting replacement_id: {anchor.replacement_id}")
-
-            all_anchors.append(anchor)
-            replacement_ids.add(anchor.replacement_id)
-
-    # Check for anchor overlaps within the same node
-    for i, anchor1 in enumerate(all_anchors):
-        for anchor2 in all_anchors[i + 1 :]:
-            if anchor1.overlaps_with(anchor2):
-                raise ValueError("Anchor overlap detected")
-
-    # Merge metadata
-    merged_metadata = {}
-    for cm in cloakmaps:
-        merged_metadata.update(cm.metadata)
-
-    # Use the first non-empty doc_hash
-    doc_hash = ""
-    for cm in cloakmaps:
-        if cm.doc_hash:
-            doc_hash = cm.doc_hash
-            break
-
-    # Merge policy snapshots (use the most recent one)
-    policy_snapshot = {}
-    latest_created_at = None
-
-    for cm in cloakmaps:
-        if cm.created_at and (latest_created_at is None or cm.created_at > latest_created_at):
-            latest_created_at = cm.created_at
-            policy_snapshot = cm.policy_snapshot
-
-    return CloakMap(
-        version=base_version,
-        doc_id=target_doc_id,
-        doc_hash=doc_hash,
-        anchors=all_anchors,
-        policy_snapshot=policy_snapshot,
-        metadata=merged_metadata,
-    )
-
-
-def validate_cloakmap_integrity(
-    cloakmap: CloakMap,
-    key_manager: Any | None = None,
-    secret_key: str | None = None,
-    config: Any | None = None,
-) -> dict[str, Any]:
-    """
-    Perform basic integrity validation of a CloakMap.
-
-    Args:
-        cloakmap: CloakMap to validate
-        key_manager: Not used (kept for compatibility)
-        secret_key: Not used (kept for compatibility)
-        config: Not used (kept for compatibility)
-
-    Returns:
-        Dictionary with validation results
-    """
-    errors = []
-    warnings = []
-
-    # Basic validation checks
-    if not cloakmap.version:
-        errors.append("CloakMap missing version")
-
-    if not cloakmap.doc_id:
-        errors.append("CloakMap missing document ID")
-
-    if not cloakmap.doc_hash:
-        warnings.append("CloakMap missing document hash")
-
-    # Validate anchors
-    for i, anchor in enumerate(cloakmap.anchors):
-        if not anchor.node_id:
-            errors.append(f"Anchor {i} missing node_id")
-        if anchor.start < 0:
-            errors.append(f"Anchor {i} has invalid start position")
-        if anchor.end <= anchor.start:
-            errors.append(f"Anchor {i} has invalid end position")
-        if not anchor.entity_type:
-            errors.append(f"Anchor {i} missing entity_type")
-
-    return {
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings,
-        "anchor_count": len(cloakmap.anchors),
-        "version": cloakmap.version,
-    }
-
-
-__all__ = ["CloakMap", "AnchorEntry", "AnchorIndex"]
+# Re-export utility functions
+__all__ = ["CloakMap", "AnchorEntry", "AnchorIndex", "merge_cloakmaps", "validate_cloakmap_integrity"]
