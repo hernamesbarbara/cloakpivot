@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 else:
     import signal
 
-    def timeout_handler(signum, frame):
+    def timeout_handler(_signum, _frame):
         raise TimeoutError("Import timed out")
 
     # Try to import with timeout

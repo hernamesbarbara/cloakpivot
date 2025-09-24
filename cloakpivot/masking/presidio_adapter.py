@@ -21,6 +21,11 @@ except (ImportError, AttributeError):
 from ..core.cloakmap import AnchorEntry, CloakMap
 from ..core.cloakmap_enhancer import CloakMapEnhancer
 from ..core.policies import MaskingPolicy
+from ..core.presidio_common import (
+    filter_overlapping_entities,
+    operator_result_to_dict,
+    validate_entity_boundaries,
+)
 from ..core.presidio_mapper import StrategyToOperatorMapper
 from ..core.strategies import Strategy, StrategyKind
 from ..core.surrogate import SurrogateGenerator
@@ -677,7 +682,7 @@ class PresidioMaskingAdapter:
         )
 
         # Step 1: Filter overlapping entities
-        filtered_entities = self._filter_overlapping_entities(entities)
+        filtered_entities = filter_overlapping_entities(entities)
 
         # Step 2: Prepare strategies
         strategies = self._prepare_strategies(filtered_entities, policy)
@@ -772,7 +777,7 @@ class PresidioMaskingAdapter:
             op_result = op_results_by_pos.get(key)
 
             if op_result:
-                op_dict = self._operator_result_to_dict(op_result)
+                op_dict = operator_result_to_dict(op_result)
 
                 # Only add original text for reversible operations
                 operator = op_dict.get("operator", "")

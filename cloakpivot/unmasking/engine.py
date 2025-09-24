@@ -154,8 +154,8 @@ class UnmaskingEngine:
                     }
 
             result.integrity_report = self._verify_restoration_integrity(
-                original_document=result.restored_document,
-                masked_document=masked_document,
+                _original_document=result.restored_document,
+                _masked_document=masked_document,
                 cloakmap=cloakmap_obj,
                 resolved_anchors=resolved_anchors_data,
             )
@@ -236,8 +236,8 @@ class UnmaskingEngine:
 
     def _verify_restoration_integrity(
         self,
-        original_document: DoclingDocument,
-        masked_document: DoclingDocument,
+        _original_document: DoclingDocument,
+        _masked_document: DoclingDocument,
         cloakmap: CloakMap,
         resolved_anchors: dict[str, Any],
     ) -> dict[str, Any]:

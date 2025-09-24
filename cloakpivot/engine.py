@@ -15,6 +15,7 @@ from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor
 
 # CloakEngineBuilder import moved to avoid circular import
+from cloakpivot.engine_factory import EngineFactory
 from cloakpivot.masking.engine import MaskingEngine
 from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
@@ -227,6 +228,33 @@ class CloakEngine:
         from cloakpivot.engine_builder import CloakEngineBuilder
 
         return CloakEngineBuilder()
+
+    @classmethod
+    def from_factory(
+        cls,
+        factory: EngineFactory | None = None,
+        **kwargs: Any
+    ) -> "CloakEngine":
+        """Create a CloakEngine using an EngineFactory.
+
+        Args:
+            factory: Optional EngineFactory instance (uses default if None)
+            **kwargs: Additional configuration parameters
+
+        Returns:
+            CloakEngine instance with factory-created engines
+        """
+        if factory is None:
+            factory = EngineFactory()
+
+        # Create the instance
+        instance = cls(**kwargs)
+
+        # Replace engines with factory-created ones
+        instance._masking_engine = factory.create_masking_engine()
+        instance._unmasking_engine = factory.create_unmasking_engine()
+
+        return instance
 
     def _get_default_analyzer_config(self) -> AnalyzerConfig:
         """Get optimized default analyzer configuration."""

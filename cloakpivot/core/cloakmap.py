@@ -569,16 +569,6 @@ class CloakMap:
         # Encryption removed in v2.0
         raise NotImplementedError("Encryption has been removed in v2.0")
 
-        path = Path(file_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            with path.open("w", encoding="utf-8"):
-                # encrypted_map no longer exists
-                pass
-        except Exception as e:
-            raise ValueError(f"Failed to save encrypted CloakMap to {file_path}: {e}") from e
-
     @classmethod
     def load_encrypted(
         cls,
@@ -604,29 +594,6 @@ class CloakMap:
         """
         # Security features removed
         raise NotImplementedError("Encrypted loading has been removed in the simplified version")
-        return None  # Early return
-
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Encrypted CloakMap file not found: {file_path}")
-
-        if key_manager is None:
-            # Key manager functionality removed in v2.0
-            pass
-
-        if config is None:
-            config = None  # Security config removed
-
-        try:
-            with path.open(encoding="utf-8"):
-                # Encryption removed - this method no longer works
-                raise NotImplementedError("Encrypted loading has been removed")
-
-            # CloakMapEncryption removed in v2.0
-            raise NotImplementedError("Encryption has been removed in v2.0")
-
-        except Exception as e:
-            raise ValueError(f"Failed to load encrypted CloakMap from {file_path}: {e}") from e
 
     @classmethod
     def load_from_file(
