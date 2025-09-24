@@ -65,10 +65,13 @@ class CloakMapEnhancer:
             New CloakMap v2.0 with Presidio metadata
 
         Raises:
-            ValueError: If operator_results is invalid or empty
+            ValueError: If operator_results is invalid (not a list)
         """
+        # Allow empty operator_results: it's a valid "no-op" case (no PII found / all filtered).
+        # Return the original cloakmap unchanged so callers don't have to special-case.
         if not operator_results:
-            raise ValueError("operator_results cannot be empty")
+            logger.debug("add_presidio_metadata: no operator results; returning cloakmap unchanged.")
+            return cloakmap
 
         if not isinstance(operator_results, list):
             raise ValueError("operator_results must be a list")
