@@ -57,13 +57,20 @@ class EntityProcessor:
         """
         valid_entities = []
         for entity in entities:
-            if entity.end <= document_length:
-                valid_entities.append(entity)
-            else:
+            # Check for invalid positions
+            if entity.start < 0 or entity.end < entity.start:
+                logger.warning(
+                    f"Entity {entity.entity_type} has invalid positions {entity.start}-{entity.end}, skipping"
+                )
+                continue
+            # Check if entity exceeds document bounds
+            if entity.end > document_length:
                 logger.warning(
                     f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
                     f"exceeds document text length {document_length}, skipping"
                 )
+                continue
+            valid_entities.append(entity)
         return valid_entities
 
     def validate_entities_against_boundaries(
