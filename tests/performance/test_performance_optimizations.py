@@ -78,7 +78,8 @@ class PerformanceBenchmark:
                 text=text,
                 start_offset=offset,
                 end_offset=offset + len(text),
-                node_id=f"#/texts/{i}"
+                node_id=f"#/texts/{i}",
+                node_type="TextItem"
             )
             segments.append(segment)
             offset += len(text)
