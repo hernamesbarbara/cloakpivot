@@ -1,7 +1,7 @@
 # Remaining Test Failures After Refactoring
 
 ## Summary
-After completing the major refactoring (PR-001 through PR-015) and fixing invalid test cases, we have reduced failures from 106 to **62 failed, 572 passed** out of 634 tests total.
+After completing the major refactoring (PR-001 through PR-015) and fixing invalid test cases, we have reduced failures from 106 to **60 failed, 574 passed** out of 634 tests total.
 
 ## Invalid Tests Removed
 1. **test_anchor_resolution_extended.py** - Used obsolete AnchorEntry parameters (`original_text`, `replacement_text`)
@@ -25,10 +25,14 @@ After completing the major refactoring (PR-001 through PR-015) and fixing invali
 13. **test_unmasking_engine_coverage.py** - Fixed JSON decoding errors by creating proper JSON documents instead of plain text
 14. **test_cli_main.py** - Changed all .txt files to .md files since Docling doesn't support plain text
 
-## Remaining Valid Test Failures (62 total)
+## Fixed Tests (Session 3)
+15. **test_policy_loader.py** - Fixed all patch decorators from `cloakpivot.core.policy_loader` to `cloakpivot.core.policies.policy_loader` (43 tests now passing)
 
-### Policy Loader Tests (2 failures)
-1. **test_policy_loader.py** - Module 'cloakpivot.core' has no attribute 'policy_loader'
+## Remaining Valid Test Failures (60 total)
+
+### ~~Policy Loader Tests~~ ✅ FIXED
+~~1. **test_policy_loader.py** - Module 'cloakpivot.core' has no attribute 'policy_loader'~~
+- Fixed by updating patch paths from `cloakpivot.core.policy_loader` to `cloakpivot.core.policies.policy_loader`
 
 ### Presidio Adapter Edge Cases (2 failures)
 1. **test_presidio_adapter_edge_cases.py::test_empty_document_segments** - ValueError: operator_results cannot be empty
@@ -77,17 +81,18 @@ After completing the major refactoring (PR-001 through PR-015) and fixing invali
 - **Initial state**: 106 failed, 548 passed (654 total)
 - **After Session 1**: 73 failed, 561 passed (634 total)
 - **After Session 2**: 62 failed, 572 passed (634 total)
-- **Total Improvement**: Fixed 44 test failures (42% reduction)
+- **After Session 3**: 60 failed, 574 passed (634 total)
+- **Total Improvement**: Fixed 46 test failures (43% reduction)
 - **Tests removed**: 20 obsolete tests deleted
 
 ## Notes
 - Coverage is at 51.77%, below the required 60% threshold
-- Remaining 62 failures are mostly edge cases and lesser-used functionality
+- Remaining 60 failures are mostly edge cases and lesser-used functionality
 - Many failures stem from the PR-011 core reorganization
 - Most critical functionality has been restored and tested
 
 ## Summary
-Successfully reduced test failures by **42%** (from 106 to 62) through systematic fixes:
+Successfully reduced test failures by **43%** (from 106 to 60) through systematic fixes:
 - Fixed all major API mismatches from refactoring
 - Updated method signatures and import paths
 - Corrected test expectations to match new implementations
