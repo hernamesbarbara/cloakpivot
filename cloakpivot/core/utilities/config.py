@@ -206,7 +206,7 @@ class PerformanceConfig:
         Returns:
             Dictionary with memory, performance, and accuracy information
         """
-        from .model_info import MODEL_CHARACTERISTICS
+        from ..types.model_info import MODEL_CHARACTERISTICS
 
         return MODEL_CHARACTERISTICS.get(self.model_size, MODEL_CHARACTERISTICS["small"])
 

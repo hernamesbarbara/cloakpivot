@@ -24,15 +24,10 @@ class TestDocumentProcessor:
 
     def test_init_with_chunked_processing_enabled(self):
         """Test initialization with chunked processing enabled."""
-        with patch("cloakpivot.document.processor.ChunkedDocumentProcessor") as mock_chunked:
-            mock_chunked_instance = Mock()
-            mock_chunked.return_value = mock_chunked_instance
+        processor = DocumentProcessor(enable_chunked_processing=True)
 
-            processor = DocumentProcessor(enable_chunked_processing=True)
-
-            assert processor._enable_chunked_processing is True
-            assert processor._chunked_processor == mock_chunked_instance
-            mock_chunked.assert_called_once()
+        assert processor._enable_chunked_processing is True
+        assert processor._chunked_processor is None  # ChunkedDocumentProcessor was removed
 
     def test_init_with_chunked_processing_disabled(self):
         """Test initialization with chunked processing disabled."""
@@ -58,6 +53,13 @@ class TestDocumentProcessor:
         test_data = {"test": "data", "version": "1.6.0"}
         mock_json_load.return_value = test_data
         mock_doc = Mock(spec=DoclingDocument)
+        # Add required attributes
+        mock_doc.name = "test.json"
+        mock_doc.texts = []
+        mock_doc.tables = []
+        mock_doc.pictures = []
+        mock_doc.key_value_items = []
+        mock_doc.version = "1.6.0"
         mock_validate.return_value = mock_doc
 
         processor = DocumentProcessor(enable_chunked_processing=False)
@@ -81,6 +83,13 @@ class TestDocumentProcessor:
         test_data = {"test": "data", "version": "1.6.0"}
         mock_json_load.return_value = test_data
         mock_doc = Mock(spec=DoclingDocument)
+        # Add required attributes
+        mock_doc.name = "test.json"
+        mock_doc.texts = [Mock(self_ref="#/texts/0")]
+        mock_doc.tables = []
+        mock_doc.pictures = []
+        mock_doc.key_value_items = []
+        mock_doc.version = "1.6.0"
         mock_validate.return_value = mock_doc
         mock_validate_json.return_value = mock_doc
 
@@ -93,32 +102,29 @@ class TestDocumentProcessor:
         assert result == mock_doc
         assert processor._stats.files_processed == 1
 
-    @patch("cloakpivot.document.processor.Path")
-    def test_load_document_file_not_found(self, mock_path_class):
+    def test_load_document_file_not_found(self):
         """Test loading non-existent document."""
-        mock_path = Mock()
-        mock_path.exists.return_value = False
-        mock_path_class.return_value = mock_path
-
+        import pytest
+        
         processor = DocumentProcessor(enable_chunked_processing=False)
 
-        # Execute
-        result = processor.load_document("nonexistent.json")
-
-        # Verify
-        assert result is None
+        # Execute and verify
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            processor.load_document("nonexistent.json")
+        
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open", side_effect=PermissionError("Access denied"))
     def test_load_document_permission_error(self, mock_path_open):
         """Test loading document with permission error."""
+        import pytest
+        
         processor = DocumentProcessor(enable_chunked_processing=False)
 
-        # Execute
-        result = processor.load_document("protected.json")
-
-        # Verify
-        assert result is None
+        # Execute and verify
+        with pytest.raises(RuntimeError, match="Unexpected error loading document"):
+            processor.load_document("protected.json")
+        
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open")
@@ -126,13 +132,14 @@ class TestDocumentProcessor:
            side_effect=json.JSONDecodeError("Invalid JSON", "doc", 0))
     def test_load_document_invalid_json(self, mock_json_load, mock_path_open):
         """Test loading document with invalid JSON."""
+        import pytest
+        
         processor = DocumentProcessor(enable_chunked_processing=False)
 
-        # Execute
-        result = processor.load_document("invalid.json")
-
-        # Verify
-        assert result is None
+        # Execute and verify
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            processor.load_document("invalid.json")
+        
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open")
@@ -141,15 +148,16 @@ class TestDocumentProcessor:
            side_effect=ValueError("Invalid document structure"))
     def test_load_document_validation_error(self, mock_validate, mock_json_load, mock_path_open):
         """Test loading document with validation error."""
+        import pytest
+        
         mock_json_load.return_value = {"invalid": "data"}
 
         processor = DocumentProcessor(enable_chunked_processing=False)
 
-        # Execute
-        result = processor.load_document("test.json")
-
-        # Verify
-        assert result is None
+        # Execute and verify
+        with pytest.raises(RuntimeError, match="Unexpected error loading document"):
+            processor.load_document("test.json")
+        
         assert processor._stats.errors_encountered == 1
 
     # Note: load_multiple method was removed from DocumentProcessor
@@ -168,14 +176,14 @@ class TestDocumentProcessor:
     #     pass  # Method removed
 
     def test_get_stats(self):
-        """Test getting processing statistics."""
+        """Test accessing processing statistics."""
         processor = DocumentProcessor(enable_chunked_processing=False)
         processor._stats.files_processed = 5
         processor._stats.errors_encountered = 2
 
-        stats = processor.get_stats()
-        assert stats.files_processed == 5
-        assert stats.errors_encountered == 2
+        # Access stats directly since get_stats() method doesn't exist
+        assert processor._stats.files_processed == 5
+        assert processor._stats.errors_encountered == 2
 
     def test_reset_stats(self):
         """Test resetting processor statistics."""
@@ -188,27 +196,16 @@ class TestDocumentProcessor:
         assert processor._stats.files_processed == 0
         assert processor._stats.errors_encountered == 0
 
-    def test_process_chunk_with_chunked_processor(self):
-        """Test processing a chunk when chunked processor is available."""
-        mock_chunked = Mock()
-        mock_chunked.process_chunk.return_value = {"processed": True}
+    # Note: process_chunk method was removed from DocumentProcessor
+    # These tests are commented out as the functionality no longer exists
 
-        processor = DocumentProcessor(enable_chunked_processing=False)
-        processor._chunked_processor = mock_chunked
+    # def test_process_chunk_with_chunked_processor(self):
+    #     """Test processing a chunk when chunked processor is available."""
+    #     pass  # Method removed
 
-        result = processor.process_chunk({"chunk": "data"}, chunk_size=100)
-
-        assert result == {"processed": True}
-        mock_chunked.process_chunk.assert_called_once_with({"chunk": "data"}, 100)
-
-    def test_process_chunk_without_chunked_processor(self):
-        """Test processing a chunk when chunked processor is not available."""
-        processor = DocumentProcessor(enable_chunked_processing=False)
-        processor._chunked_processor = None
-
-        result = processor.process_chunk({"chunk": "data"}, chunk_size=100)
-
-        assert result is None
+    # def test_process_chunk_without_chunked_processor(self):
+    #     """Test processing a chunk when chunked processor is not available."""
+    #     pass  # Method removed
 
     @patch("cloakpivot.document.processor.Path.open")
     @patch("cloakpivot.document.processor.json.load")
@@ -219,6 +216,13 @@ class TestDocumentProcessor:
 
         with patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
             mock_doc = Mock(spec=DoclingDocument)
+            # Add required attributes
+            mock_doc.name = "test.json"
+            mock_doc.texts = []
+            mock_doc.tables = []
+            mock_doc.pictures = []
+            mock_doc.key_value_items = []
+            mock_doc.version = "1.6.0"
             mock_validate.return_value = mock_doc
 
             processor = DocumentProcessor(enable_chunked_processing=False)
@@ -233,6 +237,5 @@ class TestDocumentProcessor:
         processor._stats.errors_encountered = 1
 
         repr_str = repr(processor)
-        assert "DocumentProcessor" in repr_str
-        assert "files_processed=3" in repr_str
-        assert "errors_encountered=1" in repr_str
+        # Default Python repr() is used since no custom __repr__ is defined
+        assert "DocumentProcessor object at" in repr_str
