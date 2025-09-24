@@ -5,8 +5,8 @@ import random
 import string
 from typing import TYPE_CHECKING, Any
 
-from ..core.strategies import Strategy, StrategyKind
-from ..core.surrogate import SurrogateGenerator
+from ..core.types.strategies import Strategy, StrategyKind
+from ..core.processing.surrogate import SurrogateGenerator
 from .format_helpers import FormatPreserver
 from .template_helpers import TemplateGenerator
 

@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from ..core.strategies import Strategy, StrategyKind
+from ..core.types.strategies import Strategy, StrategyKind
 
 if TYPE_CHECKING:
     from .applicator import StrategyApplicator

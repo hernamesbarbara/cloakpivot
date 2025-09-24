@@ -27,7 +27,7 @@ class TextProcessor:
     def build_full_text_and_boundaries(
         self, text_segments: list[TextSegment]
     ) -> tuple[str, list[SegmentBoundary]]:
-        """Build the full document text and segment boundaries.
+        """Build the full document text and segment boundaries efficiently.
 
         Args:
             text_segments: List of text segments from document
@@ -35,15 +35,22 @@ class TextProcessor:
         Returns:
             Tuple of (full_text, segment_boundaries)
         """
-        document_text = ""
-        segment_boundaries: list[SegmentBoundary] = []
+        if not text_segments:
+            return "", []
 
         # Cache segment starts for later binary search
         self._segment_starts = [s.start_offset for s in text_segments]
 
+        # Pre-allocate lists for better performance
+        segment_boundaries: list[SegmentBoundary] = []
+        text_parts: list[str] = []
+        
+        # Build boundaries and collect text parts in single pass
+        cursor = 0
         for i, segment in enumerate(text_segments):
-            start = len(document_text)
+            start = cursor
             end = start + len(segment.text)
+            
             segment_boundaries.append(
                 SegmentBoundary(
                     segment_index=i,
@@ -52,18 +59,24 @@ class TextProcessor:
                     node_id=segment.node_id,
                 )
             )
-            document_text += segment.text
+            
+            text_parts.append(segment.text)
+            cursor = end
+            
             if i < len(text_segments) - 1:
-                document_text += SEGMENT_SEPARATOR
+                text_parts.append(SEGMENT_SEPARATOR)
+                cursor += len(SEGMENT_SEPARATOR)
 
+        # Join all parts at once - much faster than repeated concatenation
+        document_text = "".join(text_parts)
         return document_text, segment_boundaries
 
     def apply_spans(self, text: str, spans: list[tuple[int, int, str]]) -> str:
-        """Apply replacement spans to text efficiently.
+        """Apply replacement spans to text efficiently using O(n) algorithm.
 
         This method applies multiple replacements to a text string efficiently
-        using a single pass through the text, handling overlapping replacements
-        and maintaining correct positions.
+        using a single pass through the text with list building instead of
+        repeated string slicing which is O(n²).
 
         Args:
             text: Original text to modify
@@ -75,21 +88,32 @@ class TextProcessor:
         if not spans:
             return text
 
-        # Sort spans by start position (reverse for applying back to front)
-        sorted_spans = sorted(spans, key=lambda x: x[0], reverse=True)
+        # Sort spans by start position for sequential processing
+        sorted_spans = sorted(spans, key=lambda x: x[0])
 
-        # Track what's been replaced to avoid double replacement
-        result = text
+        # Build result in O(n) time using list concatenation
+        result = []
+        cursor = 0
+
         for start, end, replacement in sorted_spans:
             # Validate bounds
             if start < 0 or end > len(text) or start >= end:
                 logger.warning(f"Invalid span [{start}:{end}] for text of length {len(text)}")
                 continue
 
-            # Apply replacement
-            result = result[:start] + replacement + result[end:]
+            # Add text between last replacement and this one
+            if cursor < start:
+                result.append(text[cursor:start])
+            
+            # Add the replacement
+            result.append(replacement)
+            cursor = end
 
-        return result
+        # Add any remaining text after last replacement
+        if cursor < len(text):
+            result.append(text[cursor:])
+
+        return "".join(result)
 
     def apply_masks_to_text(
         self,

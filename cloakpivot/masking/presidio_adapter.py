@@ -27,7 +27,7 @@ from ..core.presidio_common import (
     validate_entity_boundaries,
 )
 from ..core.presidio_mapper import StrategyToOperatorMapper
-from ..core.strategies import Strategy, StrategyKind
+from ..core.types.strategies import Strategy, StrategyKind
 from ..core.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
 from ..document.extractor import TextSegment

@@ -3,7 +3,7 @@
 from typing import Any
 
 from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.strategies import Strategy, StrategyKind
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 
 # Default entity types for common PII detection
 DEFAULT_ENTITIES = [

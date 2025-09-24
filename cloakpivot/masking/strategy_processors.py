@@ -12,7 +12,7 @@ from typing import Any, cast
 from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, OperatorConfig
 
-from cloakpivot.core.strategies import Strategy, StrategyKind
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.core.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
 from cloakpivot.core.surrogate import SurrogateGenerator
 

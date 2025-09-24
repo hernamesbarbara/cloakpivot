@@ -8,8 +8,8 @@ if TYPE_CHECKING:
 
 from presidio_analyzer import AnalyzerEngine
 
-from cloakpivot.core.analyzer import AnalyzerConfig
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.processing.analyzer import AnalyzerConfig
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor

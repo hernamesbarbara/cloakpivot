@@ -77,9 +77,13 @@ class StrategyToOperatorMapper:
             StrategyKind.SURROGATE: self._map_surrogate_strategy,
             StrategyKind.CUSTOM: self._map_custom_strategy,
         }
+        # Cache for strategy to operator mappings (LRU cache with max 128 entries)
+        self._operator_cache: dict[tuple, OperatorConfig] = {}
+        self._cache_order: list[tuple] = []
+        self._max_cache_size = 128
 
     def strategy_to_operator(self, strategy: Strategy) -> OperatorConfig:
-        """Convert a single Strategy to OperatorConfig.
+        """Convert a single Strategy to OperatorConfig with caching.
 
         Args:
             strategy: The CloakPivot Strategy to convert
@@ -90,17 +94,33 @@ class StrategyToOperatorMapper:
         Raises:
             ValueError: If strategy kind is not supported
         """
+        # Create cache key from strategy (excluding non-hashable elements)
+        cache_key = self._create_cache_key(strategy)
+        
+        # Check cache first
+        if cache_key in self._operator_cache:
+            # Move to end for LRU
+            self._cache_order.remove(cache_key)
+            self._cache_order.append(cache_key)
+            return self._operator_cache[cache_key]
+
         if strategy.kind not in self._strategy_mapping:
             logger.error(f"Unsupported strategy kind: {strategy.kind}")
             # Fallback to redaction for unsupported strategies
-            return OperatorConfig("redact", {"redact_char": "*"})
+            fallback = OperatorConfig("redact", {"redact_char": "*"})
+            self._cache_operator(cache_key, fallback)
+            return fallback
 
         try:
-            return self._strategy_mapping[strategy.kind](strategy)
+            operator = self._strategy_mapping[strategy.kind](strategy)
+            self._cache_operator(cache_key, operator)
+            return operator
         except Exception as e:
             logger.warning(f"Failed to map strategy {strategy.kind}: {e}. Using fallback.")
             # Fallback to redaction with error logging
-            return OperatorConfig("redact", {"redact_char": "*"})
+            fallback = OperatorConfig("redact", {"redact_char": "*"})
+            self._cache_operator(cache_key, fallback)
+            return fallback
 
     def policy_to_operators(self, policy: MaskingPolicy) -> dict[str, OperatorConfig]:
         """Convert a MaskingPolicy to operator dictionary.
@@ -325,3 +345,46 @@ class StrategyToOperatorMapper:
             return f"[PATTERN:{params['pattern']}]"
 
         return surrogate_map.get(format_type, "[SURROGATE]")
+
+    def _create_cache_key(self, strategy: Strategy) -> tuple:
+        """Create a hashable cache key from strategy.
+        
+        Args:
+            strategy: Strategy to create key for
+            
+        Returns:
+            Tuple representing the strategy for caching
+        """
+        # Convert parameters to a hashable form
+        params_key = ()
+        if strategy.parameters:
+            # Sort parameters and handle non-hashable values
+            sorted_params = []
+            for key, value in sorted(strategy.parameters.items()):
+                if callable(value):
+                    # For callbacks, use their string representation
+                    sorted_params.append((key, str(value)))
+                elif isinstance(value, dict | list):
+                    # Convert containers to tuples
+                    sorted_params.append((key, str(sorted(value.items()) if isinstance(value, dict) else value)))
+                else:
+                    sorted_params.append((key, value))
+            params_key = tuple(sorted_params)
+        
+        return (strategy.kind, params_key)
+    
+    def _cache_operator(self, cache_key: tuple, operator: OperatorConfig) -> None:
+        """Cache an operator config with LRU eviction.
+        
+        Args:
+            cache_key: Cache key for the operator
+            operator: OperatorConfig to cache
+        """
+        # Remove oldest entries if cache is full
+        while len(self._operator_cache) >= self._max_cache_size:
+            oldest_key = self._cache_order.pop(0)
+            del self._operator_cache[oldest_key]
+        
+        # Add to cache
+        self._operator_cache[cache_key] = operator
+        self._cache_order.append(cache_key)

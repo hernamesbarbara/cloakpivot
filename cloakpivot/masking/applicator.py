@@ -4,8 +4,8 @@ import logging
 import random
 from typing import Any
 
-from ..core.strategies import Strategy
-from ..core.surrogate import SurrogateGenerator
+from ..core.types.strategies import Strategy
+from ..core.processing.surrogate import SurrogateGenerator
 from .conflict_resolver import ConflictResolver
 from .strategy_executor import StrategyExecutor
 

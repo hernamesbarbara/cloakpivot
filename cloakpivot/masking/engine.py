@@ -18,12 +18,12 @@ from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.types import DoclingDocument
 
-from ..core.analyzer import EntityDetectionResult
+from ..core.processing.analyzer import EntityDetectionResult
 from ..core.anchors import AnchorEntry
 from ..core.cloakmap import CloakMap
 from ..core.normalization import ConflictResolutionConfig, EntityNormalizer
 from ..core.policies import MaskingPolicy
-from ..core.strategies import Strategy
+from ..core.types.strategies import Strategy
 from ..document.extractor import TextSegment
 from .applicator import StrategyApplicator
 

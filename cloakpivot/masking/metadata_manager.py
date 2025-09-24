@@ -17,7 +17,7 @@ from cloakpivot.core.anchors import AnchorEntry
 from cloakpivot.core.cloakmap import CloakMap
 from cloakpivot.core.cloakmap_enhancer import CloakMapEnhancer
 from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.strategies import Strategy, StrategyKind
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
 from cloakpivot.masking.protocols import OperatorResultLike, SyntheticOperatorResult
 from cloakpivot.masking.text_processor import TextProcessor
