@@ -7,8 +7,8 @@ from pathlib import Path
 import click
 from docling.document_converter import DocumentConverter
 
-from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
 
 

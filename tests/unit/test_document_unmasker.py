@@ -2,9 +2,9 @@
 
 from unittest.mock import Mock, patch
 
+from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types.cloakmap import CloakMap
-from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
 
 

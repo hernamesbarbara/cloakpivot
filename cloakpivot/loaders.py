@@ -12,9 +12,9 @@ from functools import lru_cache
 from threading import Lock
 from typing import Any
 
+from .core.policies.policies import MaskingPolicy
 from .core.processing.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
 from .core.processing.detection import EntityDetectionPipeline
-from .core.policies.policies import MaskingPolicy
 from .document.processor import DocumentProcessor
 
 

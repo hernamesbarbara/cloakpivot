@@ -17,12 +17,12 @@ try:
 except (ImportError, AttributeError):
     PRESIDIO_VERSION = "2.x.x"
 
-from ..core.types.cloakmap import AnchorEntry, CloakMap
-from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
 from ..core.policies.policies import MaskingPolicy
+from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
 from ..core.processing.presidio_mapper import StrategyToOperatorMapper
 from ..core.processing.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
+from ..core.types.cloakmap import AnchorEntry, CloakMap
 from ..core.types.strategies import Strategy, StrategyKind
 from ..document.extractor import TextSegment
 from .document_reconstructor import DocumentReconstructor

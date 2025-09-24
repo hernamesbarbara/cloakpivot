@@ -13,10 +13,10 @@ from typing import Any
 
 from presidio_analyzer import RecognizerResult
 
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.processing.cloakmap_enhancer import CloakMapEnhancer
 from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types.cloakmap import CloakMap
-from cloakpivot.core.processing.cloakmap_enhancer import CloakMapEnhancer
-from cloakpivot.core.policies.policies import MaskingPolicy
 from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
 from cloakpivot.masking.protocols import OperatorResultLike

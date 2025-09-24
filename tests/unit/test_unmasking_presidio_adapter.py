@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 
 from presidio_anonymizer.entities import OperatorResult
 
+from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types.cloakmap import CloakMap
-from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 from cloakpivot.unmasking.presidio_adapter import PresidioUnmaskingAdapter
 
 

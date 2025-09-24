@@ -4,8 +4,8 @@ from unittest.mock import Mock
 
 from docling_core.types.doc.document import NodeItem, TextItem
 
-from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types import DoclingDocument
+from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.unmasking.anchor_resolver import AnchorResolver, FailedAnchor, ResolvedAnchor
 
 
