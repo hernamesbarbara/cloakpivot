@@ -210,12 +210,17 @@ class TestPresidioUnmaskingAdapter:
         cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
         with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False), patch.object(adapter.document_unmasker, "apply_unmasking") as mock_unmask:
-            mock_result = {"total_anchors": 1, "restored_anchors": 1}
+            mock_result = {"successful_restorations": 1, "failed_restorations": 0}
             mock_unmask.return_value = mock_result
 
             result = adapter.unmask_document(doc, cloakmap)
 
-            assert result == mock_result
+            # Check that we got an UnmaskingResult object
+            from cloakpivot.unmasking.engine import UnmaskingResult
+            assert isinstance(result, UnmaskingResult)
+            assert result.stats["anchor_restored"] == 1
+            assert result.stats["anchor_failed"] == 0
+            assert result.stats["method"] == "anchor_based"
             mock_unmask.assert_called_once()
 
     def test_hybrid_restoration_capabilities(self):

@@ -103,8 +103,7 @@ class TestCliMain:
             # Create test files
             input_file.write_text("# Test document\n\nTest content with email john@example.com")
             policy_data = {
-                "name": "test_policy",
-                "entities": ["EMAIL", "PHONE"],
+                "thresholds": {"EMAIL": 0.7, "PHONE": 0.8},
                 "confidence_threshold": 0.8,
             }
             policy_file.write_text(yaml.dump(policy_data))
@@ -410,9 +409,9 @@ class TestCliMain:
             result = self.runner.invoke(
                 cli, ["mask", str(input_file), "--confidence", "2.0"]  # Invalid: > 1.0
             )
-            # Click might not validate this, but the command should handle it
-            # The test passes either way to ensure coverage
-            assert result.exit_code in [0, 2]
+            # The command should fail with exit code 1 due to ValueError
+            assert result.exit_code == 1
+            assert "min_confidence must be between 0.0 and 1.0" in str(result.exception)
         finally:
             input_file.unlink(missing_ok=True)
 

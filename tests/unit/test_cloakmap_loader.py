@@ -101,7 +101,8 @@ class TestCloakMapLoader:
 
             assert len(loaded.anchors) == 1
             assert loaded.anchors[0].entity_type == "PERSON"
-            assert loaded.anchors[0].original_text == "John Doe"
+            assert loaded.anchors[0].masked_value == "[PERSON]"
+            assert loaded.anchors[0].original_checksum is not None  # Checksum is created instead of storing original text
 
     def test_load_from_json_string(self):
         """Test loading cloakmap from JSON string."""

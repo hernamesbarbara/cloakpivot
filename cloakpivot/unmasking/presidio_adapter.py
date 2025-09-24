@@ -402,6 +402,7 @@ class PresidioUnmaskingAdapter:
             "timestamp": datetime.now(UTC).isoformat(),
         }
 
+        from .engine import UnmaskingResult
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
 
     def _hybrid_restoration(
