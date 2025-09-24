@@ -1,12 +1,11 @@
 """Unit tests for cloakpivot.unmasking.document_unmasker module."""
 
-from unittest.mock import Mock, patch, MagicMock
-import pytest
+from unittest.mock import Mock, patch
 
-from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.core.types import DoclingDocument, UnmaskingResult
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.anchors import AnchorEntry
+from cloakpivot.unmasking.document_unmasker import DocumentUnmasker
 
 
 class TestDocumentUnmasker:
@@ -63,7 +62,7 @@ class TestDocumentUnmasker:
 
         assert isinstance(result, UnmaskingResult)
         assert result.stats is not None
-        assert "total_anchors" in result.stats or True
+        assert True
 
     def test_unmask_document_multiple_anchors(self):
         """Test unmasking with multiple anchors."""
@@ -297,8 +296,8 @@ class TestDocumentUnmasker:
 
         # Should handle gracefully
         try:
-            result = unmasker.unmask_document(doc, invalid_cloakmap)
-            assert False, "Should have raised an error"
+            unmasker.unmask_document(doc, invalid_cloakmap)
+            raise AssertionError("Should have raised an error")
         except (TypeError, AttributeError, ValueError):
             pass
 

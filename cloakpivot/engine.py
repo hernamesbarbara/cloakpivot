@@ -8,9 +8,9 @@ if TYPE_CHECKING:
 
 from presidio_analyzer import AnalyzerEngine
 
+from cloakpivot.core.policies.policies import MaskingPolicy
 from cloakpivot.core.processing.analyzer import AnalyzerConfig
 from cloakpivot.core.types.cloakmap import CloakMap
-from cloakpivot.core.policies import MaskingPolicy
 from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor
 
@@ -112,7 +112,7 @@ class CloakEngine:
         self._text_extractor = TextExtractor()
 
         # Convert conflict_resolution_config dict to object if needed
-        from cloakpivot.core.normalization import ConflictResolutionConfig
+        from cloakpivot.core.processing.normalization import ConflictResolutionConfig
 
         conflict_config_obj = None
         if conflict_resolution_config:

@@ -1,13 +1,15 @@
 """Tests for internal methods of PresidioMaskingAdapter."""
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 from docling_core.types import DoclingDocument
 from presidio_analyzer import RecognizerResult
 
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.masking.presidio_adapter import PresidioMaskingAdapter
-from cloakpivot.core.strategies import StrategyKind, Strategy
-from cloakpivot.core.policies import MaskingPolicy
+
 # MaskedEntity replaced with RecognizerResult
 
 

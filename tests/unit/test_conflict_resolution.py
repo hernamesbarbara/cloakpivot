@@ -1,8 +1,9 @@
 """Tests for conflict resolution in masking operations."""
 
 import pytest
+
+from cloakpivot.core.types.strategies import Strategy
 from cloakpivot.masking.applicator import StrategyApplicator
-from cloakpivot.core.strategies import Strategy
 
 
 class TestConflictResolution:

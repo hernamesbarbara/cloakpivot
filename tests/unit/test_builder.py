@@ -62,7 +62,7 @@ class TestCloakEngineBuilder:
 
     def test_builder_with_conflict_resolution(self):
         """Test setting conflict resolution configuration."""
-        from cloakpivot.core.normalization import ConflictResolutionConfig
+        from cloakpivot.core.processing.normalization import ConflictResolutionConfig
 
         config = ConflictResolutionConfig(merge_threshold_chars=10)
         engine = CloakEngineBuilder().with_conflict_resolution(config).build()

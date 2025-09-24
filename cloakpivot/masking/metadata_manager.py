@@ -13,13 +13,13 @@ from typing import Any
 
 from presidio_analyzer import RecognizerResult
 
-from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.cloakmap_enhancer import CloakMapEnhancer
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
+from cloakpivot.core.processing.cloakmap_enhancer import CloakMapEnhancer
+from cloakpivot.core.policies.policies import MaskingPolicy
 from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.document.extractor import TextSegment
-from cloakpivot.masking.protocols import OperatorResultLike, SyntheticOperatorResult
+from cloakpivot.masking.protocols import OperatorResultLike
 from cloakpivot.masking.text_processor import TextProcessor
 
 logger = logging.getLogger(__name__)
@@ -182,7 +182,7 @@ class MetadataManager:
                 logger.warning("Parameters were swapped, correcting...")
 
         strategies = {}
-        entity_types = set(entity.entity_type for entity in entities)
+        entity_types = {entity.entity_type for entity in entities}
 
         for entity_type in entity_types:
             strategies[entity_type] = policy.get_strategy_for_entity(entity_type)
@@ -219,7 +219,7 @@ class MetadataManager:
         metadata = {
             "strategies_used": strategy_metadata,
             "reversible_operators": reversible_operators,
-            "entity_types_found": list(set(e.entity_type for e in entities)),
+            "entity_types_found": list({e.entity_type for e in entities}),
             "entity_count": len(entities),
         }
 

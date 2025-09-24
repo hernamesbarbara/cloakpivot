@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from presidio_analyzer import RecognizerResult
 
 from ..core.types.anchors import AnchorEntry
-from .common import DocumentValidator, NodeIdGenerator, SegmentFinder
+from .common import DocumentValidator, SegmentFinder
 from .extractor import TextSegment
 
 logger = logging.getLogger(__name__)

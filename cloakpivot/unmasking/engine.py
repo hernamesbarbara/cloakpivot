@@ -8,8 +8,8 @@ from typing import Any, cast
 
 from cloakpivot.core.types import DoclingDocument, UnmaskingResult
 
-from ..core.anchors import AnchorEntry
-from ..core.cloakmap import CloakMap
+from ..core.types.anchors import AnchorEntry
+from ..core.types.cloakmap import CloakMap
 from .anchor_resolver import AnchorResolver
 from .cloakmap_loader import CloakMapLoader
 from .document_unmasker import DocumentUnmasker

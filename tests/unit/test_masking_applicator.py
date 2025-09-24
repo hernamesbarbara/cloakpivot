@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.core.strategies import Strategy, StrategyKind
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.masking.applicator import StrategyApplicator
 from cloakpivot.masking.template_helpers import TemplateGenerator
 
@@ -283,7 +283,7 @@ class TestStrategyApplicator:
 
     def test_generate_phone_template(self):
         """Test phone template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         # Test standard US format
         assert TemplateGenerator.generate_phone_template("555-123-4567") == "XXX-XXX-XXXX"
@@ -292,14 +292,14 @@ class TestStrategyApplicator:
 
     def test_generate_ssn_template(self):
         """Test SSN template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         assert TemplateGenerator.generate_ssn_template("123-45-6789") == "XXX-XX-XXXX"
         assert TemplateGenerator.generate_ssn_template("123456789") == "XXXXXXXXX"
 
     def test_generate_credit_card_template(self):
         """Test credit card template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         assert (
             TemplateGenerator.generate_credit_card_template("1234-5678-9012-3456")
@@ -312,7 +312,7 @@ class TestStrategyApplicator:
 
     def test_generate_email_template(self):
         """Test email template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         result = TemplateGenerator.generate_email_template("test@example.com")
         assert "@" in result
@@ -320,14 +320,14 @@ class TestStrategyApplicator:
 
     def test_generate_generic_template(self):
         """Test generic template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         result = TemplateGenerator.generate_generic_template("ABC123-XYZ")
         assert result == "XXX###-XXX"
 
     def test_detect_format_pattern(self):
         """Test format pattern detection."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         assert TemplateGenerator.detect_format_pattern("ABC123") == "LLLDDD"
         assert TemplateGenerator.detect_format_pattern("A-1 B") == "LPDSL"

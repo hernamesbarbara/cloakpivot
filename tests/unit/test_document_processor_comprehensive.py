@@ -2,10 +2,9 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, mock_open
-import pytest
+from unittest.mock import Mock, patch
 
-from cloakpivot.document.processor import DocumentProcessor, DocumentProcessingStats
+from cloakpivot.document.processor import DocumentProcessingStats, DocumentProcessor
 from cloakpivot.type_imports import DoclingDocument
 
 
@@ -164,14 +163,12 @@ class TestDocumentProcessor:
             doc_path = f"doc{i}.json"
             doc_data = {"test": f"data{i}", "version": "1.6.0"}
 
-            with patch("cloakpivot.document.processor.Path.open"):
-                with patch("cloakpivot.document.processor.json.load", return_value=doc_data):
-                    with patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
-                        mock_doc = Mock(spec=DoclingDocument)
-                        mock_validate.return_value = mock_doc
-                        result = processor.load_multiple([doc_path])
-                        if result:
-                            docs.extend(result)
+            with patch("cloakpivot.document.processor.Path.open"), patch("cloakpivot.document.processor.json.load", return_value=doc_data), patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
+                mock_doc = Mock(spec=DoclingDocument)
+                mock_validate.return_value = mock_doc
+                result = processor.load_multiple([doc_path])
+                if result:
+                    docs.extend(result)
 
         # Verify stats
         assert processor._stats.files_processed >= 3
@@ -214,17 +211,15 @@ class TestDocumentProcessor:
 
             mock_path_class.side_effect = [mock_path1, mock_path2]
 
-            with patch("cloakpivot.document.processor.Path.open"):
-                with patch("cloakpivot.document.processor.json.load", return_value={"test": "data"}):
-                    with patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
-                        mock_doc = Mock(spec=DoclingDocument)
-                        mock_validate.return_value = mock_doc
+            with patch("cloakpivot.document.processor.Path.open"), patch("cloakpivot.document.processor.json.load", return_value={"test": "data"}), patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
+                mock_doc = Mock(spec=DoclingDocument)
+                mock_validate.return_value = mock_doc
 
-                        results = processor.load_multiple(["exists.json", "missing.json"])
+                results = processor.load_multiple(["exists.json", "missing.json"])
 
-                        assert len(results) == 1
-                        assert processor._stats.files_processed == 1
-                        assert processor._stats.errors_encountered == 1
+                assert len(results) == 1
+                assert processor._stats.files_processed == 1
+                assert processor._stats.errors_encountered == 1
 
     def test_get_stats(self):
         """Test getting processing statistics."""

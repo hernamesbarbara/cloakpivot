@@ -439,12 +439,11 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True):
-                with patch("cloakpivot.cli.config.logger") as mock_logger:
-                    config = get_config_from_env()
-                    assert "max_batch_size" not in config
-                    mock_logger.warning.assert_called_once()
-                    assert expected_log in str(mock_logger.warning.call_args)
+            with patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True), patch("cloakpivot.cli.config.logger") as mock_logger:
+                config = get_config_from_env()
+                assert "max_batch_size" not in config
+                mock_logger.warning.assert_called_once()
+                assert expected_log in str(mock_logger.warning.call_args)
 
     def test_get_config_from_env_invalid_confidence(self):
         """Test get_config_from_env with invalid confidence threshold."""
@@ -455,12 +454,11 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True):
-                with patch("cloakpivot.cli.config.logger") as mock_logger:
-                    config = get_config_from_env()
-                    assert "confidence_threshold" not in config
-                    mock_logger.warning.assert_called_once()
-                    assert expected_log in str(mock_logger.warning.call_args)
+            with patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True), patch("cloakpivot.cli.config.logger") as mock_logger:
+                config = get_config_from_env()
+                assert "confidence_threshold" not in config
+                mock_logger.warning.assert_called_once()
+                assert expected_log in str(mock_logger.warning.call_args)
 
     def test_merge_configs_empty(self):
         """Test merge_configs with empty configs."""

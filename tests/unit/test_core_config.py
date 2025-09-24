@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.core.config import (
+from cloakpivot.core.utilities.config import (
     PerformanceConfig,
     get_performance_config,
     performance_config,
@@ -127,7 +127,7 @@ class TestPerformanceConfig:
     def test_post_init_logging(self):
         """Test that post_init logs debug information."""
         with patch("cloakpivot.core.config.logger") as mock_logger:
-            config = PerformanceConfig()
+            PerformanceConfig()
             mock_logger.debug.assert_called_once()
             debug_msg = str(mock_logger.debug.call_args)
             assert "PerformanceConfig initialized" in debug_msg
@@ -229,14 +229,13 @@ class TestEnvironmentLoading:
             "MAX_WORKERS": "-5",
             "GC_FREQUENCY": "0",
         }
-        with patch.dict(os.environ, env_vars, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                config = PerformanceConfig.from_environment()
-                assert config.analyzer_cache_size == 8
-                assert config.max_worker_threads is None
-                assert config.gc_frequency == 100
-                # Check that warnings were logged
-                assert mock_logger.warning.call_count >= 2
+        with patch.dict(os.environ, env_vars, clear=True), patch("cloakpivot.core.config.logger") as mock_logger:
+            config = PerformanceConfig.from_environment()
+            assert config.analyzer_cache_size == 8
+            assert config.max_worker_threads is None
+            assert config.gc_frequency == 100
+            # Check that warnings were logged
+            assert mock_logger.warning.call_count >= 2
 
     def test_from_environment_exception_handling(self):
         """Test from_environment handles exceptions gracefully."""
@@ -299,18 +298,16 @@ class TestEnvironmentLoading:
             assert result == 25
 
         # Test zero (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 10)
-                assert result == 10  # Returns default
-                mock_logger.warning.assert_called_once()
+        with patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True), patch("cloakpivot.core.config.logger") as mock_logger:
+            result = PerformanceConfig._get_env_int("TEST_KEY", 10)
+            assert result == 10  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test negative (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 10)
-                assert result == 10  # Returns default
-                mock_logger.warning.assert_called_once()
+        with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True), patch("cloakpivot.core.config.logger") as mock_logger:
+            result = PerformanceConfig._get_env_int("TEST_KEY", 10)
+            assert result == 10  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test allow_none parameter
         with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True):
@@ -318,11 +315,10 @@ class TestEnvironmentLoading:
             assert result == -5  # Negative allowed with allow_none
 
         # Test invalid integer
-        with patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 15)
-                assert result == 15  # Returns default
-                mock_logger.warning.assert_called_once()
+        with patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True), patch("cloakpivot.core.config.logger") as mock_logger:
+            result = PerformanceConfig._get_env_int("TEST_KEY", 15)
+            assert result == 15  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test absent value
         with patch.dict(os.environ, {}, clear=True):

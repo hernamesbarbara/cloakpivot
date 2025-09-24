@@ -1,10 +1,12 @@
 """Extended tests for anchor resolution edge cases."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from cloakpivot.unmasking.anchor_resolver import AnchorResolver
-from cloakpivot.core.anchors import AnchorEntry
 from docling_core.types import DoclingDocument
+
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.unmasking.anchor_resolver import AnchorResolver
 
 
 class TestAnchorResolutionExtended:
@@ -181,6 +183,6 @@ class TestAnchorResolutionExtended:
         # Mock the path traversal
         with pytest.raises(AttributeError):
             # This will fail without proper implementation
-            resolved = resolver.resolve_anchor(anchor, doc)
+            resolver.resolve_anchor(anchor, doc)
 
         # Should handle deep nesting gracefully

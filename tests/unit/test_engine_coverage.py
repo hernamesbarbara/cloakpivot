@@ -2,8 +2,9 @@
 
 from unittest.mock import Mock
 
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.policies import MaskingPolicy, Strategy, StrategyKind
+from cloakpivot.core.types.cloakmap import CloakMap
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.engine import CloakEngine
 from cloakpivot.type_imports import DoclingDocument
 

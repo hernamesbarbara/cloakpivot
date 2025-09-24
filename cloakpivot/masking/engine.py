@@ -19,10 +19,10 @@ from presidio_analyzer import RecognizerResult
 from cloakpivot.core.types import DoclingDocument
 
 from ..core.processing.analyzer import EntityDetectionResult
-from ..core.anchors import AnchorEntry
-from ..core.cloakmap import CloakMap
-from ..core.normalization import ConflictResolutionConfig, EntityNormalizer
-from ..core.policies import MaskingPolicy
+from ..core.types.anchors import AnchorEntry
+from ..core.types.cloakmap import CloakMap
+from ..core.processing.normalization import ConflictResolutionConfig, EntityNormalizer
+from ..core.policies.policies import MaskingPolicy
 from ..core.types.strategies import Strategy
 from ..document.extractor import TextSegment
 from .applicator import StrategyApplicator

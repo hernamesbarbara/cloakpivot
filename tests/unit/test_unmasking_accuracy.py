@@ -1,14 +1,13 @@
 """Tests for unmasking accuracy and integrity."""
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
-from pathlib import Path
-import json
+from unittest.mock import MagicMock
 
+import pytest
 from docling_core.types import DoclingDocument
+
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.unmasking.engine import UnmaskingEngine
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.anchors import AnchorEntry
 
 
 class TestUnmaskingAccuracy:
@@ -48,12 +47,11 @@ class TestUnmaskingAccuracy:
                 strategy_used="template"
             )
         ]
-        cloakmap = CloakMap(
+        return CloakMap(
             doc_id="test_doc_001",
             doc_hash="testhash",
             anchors=anchors
         )
-        return cloakmap
 
     @pytest.fixture
     def masked_document(self):

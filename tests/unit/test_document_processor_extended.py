@@ -3,10 +3,11 @@
 import json
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 import pytest
 
-from cloakpivot.document.processor import DocumentProcessor, DocumentProcessingStats
+from cloakpivot.document.processor import DocumentProcessor
 from cloakpivot.type_imports import DoclingDocument
 
 
@@ -256,7 +257,7 @@ class TestDocumentProcessorExtended:
     def test_init_with_debug_logging(self, caplog):
         """Test processor initialization with debug logging."""
         with caplog.at_level(logging.DEBUG):
-            processor = DocumentProcessor(enable_chunked_processing=True)
+            DocumentProcessor(enable_chunked_processing=True)
 
         assert "DocumentProcessor initialized" in caplog.text
         assert "chunked_processing=True" in caplog.text

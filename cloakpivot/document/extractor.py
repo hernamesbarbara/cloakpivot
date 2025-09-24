@@ -9,7 +9,6 @@ from docling_core.types.doc.document import (
     FormulaItem,
     KeyValueItem,
     ListItem,
-    NodeItem,
     SectionHeaderItem,
     TableItem,
     TextItem,

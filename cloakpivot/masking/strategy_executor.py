@@ -3,10 +3,9 @@
 import logging
 import random
 import string
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ..core.types.strategies import Strategy, StrategyKind
-from ..core.processing.surrogate import SurrogateGenerator
 from .format_helpers import FormatPreserver
 from .template_helpers import TemplateGenerator
 

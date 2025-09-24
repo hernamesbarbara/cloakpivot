@@ -19,7 +19,7 @@ class TestCoreImports:
 
     def test_core_exceptions(self):
         """Test core.exceptions module imports."""
-        from cloakpivot.core.exceptions import (
+        from cloakpivot.core.types.exceptions import (
             CloakPivotError,
             ConfigurationError,
             DependencyError,
@@ -51,7 +51,7 @@ class TestCoreImports:
 
     def test_core_config(self):
         """Test core.config module imports."""
-        from cloakpivot.core.config import (
+        from cloakpivot.core.utilities.config import (
             PerformanceConfig,
             get_performance_config,
             performance_config,
@@ -407,7 +407,7 @@ class TestPublicApiImports:
     def test_exception_imports_from_root(self):
         """Test importing common exceptions."""
         try:
-            from cloakpivot.core.exceptions import CloakPivotError, ValidationError
+            from cloakpivot.core.types.exceptions import CloakPivotError, ValidationError
 
             assert CloakPivotError is not None
             assert ValidationError is not None
@@ -480,10 +480,10 @@ class TestModuleAttributes:
 
         # Package should have some way to identify version
         # Could be __version__, VERSION, or version attribute
-        has_version = any(
-            [hasattr(cloakpivot, attr) for attr in ["__version__", "VERSION", "version", "__all__"]]
+        any(
+            hasattr(cloakpivot, attr) for attr in ["__version__", "VERSION", "version", "__all__"]
         )
-        assert has_version or True  # Don't fail if no version
+        assert True  # Don't fail if no version
 
     def test_module_all_exports(self):
         """Test that modules with __all__ export expected items."""

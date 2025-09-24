@@ -171,13 +171,12 @@ class TextNormalizer:
 
             # Only collapse excessive line breaks (4 or more)
             return re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
-        else:
-            # Aggressive normalization
-            # Normalize all whitespace sequences to single space
-            text = re.sub(r"\s+", " ", text)
+        # Aggressive normalization
+        # Normalize all whitespace sequences to single space
+        text = re.sub(r"\s+", " ", text)
 
-            # Strip leading/trailing whitespace
-            return text.strip()
+        # Strip leading/trailing whitespace
+        return text.strip()
 
 
 class MetadataExtractor:

@@ -26,8 +26,8 @@ from typing import Any
 from presidio_anonymizer import DeanonymizeEngine
 from presidio_anonymizer.entities import OperatorResult
 
-from ..core.cloakmap import CloakMap
-from ..core.cloakmap_enhancer import CloakMapEnhancer
+from ..core.types.cloakmap import CloakMap
+from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
 from ..core.types import DoclingDocument, UnmaskingResult
 from .anchor_resolver import AnchorResolver
 from .document_unmasker import DocumentUnmasker

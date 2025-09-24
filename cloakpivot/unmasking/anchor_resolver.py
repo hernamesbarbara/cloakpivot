@@ -18,7 +18,7 @@ from docling_core.types.doc.document import (
 
 from cloakpivot.core.types import DoclingDocument
 
-from ..core.anchors import AnchorEntry
+from ..core.types.anchors import AnchorEntry
 
 logger = logging.getLogger(__name__)
 

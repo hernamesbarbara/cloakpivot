@@ -3,12 +3,12 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+
 import pytest
 
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.unmasking.cloakmap_loader import CloakMapLoader, CloakMapLoadError
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.anchors import AnchorEntry
 
 
 class TestCloakMapLoadError:

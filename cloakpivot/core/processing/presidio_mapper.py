@@ -96,7 +96,7 @@ class StrategyToOperatorMapper:
         """
         # Create cache key from strategy (excluding non-hashable elements)
         cache_key = self._create_cache_key(strategy)
-        
+
         # Check cache first
         if cache_key in self._operator_cache:
             # Move to end for LRU
@@ -348,10 +348,10 @@ class StrategyToOperatorMapper:
 
     def _create_cache_key(self, strategy: Strategy) -> tuple:
         """Create a hashable cache key from strategy.
-        
+
         Args:
             strategy: Strategy to create key for
-            
+
         Returns:
             Tuple representing the strategy for caching
         """
@@ -370,12 +370,12 @@ class StrategyToOperatorMapper:
                 else:
                     sorted_params.append((key, value))
             params_key = tuple(sorted_params)
-        
+
         return (strategy.kind, params_key)
-    
+
     def _cache_operator(self, cache_key: tuple, operator: OperatorConfig) -> None:
         """Cache an operator config with LRU eviction.
-        
+
         Args:
             cache_key: Cache key for the operator
             operator: OperatorConfig to cache
@@ -384,7 +384,7 @@ class StrategyToOperatorMapper:
         while len(self._operator_cache) >= self._max_cache_size:
             oldest_key = self._cache_order.pop(0)
             del self._operator_cache[oldest_key]
-        
+
         # Add to cache
         self._operator_cache[cache_key] = operator
         self._cache_order.append(cache_key)

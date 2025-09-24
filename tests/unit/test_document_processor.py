@@ -1,7 +1,6 @@
 """Unit tests for cloakpivot.document.processor module."""
 
-from unittest.mock import Mock, patch
-import pytest
+from unittest.mock import Mock
 
 from cloakpivot.document.processor import DocumentProcessor
 from cloakpivot.type_imports import DoclingDocument
@@ -34,7 +33,7 @@ class TestDocumentProcessor:
         result = processor.process_document(doc)
 
         assert result is not None
-        assert isinstance(result, dict) or isinstance(result, DoclingDocument)
+        assert isinstance(result, (dict, DoclingDocument))
 
     def test_process_document_with_text_extraction(self):
         """Test document processing with text extraction."""

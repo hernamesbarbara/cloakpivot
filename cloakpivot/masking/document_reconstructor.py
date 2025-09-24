@@ -12,7 +12,7 @@ from typing import Any
 from docling_core.types.doc import DocItemLabel
 from docling_core.types.doc.document import DoclingDocument, TextItem
 
-from cloakpivot.core.anchors import AnchorEntry
+from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.document.extractor import TextSegment
 from cloakpivot.masking.text_processor import TextProcessor
 
@@ -246,10 +246,9 @@ class DocumentReconstructor:
         """
         if hasattr(table_item, "self_ref") and table_item.self_ref:
             return str(table_item.self_ref)
-        elif table_idx is not None:
+        if table_idx is not None:
             return f"#/tables/{table_idx}"
-        else:
-            return "#/tables/0"
+        return "#/tables/0"
 
     def _apply_masks_to_cell(self, cell_text: str, anchors: list[AnchorEntry]) -> str:
         """Apply masks to a table cell.

@@ -1,14 +1,17 @@
 """CloakMap system for secure, reversible masking operations."""
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .anchors import AnchorEntry, AnchorIndex
 from ..utilities.cloakmap_serializer import CloakMapSerializer
-from ..utilities.cloakmap_validator import CloakMapValidator, merge_cloakmaps, validate_cloakmap_integrity
+from ..utilities.cloakmap_validator import (
+    CloakMapValidator,
+    merge_cloakmaps,
+    validate_cloakmap_integrity,
+)
+from .anchors import AnchorEntry, AnchorIndex
 
 # Security features removed - simplified implementation
 

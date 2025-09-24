@@ -11,10 +11,10 @@ from typing import Any
 from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, OperatorConfig
 
+from cloakpivot.core.processing.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
 from cloakpivot.core.types.strategies import Strategy, StrategyKind
-from cloakpivot.core.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
+from cloakpivot.masking.protocols import SegmentBoundary, SyntheticOperatorResult
 from cloakpivot.masking.strategy_processors import StrategyProcessor
-from cloakpivot.masking.protocols import SyntheticOperatorResult, SegmentBoundary
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class EntityProcessor:
         self.anonymizer = anonymizer
         self.operator_mapper = operator_mapper
         self.strategy_processor = StrategyProcessor(anonymizer, operator_mapper)
-        
+
         # Cache for expensive operations
         self._overlap_cache: dict[tuple, bool] = {}
         self._validation_cache: dict[tuple, list] = {}
@@ -178,7 +178,7 @@ class EntityProcessor:
         cache_key = tuple(
             (e.start, e.end, e.score, e.entity_type) for e in sorted(entities, key=lambda x: x.start)
         )
-        
+
         # Check cache
         if cache_key in self._overlap_cache and len(self._overlap_cache) < self._max_cache_size:
             # Note: cache stores boolean, but we need to recompute for actual filtering

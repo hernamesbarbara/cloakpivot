@@ -44,13 +44,13 @@ class TextProcessor:
         # Pre-allocate lists for better performance
         segment_boundaries: list[SegmentBoundary] = []
         text_parts: list[str] = []
-        
+
         # Build boundaries and collect text parts in single pass
         cursor = 0
         for i, segment in enumerate(text_segments):
             start = cursor
             end = start + len(segment.text)
-            
+
             segment_boundaries.append(
                 SegmentBoundary(
                     segment_index=i,
@@ -59,10 +59,10 @@ class TextProcessor:
                     node_id=segment.node_id,
                 )
             )
-            
+
             text_parts.append(segment.text)
             cursor = end
-            
+
             if i < len(text_segments) - 1:
                 text_parts.append(SEGMENT_SEPARATOR)
                 cursor += len(SEGMENT_SEPARATOR)
@@ -104,7 +104,7 @@ class TextProcessor:
             # Add text between last replacement and this one
             if cursor < start:
                 result.append(text[cursor:start])
-            
+
             # Add the replacement
             result.append(replacement)
             cursor = end

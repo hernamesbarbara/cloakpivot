@@ -395,7 +395,7 @@ class TestCliMain:
 
     def test_cli_context_creation(self):
         """Test that CLI context is properly created."""
-        with patch("cloakpivot.cli.main.click.Context") as mock_context:
+        with patch("cloakpivot.cli.main.click.Context"):
             result = self.runner.invoke(cli, ["--help"])
             # Context is created internally by Click
             assert result.exit_code == 0

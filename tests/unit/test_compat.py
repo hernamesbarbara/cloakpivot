@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,8 +13,8 @@ mock_engine_class = MagicMock()
 mock_docpivot.DocPivotEngine = mock_engine_class
 sys.modules['docpivot'] = mock_docpivot
 
-from cloakpivot.compat import load_document, to_lexical
-from cloakpivot.type_imports import DoclingDocument
+from cloakpivot.compat import load_document, to_lexical  # noqa: E402
+from cloakpivot.type_imports import DoclingDocument  # noqa: E402
 
 
 class TestLoadDocument:

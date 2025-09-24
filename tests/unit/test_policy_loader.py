@@ -6,8 +6,8 @@ from unittest.mock import Mock, patch
 import pytest
 import yaml
 
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.policy_loader import (
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.policies.policy_loader import (
     AllowListItem,
     ContextRuleConfig,
     EntityConfig,
@@ -20,7 +20,7 @@ from cloakpivot.core.policy_loader import (
     PolicyValidationError,
     StrategyConfig,
 )
-from cloakpivot.core.strategies import StrategyKind
+from cloakpivot.core.types.strategies import StrategyKind
 
 
 class TestExceptions:

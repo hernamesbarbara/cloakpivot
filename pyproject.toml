@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloakpivot"
-version = "2.0.0"
+version = "2.1.0"
 description = "Simple, reversible PII masking for documents with one-line API"
 authors = [
     {name = "hernamesbarbara", email = "austin@aya.sh"}

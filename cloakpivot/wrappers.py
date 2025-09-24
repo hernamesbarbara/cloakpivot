@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
 from cloakpivot.type_imports import DoclingDocument
 

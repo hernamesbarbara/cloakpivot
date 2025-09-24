@@ -1,15 +1,14 @@
 """Presidio-based masking adapter for CloakPivot."""
 
 import base64
-import bisect
 import copy
 import hashlib
 import logging
 import threading
-from typing import Any, cast
+from typing import Any
 
 from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
+from presidio_anonymizer.entities import RecognizerResult
 
 try:
     import presidio_anonymizer
@@ -18,18 +17,13 @@ try:
 except (ImportError, AttributeError):
     PRESIDIO_VERSION = "2.x.x"
 
-from ..core.cloakmap import AnchorEntry, CloakMap
-from ..core.cloakmap_enhancer import CloakMapEnhancer
-from ..core.policies import MaskingPolicy
-from ..core.presidio_common import (
-    filter_overlapping_entities,
-    operator_result_to_dict,
-    validate_entity_boundaries,
-)
-from ..core.presidio_mapper import StrategyToOperatorMapper
-from ..core.types.strategies import Strategy, StrategyKind
-from ..core.surrogate import SurrogateGenerator
+from ..core.types.cloakmap import AnchorEntry, CloakMap
+from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
+from ..core.policies.policies import MaskingPolicy
+from ..core.processing.presidio_mapper import StrategyToOperatorMapper
+from ..core.processing.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
+from ..core.types.strategies import Strategy, StrategyKind
 from ..document.extractor import TextSegment
 from .document_reconstructor import DocumentReconstructor
 from .engine import MaskingResult

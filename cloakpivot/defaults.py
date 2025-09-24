@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.policies.policies import MaskingPolicy
 from cloakpivot.core.types.strategies import Strategy, StrategyKind
 
 # Default entity types for common PII detection

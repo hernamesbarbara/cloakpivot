@@ -1,17 +1,12 @@
 """Unit tests for cloakpivot.unmasking.anchor_resolver module."""
 
-from unittest.mock import Mock, patch
-from dataclasses import dataclass
-import pytest
+from unittest.mock import Mock
 
-from cloakpivot.unmasking.anchor_resolver import (
-    AnchorResolver,
-    ResolvedAnchor,
-    FailedAnchor
-)
-from cloakpivot.core.anchors import AnchorEntry
+from docling_core.types.doc.document import NodeItem, TextItem
+
+from cloakpivot.core.types.anchors import AnchorEntry
 from cloakpivot.core.types import DoclingDocument
-from docling_core.types.doc.document import TextItem, NodeItem
+from cloakpivot.unmasking.anchor_resolver import AnchorResolver, FailedAnchor, ResolvedAnchor
 
 
 class TestResolvedAnchor:

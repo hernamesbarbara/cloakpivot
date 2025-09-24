@@ -4,17 +4,16 @@ This module contains strategy-specific processing logic extracted from the
 main PresidioMaskingAdapter to improve maintainability and reduce file size.
 """
 
-import hashlib
 import logging
 import uuid
-from typing import Any, cast
+from typing import cast
 
 from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, OperatorConfig
 
-from cloakpivot.core.types.strategies import Strategy, StrategyKind
-from cloakpivot.core.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
-from cloakpivot.core.surrogate import SurrogateGenerator
+from cloakpivot.core.processing.presidio_mapper import StrategyToOperatorMapper as OperatorMapper
+from cloakpivot.core.processing.surrogate import SurrogateGenerator
+from cloakpivot.core.types.strategies import Strategy
 
 logger = logging.getLogger(__name__)
 

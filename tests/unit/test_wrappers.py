@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock
 
-from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
 from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.wrappers import CloakedDocument

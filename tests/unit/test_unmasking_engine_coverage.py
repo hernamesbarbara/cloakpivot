@@ -2,12 +2,12 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
-from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
 

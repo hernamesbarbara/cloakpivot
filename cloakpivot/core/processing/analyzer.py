@@ -431,8 +431,8 @@ class AnalyzerEngineWrapper:
         Returns:
             Full spaCy model name with appropriate size suffix
         """
-        from ..utilities.config import performance_config
         from ..types.model_info import get_model_name
+        from ..utilities.config import performance_config
 
         # Use global performance config for model size selection
         model_size = performance_config.model_size
