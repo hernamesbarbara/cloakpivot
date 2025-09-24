@@ -1,10 +1,17 @@
 """Unit tests for cloakpivot.compat module."""
 
 import json
+import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 import pytest
+
+# Mock docpivot module before importing cloakpivot.compat
+mock_docpivot = MagicMock()
+mock_engine_class = MagicMock()
+mock_docpivot.DocPivotEngine = mock_engine_class
+sys.modules['docpivot'] = mock_docpivot
 
 from cloakpivot.compat import load_document, to_lexical
 from cloakpivot.type_imports import DoclingDocument
@@ -115,178 +122,185 @@ class TestLoadDocument:
 class TestToLexical:
     """Test to_lexical function."""
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_default(self, mock_engine_class):
+    def test_to_lexical_default(self):
         """Test to_lexical with default parameters."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        lexical_content = {"root": {"type": "root", "children": []}}
-        mock_result = Mock()
-        mock_result.content = json.dumps(lexical_content)
-        mock_engine.convert_to_lexical.return_value = mock_result
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
 
-        # Execute
-        result = to_lexical(mock_document)
+            lexical_content = {"root": {"type": "root", "children": []}}
+            mock_result = Mock()
+            mock_result.content = json.dumps(lexical_content)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Verify
-        assert result == lexical_content
-        mock_engine.convert_to_lexical.assert_called_once_with(mock_document, pretty=False)
+            # Execute
+            result = to_lexical(mock_document)
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_with_pretty_true(self, mock_engine_class):
+            # Verify
+            assert result == lexical_content
+            mock_engine.convert_to_lexical.assert_called_once_with(mock_document, pretty=False)
+
+    def test_to_lexical_with_pretty_true(self):
         """Test to_lexical with pretty=True."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        lexical_content = {
-            "root": {"type": "root", "children": [{"type": "paragraph", "text": "Test"}]}
-        }
-        mock_result = Mock()
-        mock_result.content = json.dumps(lexical_content, indent=2)
-        mock_engine.convert_to_lexical.return_value = mock_result
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
 
-        # Execute
-        result = to_lexical(mock_document, pretty=True)
+            lexical_content = {
+                "root": {"type": "root", "children": [{"type": "paragraph", "text": "Test"}]}
+            }
+            mock_result = Mock()
+            mock_result.content = json.dumps(lexical_content, indent=2)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Verify
-        assert result == lexical_content
-        mock_engine.convert_to_lexical.assert_called_once_with(mock_document, pretty=True)
+            # Execute
+            result = to_lexical(mock_document, pretty=True)
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_with_complex_lexical_structure(self, mock_engine_class):
+            # Verify
+            assert result == lexical_content
+            mock_engine.convert_to_lexical.assert_called_once_with(mock_document, pretty=True)
+
+    def test_to_lexical_with_complex_lexical_structure(self):
         """Test to_lexical with complex Lexical structure."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        complex_lexical = {
-            "root": {
-                "type": "root",
-                "children": [
-                    {
-                        "type": "paragraph",
-                        "children": [
-                            {"type": "text", "text": "Bold text", "format": ["bold"]},
-                            {"type": "text", "text": " normal text"},
-                            {"type": "text", "text": " italic", "format": ["italic"]},
-                        ],
-                    },
-                    {
-                        "type": "heading",
-                        "tag": "h2",
-                        "children": [{"type": "text", "text": "Section Title"}],
-                    },
-                    {
-                        "type": "list",
-                        "listType": "bullet",
-                        "children": [
-                            {
-                                "type": "listitem",
-                                "value": 1,
-                                "children": [{"type": "text", "text": "Item 1"}],
-                            },
-                            {
-                                "type": "listitem",
-                                "value": 2,
-                                "children": [{"type": "text", "text": "Item 2"}],
-                            },
-                        ],
-                    },
-                ],
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
+
+            complex_lexical = {
+                "root": {
+                    "type": "root",
+                    "children": [
+                        {
+                            "type": "paragraph",
+                            "children": [
+                                {"type": "text", "text": "Bold text", "format": ["bold"]},
+                                {"type": "text", "text": " normal text"},
+                                {"type": "text", "text": " italic", "format": ["italic"]},
+                            ],
+                        },
+                        {
+                            "type": "heading",
+                            "tag": "h2",
+                            "children": [{"type": "text", "text": "Section Title"}],
+                        },
+                        {
+                            "type": "list",
+                            "listType": "bullet",
+                            "children": [
+                                {
+                                    "type": "listitem",
+                                    "value": 1,
+                                    "children": [{"type": "text", "text": "Item 1"}],
+                                },
+                                {
+                                    "type": "listitem",
+                                    "value": 2,
+                                    "children": [{"type": "text", "text": "Item 2"}],
+                                },
+                            ],
+                        },
+                    ],
+                }
             }
-        }
-        mock_result = Mock()
-        mock_result.content = json.dumps(complex_lexical)
-        mock_engine.convert_to_lexical.return_value = mock_result
+            mock_result = Mock()
+            mock_result.content = json.dumps(complex_lexical)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Execute
-        result = to_lexical(mock_document)
+            # Execute
+            result = to_lexical(mock_document)
 
-        # Verify
-        assert result == complex_lexical
-        assert "root" in result
-        assert result["root"]["type"] == "root"
-        assert len(result["root"]["children"]) == 3
+            # Verify
+            assert result == complex_lexical
+            assert "root" in result
+            assert result["root"]["type"] == "root"
+            assert len(result["root"]["children"]) == 3
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_empty_document(self, mock_engine_class):
+    def test_to_lexical_empty_document(self):
         """Test to_lexical with empty document."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        empty_lexical = {"root": {"type": "root", "children": []}}
-        mock_result = Mock()
-        mock_result.content = json.dumps(empty_lexical)
-        mock_engine.convert_to_lexical.return_value = mock_result
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
 
-        # Execute
-        result = to_lexical(mock_document)
+            empty_lexical = {"root": {"type": "root", "children": []}}
+            mock_result = Mock()
+            mock_result.content = json.dumps(empty_lexical)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Verify
-        assert result == empty_lexical
-        assert result["root"]["children"] == []
+            # Execute
+            result = to_lexical(mock_document)
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_conversion_error(self, mock_engine_class):
+            # Verify
+            assert result == empty_lexical
+            assert result["root"]["children"] == []
+
+    def test_to_lexical_conversion_error(self):
         """Test to_lexical when conversion fails."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
-        mock_engine.convert_to_lexical.side_effect = Exception("Conversion failed")
 
-        # Execute & Verify
-        with pytest.raises(Exception, match="Conversion failed"):
-            to_lexical(mock_document)
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
+            mock_engine.convert_to_lexical.side_effect = Exception("Conversion failed")
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_invalid_json_response(self, mock_engine_class):
+            # Execute & Verify
+            with pytest.raises(Exception, match="Conversion failed"):
+                to_lexical(mock_document)
+
+    def test_to_lexical_invalid_json_response(self):
         """Test to_lexical when engine returns invalid JSON."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        mock_result = Mock()
-        mock_result.content = "invalid json {"  # Invalid JSON
-        mock_engine.convert_to_lexical.return_value = mock_result
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
 
-        # Execute & Verify
-        with pytest.raises(json.JSONDecodeError):
-            to_lexical(mock_document)
+            mock_result = Mock()
+            mock_result.content = "invalid json {"  # Invalid JSON
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-    @patch("cloakpivot.compat.DocPivotEngine")
-    def test_to_lexical_with_special_characters(self, mock_engine_class):
+            # Execute & Verify
+            with pytest.raises(json.JSONDecodeError):
+                to_lexical(mock_document)
+
+    def test_to_lexical_with_special_characters(self):
         """Test to_lexical with special characters in content."""
         # Setup
         mock_document = Mock(spec=DoclingDocument)
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
 
-        lexical_with_special = {
-            "root": {
-                "type": "root",
-                "children": [{"type": "text", "text": "Special chars: €£¥ • — " "''"}],
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
+
+            lexical_with_special = {
+                "root": {
+                    "type": "root",
+                    "children": [{"type": "text", "text": "Special chars: €£¥ • — " "''"}],
+                }
             }
-        }
-        mock_result = Mock()
-        mock_result.content = json.dumps(lexical_with_special)
-        mock_engine.convert_to_lexical.return_value = mock_result
+            mock_result = Mock()
+            mock_result.content = json.dumps(lexical_with_special)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Execute
-        result = to_lexical(mock_document)
+            # Execute
+            result = to_lexical(mock_document)
 
-        # Verify
-        assert result == lexical_with_special
-        assert "€£¥" in result["root"]["children"][0]["text"]
+            # Verify
+            assert result == lexical_with_special
+            assert "€£¥" in result["root"]["children"][0]["text"]
 
 
 class TestCompatibilityIntegration:
@@ -295,9 +309,8 @@ class TestCompatibilityIntegration:
     @patch("cloakpivot.compat.Path.open")
     @patch("cloakpivot.compat.json.load")
     @patch("cloakpivot.compat.DoclingDocument.model_validate")
-    @patch("cloakpivot.compat.DocPivotEngine")
     def test_load_and_convert_workflow(
-        self, mock_engine_class, mock_validate, mock_json_load, mock_open_file
+        self, mock_validate, mock_json_load, mock_open_file
     ):
         """Test complete workflow of loading and converting a document."""
         # Setup - Load document
@@ -306,23 +319,24 @@ class TestCompatibilityIntegration:
         mock_doc = Mock(spec=DoclingDocument)
         mock_validate.return_value = mock_doc
 
-        # Setup - Convert to lexical
-        mock_engine = Mock()
-        mock_engine_class.return_value = mock_engine
-        lexical_content = {"root": {"type": "root", "children": []}}
-        mock_result = Mock()
-        mock_result.content = json.dumps(lexical_content)
-        mock_engine.convert_to_lexical.return_value = mock_result
+        with patch("cloakpivot.compat.DocPivotEngine") as mock_engine_class:
+            # Setup - Convert to lexical
+            mock_engine = Mock()
+            mock_engine_class.return_value = mock_engine
+            lexical_content = {"root": {"type": "root", "children": []}}
+            mock_result = Mock()
+            mock_result.content = json.dumps(lexical_content)
+            mock_engine.convert_to_lexical.return_value = mock_result
 
-        # Execute
-        loaded_doc = load_document("test.json")
-        lexical_output = to_lexical(loaded_doc)
+            # Execute
+            loaded_doc = load_document("test.json")
+            lexical_output = to_lexical(loaded_doc)
 
-        # Verify
-        assert loaded_doc == mock_doc
-        assert lexical_output == lexical_content
-        mock_validate.assert_called_once_with(doc_data)
-        mock_engine.convert_to_lexical.assert_called_once_with(mock_doc, pretty=False)
+            # Verify
+            assert loaded_doc == mock_doc
+            assert lexical_output == lexical_content
+            mock_validate.assert_called_once_with(doc_data)
+            mock_engine.convert_to_lexical.assert_called_once_with(mock_doc, pretty=False)
 
     @patch("cloakpivot.compat.Path.open")
     @patch("cloakpivot.compat.json.load")
