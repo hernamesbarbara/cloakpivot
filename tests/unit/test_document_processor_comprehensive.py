@@ -43,12 +43,11 @@ class TestDocumentProcessor:
 
     def test_init_with_chunked_processor_import_error(self):
         """Test initialization when ChunkedDocumentProcessor import fails."""
-        with patch("cloakpivot.document.processor.ChunkedDocumentProcessor",
-                   side_effect=ImportError("Module not found")):
-            processor = DocumentProcessor(enable_chunked_processing=True)
+        # ChunkedDocumentProcessor has been removed, so this test is no longer relevant
+        processor = DocumentProcessor(enable_chunked_processing=True)
 
-            assert processor._enable_chunked_processing is True
-            assert processor._chunked_processor is None
+        assert processor._enable_chunked_processing is True
+        assert processor._chunked_processor is None
 
     @patch("cloakpivot.document.processor.Path.open")
     @patch("cloakpivot.document.processor.json.load")
@@ -153,73 +152,20 @@ class TestDocumentProcessor:
         assert result is None
         assert processor._stats.errors_encountered == 1
 
-    def test_load_multiple_documents(self):
-        """Test loading multiple documents."""
-        processor = DocumentProcessor(enable_chunked_processing=False)
+    # Note: load_multiple method was removed from DocumentProcessor
+    # These tests are commented out as the functionality no longer exists
 
-        # Mock multiple documents
-        docs = []
-        for i in range(3):
-            doc_path = f"doc{i}.json"
-            doc_data = {"test": f"data{i}", "version": "1.6.0"}
+    # def test_load_multiple_documents(self):
+    #     """Test loading multiple documents."""
+    #     pass  # Method removed
 
-            with patch("cloakpivot.document.processor.Path.open"), patch("cloakpivot.document.processor.json.load", return_value=doc_data), patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
-                mock_doc = Mock(spec=DoclingDocument)
-                mock_validate.return_value = mock_doc
-                result = processor.load_multiple([doc_path])
-                if result:
-                    docs.extend(result)
+    # def test_load_multiple_documents_batch(self):
+    #     """Test batch loading multiple documents."""
+    #     pass  # Method removed
 
-        # Verify stats
-        assert processor._stats.files_processed >= 3
-
-    @patch("cloakpivot.document.processor.Path.open")
-    @patch("cloakpivot.document.processor.json.load")
-    @patch("cloakpivot.document.processor.DoclingDocument.model_validate")
-    def test_load_multiple_documents_batch(self, mock_validate, mock_json_load, mock_path_open):
-        """Test batch loading multiple documents."""
-        # Setup
-        test_data1 = {"test": "data1", "version": "1.6.0"}
-        test_data2 = {"test": "data2", "version": "1.6.0"}
-        mock_json_load.side_effect = [test_data1, test_data2]
-
-        mock_doc1 = Mock(spec=DoclingDocument, name="doc1")
-        mock_doc2 = Mock(spec=DoclingDocument, name="doc2")
-        mock_validate.side_effect = [mock_doc1, mock_doc2]
-
-        processor = DocumentProcessor(enable_chunked_processing=False)
-
-        # Execute
-        results = processor.load_multiple(["doc1.json", "doc2.json"])
-
-        # Verify
-        assert len(results) == 2
-        assert results[0] == mock_doc1
-        assert results[1] == mock_doc2
-        assert processor._stats.files_processed == 2
-
-    def test_load_multiple_with_errors(self):
-        """Test loading multiple documents with some errors."""
-        processor = DocumentProcessor(enable_chunked_processing=False)
-
-        with patch("cloakpivot.document.processor.Path") as mock_path_class:
-            # First doc exists, second doesn't
-            mock_path1 = Mock()
-            mock_path1.exists.return_value = True
-            mock_path2 = Mock()
-            mock_path2.exists.return_value = False
-
-            mock_path_class.side_effect = [mock_path1, mock_path2]
-
-            with patch("cloakpivot.document.processor.Path.open"), patch("cloakpivot.document.processor.json.load", return_value={"test": "data"}), patch("cloakpivot.document.processor.DoclingDocument.model_validate") as mock_validate:
-                mock_doc = Mock(spec=DoclingDocument)
-                mock_validate.return_value = mock_doc
-
-                results = processor.load_multiple(["exists.json", "missing.json"])
-
-                assert len(results) == 1
-                assert processor._stats.files_processed == 1
-                assert processor._stats.errors_encountered == 1
+    # def test_load_multiple_with_errors(self):
+    #     """Test loading multiple documents with some errors."""
+    #     pass  # Method removed
 
     def test_get_stats(self):
         """Test getting processing statistics."""

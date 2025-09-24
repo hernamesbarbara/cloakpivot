@@ -29,7 +29,7 @@ class TestCloakMapLoader:
         loader = CloakMapLoader()
         assert loader is not None
 
-    def test_load_from_file_success(self):
+    def test_load_success(self):
         """Test successfully loading cloakmap from file."""
         loader = CloakMapLoader()
 
@@ -46,20 +46,20 @@ class TestCloakMapLoader:
             original_cloakmap.save_to_file(cloakmap_path)
 
             # Load it back
-            loaded_cloakmap = loader.load_from_file(cloakmap_path)
+            loaded_cloakmap = loader.load(cloakmap_path)
 
             assert isinstance(loaded_cloakmap, CloakMap)
             assert loaded_cloakmap.doc_id == "test_doc"
             assert loaded_cloakmap.doc_hash == "test_hash"
 
-    def test_load_from_file_not_found(self):
+    def test_load_not_found(self):
         """Test loading from non-existent file."""
         loader = CloakMapLoader()
 
         with pytest.raises(FileNotFoundError):
-            loader.load_from_file("nonexistent.cloakmap")
+            loader.load("nonexistent.cloakmap")
 
-    def test_load_from_file_invalid_json(self):
+    def test_load_invalid_json(self):
         """Test loading file with invalid JSON."""
         loader = CloakMapLoader()
 
@@ -68,7 +68,7 @@ class TestCloakMapLoader:
             invalid_file.write_text("not valid json {]")
 
             with pytest.raises(CloakMapLoadError):
-                loader.load_from_file(invalid_file)
+                loader.load(invalid_file)
 
     def test_load_with_anchors(self):
         """Test loading cloakmap with anchors."""
@@ -97,7 +97,7 @@ class TestCloakMapLoader:
             cloakmap.save_to_file(cloakmap_path)
 
             # Load and verify
-            loaded = loader.load_from_file(cloakmap_path)
+            loaded = loader.load(cloakmap_path)
 
             assert len(loaded.anchors) == 1
             assert loaded.anchors[0].entity_type == "PERSON"
@@ -171,7 +171,7 @@ class TestCloakMapLoader:
             )
             cloakmap.save_to_file(cloakmap_path)
 
-            loaded = loader.load_from_file(cloakmap_path)
+            loaded = loader.load(cloakmap_path)
 
             assert loaded.metadata is not None
             if loaded.metadata:
@@ -205,7 +205,7 @@ class TestCloakMapLoader:
             )
             cloakmap.save_to_file(cloakmap_path)
 
-            loaded = loader.load_from_file(cloakmap_path)
+            loaded = loader.load(cloakmap_path)
 
             assert loaded.presidio_metadata is not None
             if loaded.presidio_metadata:
@@ -231,7 +231,7 @@ class TestCloakMapLoader:
             )
             cloakmap.save_to_file(cloakmap_path)
 
-            loaded = loader.load_from_file(cloakmap_path)
+            loaded = loader.load(cloakmap_path)
 
             assert loaded.policy_snapshot is not None
             if loaded.policy_snapshot:
@@ -338,7 +338,7 @@ class TestCloakMapLoader:
             corrupted_file.write_text('{"doc_id": "test", "anchors": [{"incomplete":')
 
             with pytest.raises(CloakMapLoadError):
-                loader.load_from_file(corrupted_file)
+                loader.load(corrupted_file)
 
     def test_get_statistics(self):
         """Test getting cloakmap statistics."""

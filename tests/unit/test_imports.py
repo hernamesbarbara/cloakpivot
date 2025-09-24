@@ -159,8 +159,8 @@ class TestCoreImports:
         assert presidio_mapper is not None
 
     def test_core_error_handling(self):
-        """Test core.error_handling module imports."""
-        from cloakpivot.core import error_handling
+        """Test core.utilities.error_handling module imports."""
+        from cloakpivot.core.utilities import error_handling
 
         assert error_handling is not None
 

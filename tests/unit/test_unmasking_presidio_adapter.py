@@ -209,8 +209,8 @@ class TestPresidioUnmaskingAdapter:
 
         cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
-        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False), patch.object(adapter.document_unmasker, "unmask_document") as mock_unmask:
-            mock_result = Mock(spec=UnmaskingResult)
+        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False), patch.object(adapter.document_unmasker, "apply_unmasking") as mock_unmask:
+            mock_result = {"total_anchors": 1, "restored_anchors": 1}
             mock_unmask.return_value = mock_result
 
             result = adapter.unmask_document(doc, cloakmap)

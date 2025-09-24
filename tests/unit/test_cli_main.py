@@ -32,7 +32,7 @@ class TestCliMain:
 
     def test_version_command(self):
         """Test the version command."""
-        with patch("cloakpivot.cli.main.__version__", "1.2.3"):
+        with patch("cloakpivot.__version__", "1.2.3"):
             result = self.runner.invoke(cli, ["version"])
             assert result.exit_code == 0
             assert "CloakPivot v1.2.3" in result.output
@@ -95,13 +95,13 @@ class TestCliMain:
         """Test mask command with all options."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
-            input_file = tmpdir / "input.txt"
+            input_file = tmpdir / "input.md"
             output_file = tmpdir / "output.md"
             cloakmap_file = tmpdir / "map.json"
             policy_file = tmpdir / "policy.yaml"
 
             # Create test files
-            input_file.write_text("Test document")
+            input_file.write_text("# Test document\n\nTest content with email john@example.com")
             policy_data = {
                 "name": "test_policy",
                 "entities": ["EMAIL", "PHONE"],
@@ -402,8 +402,8 @@ class TestCliMain:
 
     def test_mask_invalid_confidence(self):
         """Test mask command with invalid confidence value."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("Test")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write("# Test\n\nTest content")
             input_file = Path(f.name)
 
         try:
@@ -418,8 +418,8 @@ class TestCliMain:
 
     def test_mask_invalid_format(self):
         """Test mask command with invalid format option."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("Test")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write("# Test\n\nContent")
             input_file = Path(f.name)
 
         try:

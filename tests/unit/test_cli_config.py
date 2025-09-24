@@ -349,7 +349,7 @@ class TestHelperFunctions:
         finally:
             config_path.unlink()
 
-    @patch("cloakpivot.cli.config.MaskingEngine")
+    @patch("cloakpivot.masking.engine.MaskingEngine")
     def test_create_masking_engine(self, mock_engine_class):
         """Test create_masking_engine function."""
         mock_engine = MagicMock()
@@ -374,7 +374,7 @@ class TestHelperFunctions:
         assert call_kwargs["use_presidio_engine"] is True
         assert call_kwargs["resolve_conflicts"] is True
 
-    @patch("cloakpivot.cli.config.MaskingEngine")
+    @patch("cloakpivot.masking.engine.MaskingEngine")
     def test_create_masking_engine_legacy(self, mock_engine_class):
         """Test create_masking_engine with legacy type."""
         mock_engine = MagicMock()

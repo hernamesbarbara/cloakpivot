@@ -2,7 +2,7 @@
 
 import pytest
 
-from cloakpivot.core.types.strategies import Strategy
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.masking.applicator import StrategyApplicator
 
 
@@ -16,7 +16,7 @@ class TestConflictResolution:
 
     def test_apply_hash_strategy(self, applicator):
         """Test hash strategy application."""
-        strategy = Strategy(name="hash", params={"algorithm": "sha256"})
+        strategy = Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256"})
         result = applicator.apply_strategy("test@example.com", strategy)
 
         # Should return a hashed value
@@ -25,7 +25,7 @@ class TestConflictResolution:
 
     def test_apply_redact_strategy(self, applicator):
         """Test redact strategy application."""
-        strategy = Strategy(name="redact", params={})
+        strategy = Strategy(kind=StrategyKind.REDACT, parameters={})
         result = applicator.apply_strategy("sensitive data", strategy)
 
         # Should return redacted
@@ -33,7 +33,7 @@ class TestConflictResolution:
 
     def test_apply_partial_strategy(self, applicator):
         """Test partial masking strategy."""
-        strategy = Strategy(name="partial", params={"visible_ratio": 0.5})
+        strategy = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 4, "position": "end"})
         result = applicator.apply_strategy("test@example.com", strategy)
 
         # Should partially mask
@@ -42,7 +42,7 @@ class TestConflictResolution:
 
     def test_apply_template_strategy(self, applicator):
         """Test template-based masking."""
-        strategy = Strategy(name="template", params={})
+        strategy = Strategy(kind=StrategyKind.TEMPLATE, parameters={"template": "[EMAIL]"})
         result = applicator.apply_strategy("john@example.com", strategy, entity_type="EMAIL")
 
         # Should apply template
@@ -51,7 +51,7 @@ class TestConflictResolution:
 
     def test_apply_surrogate_strategy(self, applicator):
         """Test surrogate value generation."""
-        strategy = Strategy(name="surrogate", params={"seed": 42})
+        strategy = Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": 42})
         result = applicator.apply_strategy("555-1234", strategy, entity_type="PHONE_NUMBER")
 
         # Should generate surrogate
@@ -60,7 +60,8 @@ class TestConflictResolution:
 
     def test_fallback_on_unknown_strategy(self, applicator):
         """Test fallback when strategy is unknown."""
-        strategy = Strategy(name="unknown_strategy", params={})
+        # Using CUSTOM which should fall back if not handled
+        strategy = Strategy(kind=StrategyKind.CUSTOM, parameters={})
         result = applicator.apply_strategy("test data", strategy)
 
         # Should fall back to redaction
@@ -70,8 +71,8 @@ class TestConflictResolution:
         """Test hash strategy with different algorithms."""
         text = "test@example.com"
 
-        sha256 = Strategy(name="hash", params={"algorithm": "sha256"})
-        sha512 = Strategy(name="hash", params={"algorithm": "sha512"})
+        sha256 = Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha256"})
+        sha512 = Strategy(kind=StrategyKind.HASH, parameters={"algorithm": "sha512"})
 
         result256 = applicator.apply_strategy(text, sha256)
         result512 = applicator.apply_strategy(text, sha512)
@@ -85,16 +86,16 @@ class TestConflictResolution:
         """Test different partial masking ratios."""
         text = "1234567890"
 
-        # Test different visibility ratios
-        strategy_25 = Strategy(name="partial", params={"visible_ratio": 0.25})
-        strategy_50 = Strategy(name="partial", params={"visible_ratio": 0.5})
-        strategy_75 = Strategy(name="partial", params={"visible_ratio": 0.75})
+        # Test different visibility ratios - using visible_chars parameter
+        strategy_25 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 2, "position": "end"})
+        strategy_50 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 5, "position": "end"})
+        strategy_75 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 7, "position": "end"})
 
         result_25 = applicator.apply_strategy(text, strategy_25)
         result_50 = applicator.apply_strategy(text, strategy_50)
         result_75 = applicator.apply_strategy(text, strategy_75)
 
-        # More visible ratio should show more characters
+        # More visible characters should show more
         visible_25 = sum(1 for c in result_25 if c != '*')
         visible_50 = sum(1 for c in result_50 if c != '*')
         visible_75 = sum(1 for c in result_75 if c != '*')
@@ -104,8 +105,8 @@ class TestConflictResolution:
     def test_custom_strategy_application(self, applicator):
         """Test custom strategy with parameters."""
         strategy = Strategy(
-            name="custom",
-            params={
+            kind=StrategyKind.CUSTOM,
+            parameters={
                 "pattern": "[CUSTOM:{}]",
                 "include_type": True
             }
@@ -123,7 +124,7 @@ class TestConflictResolution:
     def test_strategy_with_format_preservation(self, applicator):
         """Test strategies that preserve format."""
         phone = "555-123-4567"
-        strategy = Strategy(name="partial", params={"preserve_format": True})
+        strategy = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 4, "position": "end", "preserve_format": True})
 
         result = applicator.apply_strategy(phone, strategy, entity_type="PHONE_NUMBER")
 
