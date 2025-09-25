@@ -89,8 +89,8 @@ def validate_presidio_version() -> tuple[str, bool]:
         import presidio_analyzer
         import presidio_anonymizer
 
-        analyzer_version = getattr(presidio_analyzer, "__version__", "2.0.0")  # type: ignore
-        anonymizer_version = getattr(presidio_anonymizer, "__version__", "2.0.0")  # type: ignore
+        analyzer_version = getattr(presidio_analyzer, "__version__", "2.0.0")
+        anonymizer_version = getattr(presidio_anonymizer, "__version__", "2.0.0")
 
         # Check major version compatibility (2.x)
         analyzer_major = int(analyzer_version.split(".")[0])

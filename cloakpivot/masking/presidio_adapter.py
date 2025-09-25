@@ -729,6 +729,7 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
         return self.strategy_processor.apply_hash_strategy(text, entity_type, strategy, confidence)
 
     def _apply_partial_strategy(
@@ -738,6 +739,7 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
         return self.strategy_processor.apply_partial_strategy(
             text, entity_type, strategy, confidence
         )
@@ -747,6 +749,7 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
         return self.strategy_processor.apply_custom_strategy(text, strategy)
 
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
@@ -754,6 +757,7 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
         return self.strategy_processor.apply_surrogate_strategy(text, entity_type, strategy)
 
     def _fallback_redaction(self, text: str) -> str:
@@ -761,6 +765,7 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
         return self.strategy_processor._fallback_redaction(text)
 
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
@@ -825,6 +830,7 @@ class PresidioMaskingAdapter:
         # Delegate to DocumentReconstructor
         if self.document_reconstructor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.document_reconstructor is not None
         self.document_reconstructor.update_table_cells(
             masked_document, text_segments, anchor_entries
         )
@@ -834,6 +840,7 @@ class PresidioMaskingAdapter:
         # Delegate to DocumentReconstructor
         if self.document_reconstructor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.document_reconstructor is not None
         return self.document_reconstructor._get_table_node_id(table_item)
 
     def _cleanup_large_results(self, results: list[OperatorResultLike]) -> None:
@@ -847,4 +854,5 @@ class PresidioMaskingAdapter:
         # Delegate to MetadataManager
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
         self.metadata_manager.cleanup_large_results(results)

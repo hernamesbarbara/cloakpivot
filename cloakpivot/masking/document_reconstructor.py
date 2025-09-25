@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Any
 
-from docling_core.types.doc import DocItemLabel
+from docling_core.types.doc import DocItemLabel  # type: ignore
 from docling_core.types.doc.document import DoclingDocument, TextItem
 
 from cloakpivot.core.types.anchors import AnchorEntry
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class DocumentReconstructor:
     """Reconstruct documents with masked values."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the document reconstructor."""
         self.text_processor = TextProcessor()
 
@@ -168,7 +168,7 @@ class DocumentReconstructor:
             return
 
         # Build a mapping of node_id to masked content
-        masked_content_map = {}
+        masked_content_map: dict[str, list[AnchorEntry]] = {}
         for anchor in anchor_entries:
             node_id = anchor.node_id
             if node_id not in masked_content_map:
