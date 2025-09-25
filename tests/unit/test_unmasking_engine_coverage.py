@@ -81,6 +81,7 @@ class TestUnmaskingEngineCoverage:
             # Create a mock masked document file as JSON
             masked_file = tmpdir / "masked.json"
             import json
+
             masked_doc_data = {"name": "masked.md", "texts": ["Masked content with [EMAIL]"]}
             masked_file.write_text(json.dumps(masked_doc_data))
 
@@ -214,6 +215,7 @@ class TestUnmaskingEngineCoverage:
             # Test with missing cloakmap file
             doc_file = tmpdir / "test.json"
             import json
+
             doc_file.write_text(json.dumps({"name": "test.md", "texts": ["Test content"]}))
 
             with pytest.raises(FileNotFoundError):

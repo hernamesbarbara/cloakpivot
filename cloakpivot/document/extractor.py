@@ -316,7 +316,9 @@ class TextExtractor:
                             text = TextNormalizer.normalize_whitespace(text)
 
                         if text.strip():
-                            cell_node_id = NodeIdGenerator.create_cell_node_id(base_node_id, row_idx, col_idx)
+                            cell_node_id = NodeIdGenerator.create_cell_node_id(
+                                base_node_id, row_idx, col_idx
+                            )
                             end_offset = current_offset + len(text)
 
                             segment = TextSegment(

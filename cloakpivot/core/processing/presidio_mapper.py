@@ -78,8 +78,8 @@ class StrategyToOperatorMapper:
             StrategyKind.CUSTOM: self._map_custom_strategy,
         }
         # Cache for strategy to operator mappings (LRU cache with max 128 entries)
-        self._operator_cache: dict[tuple, OperatorConfig] = {}
-        self._cache_order: list[tuple] = []
+        self._operator_cache: dict[tuple[Any, ...], OperatorConfig] = {}
+        self._cache_order: list[tuple[Any, ...]] = []
         self._max_cache_size = 128
 
     def strategy_to_operator(self, strategy: Strategy) -> OperatorConfig:
@@ -346,7 +346,7 @@ class StrategyToOperatorMapper:
 
         return surrogate_map.get(format_type, "[SURROGATE]")
 
-    def _create_cache_key(self, strategy: Strategy) -> tuple:
+    def _create_cache_key(self, strategy: Strategy) -> tuple[Any, ...]:
         """Create a hashable cache key from strategy.
 
         Args:
@@ -356,7 +356,7 @@ class StrategyToOperatorMapper:
             Tuple representing the strategy for caching
         """
         # Convert parameters to a hashable form
-        params_key = ()
+        params_key: tuple[tuple[str, Any], ...] = ()
         if strategy.parameters:
             # Sort parameters and handle non-hashable values
             sorted_params = []
@@ -366,14 +366,16 @@ class StrategyToOperatorMapper:
                     sorted_params.append((key, str(value)))
                 elif isinstance(value, dict | list):
                     # Convert containers to tuples
-                    sorted_params.append((key, str(sorted(value.items()) if isinstance(value, dict) else value)))
+                    sorted_params.append(
+                        (key, str(sorted(value.items()) if isinstance(value, dict) else value))
+                    )
                 else:
                     sorted_params.append((key, value))
             params_key = tuple(sorted_params)
 
         return (strategy.kind, params_key)
 
-    def _cache_operator(self, cache_key: tuple, operator: OperatorConfig) -> None:
+    def _cache_operator(self, cache_key: tuple[Any, ...], operator: OperatorConfig) -> None:
         """Cache an operator config with LRU eviction.
 
         Args:

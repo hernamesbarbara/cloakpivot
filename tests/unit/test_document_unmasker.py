@@ -26,11 +26,7 @@ class TestDocumentUnmasker:
         doc = Mock(spec=DoclingDocument)
         doc.export_to_markdown.return_value = "No masked content here"
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[])
 
         # No resolved anchors for empty cloakmap
         resolved_anchors = []
@@ -61,7 +57,7 @@ class TestDocumentUnmasker:
             original_text="Alice",
             masked_value="[PERSON]",
             strategy_used="template",
-            replacement_id="person_1"
+            replacement_id="person_1",
         )
 
         # Create resolved anchor
@@ -71,14 +67,10 @@ class TestDocumentUnmasker:
             found_position=(6, 14),
             found_text="[PERSON]",
             position_delta=0,
-            confidence=1.0
+            confidence=1.0,
         )
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[anchor]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
         result = unmasker.apply_unmasking(doc, [resolved_anchor], cloakmap)
 
@@ -105,7 +97,7 @@ class TestDocumentUnmasker:
                 original_text="Bob",
                 masked_value="[PERSON]",
                 strategy_used="template",
-                replacement_id="person_1"
+                replacement_id="person_1",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -116,7 +108,7 @@ class TestDocumentUnmasker:
                 original_text="bob@example.com",
                 masked_value="[EMAIL]",
                 strategy_used="template",
-                replacement_id="email_1"
+                replacement_id="email_1",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -127,8 +119,8 @@ class TestDocumentUnmasker:
                 original_text="Charlie",
                 masked_value="[PERSON]",
                 strategy_used="template",
-                replacement_id="person_2"
-            )
+                replacement_id="person_2",
+            ),
         ]
 
         # Create resolved anchors
@@ -139,15 +131,12 @@ class TestDocumentUnmasker:
                 found_position=(anchor.start_position, anchor.end_position),
                 found_text=anchor.masked_value,
                 position_delta=0,
-                confidence=1.0
-            ) for anchor in anchors
+                confidence=1.0,
+            )
+            for anchor in anchors
         ]
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         result = unmasker.apply_unmasking(doc, resolved_anchors, cloakmap)
 
@@ -177,7 +166,7 @@ class TestDocumentUnmasker:
             original_text="Author",
             masked_value="[PERSON]",
             strategy_used="template",
-            replacement_id="person_1"
+            replacement_id="person_1",
         )
 
         resolved_anchor = ResolvedAnchor(
@@ -186,14 +175,10 @@ class TestDocumentUnmasker:
             found_position=(0, 8),
             found_text="[PERSON]",
             position_delta=0,
-            confidence=1.0
+            confidence=1.0,
         )
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[anchor]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
         result = unmasker.apply_unmasking(doc, [resolved_anchor], cloakmap)
 
@@ -220,7 +205,7 @@ class TestDocumentUnmasker:
                 original_text="text1",
                 masked_value="[ENTITY",
                 strategy_used="template",
-                replacement_id="entity_1"
+                replacement_id="entity_1",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -231,18 +216,14 @@ class TestDocumentUnmasker:
                 original_text="text2",
                 masked_value="_LONG]",
                 strategy_used="template",
-                replacement_id="entity_2"
-            )
+                replacement_id="entity_2",
+            ),
         ]
 
         # Create resolved anchors - may not find due to overlap
         resolved_anchors = []
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         # Should handle gracefully
         result = unmasker.apply_unmasking(doc, resolved_anchors, cloakmap)
@@ -267,24 +248,20 @@ class TestDocumentUnmasker:
             original_text="Name",
             masked_value="[PERSON]",
             strategy_used="template",
-            replacement_id="person_1"
+            replacement_id="person_1",
         )
 
         # Resolved anchor with drift
-        resolved_anchor = ResolvedAnchor(
+        ResolvedAnchor(
             anchor=anchor,
             node_item=mock_text,
             found_position=(16, 24),  # Actual position
             found_text="[PERSON]",
             position_delta=11,  # Position drift
-            confidence=0.8  # Lower confidence due to drift
+            confidence=0.8,  # Lower confidence due to drift
         )
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[anchor]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
         result = unmasker.apply_unmasking(doc, [], cloakmap)
         assert result is not None
@@ -305,7 +282,7 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="Name",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -315,15 +292,11 @@ class TestDocumentUnmasker:
                 confidence=0.95,
                 original_text="test@example.com",
                 masked_value="[EMAIL]",
-                strategy_used="template"
-            )
+                strategy_used="template",
+            ),
         ]
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         result = unmasker.apply_unmasking(doc, [], cloakmap)
 
@@ -343,11 +316,7 @@ class TestDocumentUnmasker:
         doc = Mock(spec=DoclingDocument)
         doc.export_to_markdown.side_effect = Exception("Export failed")
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[])
 
         # Should handle error gracefully
         try:
@@ -393,20 +362,16 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text=f"text{i}",
                 masked_value="[MASK]",
-                strategy_used="template"
+                strategy_used="template",
             )
             anchors.append(anchor)
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         result = unmasker.apply_unmasking(doc, [], cloakmap)
 
         assert result is not None
-        if hasattr(result, 'performance'):
+        if hasattr(result, "performance"):
             assert "processing_time" in result.performance
             assert "anchors_per_second" in result.performance
 
@@ -427,7 +392,7 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="Name",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -437,45 +402,34 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="data",
                 masked_value="[OTHER]",  # Doesn't match [MISSING]
-                strategy_used="template"
-            )
+                strategy_used="template",
+            ),
         ]
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         result = unmasker.apply_unmasking(doc, [], cloakmap)
 
         assert result is not None
-        if hasattr(result, 'partial'):
+        if hasattr(result, "partial"):
             assert result.partial is True
 
-    @patch('cloakpivot.unmasking.document_unmasker.AnchorResolver')
+    @patch("cloakpivot.unmasking.document_unmasker.AnchorResolver")
     def test_integration_with_anchor_resolver(self, mock_resolver_class):
         """Test integration with AnchorResolver."""
         unmasker = DocumentUnmasker()
 
         mock_resolver = Mock()
         mock_resolver_class.return_value = mock_resolver
-        mock_resolver.resolve_anchors.return_value = {
-            "resolved": [],
-            "failed": []
-        }
+        mock_resolver.resolve_anchors.return_value = {"resolved": [], "failed": []}
 
         doc = Mock(spec=DoclingDocument)
         doc.export_to_markdown.return_value = "Test"
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[]
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[])
 
         # If uses anchor resolver
-        with patch.object(unmasker, '_anchor_resolver', mock_resolver):
+        with patch.object(unmasker, "_anchor_resolver", mock_resolver):
             result = unmasker.apply_unmasking(doc, [], cloakmap)
             assert result is not None
 
@@ -495,7 +449,7 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="Alice",
                 masked_value="[REDACTED]",
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -505,7 +459,7 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="alice@example.com",
                 masked_value="*******",
-                strategy_used="redact"
+                strategy_used="redact",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -515,15 +469,11 @@ class TestDocumentUnmasker:
                 confidence=0.9,
                 original_text="12345",
                 masked_value="[HASH123]",
-                strategy_used="hash"
-            )
+                strategy_used="hash",
+            ),
         ]
 
-        cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=anchors
-        )
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
         result = unmasker.apply_unmasking(doc, [], cloakmap)
         assert result is not None

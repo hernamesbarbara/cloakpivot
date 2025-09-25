@@ -33,7 +33,9 @@ class TestConflictResolution:
 
     def test_apply_partial_strategy(self, applicator):
         """Test partial masking strategy."""
-        strategy = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 4, "position": "end"})
+        strategy = Strategy(
+            kind=StrategyKind.PARTIAL, parameters={"visible_chars": 4, "position": "end"}
+        )
         result = applicator.apply_strategy("test@example.com", "EMAIL_ADDRESS", strategy, 0.95)
 
         # Should partially mask
@@ -51,7 +53,9 @@ class TestConflictResolution:
 
     def test_apply_surrogate_strategy(self, applicator):
         """Test surrogate value generation."""
-        strategy = Strategy(kind=StrategyKind.SURROGATE, parameters={"seed": "42"})  # Seed must be a string
+        strategy = Strategy(
+            kind=StrategyKind.SURROGATE, parameters={"seed": "42"}
+        )  # Seed must be a string
         result = applicator.apply_strategy("555-1234", "PHONE_NUMBER", strategy, 0.95)
 
         # Should generate surrogate
@@ -60,6 +64,7 @@ class TestConflictResolution:
 
     def test_fallback_on_unknown_strategy(self, applicator):
         """Test fallback when strategy is unknown."""
+
         # Using CUSTOM with a simple callback (with correct signature)
         def simple_callback(original_text: str, entity_type: str, confidence: float) -> str:
             return "[CUSTOM]"
@@ -90,23 +95,30 @@ class TestConflictResolution:
         text = "1234567890"
 
         # Test different visibility ratios - using visible_chars parameter
-        strategy_25 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 2, "position": "end"})
-        strategy_50 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 5, "position": "end"})
-        strategy_75 = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 7, "position": "end"})
+        strategy_25 = Strategy(
+            kind=StrategyKind.PARTIAL, parameters={"visible_chars": 2, "position": "end"}
+        )
+        strategy_50 = Strategy(
+            kind=StrategyKind.PARTIAL, parameters={"visible_chars": 5, "position": "end"}
+        )
+        strategy_75 = Strategy(
+            kind=StrategyKind.PARTIAL, parameters={"visible_chars": 7, "position": "end"}
+        )
 
         result_25 = applicator.apply_strategy(text, "GENERIC", strategy_25, 0.95)
         result_50 = applicator.apply_strategy(text, "GENERIC", strategy_50, 0.95)
         result_75 = applicator.apply_strategy(text, "GENERIC", strategy_75, 0.95)
 
         # More visible characters should show more
-        visible_25 = sum(1 for c in result_25 if c != '*')
-        visible_50 = sum(1 for c in result_50 if c != '*')
-        visible_75 = sum(1 for c in result_75 if c != '*')
+        visible_25 = sum(1 for c in result_25 if c != "*")
+        visible_50 = sum(1 for c in result_50 if c != "*")
+        visible_75 = sum(1 for c in result_75 if c != "*")
 
         assert visible_25 <= visible_50 <= visible_75
 
     def test_custom_strategy_application(self, applicator):
         """Test custom strategy with parameters."""
+
         def custom_callback(original_text: str, entity_type: str, confidence: float) -> str:
             return f"[CUSTOM:{entity_type}]"
 
@@ -115,16 +127,11 @@ class TestConflictResolution:
             parameters={
                 "callback": custom_callback,
                 "pattern": "[CUSTOM:{}]",
-                "include_type": True
-            }
+                "include_type": True,
+            },
         )
 
-        result = applicator.apply_strategy(
-            "sensitive",
-            "CUSTOM_TYPE",
-            strategy,
-            0.95
-        )
+        result = applicator.apply_strategy("sensitive", "CUSTOM_TYPE", strategy, 0.95)
 
         # Should apply custom pattern
         assert result == "[CUSTOM:CUSTOM_TYPE]"
@@ -132,7 +139,10 @@ class TestConflictResolution:
     def test_strategy_with_format_preservation(self, applicator):
         """Test strategies that preserve format."""
         phone = "555-123-4567"
-        strategy = Strategy(kind=StrategyKind.PARTIAL, parameters={"visible_chars": 4, "position": "end", "preserve_format": True})
+        strategy = Strategy(
+            kind=StrategyKind.PARTIAL,
+            parameters={"visible_chars": 4, "position": "end", "preserve_format": True},
+        )
 
         result = applicator.apply_strategy(phone, "PHONE_NUMBER", strategy, 0.95)
 

@@ -1,6 +1,6 @@
 """Tests for internal methods of PresidioMaskingAdapter."""
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from docling_core.types import DoclingDocument
@@ -63,7 +63,9 @@ class TestPresidioAdapterInternals:
             RecognizerResult(entity_type="PHONE", start=-5, end=10, score=0.7),  # Negative start
         ]
 
-        validated = adapter._validate_entities_against_boundaries(entities, text, segment_boundaries)
+        validated = adapter._validate_entities_against_boundaries(
+            entities, text, segment_boundaries
+        )
 
         # Should keep EMAIL and truncate PERSON to fit within boundary, skip PHONE (negative start)
         assert len(validated) == 2
@@ -84,7 +86,7 @@ class TestPresidioAdapterInternals:
                     entity_type=f"TYPE_{i % 5}",
                     start=i * 10,
                     end=(i * 10) + 8,
-                    score=0.8 + (i % 3) * 0.05
+                    score=0.8 + (i % 3) * 0.05,
                 )
             )
 
@@ -102,14 +104,7 @@ class TestPresidioAdapterInternals:
     def test_prepare_strategies_fallback_scenarios(self, adapter):
         """Test strategy preparation with fallback scenarios."""
         # Test with missing strategy
-        entities = [
-            RecognizerResult(
-                entity_type="CUSTOM_TYPE",
-                start=0,
-                end=10,
-                score=0.9
-            )
-        ]
+        entities = [RecognizerResult(entity_type="CUSTOM_TYPE", start=0, end=10, score=0.9)]
 
         # MaskingPolicy should provide default strategy for unknown types
         policy = MaskingPolicy()
@@ -142,11 +137,33 @@ class TestPresidioAdapterInternals:
 
         # Build segments with proper offsets (no empty segments since they're not allowed)
         segments = [
-            TextSegment(node_id="#/texts/0", node_type="TextItem", text="First segment", start_offset=0, end_offset=13),
-            TextSegment(node_id="#/texts/1", node_type="TextItem", text=" ", start_offset=13, end_offset=14),  # Space separator
-            TextSegment(node_id="#/texts/2", node_type="TextItem", text="Third segment", start_offset=14, end_offset=27),
-            TextSegment(node_id="#/texts/3", node_type="TextItem", text=" ", start_offset=27, end_offset=28),  # Space separator
-            TextSegment(node_id="#/texts/4", node_type="TextItem", text="Final segment", start_offset=28, end_offset=41),
+            TextSegment(
+                node_id="#/texts/0",
+                node_type="TextItem",
+                text="First segment",
+                start_offset=0,
+                end_offset=13,
+            ),
+            TextSegment(
+                node_id="#/texts/1", node_type="TextItem", text=" ", start_offset=13, end_offset=14
+            ),  # Space separator
+            TextSegment(
+                node_id="#/texts/2",
+                node_type="TextItem",
+                text="Third segment",
+                start_offset=14,
+                end_offset=27,
+            ),
+            TextSegment(
+                node_id="#/texts/3", node_type="TextItem", text=" ", start_offset=27, end_offset=28
+            ),  # Space separator
+            TextSegment(
+                node_id="#/texts/4",
+                node_type="TextItem",
+                text="Final segment",
+                start_offset=28,
+                end_offset=41,
+            ),
         ]
 
         full_text, boundaries = adapter._build_full_text_and_boundaries(segments)
@@ -168,11 +185,7 @@ class TestPresidioAdapterInternals:
             text = "prefix text sample entity text here"  # 36 chars
             entity = RecognizerResult(entity_type=entity_type, start=10, end=20, score=0.85)
             strategy = Strategy(kind=StrategyKind.REDACT, parameters={})
-            result = adapter._create_synthetic_result(
-                entity=entity,
-                strategy=strategy,
-                text=text
-            )
+            result = adapter._create_synthetic_result(entity=entity, strategy=strategy, text=text)
 
             assert result.entity_type == entity_type
             assert result.start == 10
@@ -232,7 +245,7 @@ class TestPresidioAdapterInternals:
     def test_batch_processing_splits_correctly(self, adapter):
         """Test that batch processing processes entities correctly."""
         entities = [
-            RecognizerResult(entity_type="EMAIL", start=i*10, end=i*10+5, score=0.8)
+            RecognizerResult(entity_type="EMAIL", start=i * 10, end=i * 10 + 5, score=0.8)
             for i in range(25)
         ]
 
@@ -266,18 +279,8 @@ class TestPresidioAdapterInternals:
         # Strategy already imported from core.strategies
 
         entities = [
-            RecognizerResult(
-                entity_type="EMAIL",
-                start=10,
-                end=30,
-                score=0.9
-            ),
-            RecognizerResult(
-                entity_type="PHONE",
-                start=40,
-                end=50,
-                score=0.85
-            ),
+            RecognizerResult(entity_type="EMAIL", start=10, end=30, score=0.9),
+            RecognizerResult(entity_type="PHONE", start=40, end=50, score=0.85),
         ]
 
         policy = MaskingPolicy()
@@ -292,7 +295,7 @@ class TestPresidioAdapterInternals:
         mock_document.metadata = {
             "source": "test_file.pdf",
             "created": "2024-01-01",
-            "custom_field": "value"
+            "custom_field": "value",
         }
         mock_document.export_to_markdown.return_value = "Test content without PII"
 
@@ -302,7 +305,7 @@ class TestPresidioAdapterInternals:
             # The adapter should be able to handle documents with metadata
             # We're not testing the full masking flow, just that it doesn't crash
             assert adapter is not None
-            assert hasattr(mock_document, 'metadata')
+            assert hasattr(mock_document, "metadata")
             assert mock_document.metadata["source"] == "test_file.pdf"
             # Success - adapter can work with documents that have metadata
         except Exception as e:
@@ -317,10 +320,7 @@ class TestPresidioAdapterInternals:
         for i in range(100):
             entities.append(
                 RecognizerResult(
-                    entity_type="ID",
-                    start=i * 2,
-                    end=(i * 2) + 5,
-                    score=0.8 + (i % 10) * 0.01
+                    entity_type="ID", start=i * 2, end=(i * 2) + 5, score=0.8 + (i % 10) * 0.01
                 )
             )
 

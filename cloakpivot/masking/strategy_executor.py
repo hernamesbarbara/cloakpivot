@@ -161,9 +161,11 @@ class StrategyExecutor:
             hash_result = hash_obj.hexdigest()
         elif format_output == "base64":
             import base64
+
             hash_result = base64.b64encode(hash_obj.digest()).decode("ascii")
         elif format_output == "base32":
             import base64
+
             hash_result = base64.b32encode(hash_obj.digest()).decode("ascii")
         else:
             hash_result = hash_obj.hexdigest()
@@ -178,7 +180,9 @@ class StrategyExecutor:
 
         # Apply format structure preservation if requested
         if preserve_format_structure:
-            hash_result = FormatPreserver.preserve_format_in_hash(original_text, hash_result, prefix)
+            hash_result = FormatPreserver.preserve_format_in_hash(
+                original_text, hash_result, prefix
+            )
 
         return str(prefix) + str(hash_result)
 

@@ -70,7 +70,9 @@ class CloakMapEnhancer:
         # Allow empty operator_results: it's a valid "no-op" case (no PII found / all filtered).
         # Return the original cloakmap unchanged so callers don't have to special-case.
         if not operator_results:
-            logger.debug("add_presidio_metadata: no operator results; returning cloakmap unchanged.")
+            logger.debug(
+                "add_presidio_metadata: no operator results; returning cloakmap unchanged."
+            )
             return cloakmap
 
         if not isinstance(operator_results, list):

@@ -1,7 +1,7 @@
 """Conflict resolution for strategy application."""
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..core.types.strategies import Strategy, StrategyKind
 
@@ -54,6 +54,7 @@ class ConflictResolver:
         try:
             # Try the primary strategy through the applicator
             from .strategy_executor import StrategyExecutor
+
             executor = StrategyExecutor(self.applicator)
             return executor.execute_strategy(original_text, entity_type, strategy, confidence)
         except Exception as e:
@@ -94,6 +95,7 @@ class ConflictResolver:
 
                 # Use executor directly to avoid infinite recursion
                 from .strategy_executor import StrategyExecutor
+
                 executor = StrategyExecutor(self.applicator)
                 return executor.execute_strategy(
                     original_text, entity_type, fallback_strategy, confidence
@@ -201,8 +203,8 @@ class ConflictResolver:
 
     def resolve_overlapping_detections(
         self,
-        detections: list[dict],
-    ) -> list[dict]:
+        detections: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """
         Resolve overlapping PII detections by priority.
 
@@ -217,8 +219,7 @@ class ConflictResolver:
 
         # Sort by start position, then by confidence (higher first)
         sorted_detections = sorted(
-            detections,
-            key=lambda d: (d.get("start", 0), -d.get("confidence", 0))
+            detections, key=lambda d: (d.get("start", 0), -d.get("confidence", 0))
         )
 
         resolved = []

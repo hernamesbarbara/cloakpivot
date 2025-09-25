@@ -57,7 +57,7 @@ class StrategyProcessor:
         # Use Presidio for the base hash
         operator_config = self.operator_mapper.strategy_to_operator(strategy)
         result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
+            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore
         )
 
         hashed_value = result.text
@@ -120,7 +120,7 @@ class StrategyProcessor:
         )
 
         result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
+            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore
         )
 
         return str(result.text)
@@ -188,8 +188,8 @@ class StrategyProcessor:
         # Replace {} with a unique ID if present
         if "{}" in template:
             unique_id = str(uuid.uuid4())[:8]
-            return template.replace("{}", unique_id)
-        return template
+            return str(template.replace("{}", unique_id))
+        return str(template)
 
     def apply_redact_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply redaction strategy to text.
@@ -203,7 +203,7 @@ class StrategyProcessor:
         """
         params = strategy.parameters or {}
         char = params.get("char", "*")
-        return char * len(text)
+        return str(char * len(text))
 
     def _fallback_redaction(self, text: str) -> str:
         """Simple fallback redaction when other strategies fail.

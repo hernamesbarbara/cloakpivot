@@ -507,4 +507,10 @@ class CloakMap:
 
 
 # Re-export utility functions
-__all__ = ["CloakMap", "AnchorEntry", "AnchorIndex", "merge_cloakmaps", "validate_cloakmap_integrity"]
+__all__ = [
+    "CloakMap",
+    "AnchorEntry",
+    "AnchorIndex",
+    "merge_cloakmaps",
+    "validate_cloakmap_integrity",
+]

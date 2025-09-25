@@ -40,11 +40,9 @@ __all__ = [
     # From types.py
     "DoclingDocument",
     "UnmaskingResult",
-
     # From anchors.py
     "AnchorEntry",
     "AnchorIndex",
-
     # From strategies.py
     "Strategy",
     "StrategyKind",
@@ -52,7 +50,6 @@ __all__ = [
     "PHONE_TEMPLATE",
     "EMAIL_TEMPLATE",
     "SSN_PARTIAL",
-
     # From results.py
     "OperationStatus",
     "ProcessingStats",
@@ -61,7 +58,6 @@ __all__ = [
     "MaskResult",
     "UnmaskResult",
     "BatchResult",
-
     # From exceptions.py
     "CloakPivotError",
     "ValidationError",
@@ -74,10 +70,8 @@ __all__ = [
     "PartialProcessingError",
     "ConfigurationError",
     "DependencyError",
-
     # From cloakmap.py
     "CloakMap",
-
     # From model_info.py
     "get_model_name",
     "validate_model_availability",

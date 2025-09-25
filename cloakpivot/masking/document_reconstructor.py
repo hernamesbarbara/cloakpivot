@@ -140,9 +140,7 @@ class DocumentReconstructor:
         masked_text_item = TextItem(
             text=masked_text,
             self_ref=(
-                original_item.self_ref
-                if hasattr(original_item, "self_ref")
-                else f"#/texts/{index}"
+                original_item.self_ref if hasattr(original_item, "self_ref") else f"#/texts/{index}"
             ),
             label=item_label,
             orig=masked_text,
@@ -204,7 +202,11 @@ class DocumentReconstructor:
             # Process legacy table_cells structure (backward compatibility)
             elif hasattr(table_data, "table_cells") and table_data.table_cells:
                 flat_cells = table_data.table_cells
-                if flat_cells and hasattr(table_data, "num_rows") and hasattr(table_data, "num_cols"):
+                if (
+                    flat_cells
+                    and hasattr(table_data, "num_rows")
+                    and hasattr(table_data, "num_cols")
+                ):
                     num_cols = table_data.num_cols
                     for i in range(table_data.num_rows):
                         for j in range(num_cols):

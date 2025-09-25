@@ -38,16 +38,13 @@ __all__ = [
     "SegmentAnalysisResult",
     "DocumentAnalysisResult",
     "EntityDetectionPipeline",
-
     # From analyzer.py
     "AnalyzerConfig",
     "RecognizerRegistry",
     "EntityDetectionResult",
     "AnalyzerEngineWrapper",
-
     # From presidio_mapper.py
     "StrategyToOperatorMapper",
-
     # From presidio_common.py
     "ENTITY_TYPE_MAPPING",
     "DEFAULT_CONFIDENCE_THRESHOLDS",
@@ -60,7 +57,6 @@ __all__ = [
     "filter_overlapping_entities",
     "validate_entity_boundaries",
     "create_entity_mapping",
-
     # From normalization.py
     "ConflictResolutionStrategy",
     "EntityPriority",
@@ -68,12 +64,10 @@ __all__ = [
     "NormalizationResult",
     "EntityGroup",
     "EntityNormalizer",
-
     # From surrogate.py
     "FormatPattern",
     "SurrogateQualityMetrics",
     "SurrogateGenerator",
-
     # From cloakmap_enhancer.py
     "CloakMapEnhancer",
 ]

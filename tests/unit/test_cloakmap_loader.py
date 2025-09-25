@@ -38,11 +38,7 @@ class TestCloakMapLoader:
             cloakmap_path = Path(tmpdir) / "test.cloakmap"
 
             # Create and save a cloakmap
-            original_cloakmap = CloakMap(
-                doc_id="test_doc",
-                doc_hash="test_hash",
-                anchors=[]
-            )
+            original_cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
             original_cloakmap.save_to_file(cloakmap_path)
 
             # Load it back
@@ -86,14 +82,10 @@ class TestCloakMapLoader:
                 confidence=0.95,
                 original_text="John Doe",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             )
 
-            cloakmap = CloakMap(
-                doc_id="doc_with_anchors",
-                doc_hash="hash123",
-                anchors=[anchor]
-            )
+            cloakmap = CloakMap(doc_id="doc_with_anchors", doc_hash="hash123", anchors=[anchor])
             cloakmap.save_to_file(cloakmap_path)
 
             # Load and verify
@@ -102,7 +94,9 @@ class TestCloakMapLoader:
             assert len(loaded.anchors) == 1
             assert loaded.anchors[0].entity_type == "PERSON"
             assert loaded.anchors[0].masked_value == "[PERSON]"
-            assert loaded.anchors[0].original_checksum is not None  # Checksum is created instead of storing original text
+            assert (
+                loaded.anchors[0].original_checksum is not None
+            )  # Checksum is created instead of storing original text
 
     def test_load_from_json_string(self):
         """Test loading cloakmap from JSON string."""
@@ -113,11 +107,11 @@ class TestCloakMapLoader:
             "doc_id": "test",
             "doc_hash": "hash",
             "anchors": [],
-            "created_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-01-01T00:00:00Z",
         }
         json_str = json.dumps(cloakmap_dict)
 
-        if hasattr(loader, 'load_from_json'):
+        if hasattr(loader, "load_from_json"):
             loaded = loader.load_from_json(json_str)
             assert loaded.doc_id == "test"
 
@@ -130,10 +124,10 @@ class TestCloakMapLoader:
             "doc_id": "test",
             "doc_hash": "hash",
             "anchors": [],
-            "created_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-01-01T00:00:00Z",
         }
 
-        if hasattr(loader, 'load_from_dict'):
+        if hasattr(loader, "load_from_dict"):
             loaded = loader.load_from_dict(cloakmap_dict)
             assert loaded.doc_id == "test"
 
@@ -142,13 +136,9 @@ class TestCloakMapLoader:
         loader = CloakMapLoader()
 
         # Valid cloakmap
-        valid_cloakmap = CloakMap(
-            doc_id="test",
-            doc_hash="hash",
-            anchors=[]
-        )
+        valid_cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[])
 
-        if hasattr(loader, 'validate'):
+        if hasattr(loader, "validate"):
             is_valid = loader.validate(valid_cloakmap)
             assert is_valid is True
 
@@ -164,11 +154,7 @@ class TestCloakMapLoader:
                 doc_id="meta_doc",
                 doc_hash="hash",
                 anchors=[],
-                metadata={
-                    "source": "test_source",
-                    "processing_time": 1.5,
-                    "entity_count": 5
-                }
+                metadata={"source": "test_source", "processing_time": 1.5, "entity_count": 5},
             )
             cloakmap.save_to_file(cloakmap_path)
 
@@ -199,10 +185,10 @@ class TestCloakMapLoader:
                             "end": 8,
                             "entity_type": "PERSON",
                             "text": "John Doe",
-                            "operator": "replace"
+                            "operator": "replace",
                         }
                     ]
-                }
+                },
             )
             cloakmap.save_to_file(cloakmap_path)
 
@@ -227,8 +213,8 @@ class TestCloakMapLoader:
                 policy_snapshot={
                     "default_strategy": "redact",
                     "locale": "en",
-                    "confidence_threshold": 0.85
-                }
+                    "confidence_threshold": 0.85,
+                },
             )
             cloakmap.save_to_file(cloakmap_path)
 
@@ -250,16 +236,12 @@ class TestCloakMapLoader:
             paths = []
             for i in range(3):
                 path = tmpdir / f"cloakmap_{i}.cloakmap"
-                cloakmap = CloakMap(
-                    doc_id=f"doc_{i}",
-                    doc_hash=f"hash_{i}",
-                    anchors=[]
-                )
+                cloakmap = CloakMap(doc_id=f"doc_{i}", doc_hash=f"hash_{i}", anchors=[])
                 cloakmap.save_to_file(path)
                 paths.append(path)
 
             # If batch loading is supported
-            if hasattr(loader, 'load_batch'):
+            if hasattr(loader, "load_batch"):
                 cloakmaps = loader.load_batch(paths)
                 assert len(cloakmaps) == 3
                 assert all(isinstance(cm, CloakMap) for cm in cloakmaps)
@@ -268,20 +250,16 @@ class TestCloakMapLoader:
         """Test loading compressed cloakmap."""
         loader = CloakMapLoader()
 
-        if hasattr(loader, 'load_compressed'):
+        if hasattr(loader, "load_compressed"):
             # Create compressed cloakmap
             with tempfile.TemporaryDirectory() as tmpdir:
                 compressed_path = Path(tmpdir) / "compressed.cloakmap.gz"
 
                 # Create and compress a cloakmap
-                cloakmap = CloakMap(
-                    doc_id="compressed",
-                    doc_hash="hash",
-                    anchors=[]
-                )
+                cloakmap = CloakMap(doc_id="compressed", doc_hash="hash", anchors=[])
 
                 # Save compressed (if supported)
-                if hasattr(cloakmap, 'save_compressed'):
+                if hasattr(cloakmap, "save_compressed"):
                     cloakmap.save_compressed(compressed_path)
 
                     loaded = loader.load_compressed(compressed_path)
@@ -291,7 +269,7 @@ class TestCloakMapLoader:
         """Test loading encrypted cloakmap."""
         loader = CloakMapLoader()
 
-        if hasattr(loader, 'load_encrypted'):
+        if hasattr(loader, "load_encrypted"):
             with tempfile.TemporaryDirectory() as tmpdir:
                 encrypted_path = Path(tmpdir) / "encrypted.cloakmap"
 
@@ -300,7 +278,7 @@ class TestCloakMapLoader:
                     doc_id="encrypted",
                     doc_hash="hash",
                     anchors=[],
-                    crypto={"algorithm": "AES", "encrypted": True}
+                    crypto={"algorithm": "AES", "encrypted": True},
                 )
                 cloakmap.save_to_file(encrypted_path)
 
@@ -313,14 +291,9 @@ class TestCloakMapLoader:
         """Test migrating v1.0 cloakmap to v2.0."""
         loader = CloakMapLoader()
 
-        if hasattr(loader, 'migrate_v1_to_v2'):
+        if hasattr(loader, "migrate_v1_to_v2"):
             # Create v1.0 cloakmap
-            v1_cloakmap = CloakMap(
-                version="1.0",
-                doc_id="v1_doc",
-                doc_hash="hash",
-                anchors=[]
-            )
+            v1_cloakmap = CloakMap(version="1.0", doc_id="v1_doc", doc_hash="hash", anchors=[])
 
             # Migrate to v2.0
             v2_cloakmap = loader.migrate_v1_to_v2(v1_cloakmap)
@@ -357,7 +330,7 @@ class TestCloakMapLoader:
                     confidence=0.9,
                     original_text="Name",
                     masked_value="[PERSON]",
-                    strategy_used="template"
+                    strategy_used="template",
                 ),
                 AnchorEntry.create_from_detection(
                     node_id="#/texts/0",
@@ -367,12 +340,12 @@ class TestCloakMapLoader:
                     confidence=0.95,
                     original_text="email@test.com",
                     masked_value="[EMAIL]",
-                    strategy_used="template"
-                )
-            ]
+                    strategy_used="template",
+                ),
+            ],
         )
 
-        if hasattr(loader, 'get_statistics'):
+        if hasattr(loader, "get_statistics"):
             stats = loader.get_statistics(cloakmap)
             assert stats is not None
             assert "total_anchors" in stats

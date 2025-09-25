@@ -23,7 +23,7 @@ class TestResolvedAnchor:
             found_position=(10, 20),
             found_text="[PERSON]",
             position_delta=2,
-            confidence=0.95
+            confidence=0.95,
         )
 
         assert resolved.anchor == anchor
@@ -47,7 +47,7 @@ class TestResolvedAnchor:
             found_position=(0, 7),
             found_text="[EMAIL]",
             position_delta=0,
-            confidence=1.0
+            confidence=1.0,
         )
 
         assert resolved.anchor.masked_value == "[EMAIL]"
@@ -66,7 +66,7 @@ class TestFailedAnchor:
             anchor=anchor,
             failure_reason="Node not found",
             node_found=False,
-            attempted_positions=[(0, 10), (5, 15)]
+            attempted_positions=[(0, 10), (5, 15)],
         )
 
         assert failed.anchor == anchor
@@ -82,7 +82,7 @@ class TestFailedAnchor:
             anchor=anchor,
             failure_reason="Masked text not found at expected position",
             node_found=True,
-            attempted_positions=[(10, 18), (12, 20), (8, 16)]
+            attempted_positions=[(10, 18), (12, 20), (8, 16)],
         )
 
         assert failed.node_found is True
@@ -129,7 +129,7 @@ class TestAnchorResolver:
             confidence=0.95,
             original_text="John",
             masked_value="[PERSON]",
-            strategy_used="template"
+            strategy_used="template",
         )
 
         results = resolver.resolve_anchors(doc, [anchor])
@@ -156,7 +156,7 @@ class TestAnchorResolver:
                 confidence=0.9,
                 original_text="Alice",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -166,8 +166,8 @@ class TestAnchorResolver:
                 confidence=0.95,
                 original_text="alice@example.com",
                 masked_value="[EMAIL]",
-                strategy_used="template"
-            )
+                strategy_used="template",
+            ),
         ]
 
         results = resolver.resolve_anchors(doc, anchors)
@@ -195,7 +195,7 @@ class TestAnchorResolver:
             confidence=0.9,
             original_text="Name",
             masked_value="[PERSON]",
-            strategy_used="template"
+            strategy_used="template",
         )
 
         results = resolver.resolve_anchors(doc, anchors=[anchor])
@@ -218,7 +218,7 @@ class TestAnchorResolver:
             confidence=0.9,
             original_text="Name",
             masked_value="[PERSON]",
-            strategy_used="template"
+            strategy_used="template",
         )
 
         results = resolver.resolve_anchors(doc, [anchor])
@@ -235,7 +235,7 @@ class TestAnchorResolver:
         expected_position = (15, 23)
 
         # If method exists
-        if hasattr(resolver, 'find_masked_text'):
+        if hasattr(resolver, "find_masked_text"):
             result = resolver.find_masked_text(node_text, masked_value, expected_position)
             assert result is not None
 
@@ -244,20 +244,16 @@ class TestAnchorResolver:
         resolver = AnchorResolver()
 
         # If method exists
-        if hasattr(resolver, 'calculate_confidence'):
+        if hasattr(resolver, "calculate_confidence"):
             # Perfect match
             score = resolver.calculate_confidence(
-                expected_pos=(10, 20),
-                actual_pos=(10, 20),
-                text_match=True
+                expected_pos=(10, 20), actual_pos=(10, 20), text_match=True
             )
             assert score == 1.0 if score else True
 
             # Position drift
             score = resolver.calculate_confidence(
-                expected_pos=(10, 20),
-                actual_pos=(12, 22),
-                text_match=True
+                expected_pos=(10, 20), actual_pos=(12, 22), text_match=True
             )
             assert 0 < score < 1.0 if score else True
 
@@ -267,10 +263,7 @@ class TestAnchorResolver:
 
         doc = Mock(spec=DoclingDocument)
         table_item = Mock()
-        table_item.data = [
-            ["Name", "Email"],
-            ["[PERSON]", "[EMAIL]"]
-        ]
+        table_item.data = [["Name", "Email"], ["[PERSON]", "[EMAIL]"]]
         doc.tables = [table_item]
 
         anchor = AnchorEntry.create_from_detection(
@@ -281,7 +274,7 @@ class TestAnchorResolver:
             confidence=0.9,
             original_text="John",
             masked_value="[PERSON]",
-            strategy_used="template"
+            strategy_used="template",
         )
 
         results = resolver.resolve_anchors(doc, [anchor])
@@ -305,7 +298,7 @@ class TestAnchorResolver:
                 confidence=0.9,
                 original_text="Name",
                 masked_value="[PERSON]",
-                strategy_used="template"
+                strategy_used="template",
             ),
             AnchorEntry.create_from_detection(
                 node_id="#/texts/0",
@@ -315,8 +308,8 @@ class TestAnchorResolver:
                 confidence=0.9,
                 original_text="email@test.com",
                 masked_value="[EMAIL]",
-                strategy_used="template"
-            )
+                strategy_used="template",
+            ),
         ]
 
         results = resolver.resolve_anchors(doc, anchors)
@@ -331,7 +324,7 @@ class TestAnchorResolver:
         doc.tables = [Mock()]
 
         # If method exists
-        if hasattr(resolver, 'get_node_by_path'):
+        if hasattr(resolver, "get_node_by_path"):
             node = resolver.get_node_by_path(doc, "#/texts/0")
             assert node is not None or node is None  # Depends on implementation
 
@@ -356,11 +349,11 @@ class TestAnchorResolver:
             confidence=0.9,
             original_text="Name",
             masked_value="[PERSON]",  # Different format than in text
-            strategy_used="template"
+            strategy_used="template",
         )
 
         # If fuzzy matching is supported
-        if hasattr(resolver, 'enable_fuzzy_matching'):
+        if hasattr(resolver, "enable_fuzzy_matching"):
             resolver.enable_fuzzy_matching = True
 
         results = resolver.resolve_anchors(doc, [anchor])
@@ -384,7 +377,7 @@ class TestAnchorResolver:
                 confidence=0.9,
                 original_text=f"text_{i}",
                 masked_value=f"[ENTITY_{i}]",
-                strategy_used="template"
+                strategy_used="template",
             )
             anchors.append(anchor)
 

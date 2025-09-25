@@ -11,7 +11,7 @@ import pytest
 mock_docpivot = MagicMock()
 mock_engine_class = MagicMock()
 mock_docpivot.DocPivotEngine = mock_engine_class
-sys.modules['docpivot'] = mock_docpivot
+sys.modules["docpivot"] = mock_docpivot
 
 from cloakpivot.compat import load_document, to_lexical  # noqa: E402
 from cloakpivot.type_imports import DoclingDocument  # noqa: E402
@@ -309,9 +309,7 @@ class TestCompatibilityIntegration:
     @patch("cloakpivot.compat.Path.open")
     @patch("cloakpivot.compat.json.load")
     @patch("cloakpivot.compat.DoclingDocument.model_validate")
-    def test_load_and_convert_workflow(
-        self, mock_validate, mock_json_load, mock_open_file
-    ):
+    def test_load_and_convert_workflow(self, mock_validate, mock_json_load, mock_open_file):
         """Test complete workflow of loading and converting a document."""
         # Setup - Load document
         doc_data = {"content": "test document"}

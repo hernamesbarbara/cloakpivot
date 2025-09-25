@@ -89,8 +89,8 @@ def validate_presidio_version() -> tuple[str, bool]:
         import presidio_analyzer
         import presidio_anonymizer
 
-        analyzer_version = presidio_analyzer.__version__
-        anonymizer_version = presidio_anonymizer.__version__
+        analyzer_version = getattr(presidio_analyzer, "__version__", "2.0.0")  # type: ignore
+        anonymizer_version = getattr(presidio_anonymizer, "__version__", "2.0.0")  # type: ignore
 
         # Check major version compatibility (2.x)
         analyzer_major = int(analyzer_version.split(".")[0])
@@ -138,7 +138,9 @@ def recognizer_result_to_dict(result: RecognizerResult) -> dict[str, Any]:
         "start": result.start,
         "end": result.end,
         "score": result.score,
-        "recognition_metadata": result.recognition_metadata if hasattr(result, "recognition_metadata") else {},
+        "recognition_metadata": (
+            result.recognition_metadata if hasattr(result, "recognition_metadata") else {}
+        ),
     }
 
 
@@ -152,7 +154,7 @@ def build_statistics(entities: list[Any], source: str = "unknown") -> dict[str, 
     Returns:
         Statistics dictionary
     """
-    stats = {
+    stats: dict[str, Any] = {
         "total_entities": len(entities),
         "entities_by_type": {},
         "source": source,
@@ -160,7 +162,9 @@ def build_statistics(entities: list[Any], source: str = "unknown") -> dict[str, 
 
     for entity in entities:
         entity_type = entity.entity_type if hasattr(entity, "entity_type") else "UNKNOWN"
-        stats["entities_by_type"][entity_type] = stats["entities_by_type"].get(entity_type, 0) + 1
+        entities_dict = stats["entities_by_type"]
+        assert isinstance(entities_dict, dict)
+        entities_dict[entity_type] = entities_dict.get(entity_type, 0) + 1
 
     return stats
 
@@ -185,7 +189,7 @@ def filter_overlapping_entities(entities: list[RecognizerResult]) -> list[Recogn
         # Check if this entity overlaps with any already selected
         overlaps = False
         for selected in filtered:
-            if (entity.start < selected.end and entity.end > selected.start):
+            if entity.start < selected.end and entity.end > selected.start:
                 overlaps = True
                 break
 
@@ -197,8 +201,7 @@ def filter_overlapping_entities(entities: list[RecognizerResult]) -> list[Recogn
 
 
 def validate_entity_boundaries(
-    entities: list[RecognizerResult],
-    text: str
+    entities: list[RecognizerResult], text: str
 ) -> list[RecognizerResult]:
     """Validate that entities have valid boundaries within text.
 
@@ -213,11 +216,7 @@ def validate_entity_boundaries(
     valid_entities = []
 
     for entity in entities:
-        if (
-            entity.start >= 0
-            and entity.end <= text_length
-            and entity.start < entity.end
-        ):
+        if entity.start >= 0 and entity.end <= text_length and entity.start < entity.end:
             valid_entities.append(entity)
         else:
             logger.warning(
@@ -229,8 +228,7 @@ def validate_entity_boundaries(
 
 
 def create_entity_mapping(
-    original_entities: list[RecognizerResult],
-    masked_entities: list[OperatorResult]
+    original_entities: list[RecognizerResult], masked_entities: list[OperatorResult]
 ) -> dict[tuple[int, int], dict[str, Any]]:
     """Create mapping between original and masked entities.
 

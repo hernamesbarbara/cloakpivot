@@ -230,11 +230,7 @@ class CloakEngine:
         return CloakEngineBuilder()
 
     @classmethod
-    def from_factory(
-        cls,
-        factory: EngineFactory | None = None,
-        **kwargs: Any
-    ) -> "CloakEngine":
+    def from_factory(cls, factory: EngineFactory | None = None, **kwargs: Any) -> "CloakEngine":
         """Create a CloakEngine using an EngineFactory.
 
         Args:

@@ -480,9 +480,7 @@ class TestModuleAttributes:
 
         # Package should have some way to identify version
         # Could be __version__, VERSION, or version attribute
-        any(
-            hasattr(cloakpivot, attr) for attr in ["__version__", "VERSION", "version", "__all__"]
-        )
+        any(hasattr(cloakpivot, attr) for attr in ["__version__", "VERSION", "version", "__all__"])
         assert True  # Don't fail if no version
 
     def test_module_all_exports(self):

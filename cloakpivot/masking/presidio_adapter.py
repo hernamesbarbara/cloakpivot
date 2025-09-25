@@ -96,8 +96,12 @@ class PresidioMaskingAdapter:
                     self._anonymizer_instance = AnonymizerEngine()
                     logger.debug("AnonymizerEngine initialized")
                     # Initialize processors now that anonymizer exists
-                    self.entity_processor = EntityProcessor(self._anonymizer_instance, self.operator_mapper)
-                    self.strategy_processor = StrategyProcessor(self._anonymizer_instance, self.operator_mapper)
+                    self.entity_processor = EntityProcessor(
+                        self._anonymizer_instance, self.operator_mapper
+                    )
+                    self.strategy_processor = StrategyProcessor(
+                        self._anonymizer_instance, self.operator_mapper
+                    )
                     self.text_processor = TextProcessor()
                     self.document_reconstructor = DocumentReconstructor()
                     self.metadata_manager = MetadataManager()
@@ -227,7 +231,8 @@ class PresidioMaskingAdapter:
         if self.entity_processor is None:
             # Ensure processor is initialized
             _ = self.anonymizer
-        return self.entity_processor.validate_entities(entities, document_length)
+        assert self.entity_processor is not None
+        return self.entity_processor.validate_entities(entities, document_length)  # type: ignore
 
     # Entity boundary validation delegated to EntityProcessor
     def _validate_entities_against_boundaries(
@@ -240,7 +245,8 @@ class PresidioMaskingAdapter:
         # Delegate to EntityProcessor
         if self.entity_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
-        return self.entity_processor.validate_entities_against_boundaries(
+        assert self.entity_processor is not None
+        return self.entity_processor.validate_entities_against_boundaries(  # type: ignore
             entities, document_text, segment_boundaries
         )
 
@@ -251,7 +257,8 @@ class PresidioMaskingAdapter:
         # Delegate to MetadataManager
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processors are initialized
-        return self.metadata_manager.prepare_strategies(entities, policy)
+        assert self.metadata_manager is not None
+        return self.metadata_manager.prepare_strategies(entities, policy)  # type: ignore
 
     def _compute_replacements(
         self,
@@ -686,7 +693,7 @@ class PresidioMaskingAdapter:
         # Delegate to MetadataManager
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
-
+        assert self.metadata_manager is not None
         # Convert op_results_by_pos to list for metadata manager
         op_results = list(op_results_by_pos.values())
         return self.metadata_manager.enhance_cloakmap_with_metadata(
@@ -701,7 +708,8 @@ class PresidioMaskingAdapter:
         # Delegate to EntityProcessor
         if self.entity_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
-        return self.entity_processor.filter_overlapping_entities(entities)
+        assert self.entity_processor is not None
+        return self.entity_processor.filter_overlapping_entities(entities)  # type: ignore
 
     # Batch processing delegated to EntityProcessor
     def _batch_process_entities(
@@ -711,7 +719,8 @@ class PresidioMaskingAdapter:
         # Delegate to EntityProcessor
         if self.entity_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
-        return self.entity_processor.batch_process_entities(text, entities, strategies)
+        assert self.entity_processor is not None
+        return self.entity_processor.batch_process_entities(text, entities, strategies)  # type: ignore
 
     def _apply_hash_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
@@ -729,7 +738,9 @@ class PresidioMaskingAdapter:
         # Delegate to StrategyProcessor
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
-        return self.strategy_processor.apply_partial_strategy(text, entity_type, strategy, confidence)
+        return self.strategy_processor.apply_partial_strategy(
+            text, entity_type, strategy, confidence
+        )
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
@@ -757,6 +768,7 @@ class PresidioMaskingAdapter:
         # Delegate to MetadataManager
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
         return self.metadata_manager.operator_result_to_dict(result)
 
     def _create_synthetic_result(
@@ -766,7 +778,8 @@ class PresidioMaskingAdapter:
         # Delegate to EntityProcessor
         if self.entity_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
-        return self.entity_processor.create_synthetic_result(entity, strategy, text)
+        assert self.entity_processor is not None
+        return self.entity_processor.create_synthetic_result(entity, strategy, text)  # type: ignore
 
     def _get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
         """Identify which operators are reversible.
@@ -777,6 +790,7 @@ class PresidioMaskingAdapter:
         # Delegate to MetadataManager
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
         return self.metadata_manager.get_reversible_operators(strategies)
 
     def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
@@ -792,6 +806,7 @@ class PresidioMaskingAdapter:
         # Delegate to TextProcessor
         if self.text_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
+        assert self.text_processor is not None
         return self.text_processor.find_segment_for_position(position, segments)
 
     def _update_table_cells(

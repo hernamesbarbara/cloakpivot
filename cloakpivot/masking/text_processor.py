@@ -20,7 +20,7 @@ SEGMENT_SEPARATOR = "\n\n"
 class TextProcessor:
     """Process text operations for masking."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the text processor."""
         self._segment_starts: list[int] | None = None
 
@@ -150,9 +150,7 @@ class TextProcessor:
         # Apply all spans efficiently
         return self.apply_spans(text, spans)
 
-    def find_segment_for_position(
-        self, position: int, segments: list[TextSegment]
-    ) -> str | None:
+    def find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment containing a given position.
 
         Uses binary search for efficiency with large documents.

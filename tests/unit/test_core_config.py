@@ -229,7 +229,10 @@ class TestEnvironmentLoading:
             "MAX_WORKERS": "-5",
             "GC_FREQUENCY": "0",
         }
-        with patch.dict(os.environ, env_vars, clear=True), patch("cloakpivot.core.utilities.config.logger") as mock_logger:
+        with (
+            patch.dict(os.environ, env_vars, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
             config = PerformanceConfig.from_environment()
             assert config.analyzer_cache_size == 8
             assert config.max_worker_threads is None
@@ -239,7 +242,9 @@ class TestEnvironmentLoading:
 
     def test_from_environment_exception_handling(self):
         """Test from_environment handles exceptions gracefully."""
-        with patch("cloakpivot.core.utilities.config.PerformanceConfig._get_env_string") as mock_get:
+        with patch(
+            "cloakpivot.core.utilities.config.PerformanceConfig._get_env_string"
+        ) as mock_get:
             mock_get.side_effect = Exception("Test error")
             with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
                 config = PerformanceConfig.from_environment()
@@ -298,13 +303,19 @@ class TestEnvironmentLoading:
             assert result == 25
 
         # Test zero (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True), patch("cloakpivot.core.utilities.config.logger") as mock_logger:
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
             result = PerformanceConfig._get_env_int("TEST_KEY", 10)
             assert result == 10  # Returns default
             mock_logger.warning.assert_called_once()
 
         # Test negative (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True), patch("cloakpivot.core.utilities.config.logger") as mock_logger:
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
             result = PerformanceConfig._get_env_int("TEST_KEY", 10)
             assert result == 10  # Returns default
             mock_logger.warning.assert_called_once()
@@ -315,7 +326,10 @@ class TestEnvironmentLoading:
             assert result == -5  # Negative allowed with allow_none
 
         # Test invalid integer
-        with patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True), patch("cloakpivot.core.utilities.config.logger") as mock_logger:
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
             result = PerformanceConfig._get_env_int("TEST_KEY", 15)
             assert result == 15  # Returns default
             mock_logger.warning.assert_called_once()

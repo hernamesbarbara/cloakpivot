@@ -30,7 +30,7 @@ UNKNOWN_ENTITY = "PII"
 class MetadataManager:
     """Manage metadata, anchors, and cloakmap operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the metadata manager."""
         self.cloakmap_enhancer = CloakMapEnhancer()
         self.text_processor = TextProcessor()
@@ -175,7 +175,9 @@ class MetadataManager:
         """
         # Debug type check
         if not isinstance(policy, MaskingPolicy):
-            logger.error(f"prepare_strategies got wrong type for policy: {type(policy)}, value: {policy}")
+            logger.error(
+                f"prepare_strategies got wrong type for policy: {type(policy)}, value: {policy}"
+            )
             # Swapped parameters? Try to fix
             if isinstance(entities, MaskingPolicy) and isinstance(policy, list):
                 entities, policy = policy, entities
@@ -239,7 +241,7 @@ class MetadataManager:
             cloakmap,
             operator_results=operator_result_dicts,
             engine_version="presidio",
-            reversible_operators=reversible_operators
+            reversible_operators=reversible_operators,
         )
 
     def get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
@@ -285,16 +287,18 @@ class MetadataManager:
         Returns:
             Statistics dictionary
         """
-        stats = {
+        stats: dict[str, Any] = {
             "total_masked": len(op_results),
             "operators_used": {},
         }
 
         for result in op_results:
             operator = getattr(result, "operator", "unknown")
-            if operator not in stats["operators_used"]:
-                stats["operators_used"][operator] = 0
-            stats["operators_used"][operator] += 1
+            ops_used = stats["operators_used"]
+            assert isinstance(ops_used, dict)
+            if operator not in ops_used:
+                ops_used[operator] = 0
+            ops_used[operator] += 1
 
         return stats
 

@@ -439,7 +439,10 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True), patch("cloakpivot.cli.config.logger") as mock_logger:
+            with (
+                patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True),
+                patch("cloakpivot.cli.config.logger") as mock_logger,
+            ):
                 config = get_config_from_env()
                 assert "max_batch_size" not in config
                 mock_logger.warning.assert_called_once()
@@ -454,7 +457,10 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True), patch("cloakpivot.cli.config.logger") as mock_logger:
+            with (
+                patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True),
+                patch("cloakpivot.cli.config.logger") as mock_logger,
+            ):
                 config = get_config_from_env()
                 assert "confidence_threshold" not in config
                 mock_logger.warning.assert_called_once()

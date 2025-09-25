@@ -41,9 +41,11 @@ def merge_cloakmaps(*cloakmaps):
     """Placeholder for merge_cloakmaps function."""
     pass
 
+
 def validate_cloakmap_integrity(cloakmap):
     """Placeholder for validate_cloakmap_integrity function."""
     return True
+
 
 # Export the essentials for backward compatibility
 __all__ = [

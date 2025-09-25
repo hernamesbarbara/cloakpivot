@@ -77,7 +77,9 @@ class TestDocumentProcessor:
     @patch("cloakpivot.document.processor.json.load")
     @patch("cloakpivot.document.processor.DoclingDocument.model_validate")
     @patch("cloakpivot.document.processor.DoclingDocument.model_validate_json")
-    def test_load_document_with_validation(self, mock_validate_json, mock_validate, mock_json_load, mock_path_open):
+    def test_load_document_with_validation(
+        self, mock_validate_json, mock_validate, mock_json_load, mock_path_open
+    ):
         """Test document loading with validation."""
         # Setup
         test_data = {"test": "data", "version": "1.6.0"}
@@ -105,51 +107,55 @@ class TestDocumentProcessor:
     def test_load_document_file_not_found(self):
         """Test loading non-existent document."""
         import pytest
-        
+
         processor = DocumentProcessor(enable_chunked_processing=False)
 
         # Execute and verify
         with pytest.raises(FileNotFoundError, match="File not found"):
             processor.load_document("nonexistent.json")
-        
+
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open", side_effect=PermissionError("Access denied"))
     def test_load_document_permission_error(self, mock_path_open):
         """Test loading document with permission error."""
         import pytest
-        
+
         processor = DocumentProcessor(enable_chunked_processing=False)
 
         # Execute and verify
         with pytest.raises(RuntimeError, match="Unexpected error loading document"):
             processor.load_document("protected.json")
-        
+
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open")
-    @patch("cloakpivot.document.processor.json.load",
-           side_effect=json.JSONDecodeError("Invalid JSON", "doc", 0))
+    @patch(
+        "cloakpivot.document.processor.json.load",
+        side_effect=json.JSONDecodeError("Invalid JSON", "doc", 0),
+    )
     def test_load_document_invalid_json(self, mock_json_load, mock_path_open):
         """Test loading document with invalid JSON."""
         import pytest
-        
+
         processor = DocumentProcessor(enable_chunked_processing=False)
 
         # Execute and verify
         with pytest.raises(ValueError, match="Invalid JSON"):
             processor.load_document("invalid.json")
-        
+
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open")
     @patch("cloakpivot.document.processor.json.load")
-    @patch("cloakpivot.document.processor.DoclingDocument.model_validate",
-           side_effect=ValueError("Invalid document structure"))
+    @patch(
+        "cloakpivot.document.processor.DoclingDocument.model_validate",
+        side_effect=ValueError("Invalid document structure"),
+    )
     def test_load_document_validation_error(self, mock_validate, mock_json_load, mock_path_open):
         """Test loading document with validation error."""
         import pytest
-        
+
         mock_json_load.return_value = {"invalid": "data"}
 
         processor = DocumentProcessor(enable_chunked_processing=False)
@@ -157,7 +163,7 @@ class TestDocumentProcessor:
         # Execute and verify
         with pytest.raises(RuntimeError, match="Unexpected error loading document"):
             processor.load_document("test.json")
-        
+
         assert processor._stats.errors_encountered == 1
 
     # Note: load_multiple method was removed from DocumentProcessor

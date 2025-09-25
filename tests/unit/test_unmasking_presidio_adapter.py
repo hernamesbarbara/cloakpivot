@@ -38,7 +38,10 @@ class TestPresidioUnmaskingAdapter:
             presidio_metadata={"operators": []},  # v2.0 feature
         )
 
-        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True), patch.object(adapter, "_presidio_deanonymization") as mock_presidio:
+        with (
+            patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True),
+            patch.object(adapter, "_presidio_deanonymization") as mock_presidio,
+        ):
             mock_result = Mock(spec=UnmaskingResult)
             mock_presidio.return_value = mock_result
 
@@ -59,7 +62,10 @@ class TestPresidioUnmaskingAdapter:
         # Create v1.0 cloakmap without Presidio metadata
         cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
 
-        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False), patch.object(adapter, "_anchor_based_restoration") as mock_anchor:
+        with (
+            patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False),
+            patch.object(adapter, "_anchor_based_restoration") as mock_anchor,
+        ):
             mock_result = Mock(spec=UnmaskingResult)
             mock_anchor.return_value = mock_result
 
@@ -180,7 +186,10 @@ class TestPresidioUnmaskingAdapter:
         )
 
         # Since _presidio_deanonymization is private, we test through public interface
-        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True), patch.object(adapter.deanonymizer, "deanonymize") as mock_deanon:
+        with (
+            patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True),
+            patch.object(adapter.deanonymizer, "deanonymize") as mock_deanon,
+        ):
             mock_deanon.return_value.text = "Masked Alice"
             mock_deanon.return_value.items = []
 
@@ -209,7 +218,10 @@ class TestPresidioUnmaskingAdapter:
 
         cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
 
-        with patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False), patch.object(adapter.document_unmasker, "apply_unmasking") as mock_unmask:
+        with (
+            patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=False),
+            patch.object(adapter.document_unmasker, "apply_unmasking") as mock_unmask,
+        ):
             mock_result = {"successful_restorations": 1, "failed_restorations": 0}
             mock_unmask.return_value = mock_result
 
@@ -217,6 +229,7 @@ class TestPresidioUnmaskingAdapter:
 
             # Check that we got an UnmaskingResult object
             from cloakpivot.unmasking.engine import UnmaskingResult
+
             assert isinstance(result, UnmaskingResult)
             assert result.stats["anchor_restored"] == 1
             assert result.stats["anchor_failed"] == 0
@@ -289,7 +302,11 @@ class TestPresidioUnmaskingAdapter:
 
         cloakmap = CloakMap(doc_id="log_test", doc_hash="hash", anchors=[])
 
-        with patch("cloakpivot.unmasking.presidio_adapter.logger") as mock_logger, patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True), patch.object(adapter, "_presidio_deanonymization") as mock_method:
+        with (
+            patch("cloakpivot.unmasking.presidio_adapter.logger") as mock_logger,
+            patch.object(adapter.cloakmap_enhancer, "is_presidio_enabled", return_value=True),
+            patch.object(adapter, "_presidio_deanonymization") as mock_method,
+        ):
             mock_method.return_value = Mock(spec=UnmaskingResult)
 
             adapter.unmask_document(doc, cloakmap)

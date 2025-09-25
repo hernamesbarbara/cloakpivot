@@ -79,7 +79,7 @@ class PerformanceBenchmark:
                 start_offset=offset,
                 end_offset=offset + len(text),
                 node_id=f"#/texts/{i}",
-                node_type="TextItem"
+                node_type="TextItem",
             )
             segments.append(segment)
             offset += len(text)
@@ -112,7 +112,9 @@ class TestApplySpansPerformance:
         assert len(result) > 0
         assert "[MASK0]" in result
 
-        print(f"✓ apply_spans: {len(many_spans)} spans on {len(large_text)} chars in {execution_time:.3f}s")
+        print(
+            f"✓ apply_spans: {len(many_spans)} spans on {len(large_text)} chars in {execution_time:.3f}s"
+        )
 
     def test_medium_document_performance(self):
         """Test with medium-sized document (typical use case)."""
@@ -177,7 +179,9 @@ class TestDocumentBuildingPerformance:
         assert len(document_text) > 90_000  # ~100KB
         assert len(boundaries) == 100
 
-        print(f"✓ Large segments: {len(segments)} segments, {len(document_text)} chars in {execution_time:.3f}s")
+        print(
+            f"✓ Large segments: {len(segments)} segments, {len(document_text)} chars in {execution_time:.3f}s"
+        )
 
 
 class TestStrategyMappingPerformance:
@@ -189,29 +193,26 @@ class TestStrategyMappingPerformance:
 
         # Create a strategy for testing
         strategy = Strategy(
-            kind=StrategyKind.REDACT,
-            parameters={"char": "#", "preserve_length": True}
+            kind=StrategyKind.REDACT, parameters={"char": "#", "preserve_length": True}
         )
 
         # First call (cache miss)
-        _, first_time = PerformanceBenchmark.time_function(
-            mapper.strategy_to_operator, strategy
-        )
+        _, first_time = PerformanceBenchmark.time_function(mapper.strategy_to_operator, strategy)
 
         # Subsequent calls (cache hits)
         cache_times = []
         for _ in range(100):
-            _, call_time = PerformanceBenchmark.time_function(
-                mapper.strategy_to_operator, strategy
-            )
+            _, call_time = PerformanceBenchmark.time_function(mapper.strategy_to_operator, strategy)
             cache_times.append(call_time)
 
         avg_cache_time = sum(cache_times) / len(cache_times)
 
         # Cache hits should be significantly faster (at least 2x)
-        speedup_ratio = first_time / avg_cache_time if avg_cache_time > 0 else float('inf')
+        speedup_ratio = first_time / avg_cache_time if avg_cache_time > 0 else float("inf")
 
-        print(f"✓ Strategy mapping: first call {first_time:.6f}s, cached avg {avg_cache_time:.6f}s, speedup: {speedup_ratio:.1f}x")
+        print(
+            f"✓ Strategy mapping: first call {first_time:.6f}s, cached avg {avg_cache_time:.6f}s, speedup: {speedup_ratio:.1f}x"
+        )
 
         # Performance assertion - caching should provide some benefit
         assert speedup_ratio > 1.5, f"Insufficient cache benefit: {speedup_ratio:.1f}x speedup"
@@ -234,9 +235,7 @@ class TestStrategyMappingPerformance:
         # Second round - measure cache performance
         total_time = 0
         for strategy in strategies:
-            _, call_time = PerformanceBenchmark.time_function(
-                mapper.strategy_to_operator, strategy
-            )
+            _, call_time = PerformanceBenchmark.time_function(mapper.strategy_to_operator, strategy)
             total_time += call_time
 
         avg_cached_time = total_time / len(strategies)

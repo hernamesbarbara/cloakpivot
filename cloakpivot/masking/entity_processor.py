@@ -38,9 +38,9 @@ class EntityProcessor:
         self.strategy_processor = StrategyProcessor(anonymizer, operator_mapper)
 
         # Cache for expensive operations
-        self._overlap_cache: dict[tuple, bool] = {}
-        self._validation_cache: dict[tuple, list] = {}
-        self._batch_cache: dict[tuple, list] = {}
+        self._overlap_cache: dict[tuple[Any, ...], bool] = {}
+        self._validation_cache: dict[tuple[Any, ...], list[Any]] = {}
+        self._batch_cache: dict[tuple[Any, ...], list[Any]] = {}
         self._max_cache_size = 256
 
     def validate_entities(
@@ -183,7 +183,8 @@ class EntityProcessor:
 
         # Create cache key from entity positions and scores
         cache_key = tuple(
-            (e.start, e.end, e.score, e.entity_type) for e in sorted(entities, key=lambda x: x.start)
+            (e.start, e.end, e.score, e.entity_type)
+            for e in sorted(entities, key=lambda x: x.start)
         )
 
         # Check cache

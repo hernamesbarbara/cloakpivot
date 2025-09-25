@@ -41,9 +41,7 @@ class CloakMapSerializer:
     @staticmethod
     def to_json(cloakmap: "CloakMap", indent: int | None = None) -> str:
         """Convert CloakMap to JSON string."""
-        return json.dumps(
-            CloakMapSerializer.to_dict(cloakmap), indent=indent, ensure_ascii=False
-        )
+        return json.dumps(CloakMapSerializer.to_dict(cloakmap), indent=indent, ensure_ascii=False)
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "CloakMap":

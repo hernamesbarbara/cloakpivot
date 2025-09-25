@@ -94,6 +94,7 @@ class TestSerializationResult:
 
             # Verify file was created with correct content
             from pathlib import Path
+
             with Path(file_path).open() as f:
                 saved_content = f.read()
             assert saved_content == "Test content to save"
