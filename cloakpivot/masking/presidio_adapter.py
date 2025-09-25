@@ -246,8 +246,8 @@ class PresidioMaskingAdapter:
         if self.entity_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.entity_processor is not None
-        return self.entity_processor.validate_entities_against_boundaries(  # type: ignore
-            entities, document_text, segment_boundaries
+        return self.entity_processor.validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries  # type: ignore
         )
 
     def _prepare_strategies(
@@ -697,7 +697,7 @@ class PresidioMaskingAdapter:
         # Convert op_results_by_pos to list for metadata manager
         op_results = list(op_results_by_pos.values())
         return self.metadata_manager.enhance_cloakmap_with_metadata(
-            base_cloakmap, strategies, entities, op_results
+            base_cloakmap, strategies, entities, op_results  # type: ignore
         )
 
     # Overlap filtering delegated to EntityProcessor

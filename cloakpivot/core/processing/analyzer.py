@@ -410,8 +410,8 @@ class AnalyzerEngineWrapper:
         from ..loaders import get_presidio_analyzer, get_presidio_analyzer_from_config
 
         if config is not None:
-            return get_presidio_analyzer_from_config(config)
-        return get_presidio_analyzer()
+            return get_presidio_analyzer_from_config(config)  # type: ignore
+        return get_presidio_analyzer()  # type: ignore
 
     def _get_spacy_model_name(self, language: str) -> str:
         """Get the appropriate spaCy model name based on language and size preference.

@@ -282,7 +282,7 @@ class EntityProcessor:
 
                 # Use Presidio for non-surrogate entities with ORIGINAL text
                 result = self.anonymizer.anonymize(
-                    text=text, analyzer_results=presidio_entities, operators=operators
+                    text=text, analyzer_results=presidio_entities, operators=operators  # type: ignore
                 )
 
                 # Combine results with explicit typing

@@ -1,7 +1,8 @@
 """Core functionality for CloakPivot masking and unmasking operations."""
 
-# Essential imports for backward compatibility - only import what we know exists and is needed
+from typing import Any
 
+# Essential imports for backward compatibility - only import what we know exists and is needed
 # Core data structures
 # Essential policies
 from .policies.policies import CONSERVATIVE_POLICY, PARTIAL_POLICY, TEMPLATE_POLICY, MaskingPolicy
@@ -37,12 +38,12 @@ from .utilities.cloakmap_validator import CloakMapValidator
 
 
 # Validation functions
-def merge_cloakmaps(*cloakmaps):
+def merge_cloakmaps(*cloakmaps: Any) -> None:
     """Placeholder for merge_cloakmaps function."""
     pass
 
 
-def validate_cloakmap_integrity(cloakmap):
+def validate_cloakmap_integrity(cloakmap: Any) -> bool:
     """Placeholder for validate_cloakmap_integrity function."""
     return True
 
