@@ -1,5 +1,6 @@
 """Tests to improve engine coverage."""
 
+import json
 from unittest.mock import Mock
 
 from cloakpivot.core.policies.policies import MaskingPolicy
@@ -7,6 +8,34 @@ from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.engine import CloakEngine
 from cloakpivot.type_imports import DoclingDocument
+
+
+def create_mock_docling_document(text: str, name: str = "test.txt") -> Mock:
+    """Create a mock DoclingDocument with all required attributes."""
+    doc = Mock(spec=DoclingDocument)
+    doc.export_to_markdown.return_value = text
+    doc.name = name
+
+    # Add texts attribute with mock text items
+    text_item = Mock()
+    text_item.text = text
+    text_item.self_ref = "#/texts/0"  # Add self_ref attribute
+    text_item.label = "text"  # Add label attribute
+    text_item.orig = text  # Add orig attribute
+    doc.texts = [text_item]
+    doc.tables = []  # Empty tables list
+    doc.key_value_items = []  # Empty key-value items list
+
+    # Mock the model_dump_json() method for Pydantic serialization
+    doc_dict = {
+        "name": name,
+        "texts": [{"text": text, "self_ref": "#/texts/0", "label": "text", "orig": text}],
+        "tables": [],
+        "key_value_items": [],
+    }
+    doc.model_dump_json.return_value = json.dumps(doc_dict)
+
+    return doc
 
 
 class TestEngineBasicCoverage:
@@ -44,10 +73,8 @@ class TestEngineBasicCoverage:
         """Test basic mask_document functionality."""
         engine = CloakEngine()
 
-        # Create a real DoclingDocument mock
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Test document with email@example.com"
-        doc.name = "test.txt"
+        # Create a mock DoclingDocument with all required attributes
+        doc = create_mock_docling_document("Test document with email@example.com", "test.txt")
 
         result = engine.mask_document(doc)
 
@@ -61,9 +88,7 @@ class TestEngineBasicCoverage:
         """Test mask_document with specific entities."""
         engine = CloakEngine()
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "John Doe sent an email"
-        doc.name = "test.txt"
+        doc = create_mock_docling_document("John Doe sent an email", "test.txt")
 
         result = engine.mask_document(doc, entities=["PERSON"])
 
@@ -75,9 +100,7 @@ class TestEngineBasicCoverage:
         """Test mask_document with custom policy."""
         engine = CloakEngine()
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Contact: email@example.com"
-        doc.name = "test.txt"
+        doc = create_mock_docling_document("Contact: email@example.com", "test.txt")
 
         strategy = Strategy(kind=StrategyKind.REDACT)
         policy = MaskingPolicy(
@@ -95,9 +118,7 @@ class TestEngineBasicCoverage:
         """Test basic unmask_document functionality."""
         engine = CloakEngine()
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Masked document with [EMAIL]"
-        doc.name = "masked.txt"
+        doc = create_mock_docling_document("Masked document with [EMAIL]", "masked.txt")
 
         cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
 
@@ -108,8 +129,7 @@ class TestEngineBasicCoverage:
     def test_engine_with_custom_config(self):
         """Test engine with custom configuration."""
         conflict_config = {
-            "resolve_overlaps": True,
-            "prioritize_longer_entities": True,
+            "overlap_policy": "resolve_all",
         }
 
         engine = CloakEngine(
@@ -130,7 +150,7 @@ class TestEngineBasicCoverage:
         )
 
         conflict_config = {
-            "resolve_overlaps": False,
+            "overlap_policy": "allow_partial",
         }
 
         engine = CloakEngine(
@@ -145,9 +165,7 @@ class TestEngineBasicCoverage:
         analyzer_config = {"confidence_threshold": 0.5}
         engine = CloakEngine(analyzer_config=analyzer_config)
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Some text"
-        doc.name = "test.txt"
+        doc = create_mock_docling_document("Some text", "test.txt")
 
         result = engine.mask_document(doc)
         assert result is not None
@@ -156,9 +174,7 @@ class TestEngineBasicCoverage:
         """Test unmasking with empty cloakmap."""
         engine = CloakEngine()
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "No masked content"
-        doc.name = "test.txt"
+        doc = create_mock_docling_document("No masked content", "test.txt")
 
         cloakmap = CloakMap(doc_id="test_doc", doc_hash="test_hash", anchors=[])
 
@@ -169,9 +185,7 @@ class TestEngineBasicCoverage:
         """Test entities parameter with different types."""
         engine = CloakEngine()
 
-        doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Test text"
-        doc.name = "test.txt"
+        doc = create_mock_docling_document("Test text", "test.txt")
 
         # Test with list of strings
         result1 = engine.mask_document(doc, entities=["PERSON", "EMAIL"])

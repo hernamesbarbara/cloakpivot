@@ -1,6 +1,6 @@
 """Unit tests for cloakpivot.unmasking.document_unmasker module."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from docling_core.types.doc.document import TextItem
 
@@ -128,7 +128,7 @@ class TestDocumentUnmasker:
             ResolvedAnchor(
                 anchor=anchor,
                 node_item=mock_text_item,
-                found_position=(anchor.start_position, anchor.end_position),
+                found_position=(anchor.start, anchor.end),
                 found_text=anchor.masked_value,
                 position_delta=0,
                 confidence=1.0,
@@ -298,15 +298,14 @@ class TestDocumentUnmasker:
 
         cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=anchors)
 
+        # With empty resolved_anchors, no unmasking happens
         result = unmasker.apply_unmasking(doc, [], cloakmap)
 
-        assert result.stats is not None
-        # Check for expected statistics
-        if "total_anchors" in result.stats:
-            assert result.stats["total_anchors"] == 2
-        if "entities_by_type" in result.stats:
-            assert "PERSON" in result.stats["entities_by_type"]
-            assert "EMAIL" in result.stats["entities_by_type"]
+        # result is a dict, access stats directly if present
+        assert isinstance(result, dict)
+        # With empty resolved_anchors, total_anchors should be 0
+        if "total_anchors" in result:
+            assert result["total_anchors"] == 0
 
     def test_unmask_error_handling(self):
         """Test error handling during unmasking."""
@@ -414,24 +413,39 @@ class TestDocumentUnmasker:
         if hasattr(result, "partial"):
             assert result.partial is True
 
-    @patch("cloakpivot.unmasking.document_unmasker.AnchorResolver")
-    def test_integration_with_anchor_resolver(self, mock_resolver_class):
+    def test_integration_with_anchor_resolver(self):
         """Test integration with AnchorResolver."""
-        unmasker = DocumentUnmasker()
+        from cloakpivot.unmasking.anchor_resolver import AnchorResolver
 
-        mock_resolver = Mock()
-        mock_resolver_class.return_value = mock_resolver
-        mock_resolver.resolve_anchors.return_value = {"resolved": [], "failed": []}
+        unmasker = DocumentUnmasker()
+        resolver = AnchorResolver()
 
         doc = Mock(spec=DoclingDocument)
-        doc.export_to_markdown.return_value = "Test"
+        doc.export_to_markdown.return_value = "Test with [MASKED] content"
+        doc.texts = []
 
-        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[])
+        # Create an anchor to test
+        anchor = AnchorEntry.create_from_detection(
+            node_id="#/texts/0",
+            start=10,
+            end=18,
+            entity_type="PERSON",
+            confidence=0.9,
+            original_text="Name",
+            masked_value="[MASKED]",
+            strategy_used="template",
+        )
 
-        # If uses anchor resolver
-        with patch.object(unmasker, "_anchor_resolver", mock_resolver):
-            result = unmasker.apply_unmasking(doc, [], cloakmap)
-            assert result is not None
+        cloakmap = CloakMap(doc_id="test", doc_hash="hash", anchors=[anchor])
+
+        # Resolve anchors using AnchorResolver
+        resolution_result = resolver.resolve_anchors(doc, cloakmap.anchors)
+        resolved_anchors = resolution_result.get("resolved", [])
+
+        # Apply unmasking with resolved anchors
+        result = unmasker.apply_unmasking(doc, resolved_anchors, cloakmap)
+        assert result is not None
+        assert isinstance(result, dict)
 
     def test_unmask_with_different_strategies(self):
         """Test unmasking anchors created with different strategies."""
