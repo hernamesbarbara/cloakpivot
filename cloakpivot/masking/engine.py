@@ -213,7 +213,7 @@ class MaskingEngine:
         # Delegate to PresidioMaskingAdapter
         return self.presidio_adapter.mask_document(
             document=document,
-            entities=anonymizer_entities,
+            entities=anonymizer_entities,  # type: ignore[arg-type]
             policy=policy,
             text_segments=text_segments,
             original_format=original_format,

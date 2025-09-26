@@ -69,7 +69,7 @@ class TestCoreImports:
 
     def test_core_model_info(self):
         """Test core.model_info module imports."""
-        from cloakpivot.core.model_info import MODEL_CHARACTERISTICS
+        from cloakpivot.core.types.model_info import MODEL_CHARACTERISTICS
 
         assert MODEL_CHARACTERISTICS is not None
 

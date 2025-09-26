@@ -139,7 +139,7 @@ class TestLoaderFunctions:
         mock_wrapper.return_value = mock_instance
 
         result = get_presidio_analyzer(
-            language="es", confidence_threshold=0.9, nlp_engine_name="spacy"
+            language="es", min_confidence=0.9, nlp_engine_name="spacy"
         )
         assert result is not None
 

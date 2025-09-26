@@ -7,8 +7,8 @@ import logging
 import threading
 from typing import Any
 
+from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import RecognizerResult
 
 try:
     import presidio_anonymizer
@@ -107,6 +107,41 @@ class PresidioMaskingAdapter:
                     self.metadata_manager = MetadataManager()
         return self._anonymizer_instance
 
+    def _ep(self) -> EntityProcessor:
+        """Return a guaranteed-initialized EntityProcessor."""
+        if self.entity_processor is None:
+            _ = self.anonymizer  # ensures processors are created
+        assert self.entity_processor is not None
+        return self.entity_processor
+
+    def _sp(self) -> StrategyProcessor:
+        """Return a guaranteed-initialized StrategyProcessor."""
+        if self.strategy_processor is None:
+            _ = self.anonymizer
+        assert self.strategy_processor is not None
+        return self.strategy_processor
+
+    def _tp(self) -> TextProcessor:
+        """Return a guaranteed-initialized TextProcessor."""
+        if self.text_processor is None:
+            _ = self.anonymizer
+        assert self.text_processor is not None
+        return self.text_processor
+
+    def _dr(self) -> DocumentReconstructor:
+        """Return a guaranteed-initialized DocumentReconstructor."""
+        if self.document_reconstructor is None:
+            _ = self.anonymizer
+        assert self.document_reconstructor is not None
+        return self.document_reconstructor
+
+    def _mm(self) -> MetadataManager:
+        """Return a guaranteed-initialized MetadataManager."""
+        if self.metadata_manager is None:
+            _ = self.anonymizer
+        assert self.metadata_manager is not None
+        return self.metadata_manager
+
     def apply_strategy(
         self,
         original_text: str,
@@ -167,7 +202,7 @@ class PresidioMaskingAdapter:
             # Use Presidio to anonymize
             result = self.anonymizer.anonymize(
                 text=original_text,
-                analyzer_results=[entity],
+                analyzer_results=[entity],  # type: ignore[list-item]
                 operators={entity_type: operator_config},
             )
 
@@ -228,11 +263,7 @@ class PresidioMaskingAdapter:
             List of valid entities within document bounds
         """
         # Delegate to EntityProcessor
-        if self.entity_processor is None:
-            # Ensure processor is initialized
-            _ = self.anonymizer
-        assert self.entity_processor is not None
-        return self.entity_processor.validate_entities(entities, document_length)  # type: ignore
+        return self._ep().validate_entities(entities, document_length)
 
     # Entity boundary validation delegated to EntityProcessor
     def _validate_entities_against_boundaries(
@@ -243,11 +274,8 @@ class PresidioMaskingAdapter:
     ) -> list[RecognizerResult]:
         """Validate and adjust entities to not span across segment boundaries."""
         # Delegate to EntityProcessor
-        if self.entity_processor is None:
-            _ = self.anonymizer  # Ensure processor is initialized
-        assert self.entity_processor is not None
-        return self.entity_processor.validate_entities_against_boundaries(
-            entities, document_text, segment_boundaries  # type: ignore
+        return self._ep().validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
         )
 
     def _prepare_strategies(
@@ -255,10 +283,7 @@ class PresidioMaskingAdapter:
     ) -> dict[str, Strategy]:
         """Prepare masking strategies for each entity type."""
         # Delegate to MetadataManager
-        if self.metadata_manager is None:
-            _ = self.anonymizer  # Ensure processors are initialized
-        assert self.metadata_manager is not None
-        return self.metadata_manager.prepare_strategies(entities, policy)  # type: ignore
+        return self._mm().prepare_strategies(entities, policy)
 
     def _compute_replacements(
         self,
@@ -696,8 +721,8 @@ class PresidioMaskingAdapter:
         assert self.metadata_manager is not None
         # Convert op_results_by_pos to list for metadata manager
         op_results = list(op_results_by_pos.values())
-        return self.metadata_manager.enhance_cloakmap_with_metadata(
-            base_cloakmap, strategies, entities, op_results  # type: ignore
+        return self._mm().enhance_cloakmap_with_metadata(
+            base_cloakmap, strategies, entities, op_results
         )
 
     # Overlap filtering delegated to EntityProcessor
@@ -706,10 +731,7 @@ class PresidioMaskingAdapter:
     ) -> list[RecognizerResult]:
         """Filter out overlapping entities, keeping the highest confidence or longest match."""
         # Delegate to EntityProcessor
-        if self.entity_processor is None:
-            _ = self.anonymizer  # Ensure processor is initialized
-        assert self.entity_processor is not None
-        return self.entity_processor.filter_overlapping_entities(entities)  # type: ignore
+        return self._ep().filter_overlapping_entities(entities)
 
     # Batch processing delegated to EntityProcessor
     def _batch_process_entities(
@@ -717,10 +739,7 @@ class PresidioMaskingAdapter:
     ) -> list[OperatorResultLike]:
         """Process multiple entities in a single batch for efficiency."""
         # Delegate to EntityProcessor
-        if self.entity_processor is None:
-            _ = self.anonymizer  # Ensure processor is initialized
-        assert self.entity_processor is not None
-        return self.entity_processor.batch_process_entities(text, entities, strategies)  # type: ignore
+        return self._ep().batch_process_entities(text, entities, strategies)
 
     def _apply_hash_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
@@ -730,7 +749,7 @@ class PresidioMaskingAdapter:
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.strategy_processor is not None
-        return self.strategy_processor.apply_hash_strategy(text, entity_type, strategy, confidence)
+        return self._sp().apply_hash_strategy(text, entity_type, strategy, confidence)
 
     def _apply_partial_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
@@ -740,9 +759,7 @@ class PresidioMaskingAdapter:
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.strategy_processor is not None
-        return self.strategy_processor.apply_partial_strategy(
-            text, entity_type, strategy, confidence
-        )
+        return self._sp().apply_partial_strategy(text, entity_type, strategy, confidence)
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
@@ -750,7 +767,7 @@ class PresidioMaskingAdapter:
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.strategy_processor is not None
-        return self.strategy_processor.apply_custom_strategy(text, strategy)
+        return self._sp().apply_custom_strategy(text, strategy)
 
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
         """Apply surrogate strategy with high-quality fake data generation."""
@@ -758,7 +775,7 @@ class PresidioMaskingAdapter:
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.strategy_processor is not None
-        return self.strategy_processor.apply_surrogate_strategy(text, entity_type, strategy)
+        return self._sp().apply_surrogate_strategy(text, entity_type, strategy)
 
     def _fallback_redaction(self, text: str) -> str:
         """Simple fallback redaction when Presidio fails."""
@@ -766,7 +783,7 @@ class PresidioMaskingAdapter:
         if self.strategy_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.strategy_processor is not None
-        return self.strategy_processor._fallback_redaction(text)
+        return self._sp()._fallback_redaction(text)
 
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
         """Convert OperatorResult to dictionary for storage."""
@@ -774,17 +791,14 @@ class PresidioMaskingAdapter:
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.metadata_manager is not None
-        return self.metadata_manager.operator_result_to_dict(result)
+        return self._mm().operator_result_to_dict(result)
 
     def _create_synthetic_result(
         self, entity: RecognizerResult, strategy: Strategy, text: str
     ) -> SyntheticOperatorResult:
         """Create a synthetic OperatorResult for fallback scenarios."""
         # Delegate to EntityProcessor
-        if self.entity_processor is None:
-            _ = self.anonymizer  # Ensure processor is initialized
-        assert self.entity_processor is not None
-        return self.entity_processor.create_synthetic_result(entity, strategy, text)  # type: ignore
+        return self._ep().create_synthetic_result(entity, strategy, text)
 
     def _get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
         """Identify which operators are reversible.
@@ -796,7 +810,7 @@ class PresidioMaskingAdapter:
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.metadata_manager is not None
-        return self.metadata_manager.get_reversible_operators(strategies)
+        return self._mm().get_reversible_operators(strategies)
 
     def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment node_id for a given character position using binary search.
@@ -812,7 +826,7 @@ class PresidioMaskingAdapter:
         if self.text_processor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.text_processor is not None
-        return self.text_processor.find_segment_for_position(position, segments)
+        return self._tp().find_segment_for_position(position, segments)
 
     def _update_table_cells(
         self,
@@ -831,9 +845,7 @@ class PresidioMaskingAdapter:
         if self.document_reconstructor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.document_reconstructor is not None
-        self.document_reconstructor.update_table_cells(
-            masked_document, text_segments, anchor_entries
-        )
+        self._dr().update_table_cells(masked_document, text_segments, anchor_entries)
 
     def _get_table_node_id(self, table_item: Any) -> str:
         """Get the node ID for a table item."""
@@ -841,7 +853,7 @@ class PresidioMaskingAdapter:
         if self.document_reconstructor is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.document_reconstructor is not None
-        return self.document_reconstructor._get_table_node_id(table_item)
+        return self._dr()._get_table_node_id(table_item)
 
     def _cleanup_large_results(self, results: list[OperatorResultLike]) -> None:
         """Clean up large result sets for memory efficiency.
@@ -855,4 +867,4 @@ class PresidioMaskingAdapter:
         if self.metadata_manager is None:
             _ = self.anonymizer  # Ensure processor is initialized
         assert self.metadata_manager is not None
-        self.metadata_manager.cleanup_large_results(results)
+        self._mm().cleanup_large_results(results)

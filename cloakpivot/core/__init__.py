@@ -2,6 +2,14 @@
 
 from typing import Any
 
+# Import modules as submodules for test compatibility
+from . import policies
+from .policies import policy_loader
+from .processing import analyzer, cloakmap_enhancer, detection, normalization, presidio_mapper, surrogate
+from .types import anchors, cloakmap, results, strategies
+from .types import model_info  # Need to expose this directly
+from .utilities import validation
+
 # Essential imports for backward compatibility - only import what we know exists and is needed
 # Core data structures
 # Essential policies
@@ -50,6 +58,22 @@ def validate_cloakmap_integrity(cloakmap: Any) -> bool:
 
 # Export the essentials for backward compatibility
 __all__ = [
+    # Modules
+    "analyzer",
+    "anchors",
+    "cloakmap",
+    "cloakmap_enhancer",
+    "detection",
+    "model_info",
+    "normalization",
+    "policies",
+    "policy_loader",
+    "presidio_mapper",
+    "results",
+    "strategies",
+    "surrogate",
+    "validation",
+    # Classes and functions
     "Strategy",
     "StrategyKind",
     "DEFAULT_REDACT",

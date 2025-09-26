@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Any
 
-from docling_core.types.doc import DocItemLabel  # type: ignore
+from docling_core.types.doc import DocItemLabel  # type: ignore[attr-defined]
 from docling_core.types.doc.document import DoclingDocument, TextItem
 
 from cloakpivot.core.types.anchors import AnchorEntry

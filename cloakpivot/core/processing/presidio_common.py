@@ -252,17 +252,19 @@ def create_entity_mapping(
         }
 
     # Map masked entities
-    for entity in masked_entities:  # type: ignore
-        key = (entity.start, entity.end)
+    for masked_entity in masked_entities:
+        key = (masked_entity.start, masked_entity.end)
         if key in mapping:
-            mapping[key]["masked_text"] = entity.text  # type: ignore
-            mapping[key]["operator"] = entity.operator if hasattr(entity, "operator") else None
+            mapping[key]["masked_text"] = masked_entity.text
+            mapping[key]["operator"] = (
+                masked_entity.operator if hasattr(masked_entity, "operator") else None
+            )
         else:
             mapping[key] = {
                 "type": "masked",
-                "entity_type": entity.entity_type,
-                "text": entity.text,  # type: ignore
-                "operator": entity.operator if hasattr(entity, "operator") else None,
+                "entity_type": masked_entity.entity_type,
+                "text": masked_entity.text,
+                "operator": masked_entity.operator if hasattr(masked_entity, "operator") else None,
             }
 
     return mapping

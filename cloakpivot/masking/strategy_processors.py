@@ -57,7 +57,7 @@ class StrategyProcessor:
         # Use Presidio for the base hash
         operator_config = self.operator_mapper.strategy_to_operator(strategy)
         result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore
+            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore[list-item]
         )
 
         hashed_value = result.text
@@ -120,7 +120,7 @@ class StrategyProcessor:
         )
 
         result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore
+            text=text, analyzer_results=[entity], operators={entity_type: operator_config}  # type: ignore[list-item]
         )
 
         return str(result.text)
