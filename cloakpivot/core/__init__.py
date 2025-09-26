@@ -5,18 +5,29 @@ from typing import Any
 # Import modules as submodules for test compatibility
 from . import policies
 from .policies import policy_loader
-from .processing import analyzer, cloakmap_enhancer, detection, normalization, presidio_mapper, surrogate
-from .types import anchors, cloakmap, results, strategies
-from .types import model_info  # Need to expose this directly
-from .utilities import validation
 
 # Essential imports for backward compatibility - only import what we know exists and is needed
 # Core data structures
 # Essential policies
 from .policies.policies import CONSERVATIVE_POLICY, PARTIAL_POLICY, TEMPLATE_POLICY, MaskingPolicy
+from .processing import (
+    analyzer,
+    cloakmap_enhancer,
+    detection,
+    normalization,
+    presidio_mapper,
+    surrogate,
+)
 
 # Essential processing
 from .processing.surrogate import SurrogateGenerator
+from .types import (
+    anchors,
+    cloakmap,
+    model_info,  # Need to expose this directly
+    results,
+    strategies,
+)
 from .types.anchors import AnchorEntry, AnchorIndex
 from .types.cloakmap import CloakMap
 
@@ -39,6 +50,7 @@ from .types.strategies import (
     Strategy,
     StrategyKind,
 )
+from .utilities import validation
 
 # Essential utilities
 from .utilities.cloakmap_serializer import CloakMapSerializer
