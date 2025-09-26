@@ -122,32 +122,34 @@ def isolate_test_state() -> Generator[None, None, None]:
     # Reset Faker seed if available
     try:
         from faker import Faker
+
         Faker.seed(42)
     except ImportError:
         pass
 
     # Clean up any Mock patches on DoclingDocument
-    from docling_core.types import DoclingDocument
     from unittest.mock import Mock
+
+    from docling_core.types import DoclingDocument
 
     # Store original model_validate if it exists
     original_model_validate = None
-    if hasattr(DoclingDocument, 'model_validate'):
-        original_model_validate = getattr(DoclingDocument, 'model_validate')
+    if hasattr(DoclingDocument, "model_validate"):
+        original_model_validate = DoclingDocument.model_validate
         # Check if it's been mocked
         if isinstance(original_model_validate, Mock):
             # Remove the mock
-            delattr(DoclingDocument, 'model_validate')
+            delattr(DoclingDocument, "model_validate")
 
     yield
 
     # Clean up after test
     # Reset DoclingDocument.model_validate if it was mocked during the test
-    if hasattr(DoclingDocument, 'model_validate'):
-        current_model_validate = getattr(DoclingDocument, 'model_validate')
+    if hasattr(DoclingDocument, "model_validate"):
+        current_model_validate = DoclingDocument.model_validate
         if isinstance(current_model_validate, Mock):
             # Remove the mock
-            delattr(DoclingDocument, 'model_validate')
+            delattr(DoclingDocument, "model_validate")
 
 
 @pytest.fixture(autouse=True)
