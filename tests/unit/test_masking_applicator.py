@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.core.strategies import Strategy, StrategyKind
+from cloakpivot.core.types.strategies import Strategy, StrategyKind
 from cloakpivot.masking.applicator import StrategyApplicator
+from cloakpivot.masking.template_helpers import TemplateGenerator
 
 
 class TestStrategyApplicator:
@@ -124,7 +125,7 @@ class TestStrategyApplicator:
 
     def test_apply_hash_strategy_invalid_algorithm(self):
         """Test hash strategy with invalid algorithm."""
-        with pytest.raises(ValueError, match="Unsupported hash algorithm"):
+        with pytest.raises(ValueError, match="Hash algorithm must be one of"):
             Strategy(StrategyKind.HASH, {"algorithm": "invalid"})
 
     def test_apply_partial_strategy_end(self):
@@ -282,64 +283,64 @@ class TestStrategyApplicator:
 
     def test_generate_phone_template(self):
         """Test phone template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         # Test standard US format
-        assert applicator._generate_phone_template("555-123-4567") == "XXX-XXX-XXXX"
-        assert applicator._generate_phone_template("(555) 123-4567") == "(XXX) XXX-XXXX"
-        assert applicator._generate_phone_template("+1 555 123 4567").startswith("+X ")
+        assert TemplateGenerator.generate_phone_template("555-123-4567") == "XXX-XXX-XXXX"
+        assert TemplateGenerator.generate_phone_template("(555) 123-4567") == "(XXX) XXX-XXXX"
+        assert TemplateGenerator.generate_phone_template("+1 555 123 4567").startswith("+X ")
 
     def test_generate_ssn_template(self):
         """Test SSN template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
-        assert applicator._generate_ssn_template("123-45-6789") == "XXX-XX-XXXX"
-        assert applicator._generate_ssn_template("123456789") == "XXXXXXXXX"
+        assert TemplateGenerator.generate_ssn_template("123-45-6789") == "XXX-XX-XXXX"
+        assert TemplateGenerator.generate_ssn_template("123456789") == "XXXXXXXXX"
 
     def test_generate_credit_card_template(self):
         """Test credit card template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
         assert (
-            applicator._generate_credit_card_template("1234-5678-9012-3456")
+            TemplateGenerator.generate_credit_card_template("1234-5678-9012-3456")
             == "XXXX-XXXX-XXXX-XXXX"
         )
         assert (
-            applicator._generate_credit_card_template("1234 5678 9012 3456")
+            TemplateGenerator.generate_credit_card_template("1234 5678 9012 3456")
             == "XXXX XXXX XXXX XXXX"
         )
 
     def test_generate_email_template(self):
         """Test email template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
-        result = applicator._generate_email_template("test@example.com")
+        result = TemplateGenerator.generate_email_template("test@example.com")
         assert "@" in result
         assert result == "xxxx@xxxxxxx.xxx"
 
     def test_generate_generic_template(self):
         """Test generic template generation."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
-        result = applicator._generate_generic_template("ABC123-XYZ")
+        result = TemplateGenerator.generate_generic_template("ABC123-XYZ")
         assert result == "XXX###-XXX"
 
     def test_detect_format_pattern(self):
         """Test format pattern detection."""
-        applicator = StrategyApplicator()
+        StrategyApplicator()
 
-        assert applicator._detect_format_pattern("ABC123") == "LLLDDD"
-        assert applicator._detect_format_pattern("A-1 B") == "LPDSL"
+        assert TemplateGenerator.detect_format_pattern("ABC123") == "LLLDDD"
+        assert TemplateGenerator.detect_format_pattern("A-1 B") == "LPDSL"
 
     def test_get_hash_algorithm(self):
         """Test getting hash algorithm."""
-        applicator = StrategyApplicator()
+        from cloakpivot.masking.format_helpers import FormatPreserver
 
-        assert isinstance(applicator._get_hash_algorithm("md5"), type(hashlib.md5()))
-        assert isinstance(applicator._get_hash_algorithm("sha256"), type(hashlib.sha256()))
+        assert isinstance(FormatPreserver.get_hash_algorithm("md5"), type(hashlib.md5()))
+        assert isinstance(FormatPreserver.get_hash_algorithm("sha256"), type(hashlib.sha256()))
 
         with pytest.raises(ValueError, match="Unsupported hash algorithm"):
-            applicator._get_hash_algorithm("invalid")
+            FormatPreserver.get_hash_algorithm("invalid")
 
     def test_surrogate_quality_metrics(self):
         """Test getting surrogate quality metrics."""

@@ -12,9 +12,9 @@ from functools import lru_cache
 from threading import Lock
 from typing import Any
 
-from .core.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
-from .core.detection import EntityDetectionPipeline
-from .core.policies import MaskingPolicy
+from .core.policies.policies import MaskingPolicy
+from .core.processing.analyzer import AnalyzerConfig, AnalyzerEngineWrapper
+from .core.processing.detection import EntityDetectionPipeline
 from .document.processor import DocumentProcessor
 
 
@@ -198,7 +198,7 @@ def get_presidio_analyzer(
         ...     min_confidence=0.7
         ... )
     """
-    from .core.config import performance_config
+    from .core.utilities.config import performance_config
 
     # Validate parameters before attempting creation
     _validate_language(language)
@@ -254,7 +254,7 @@ def _get_cached_analyzer(
 
         @lru_cache(maxsize=cache_size)
         def cached_analyzer_func(
-            lang: str, conf_hash: str | None, min_conf: float, nlp_engine: str
+            lang: str, _conf_hash: str | None, min_conf: float, nlp_engine: str
         ) -> AnalyzerEngineWrapper:
             with _ANALYZER_LOCK:
                 config = AnalyzerConfig(
@@ -517,7 +517,7 @@ def get_cache_info() -> dict[str, Any]:
 
     # If no analyzer caches exist yet, provide sensible defaults
     if not _analyzer_caches:
-        from .core.config import performance_config
+        from .core.utilities.config import performance_config
 
         analyzer_maxsize = performance_config.analyzer_cache_size
 

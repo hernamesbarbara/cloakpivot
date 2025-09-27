@@ -8,16 +8,41 @@ if TYPE_CHECKING:
 
 from presidio_analyzer import AnalyzerEngine
 
-from cloakpivot.core.analyzer import AnalyzerConfig
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.processing.analyzer import AnalyzerConfig
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.defaults import get_default_policy
 from cloakpivot.document.extractor import TextExtractor
 
 # CloakEngineBuilder import moved to avoid circular import
+from cloakpivot.engine_factory import EngineFactory
 from cloakpivot.masking.engine import MaskingEngine
 from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
+
+
+def _build_conflict_config(cfg: dict[str, Any] | None) -> Any:
+    """Build ConflictResolutionConfig from a user dict, accepting OverlapPolicy or strings."""
+    from cloakpivot.core.processing.normalization import ConflictResolutionConfig, OverlapPolicy
+
+    if not cfg:
+        return ConflictResolutionConfig()
+    cfg = dict(cfg)  # shallow copy
+
+    # Normalize overlap_policy
+    if "overlap_policy" in cfg:
+        val = cfg["overlap_policy"]
+        if isinstance(val, str):
+            cfg["overlap_policy"] = OverlapPolicy(val)
+        elif isinstance(val, OverlapPolicy):
+            pass
+        else:
+            raise TypeError("overlap_policy must be a string or OverlapPolicy")
+    # Explicitly ignore legacy keys if present
+    cfg.pop("resolve_overlaps", None)
+    cfg.pop("allow_partial_overlaps", None)
+
+    return ConflictResolutionConfig(**cfg)
 
 
 @dataclass
@@ -110,16 +135,8 @@ class CloakEngine:
         # Initialize engines
         self._text_extractor = TextExtractor()
 
-        # Convert conflict_resolution_config dict to object if needed
-        from cloakpivot.core.normalization import ConflictResolutionConfig
-
-        conflict_config_obj = None
-        if conflict_resolution_config:
-            if isinstance(conflict_resolution_config, dict):
-                # Convert dict to ConflictResolutionConfig object
-                conflict_config_obj = ConflictResolutionConfig(**conflict_resolution_config)
-            else:
-                conflict_config_obj = conflict_resolution_config
+        # Use the new helper to build conflict config
+        conflict_config_obj = _build_conflict_config(conflict_resolution_config)
 
         self._masking_engine = MaskingEngine(
             resolve_conflicts=bool(conflict_config_obj),
@@ -227,6 +244,29 @@ class CloakEngine:
         from cloakpivot.engine_builder import CloakEngineBuilder
 
         return CloakEngineBuilder()
+
+    @classmethod
+    def from_factory(cls, factory: EngineFactory | None = None, **kwargs: Any) -> "CloakEngine":
+        """Create a CloakEngine using an EngineFactory.
+
+        Args:
+            factory: Optional EngineFactory instance (uses default if None)
+            **kwargs: Additional configuration parameters
+
+        Returns:
+            CloakEngine instance with factory-created engines
+        """
+        if factory is None:
+            factory = EngineFactory()
+
+        # Create the instance
+        instance = cls(**kwargs)
+
+        # Replace engines with factory-created ones
+        instance._masking_engine = factory.create_masking_engine()
+        instance._unmasking_engine = factory.create_unmasking_engine()
+
+        return instance
 
     def _get_default_analyzer_config(self) -> AnalyzerConfig:
         """Get optimized default analyzer configuration."""

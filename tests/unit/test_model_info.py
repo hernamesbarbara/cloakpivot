@@ -1,6 +1,6 @@
 """Unit tests for cloakpivot.core.model_info module."""
 
-from cloakpivot.core.model_info import MODEL_CHARACTERISTICS
+from cloakpivot.core.types.model_info import MODEL_CHARACTERISTICS
 
 
 class TestModelInfo:

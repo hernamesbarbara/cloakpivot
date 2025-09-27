@@ -1,6 +1,5 @@
 """Unit tests for cloakpivot.defaults module."""
 
-import pytest
 from cloakpivot import defaults
 
 

@@ -26,9 +26,9 @@ from typing import Any
 from presidio_anonymizer import DeanonymizeEngine
 from presidio_anonymizer.entities import OperatorResult
 
-from ..core.cloakmap import CloakMap
-from ..core.cloakmap_enhancer import CloakMapEnhancer
+from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
 from ..core.types import DoclingDocument, UnmaskingResult
+from ..core.types.cloakmap import CloakMap
 from .anchor_resolver import AnchorResolver
 from .document_unmasker import DocumentUnmasker
 
@@ -401,6 +401,8 @@ class PresidioUnmaskingAdapter:
             "anchor_failed": restoration_stats.get("failed_restorations", 0),
             "timestamp": datetime.now(UTC).isoformat(),
         }
+
+        from .engine import UnmaskingResult
 
         return UnmaskingResult(restored_document=restored_document, cloakmap=cloakmap, stats=stats)
 

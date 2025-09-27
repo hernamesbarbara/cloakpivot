@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for cloakpivot.core.config module.
+"""Comprehensive unit tests for cloakpivot.core.utilities.config module.
 
 This test module provides full coverage of the performance configuration
 system, including environment variable loading, validation, and global
@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cloakpivot.core.config import (
+from cloakpivot.core.utilities.config import (
     PerformanceConfig,
     get_performance_config,
     performance_config,
@@ -59,7 +59,7 @@ class TestPerformanceConfig:
 
     def test_validate_model_size_invalid(self):
         """Test model size validation with invalid size."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(model_size="extra-large")
             assert config.model_size == "small"
             mock_logger.warning.assert_called_once()
@@ -72,14 +72,14 @@ class TestPerformanceConfig:
 
     def test_validate_cache_size_invalid_zero(self):
         """Test cache size validation with zero."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(analyzer_cache_size=0)
             assert config.analyzer_cache_size == 8
             mock_logger.warning.assert_called_once()
 
     def test_validate_cache_size_invalid_negative(self):
         """Test cache size validation with negative value."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(analyzer_cache_size=-5)
             assert config.analyzer_cache_size == 8
             mock_logger.warning.assert_called_once()
@@ -96,13 +96,13 @@ class TestPerformanceConfig:
 
     def test_validate_worker_threads_invalid(self):
         """Test worker threads validation with invalid values."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(max_worker_threads=0)
             assert config.max_worker_threads is None
             mock_logger.warning.assert_called_once()
             assert "max_worker_threads must be positive" in str(mock_logger.warning.call_args)
 
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(max_worker_threads=-2)
             assert config.max_worker_threads is None
             mock_logger.warning.assert_called_once()
@@ -114,20 +114,20 @@ class TestPerformanceConfig:
 
     def test_validate_gc_frequency_invalid(self):
         """Test GC frequency validation with invalid values."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(gc_frequency=0)
             assert config.gc_frequency == 100
             mock_logger.warning.assert_called_once()
 
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(gc_frequency=-10)
             assert config.gc_frequency == 100
             mock_logger.warning.assert_called_once()
 
     def test_post_init_logging(self):
         """Test that post_init logs debug information."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
-            config = PerformanceConfig()
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
+            PerformanceConfig()
             mock_logger.debug.assert_called_once()
             debug_msg = str(mock_logger.debug.call_args)
             assert "PerformanceConfig initialized" in debug_msg
@@ -162,7 +162,7 @@ class TestPerformanceConfig:
 
     def test_get_model_characteristics(self):
         """Test getting model characteristics."""
-        with patch("cloakpivot.core.model_info.MODEL_CHARACTERISTICS") as mock_chars:
+        with patch("cloakpivot.core.types.model_info.MODEL_CHARACTERISTICS") as mock_chars:
             mock_chars.__getitem__.return_value = {"memory": "100MB", "accuracy": "high"}
             mock_chars.get.return_value = {"memory": "100MB", "accuracy": "high"}
 
@@ -229,20 +229,24 @@ class TestEnvironmentLoading:
             "MAX_WORKERS": "-5",
             "GC_FREQUENCY": "0",
         }
-        with patch.dict(os.environ, env_vars, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                config = PerformanceConfig.from_environment()
-                assert config.analyzer_cache_size == 8
-                assert config.max_worker_threads is None
-                assert config.gc_frequency == 100
-                # Check that warnings were logged
-                assert mock_logger.warning.call_count >= 2
+        with (
+            patch.dict(os.environ, env_vars, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
+            config = PerformanceConfig.from_environment()
+            assert config.analyzer_cache_size == 8
+            assert config.max_worker_threads is None
+            assert config.gc_frequency == 100
+            # Check that warnings were logged
+            assert mock_logger.warning.call_count >= 2
 
     def test_from_environment_exception_handling(self):
         """Test from_environment handles exceptions gracefully."""
-        with patch("cloakpivot.core.config.PerformanceConfig._get_env_string") as mock_get:
+        with patch(
+            "cloakpivot.core.utilities.config.PerformanceConfig._get_env_string"
+        ) as mock_get:
             mock_get.side_effect = Exception("Test error")
-            with patch("cloakpivot.core.config.logger") as mock_logger:
+            with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
                 config = PerformanceConfig.from_environment()
                 # Should return default config
                 assert config.model_size == "small"
@@ -299,18 +303,22 @@ class TestEnvironmentLoading:
             assert result == 25
 
         # Test zero (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 10)
-                assert result == 10  # Returns default
-                mock_logger.warning.assert_called_once()
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "0"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
+            result = PerformanceConfig._get_env_int("TEST_KEY", 10)
+            assert result == 10  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test negative (not allowed by default)
-        with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 10)
-                assert result == 10  # Returns default
-                mock_logger.warning.assert_called_once()
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
+            result = PerformanceConfig._get_env_int("TEST_KEY", 10)
+            assert result == 10  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test allow_none parameter
         with patch.dict(os.environ, {"TEST_KEY": "-5"}, clear=True):
@@ -318,11 +326,13 @@ class TestEnvironmentLoading:
             assert result == -5  # Negative allowed with allow_none
 
         # Test invalid integer
-        with patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True):
-            with patch("cloakpivot.core.config.logger") as mock_logger:
-                result = PerformanceConfig._get_env_int("TEST_KEY", 15)
-                assert result == 15  # Returns default
-                mock_logger.warning.assert_called_once()
+        with (
+            patch.dict(os.environ, {"TEST_KEY": "not_a_number"}, clear=True),
+            patch("cloakpivot.core.utilities.config.logger") as mock_logger,
+        ):
+            result = PerformanceConfig._get_env_int("TEST_KEY", 15)
+            assert result == 15  # Returns default
+            mock_logger.warning.assert_called_once()
 
         # Test absent value
         with patch.dict(os.environ, {}, clear=True):
@@ -433,7 +443,7 @@ class TestEdgeCases:
 
     def test_model_size_with_special_characters(self):
         """Test model size validation with special characters."""
-        with patch("cloakpivot.core.config.logger") as mock_logger:
+        with patch("cloakpivot.core.utilities.config.logger") as mock_logger:
             config = PerformanceConfig(model_size="small-v2")
             assert config.model_size == "small"
             mock_logger.warning.assert_called_once()

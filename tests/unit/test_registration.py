@@ -133,7 +133,7 @@ class TestRegistration:
 
     def test_mask_pii_with_custom_params(self):
         """Test mask_pii with custom entities and policy."""
-        from cloakpivot.core.policies import MaskingPolicy
+        from cloakpivot.core.policies.policies import MaskingPolicy
         from cloakpivot.wrappers import CloakedDocument
 
         register_cloak_methods()

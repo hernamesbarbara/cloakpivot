@@ -10,8 +10,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from ..types.strategies import Strategy, StrategyKind
 from .policies import MaskingPolicy
-from .strategies import Strategy, StrategyKind
 
 
 class PolicyValidationError(Exception):

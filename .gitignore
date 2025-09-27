@@ -183,3 +183,12 @@ FEAT_improve_presidio_adapter_cleanup.md
 pii-cloak
 DONE_FEAT_improve_presidio_adapter_cleanup.md
 DONE_FEAT_table_masking_forward_masking.md
+scratch_pad.py
+ANALYSIS_COMPARISON.md
+CHATGPT_CI_FAILURE_ANALYSIS.md
+CI_PIPELINE_ERRORS.md
+CI_PIPELINE_FIX_SUMMARY.md
+TECHNICAL_MEMO_CI_FIX.md
+UNIFIED_CI_IMPROVEMENT_PLAN.md
+fix_ci_immediately.sh
+verify_ci_alignment.sh

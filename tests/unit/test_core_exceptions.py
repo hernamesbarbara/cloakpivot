@@ -4,7 +4,7 @@ This test module provides full coverage of the exception hierarchy,
 including all exception classes, methods, and helper functions.
 """
 
-from cloakpivot.core.exceptions import (
+from cloakpivot.core.types.exceptions import (
     CloakPivotError,
     ConfigurationError,
     DependencyError,

@@ -118,7 +118,7 @@ class TestMaskingWorkflow:
 
     def test_conflict_resolution(self, email_docling_document: DoclingDocument):
         """Test conflict resolution configuration."""
-        from cloakpivot.core.normalization import ConflictResolutionConfig
+        from cloakpivot.core.processing.normalization import ConflictResolutionConfig
 
         # Engine with tight merging threshold
         tight_config = ConflictResolutionConfig(merge_threshold_chars=5)

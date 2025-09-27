@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Comprehensive Refactoring (PRs 001-015)**: Major architectural improvements and code quality enhancements
+  - **PR-003**: Added 38 critical unit tests for presidio_adapter internals, conflict resolution, and unmasking accuracy
+  - **PR-004**: Extracted shared Presidio utilities into `core/presidio_common.py` (~150 lines deduplicated)
+  - **PR-005**: Created engine factory with dependency injection for improved testability
+  - **PR-006**: Consolidated document processing utilities into `document/common.py` (~45 lines deduplicated)
+  - **PR-012**: Created comprehensive `BREAKING_CHANGES.md` migration guide with before/after examples
+  - **PR-013**: Implemented major performance optimizations:
+    - O(n²) → O(n) complexity improvement for apply_spans algorithm 
+    - LRU caching for StrategyToOperatorMapper (128 entries, 2x-5x speedup)
+    - Efficient list joining for document text building
+    - >10% improvement for documents >10KB with >100 entities
+  - **PR-014**: Updated all API documentation with comprehensive docstrings and visual workflow diagrams
+  - **PR-015**: Final cleanup with zero linting warnings and CHANGELOG updates
+
+### Changed
+- **Major Module Refactoring**: Split oversized modules into focused, maintainable components
+  - **PR-007-008**: Split 1,450-line `PresidioMaskingAdapter` into 5 focused modules:
+    - `strategy_processors.py` (220 lines) - Strategy processing logic
+    - `entity_processor.py` (350 lines) - Entity processing workflows  
+    - `text_processor.py` (212 lines) - Text manipulation operations
+    - `document_reconstructor.py` (281 lines) - Document rebuilding logic
+    - `metadata_manager.py` (323 lines) - Metadata and statistics management
+  - **PR-009**: Split 1,281-line `CloakMap` into 3 focused modules:
+    - `cloakmap_validator.py` (382 lines) - Validation and integrity checking
+    - `cloakmap_serializer.py` (393 lines) - Serialization and persistence
+    - Core CloakMap reduced to 506 lines with delegation
+  - **PR-010**: Split 1,288-line `MaskingApplicator` into 5 focused modules:
+    - `conflict_resolver.py` (308 lines) - Entity conflict resolution
+    - `strategy_executor.py` (387 lines) - Strategy execution engine
+    - `template_helpers.py` (155 lines) - Template generation utilities
+    - `format_helpers.py` (232 lines) - Format detection and processing
+    - Core applicator reduced to 206 lines
+- **Core Architecture Reorganization (PR-011)**: Restructured core layer into logical subpackages
+  - `core/types/` - Data structures and type definitions
+  - `core/policies/` - Policy definitions and loading system  
+  - `core/processing/` - Analysis and processing algorithms
+  - `core/utilities/` - Helper functions and validation utilities
+  - Updated all imports throughout codebase (22 files moved/modified)
+- **Code Quality Improvements (PR-015)**: Achieved zero linting warnings
+  - Fixed all star imports with explicit imports for better maintainability
+  - Resolved 254+ linting issues including nested with statements and import organization
+  - Improved code readability and IDE support
+
+### Fixed
+- **PR-001**: Removed dead code including unreachable code after `raise` statements (~100 lines removed)
+- **PR-002**: Fixed signal handler parameters in `presidio_mapper.py` (renamed unused params to `_signum`, `_frame`)
+
+### Performance
+- **Significant Performance Gains (PR-013)**:
+  - Text replacement operations: O(n²) → O(n) algorithmic complexity
+  - Strategy mapping cache: 2x-5x speedup with LRU eviction
+  - Memory optimization: Efficient data structures eliminate repeated string concatenation
+  - Large document processing: >10% improvement for documents >10KB with >100 entities
+  - Comprehensive benchmark suite added in `tests/performance/`
+
+### Documentation
+- **Enhanced API Documentation (PR-014)**: 
+  - Complete public API documentation with usage examples
+  - New `docs/WORKFLOW_DIAGRAMS.md` with comprehensive mermaid diagrams
+  - Visual documentation of PDF → JSON → Masked JSON → Markdown workflows
+  - Updated README with enhanced code examples and CloakMap usage patterns
+- **Migration Support (PR-012)**: 
+  - Comprehensive breaking changes documentation
+  - Before/after code examples for all API changes
+  - Import path migration guides
+  - Method signature change documentation
+
+### Removed
+- **Dead Code Cleanup (PR-001)**: Removed unused variables, unreachable code, and vulture-identified dead sections
+
 ### Fixed
 - **CI/CD Pipeline Optimization**: Reduced GitHub Actions runtime from 20+ minutes to ~5 minutes
   - Added CPU-only PyTorch installation to eliminate 1.4GB CUDA package downloads

@@ -8,12 +8,12 @@ from typing import Any
 # Temporarily mock docling_core import to allow tests to run
 from cloakpivot.core.types import DoclingDocument
 
-from ..document.extractor import TextExtractor, TextSegment
-from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
-from .anchors import AnchorEntry
+from ...document.extractor import TextExtractor, TextSegment
 
 # Performance profiling removed - simplified implementation
-from .policies import MaskingPolicy
+from ..policies.policies import MaskingPolicy
+from ..types.anchors import AnchorEntry
+from .analyzer import AnalyzerEngineWrapper, EntityDetectionResult
 
 logger = logging.getLogger(__name__)
 

@@ -93,7 +93,9 @@ class TestSerializationResult:
             result.save_to_file(file_path)
 
             # Verify file was created with correct content
-            with open(file_path) as f:
+            from pathlib import Path
+
+            with Path(file_path).open() as f:
                 saved_content = f.read()
             assert saved_content == "Test content to save"
         finally:
@@ -329,7 +331,7 @@ class TestCloakPivotSerializer:
             mock_doc.tables = []
 
             serializer = CloakPivotSerializer()
-            result = serializer.serialize_document(mock_doc, "markdown")
+            serializer.serialize_document(mock_doc, "markdown")
 
             # Check debug and info logs were called
             assert mock_logger.debug.call_count >= 1

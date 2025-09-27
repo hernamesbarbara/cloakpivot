@@ -9,7 +9,6 @@ from docling_core.types.doc.document import (
     FormulaItem,
     KeyValueItem,
     ListItem,
-    NodeItem,
     SectionHeaderItem,
     TableItem,
     TextItem,
@@ -18,6 +17,13 @@ from docling_core.types.doc.document import (
 from packaging import version
 
 from cloakpivot.core.types import DoclingDocument
+from cloakpivot.document.common import (
+    DocumentValidator,
+    MetadataExtractor,
+    NodeIdGenerator,
+    SegmentFinder,
+    TextNormalizer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +64,8 @@ class TextSegment:
 
     def __post_init__(self) -> None:
         """Validate segment data after initialization."""
-        if self.end_offset <= self.start_offset:
-            raise ValueError("end_offset must be greater than start_offset")
-
-        if len(self.text) != (self.end_offset - self.start_offset):
-            raise ValueError("text length must match offset difference")
-
-        if not self.node_id.strip():
-            raise ValueError("node_id cannot be empty")
+        DocumentValidator.validate_offsets(self.start_offset, self.end_offset, self.text)
+        DocumentValidator.validate_node_id(self.node_id)
 
     @property
     def length(self) -> int:
@@ -204,10 +204,7 @@ class TextExtractor:
         Returns:
             Optional[TextSegment]: The segment containing the offset, or None
         """
-        for segment in segments:
-            if segment.contains_offset(offset):
-                return segment
-        return None
+        return SegmentFinder.find_segment_containing_offset(segments, offset)
 
     def get_extraction_stats(self, document: DoclingDocument) -> dict[str, Any]:
         """
@@ -252,16 +249,16 @@ class TextExtractor:
 
         text = text_item.text
         if self.normalize_whitespace:
-            text = self._normalize_whitespace(text)
+            text = TextNormalizer.normalize_whitespace(text)
 
         if not text.strip():
             return None
 
-        node_id = self._get_node_id(text_item)
+        node_id = NodeIdGenerator.get_node_id(text_item)
         node_type = type(text_item).__name__
         end_offset = start_offset + len(text)
 
-        metadata = self._extract_text_item_metadata(text_item)
+        metadata = MetadataExtractor.extract_text_item_metadata(text_item)
 
         return TextSegment(
             node_id=node_id,
@@ -282,7 +279,7 @@ class TextExtractor:
         if not hasattr(table_item, "data") or not table_item.data:
             return segments
 
-        base_node_id = self._get_node_id(table_item)
+        base_node_id = NodeIdGenerator.get_node_id(table_item)
 
         # Extract text from table cells
         table_data = table_item.data
@@ -316,10 +313,12 @@ class TextExtractor:
                     if hasattr(cell, "text"):
                         text = getattr(cell, "text", "")
                         if self.normalize_whitespace:
-                            text = self._normalize_whitespace(text)
+                            text = TextNormalizer.normalize_whitespace(text)
 
                         if text.strip():
-                            cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
+                            cell_node_id = NodeIdGenerator.create_cell_node_id(
+                                base_node_id, row_idx, col_idx
+                            )
                             end_offset = current_offset + len(text)
 
                             segment = TextSegment(
@@ -345,17 +344,17 @@ class TextExtractor:
         """Extract text from a key-value item."""
         segments: list[TextSegment] = []
         current_offset = start_offset
-        base_node_id = self._get_node_id(kv_item)
+        base_node_id = NodeIdGenerator.get_node_id(kv_item)
 
         # Extract key text
         if hasattr(kv_item, "key") and kv_item.key and hasattr(kv_item.key, "text"):
             key_text = kv_item.key.text
             if self.normalize_whitespace:
-                key_text = self._normalize_whitespace(key_text)
+                key_text = TextNormalizer.normalize_whitespace(key_text)
 
             if key_text.strip():
                 key_segment = TextSegment(
-                    node_id=f"{base_node_id}/key",
+                    node_id=NodeIdGenerator.create_kv_node_id(base_node_id, "key"),
                     text=key_text,
                     start_offset=current_offset,
                     end_offset=current_offset + len(key_text),
@@ -369,11 +368,11 @@ class TextExtractor:
         if hasattr(kv_item, "value") and kv_item.value and hasattr(kv_item.value, "text"):
             value_text = kv_item.value.text
             if self.normalize_whitespace:
-                value_text = self._normalize_whitespace(value_text)
+                value_text = TextNormalizer.normalize_whitespace(value_text)
 
             if value_text.strip():
                 value_segment = TextSegment(
-                    node_id=f"{base_node_id}/value",
+                    node_id=NodeIdGenerator.create_kv_node_id(base_node_id, "value"),
                     text=value_text,
                     start_offset=current_offset,
                     end_offset=current_offset + len(value_text),
@@ -384,75 +383,6 @@ class TextExtractor:
 
         return segments
 
-    def _get_node_id(self, node_item: NodeItem) -> str:
-        """
-        Get or generate a stable node ID for the given node item.
-
-        Args:
-            node_item: The node item to get an ID for
-
-        Returns:
-            str: A stable node identifier
-        """
-        # Try to use existing self_ref
-        if hasattr(node_item, "self_ref") and node_item.self_ref:
-            return str(node_item.self_ref)
-
-        # Generate a deterministic ID based on node properties
-        node_type = type(node_item).__name__
-
-        # Try to use text content for ID generation
-        if hasattr(node_item, "text") and node_item.text:
-            text_hash = hash(node_item.text[:50])  # Use first 50 chars for hash
-            return f"#{node_type.lower()}_{abs(text_hash)}"
-
-        # Fall back to object id (less stable but better than nothing)
-        return f"#{node_type.lower()}_{id(node_item)}"
-
-    def _extract_text_item_metadata(
-        self,
-        text_item: TextItem | TitleItem | SectionHeaderItem | ListItem | CodeItem | FormulaItem,
-    ) -> dict[str, Any]:
-        """Extract metadata from a text item."""
-        metadata = {"item_type": type(text_item).__name__}
-
-        # Add level for headings
-        if hasattr(text_item, "level"):
-            metadata["level"] = text_item.level
-
-        # Add formatting information
-        if hasattr(text_item, "formatting") and text_item.formatting:
-            metadata["formatting"] = str(text_item.formatting)
-
-        # Add language for code items
-        if hasattr(text_item, "code_language") and text_item.code_language:
-            metadata["code_language"] = str(text_item.code_language)
-
-        return metadata
-
-    def _normalize_whitespace(self, text: str) -> str:
-        """
-        Normalize whitespace in text while preserving essential formatting.
-
-        This is a conservative normalization that preserves round-trip fidelity
-        while still handling some common whitespace issues.
-
-        Args:
-            text: Input text to normalize
-
-        Returns:
-            str: Text with conservatively normalized whitespace
-        """
-        import re
-
-        # Only do minimal normalization to preserve round-trip fidelity
-        # Convert Windows line endings to Unix, but preserve standalone \r
-        text = re.sub(r"\r\n", "\n", text)
-
-        # Only collapse excessive consecutive spaces (3 or more), not all multiple spaces
-        text = re.sub(r"   +", "  ", text)  # Reduce 3+ spaces to 2 spaces
-
-        # Only collapse excessive line breaks (4 or more), preserve structure
-        return re.sub(r"\n\n\n\n+", "\n\n\n", text)  # Reduce 4+ newlines to 3
-
-        # Do NOT strip leading/trailing whitespace as it may be significant
+    # Note: Methods moved to common.py utilities
+    # Using NodeIdGenerator.get_node_id, MetadataExtractor.extract_text_item_metadata,
+    # and TextNormalizer.normalize_whitespace instead

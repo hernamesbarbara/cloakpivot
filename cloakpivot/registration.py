@@ -3,7 +3,7 @@
 import warnings
 from typing import TYPE_CHECKING
 
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.policies.policies import MaskingPolicy
 from cloakpivot.engine import CloakEngine
 from cloakpivot.type_imports import DoclingDocument
 

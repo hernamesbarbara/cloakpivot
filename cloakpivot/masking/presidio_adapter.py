@@ -1,15 +1,14 @@
 """Presidio-based masking adapter for CloakPivot."""
 
 import base64
-import bisect
 import copy
 import hashlib
 import logging
 import threading
-from typing import Any, cast
+from typing import Any
 
+from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
 
 try:
     import presidio_anonymizer
@@ -18,20 +17,21 @@ try:
 except (ImportError, AttributeError):
     PRESIDIO_VERSION = "2.x.x"
 
-from ..core.cloakmap import AnchorEntry, CloakMap
-from ..core.cloakmap_enhancer import CloakMapEnhancer
-from ..core.policies import MaskingPolicy
-from ..core.presidio_mapper import StrategyToOperatorMapper
-from ..core.strategies import Strategy, StrategyKind
-from ..core.surrogate import SurrogateGenerator
+from ..core.policies.policies import MaskingPolicy
+from ..core.processing.cloakmap_enhancer import CloakMapEnhancer
+from ..core.processing.presidio_mapper import StrategyToOperatorMapper
+from ..core.processing.surrogate import SurrogateGenerator
 from ..core.types import DoclingDocument
+from ..core.types.cloakmap import AnchorEntry, CloakMap
+from ..core.types.strategies import Strategy, StrategyKind
 from ..document.extractor import TextSegment
+from .document_reconstructor import DocumentReconstructor
 from .engine import MaskingResult
-from .protocols import (
-    OperatorResultLike,
-    SegmentBoundary,
-    SyntheticOperatorResult,
-)
+from .entity_processor import EntityProcessor
+from .metadata_manager import MetadataManager
+from .protocols import OperatorResultLike, SegmentBoundary, SyntheticOperatorResult
+from .strategy_processors import StrategyProcessor
+from .text_processor import TextProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,13 @@ class PresidioMaskingAdapter:
         self._surrogate_generator = SurrogateGenerator()
         self._segment_starts: list[int] | None = None  # Cache for binary search
 
+        # Initialize processors (will be properly initialized when anonymizer is created)
+        self.entity_processor: EntityProcessor | None = None
+        self.strategy_processor: StrategyProcessor | None = None
+        self.text_processor: TextProcessor | None = None
+        self.document_reconstructor: DocumentReconstructor | None = None
+        self.metadata_manager: MetadataManager | None = None
+
         logger.debug(f"PresidioMaskingAdapter initialized with config: {self.engine_config}")
 
     @property
@@ -88,7 +95,52 @@ class PresidioMaskingAdapter:
                 if self._anonymizer_instance is None:
                     self._anonymizer_instance = AnonymizerEngine()
                     logger.debug("AnonymizerEngine initialized")
+                    # Initialize processors now that anonymizer exists
+                    self.entity_processor = EntityProcessor(
+                        self._anonymizer_instance, self.operator_mapper
+                    )
+                    self.strategy_processor = StrategyProcessor(
+                        self._anonymizer_instance, self.operator_mapper
+                    )
+                    self.text_processor = TextProcessor()
+                    self.document_reconstructor = DocumentReconstructor()
+                    self.metadata_manager = MetadataManager()
         return self._anonymizer_instance
+
+    def _ep(self) -> EntityProcessor:
+        """Return a guaranteed-initialized EntityProcessor."""
+        if self.entity_processor is None:
+            _ = self.anonymizer  # ensures processors are created
+        assert self.entity_processor is not None
+        return self.entity_processor
+
+    def _sp(self) -> StrategyProcessor:
+        """Return a guaranteed-initialized StrategyProcessor."""
+        if self.strategy_processor is None:
+            _ = self.anonymizer
+        assert self.strategy_processor is not None
+        return self.strategy_processor
+
+    def _tp(self) -> TextProcessor:
+        """Return a guaranteed-initialized TextProcessor."""
+        if self.text_processor is None:
+            _ = self.anonymizer
+        assert self.text_processor is not None
+        return self.text_processor
+
+    def _dr(self) -> DocumentReconstructor:
+        """Return a guaranteed-initialized DocumentReconstructor."""
+        if self.document_reconstructor is None:
+            _ = self.anonymizer
+        assert self.document_reconstructor is not None
+        return self.document_reconstructor
+
+    def _mm(self) -> MetadataManager:
+        """Return a guaranteed-initialized MetadataManager."""
+        if self.metadata_manager is None:
+            _ = self.anonymizer
+        assert self.metadata_manager is not None
+        return self.metadata_manager
 
     def apply_strategy(
         self,
@@ -150,7 +202,7 @@ class PresidioMaskingAdapter:
             # Use Presidio to anonymize
             result = self.anonymizer.anonymize(
                 text=original_text,
-                analyzer_results=[entity],
+                analyzer_results=[entity],  # type: ignore[list-item]
                 operators={entity_type: operator_config},
             )
 
@@ -197,6 +249,7 @@ class PresidioMaskingAdapter:
 
         return document_text, segment_boundaries
 
+    # Entity validation delegated to EntityProcessor
     def _validate_entities(
         self, entities: list[RecognizerResult], document_length: int
     ) -> list[RecognizerResult]:
@@ -209,130 +262,28 @@ class PresidioMaskingAdapter:
         Returns:
             List of valid entities within document bounds
         """
-        valid_entities = []
-        for entity in entities:
-            if entity.end <= document_length:
-                valid_entities.append(entity)
-            else:
-                logger.warning(
-                    f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                    f"exceeds document text length {document_length}, skipping"
-                )
-        return valid_entities
+        # Delegate to EntityProcessor
+        return self._ep().validate_entities(entities, document_length)
 
+    # Entity boundary validation delegated to EntityProcessor
     def _validate_entities_against_boundaries(
         self,
         entities: list[RecognizerResult],
         document_text: str,
         segment_boundaries: list[SegmentBoundary],
     ) -> list[RecognizerResult]:
-        """Validate and adjust entities to not span across segment boundaries.
-
-        This prevents the issue where entities detected by Presidio span across
-        table cell boundaries or other segment separators, which causes text from
-        multiple segments to be incorrectly concatenated in the masked value.
-
-        If an entity spans across boundaries, it will be truncated to fit within
-        the first segment it appears in.
-
-        Args:
-            entities: List of entities to validate
-            document_text: Full document text
-            segment_boundaries: List of segment boundaries with start/end positions
-
-        Returns:
-            List of valid entities that don't cross segment boundaries
-        """
-        from copy import copy
-
-        valid_entities = []
-        adjusted_count = 0
-
-        for entity in entities:
-            # Extract the actual text for this entity
-            entity_text = document_text[entity.start : entity.end]
-
-            # Check if the entity text contains the segment separator
-            separator_pos = entity_text.find(SEGMENT_SEPARATOR)
-            if separator_pos >= 0:
-                # Entity spans across segments - truncate it to the first segment
-                adjusted_entity = copy(entity)
-                adjusted_entity.end = entity.start + separator_pos
-
-                # Verify the truncated entity still makes sense
-                truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
-                if len(truncated_text.strip()) > 0:
-                    logger.debug(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"spans segments. Truncated to {adjusted_entity.start}-{adjusted_entity.end}. "
-                        f"Original: '{entity_text[:30]}...' -> Truncated: '{truncated_text}'"
-                    )
-                    valid_entities.append(adjusted_entity)
-                    adjusted_count += 1
-                else:
-                    logger.warning(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"spans segments and truncation results in empty text, skipping"
-                    )
-                continue
-
-            # Additional check: verify entity is fully contained within a single segment
-            entity_contained = False
-            for boundary in segment_boundaries:
-                if boundary.start <= entity.start and entity.end <= boundary.end:
-                    entity_contained = True
-                    break
-
-            if not entity_contained:
-                # Try to find the segment containing the start of the entity and truncate
-                for boundary in segment_boundaries:
-                    if boundary.start <= entity.start < boundary.end:
-                        adjusted_entity = copy(entity)
-                        adjusted_entity.end = min(entity.end, boundary.end)
-                        truncated_text = document_text[adjusted_entity.start : adjusted_entity.end]
-                        if len(truncated_text.strip()) > 0:
-                            logger.debug(
-                                f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                                f"not contained in segment. Truncated to segment boundary: "
-                                f"{adjusted_entity.start}-{adjusted_entity.end}"
-                            )
-                            valid_entities.append(adjusted_entity)
-                            adjusted_count += 1
-                        break
-                else:
-                    logger.warning(
-                        f"Entity {entity.entity_type} at positions {entity.start}-{entity.end} "
-                        f"could not be adjusted to fit within a segment, skipping"
-                    )
-            else:
-                # Entity is fully contained within a segment
-                valid_entities.append(entity)
-
-        if adjusted_count > 0:
-            logger.info(
-                f"Adjusted {adjusted_count} entities to fit within segment boundaries. "
-                f"Total valid entities: {len(valid_entities)}"
-            )
-
-        return valid_entities
+        """Validate and adjust entities to not span across segment boundaries."""
+        # Delegate to EntityProcessor
+        return self._ep().validate_entities_against_boundaries(
+            entities, document_text, segment_boundaries
+        )
 
     def _prepare_strategies(
         self, entities: list[RecognizerResult], policy: MaskingPolicy
     ) -> dict[str, Strategy]:
-        """Prepare masking strategies for each entity type.
-
-        Args:
-            entities: List of entities to process
-            policy: Masking policy to use
-
-        Returns:
-            Dictionary mapping entity types to strategies
-        """
-        strategies = {}
-        for entity in entities:
-            if entity.entity_type not in strategies:
-                strategies[entity.entity_type] = policy.get_strategy_for_entity(entity.entity_type)
-        return strategies
+        """Prepare masking strategies for each entity type."""
+        # Delegate to MetadataManager
+        return self._mm().prepare_strategies(entities, policy)
 
     def _compute_replacements(
         self,
@@ -764,332 +715,90 @@ class PresidioMaskingAdapter:
         Returns:
             Enhanced CloakMap
         """
-        enhanced_operator_results = []
-        reversible_operators = self._get_reversible_operators(strategies)
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
+        # Convert op_results_by_pos to list for metadata manager
+        op_results = list(op_results_by_pos.values())
+        return self._mm().enhance_cloakmap_with_metadata(
+            base_cloakmap, strategies, entities, op_results
+        )
 
-        for entity in entities:
-            key = (entity.start, entity.end)
-            op_result = op_results_by_pos.get(key)
-
-            if op_result:
-                op_dict = self._operator_result_to_dict(op_result)
-
-                # Only add original text for reversible operations
-                operator = op_dict.get("operator", "")
-                if operator in reversible_operators:
-                    op_dict["original_text"] = document_text[entity.start : entity.end]
-
-                enhanced_operator_results.append(op_dict)
-
-        # Only enhance if there are results
-        if enhanced_operator_results:
-            return self.cloakmap_enhancer.add_presidio_metadata(
-                base_cloakmap,
-                operator_results=enhanced_operator_results,
-                engine_version=PRESIDIO_VERSION,
-                reversible_operators=reversible_operators,
-            )
-        return base_cloakmap
-
+    # Overlap filtering delegated to EntityProcessor
     def _filter_overlapping_entities(
         self, entities: list[RecognizerResult]
     ) -> list[RecognizerResult]:
-        """Filter out overlapping entities, keeping the highest confidence or longest match.
+        """Filter out overlapping entities, keeping the highest confidence or longest match."""
+        # Delegate to EntityProcessor
+        return self._ep().filter_overlapping_entities(entities)
 
-        Args:
-            entities: List of detected entities that may overlap
-
-        Returns:
-            Filtered list with no overlapping entities
-        """
-        if not entities:
-            return []
-
-        # Sort by start position, then by score (descending), then by length (descending)
-        sorted_entities = sorted(entities, key=lambda e: (e.start, -e.score, -(e.end - e.start)))
-
-        filtered = []
-        last_end = -1
-
-        for entity in sorted_entities:
-            # Skip if this entity overlaps with a previously selected one
-            if entity.start >= last_end:
-                filtered.append(entity)
-                last_end = entity.end
-            else:
-                # Log that we're skipping an overlapping entity
-                logger.debug(
-                    f"Skipping overlapping entity: {entity.entity_type} at {entity.start}-{entity.end}"
-                )
-
-        return filtered
-
+    # Batch processing delegated to EntityProcessor
     def _batch_process_entities(
         self, text: str, entities: list[RecognizerResult], strategies: dict[str, Strategy]
     ) -> list[OperatorResultLike]:
-        """
-        Process multiple entities in a single batch for efficiency.
-
-        Args:
-            text: The text containing entities
-            entities: List of entities to mask
-            strategies: Mapping of entity types to strategies
-
-        Returns:
-            List of OperatorResult objects
-        """
-        try:
-            # Separate SURROGATE entities from others
-            surrogate_entities = []
-            presidio_entities = []
-            for entity in entities:
-                entity_type = getattr(entity, "entity_type", "UNKNOWN")
-                strategy = strategies.get(entity_type)
-                if strategy and strategy.kind == StrategyKind.SURROGATE:
-                    surrogate_entities.append(entity)
-                else:
-                    presidio_entities.append(entity)
-
-            # Process SURROGATE entities manually
-            surrogate_results: list[OperatorResultLike] = []
-
-            # Process surrogate entities WITHOUT mutating the text
-            for entity in surrogate_entities:
-                entity_type = getattr(entity, "entity_type", "UNKNOWN")
-                strategy = strategies.get(entity_type)
-                if not strategy:
-                    # This shouldn't happen as we filtered for SURROGATE entities
-                    continue
-                original_value = text[entity.start : entity.end]
-
-                # Generate surrogate value
-                surrogate_value = self._apply_surrogate_strategy(
-                    original_value, entity_type, strategy
-                )
-                logger.debug(
-                    f"SURROGATE: Replacing '{original_value}' with '{surrogate_value}' for {entity_type}"
-                )
-
-                # Create a SyntheticOperatorResult for tracking (using original coordinates)
-                op_result = SyntheticOperatorResult(
-                    start=entity.start,
-                    end=entity.end,
-                    entity_type=entity_type,
-                    text=surrogate_value,
-                    operator="surrogate",
-                )
-                surrogate_results.append(op_result)
-
-            # Process remaining entities with Presidio if any
-            if presidio_entities:
-                # Map strategies to operators for non-surrogate entities
-                operators = {}
-                for entity_type, strategy in strategies.items():
-                    if strategy.kind != StrategyKind.SURROGATE:
-                        if strategy.kind == StrategyKind.CUSTOM:
-                            operators[entity_type] = OperatorConfig("custom")
-                        else:
-                            operators[entity_type] = self.operator_mapper.strategy_to_operator(
-                                strategy
-                            )
-
-                # Use Presidio for non-surrogate entities with ORIGINAL text
-                result = self.anonymizer.anonymize(
-                    text=text, analyzer_results=presidio_entities, operators=operators
-                )
-
-                # Combine results with explicit typing
-                items_list: list[OperatorResultLike] = list(getattr(result, "items", []))
-                return [*surrogate_results, *items_list]
-            # Only surrogate entities were processed
-            return surrogate_results
-
-        except Exception as e:
-            logger.error(f"Batch processing failed: {e}")
-            # Create fallback results
-            results: list[OperatorResultLike] = []
-            for entity in entities:
-                entity_type = getattr(entity, "entity_type", None) or UNKNOWN_ENTITY
-                strategy = strategies.get(entity_type, Strategy(StrategyKind.REDACT, {"char": "*"}))
-                results.append(self._create_synthetic_result(entity, strategy, text))
-            return results
+        """Process multiple entities in a single batch for efficiency."""
+        # Delegate to EntityProcessor
+        return self._ep().batch_process_entities(text, entities, strategies)
 
     def _apply_hash_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
     ) -> str:
         """Apply hash strategy with support for prefix and other parameters."""
-        params = strategy.parameters or {}
-
-        # Create entity for Presidio
-        entity = RecognizerResult(entity_type=entity_type, start=0, end=len(text), score=confidence)
-
-        # Use Presidio for the base hash
-        operator_config = self.operator_mapper.strategy_to_operator(strategy)
-        result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
-        )
-
-        hashed_value = result.text
-
-        # Add prefix if specified
-        if "prefix" in params:
-            hashed_value = params["prefix"] + hashed_value
-
-        # Truncate if specified
-        if "truncate" in params:
-            truncate_length = params["truncate"]
-            if isinstance(truncate_length, int) and truncate_length > 0:
-                hashed_value = hashed_value[:truncate_length]
-
-        return str(hashed_value)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
+        return self._sp().apply_hash_strategy(text, entity_type, strategy, confidence)
 
     def _apply_partial_strategy(
         self, text: str, entity_type: str, strategy: Strategy, confidence: float
     ) -> str:
         """Apply partial masking strategy with proper char count calculation."""
-        params = strategy.parameters or {}
-        visible_chars = max(0, int(params.get("visible_chars", 4)))
-        position = params.get("position", "end")
-        mask_char = params.get("mask_char", "*")
-
-        # Create entity for Presidio
-        entity = RecognizerResult(entity_type=entity_type, start=0, end=len(text), score=confidence)
-
-        # Calculate how many chars to mask based on text length
-        text_length = len(text)
-        visible_chars = min(visible_chars, text_length)  # Can't show more than we have
-
-        if position == "end":
-            # Show last N chars, mask the rest
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = False
-        elif position == "start":
-            # Show first N chars, mask the rest
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = True  # Mask from the end, leaving start visible
-        else:
-            # Default to end behavior
-            chars_to_mask = max(0, text_length - visible_chars)
-            from_end = False
-
-        # Use Presidio's mask operator
-        operator_config = OperatorConfig(
-            "mask",
-            {"masking_char": mask_char, "chars_to_mask": chars_to_mask, "from_end": from_end},
-        )
-
-        result = self.anonymizer.anonymize(
-            text=text, analyzer_results=[entity], operators={entity_type: operator_config}
-        )
-
-        return str(result.text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
+        return self._sp().apply_partial_strategy(text, entity_type, strategy, confidence)
 
     def _apply_custom_strategy(self, text: str, strategy: Strategy) -> str:
         """Apply a custom strategy using the provided callback."""
-        callback = strategy.parameters.get("callback") if strategy.parameters else None
-        if callback and callable(callback):
-            try:
-                return cast(str, callback(text))
-            except Exception as e:
-                logger.error(f"Custom callback failed: {e}")
-        return self._fallback_redaction(text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
+        return self._sp().apply_custom_strategy(text, strategy)
 
     def _apply_surrogate_strategy(self, text: str, entity_type: str, strategy: Strategy) -> str:
         """Apply surrogate strategy with high-quality fake data generation."""
-        try:
-            # Check if strategy has a seed parameter
-            seed = None
-            if strategy.parameters and "seed" in strategy.parameters:
-                seed = strategy.parameters["seed"]
-
-            # If seed is different from current one, recreate generator
-            if seed != getattr(self._surrogate_generator, "seed", None):
-                self._surrogate_generator = SurrogateGenerator(seed=seed)
-                logger.debug(f"Updated SurrogateGenerator with seed: {seed}")
-
-            # Use the surrogate generator for quality fake data
-            return self._surrogate_generator.generate_surrogate(text, entity_type)
-        except Exception as e:
-            logger.warning(f"Surrogate generation failed: {e}")
-            # Fallback to simple replacement
-            return f"[{entity_type}]"
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
+        return self._sp().apply_surrogate_strategy(text, entity_type, strategy)
 
     def _fallback_redaction(self, text: str) -> str:
         """Simple fallback redaction when Presidio fails."""
-        return self._fallback_char * len(text)
+        # Delegate to StrategyProcessor
+        if self.strategy_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.strategy_processor is not None
+        return self._sp()._fallback_redaction(text)
 
     def _operator_result_to_dict(self, result: OperatorResultLike) -> dict[str, Any]:
         """Convert OperatorResult to dictionary for storage."""
-        return {
-            "entity_type": result.entity_type,
-            "start": result.start,
-            "end": result.end,
-            "operator": result.operator,
-            "text": result.text,
-        }
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
+        return self._mm().operator_result_to_dict(result)
 
     def _create_synthetic_result(
         self, entity: RecognizerResult, strategy: Strategy, text: str
     ) -> SyntheticOperatorResult:
         """Create a synthetic OperatorResult for fallback scenarios."""
-        # Handle invalid entity positions
-        start = getattr(entity, "start", 0) or 0
-        end = getattr(entity, "end", len(text)) or len(text)
-        entity_type = getattr(entity, "entity_type", UNKNOWN_ENTITY) or UNKNOWN_ENTITY
-
-        # Ensure valid bounds
-        if start < 0:
-            start = 0
-        if end > len(text):
-            end = len(text)
-        if start >= end:
-            # Invalid range, use single char
-            start = min(start, len(text) - 1)
-            end = start + 1
-
-        original = text[start:end] if start < end else "*"
-
-        # Apply strategy manually
-        params = strategy.parameters or {}
-        if strategy.kind == StrategyKind.REDACT:
-            masked = params.get("char", "*") * len(original)
-        elif strategy.kind == StrategyKind.TEMPLATE:
-            template = params.get("template", f"[{entity_type}]")
-            # Replace {} with a unique ID if present
-            if "{}" in template:
-                import uuid
-
-                unique_id = str(uuid.uuid4())[:8]
-                masked = template.replace("{}", unique_id)
-            else:
-                masked = template
-        elif strategy.kind == StrategyKind.HASH:
-            algo = params.get("algorithm", "sha256")
-            prefix = params.get("prefix", "")
-            hash_obj = hashlib.new(algo)
-            hash_obj.update(original.encode())
-            masked = prefix + hash_obj.hexdigest()[:8]
-        elif strategy.kind == StrategyKind.PARTIAL:
-            visible = params.get("visible_chars", 4)
-            position = params.get("position", "end")
-            mask_char = params.get("mask_char", "*")
-            if position == "end" and len(original) > visible:
-                masked = mask_char * (len(original) - visible) + original[-visible:]
-            elif position == "start" and len(original) > visible:
-                masked = original[:visible] + mask_char * (len(original) - visible)
-            else:
-                masked = original  # Too short to partial mask
-        else:
-            masked = self._fallback_redaction(original)
-
-        # Create synthetic result using type-safe dataclass
-        return SyntheticOperatorResult(
-            entity_type=entity_type,
-            start=start,
-            end=end,
-            operator=strategy.kind.value,
-            text=masked,
-        )
+        # Delegate to EntityProcessor
+        return self._ep().create_synthetic_result(entity, strategy, text)
 
     def _get_reversible_operators(self, strategies: dict[str, Strategy]) -> list[str]:
         """Identify which operators are reversible.
@@ -1097,24 +806,11 @@ class PresidioMaskingAdapter:
         Reversible operations are those that can be undone to restore the original text.
         Non-reversible operations like REDACT, HASH, and SURROGATE cannot be reversed.
         """
-        reversible = set()
-        for strategy in strategies.values():
-            if strategy.kind in {StrategyKind.TEMPLATE, StrategyKind.CUSTOM}:
-                try:
-                    operator_config = self.operator_mapper.strategy_to_operator(strategy)
-                    # Guard against different field names
-                    operator_name = getattr(
-                        operator_config, "operator_name", getattr(operator_config, "name", None)
-                    )
-                    # Only mark reversible if the operator preserves original in metadata
-                    if operator_name and operator_name in {
-                        "replace"
-                    }:  # Keep explicit and conservative
-                        reversible.add(operator_name)
-                except Exception:
-                    # If we can't map the strategy, assume not reversible
-                    pass
-        return list(reversible)
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
+        return self._mm().get_reversible_operators(strategies)
 
     def _find_segment_for_position(self, position: int, segments: list[TextSegment]) -> str | None:
         """Find the segment node_id for a given character position using binary search.
@@ -1126,26 +822,11 @@ class PresidioMaskingAdapter:
         Returns:
             Node ID of the containing segment, or None if not found
         """
-        if not segments:
-            return "#/texts/0"
-
-        # Use cached starts if available, otherwise build it
-        starts = (
-            self._segment_starts if self._segment_starts else [s.start_offset for s in segments]
-        )
-        idx = bisect.bisect_right(starts, position) - 1
-
-        if 0 <= idx < len(segments):
-            segment = segments[idx]
-            if segment.start_offset <= position < segment.end_offset:
-                # Return segment's node_id if available, otherwise construct one
-                if hasattr(segment, "node_id"):
-                    return segment.node_id
-                if hasattr(segment, "segment_index"):
-                    return f"#/texts/{segment.segment_index}"
-                return f"#/texts/{idx}"
-
-        return "#/texts/0"
+        # Delegate to TextProcessor
+        if self.text_processor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.text_processor is not None
+        return self._tp().find_segment_for_position(position, segments)
 
     def _update_table_cells(
         self,
@@ -1160,122 +841,19 @@ class PresidioMaskingAdapter:
             text_segments: Original text segments with metadata
             anchor_entries: Anchors containing masked values
         """
-        if not hasattr(masked_document, "tables") or not masked_document.tables:
-            return
-
-        # Create a mapping from node_id to masked value for table cells
-        node_to_masked_value: dict[str, str] = {}
-        for anchor in anchor_entries:
-            # Only process anchors for table cells
-            if "/cell_" in anchor.node_id:
-                node_to_masked_value[anchor.node_id] = anchor.masked_value
-
-        # Process each table
-        for table_item in masked_document.tables:
-            if not hasattr(table_item, "data") or not table_item.data:
-                continue
-
-            table_data = table_item.data
-
-            # Get the base node ID for this table
-            base_node_id = self._get_table_node_id(table_item)
-
-            # If table uses grid (computed property from table_cells)
-            if hasattr(table_data, "grid") and hasattr(table_data, "table_cells"):
-                # First, get the grid to identify which cells exist
-                grid = table_data.grid
-
-                # If table_cells is empty, populate it from grid
-                if not table_data.table_cells:
-                    table_data.table_cells = []
-                    for row in grid:
-                        for cell in row:
-                            if cell and hasattr(cell, "text") and cell.text:
-                                table_data.table_cells.append(cell)
-
-                # Create a map of positions to cells in table_cells
-                cell_map: dict[tuple[int, int], Any] = {}
-                for cell in table_data.table_cells:
-                    if hasattr(cell, "start_row_offset_idx") and hasattr(
-                        cell, "start_col_offset_idx"
-                    ):
-                        # Map by starting position
-                        key = (cell.start_row_offset_idx, cell.start_col_offset_idx)
-                        cell_map[key] = cell
-
-                # Now check each position in the grid for masked values
-                for row_idx in range(len(grid)):
-                    for col_idx in range(len(grid[row_idx])):
-                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
-
-                        if cell_node_id in node_to_masked_value:
-                            masked_value = node_to_masked_value[cell_node_id]
-
-                            # Find the cell in table_cells that corresponds to this position
-                            cell_key = (row_idx, col_idx)
-                            if cell_key in cell_map:
-                                # Update existing cell
-                                cell = cell_map[cell_key]
-                                if hasattr(cell, "text"):
-                                    cell.text = masked_value
-                                    logger.debug(
-                                        f"Updated table cell ({row_idx}, {col_idx}) with masked value"
-                                    )
-                            else:
-                                # Need to add a new cell to table_cells
-                                from docling_core.types.doc.document import TableCell
-
-                                new_cell = TableCell(
-                                    text=masked_value,
-                                    start_row_offset_idx=row_idx,
-                                    end_row_offset_idx=row_idx + 1,
-                                    start_col_offset_idx=col_idx,
-                                    end_col_offset_idx=col_idx + 1,
-                                )
-                                table_data.table_cells.append(new_cell)
-                                logger.debug(
-                                    f"Added new table cell ({row_idx}, {col_idx}) with masked value"
-                                )
-            # Fallback for tables that only use table_cells (1D list)
-            elif hasattr(table_data, "table_cells") and table_data.table_cells:
-                # For old-style flat table_cells, update directly by matching node IDs
-                for idx, cell in enumerate(table_data.table_cells):
-                    if hasattr(cell, "text"):
-                        # Try to determine row/col from cell properties or index
-                        row_idx = (
-                            cell.start_row_offset_idx
-                            if hasattr(cell, "start_row_offset_idx")
-                            else (
-                                idx // table_data.num_cols
-                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
-                                else 0
-                            )
-                        )
-                        col_idx = (
-                            cell.start_col_offset_idx
-                            if hasattr(cell, "start_col_offset_idx")
-                            else (
-                                idx % table_data.num_cols
-                                if hasattr(table_data, "num_cols") and table_data.num_cols > 0
-                                else idx
-                            )
-                        )
-                        cell_node_id = f"{base_node_id}/cell_{row_idx}_{col_idx}"
-
-                        if cell_node_id in node_to_masked_value:
-                            cell.text = node_to_masked_value[cell_node_id]
-                            logger.debug(f"Updated table cell at index {idx} with masked value")
+        # Delegate to DocumentReconstructor
+        if self.document_reconstructor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.document_reconstructor is not None
+        self._dr().update_table_cells(masked_document, text_segments, anchor_entries)
 
     def _get_table_node_id(self, table_item: Any) -> str:
         """Get the node ID for a table item."""
-        # Try to get from self_ref first
-        if hasattr(table_item, "self_ref"):
-            return str(table_item.self_ref)
-
-        # Try to get from position in tables list
-        # This would need access to the document but we don't have it here
-        # Default fallback
-        return "#/tables/0"
+        # Delegate to DocumentReconstructor
+        if self.document_reconstructor is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.document_reconstructor is not None
+        return self._dr()._get_table_node_id(table_item)
 
     def _cleanup_large_results(self, results: list[OperatorResultLike]) -> None:
         """Clean up large result sets for memory efficiency.
@@ -1285,26 +863,8 @@ class PresidioMaskingAdapter:
         - Remove redundant metadata fields
         - Release references to large intermediate objects
         """
-        # Define thresholds for memory management
-        max_text_length = 10000  # Characters per text field
-        max_results = 1000  # Maximum results to keep in memory
-
-        if len(results) > max_results:
-            # For very large result sets, clear text from older results
-            # Keep only essential metadata for audit trail
-            for result in results[:-100]:  # Keep last 100 results intact
-                if hasattr(result, "text") and result.text and len(result.text) > max_text_length:
-                    # Clear large text fields while preserving structure
-                    result.text = f"[Text truncated - {len(result.text)} chars]"
-
-                # Clear large metadata fields if present
-                if (
-                    hasattr(result, "operator_metadata")
-                    and result.operator_metadata
-                    and "original_text" in result.operator_metadata
-                ):
-                    orig_len = len(str(result.operator_metadata.get("original_text", "")))
-                    if orig_len > max_text_length:
-                        result.operator_metadata["original_text"] = (
-                            f"[Truncated - {orig_len} chars]"
-                        )
+        # Delegate to MetadataManager
+        if self.metadata_manager is None:
+            _ = self.anonymizer  # Ensure processor is initialized
+        assert self.metadata_manager is not None
+        self._mm().cleanup_large_results(results)

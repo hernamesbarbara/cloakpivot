@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ..core.cloakmap import CloakMap, validate_cloakmap_integrity
+from ..core.types.cloakmap import CloakMap, validate_cloakmap_integrity
 
 logger = logging.getLogger(__name__)
 

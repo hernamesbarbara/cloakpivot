@@ -18,8 +18,8 @@ from docling_core.types.doc.document import (
 
 from cloakpivot.core.types import DoclingDocument
 
-from ..core.anchors import AnchorEntry
-from ..core.cloakmap import CloakMap
+from ..core.types.anchors import AnchorEntry
+from ..core.types.cloakmap import CloakMap
 from .anchor_resolver import ResolvedAnchor
 
 logger = logging.getLogger(__name__)

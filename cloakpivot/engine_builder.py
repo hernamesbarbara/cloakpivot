@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from cloakpivot.core.normalization import ConflictResolutionConfig
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.processing.normalization import ConflictResolutionConfig
 from cloakpivot.engine import CloakEngine
 
 

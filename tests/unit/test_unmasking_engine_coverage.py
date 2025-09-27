@@ -2,12 +2,12 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
-from cloakpivot.core.anchors import AnchorEntry
-from cloakpivot.core.cloakmap import CloakMap
+from cloakpivot.core.types.anchors import AnchorEntry
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.type_imports import DoclingDocument
 from cloakpivot.unmasking.engine import UnmaskingEngine
 
@@ -78,9 +78,12 @@ class TestUnmaskingEngineCoverage:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
 
-            # Create a mock masked document file
-            masked_file = tmpdir / "masked.md"
-            masked_file.write_text("Masked content with [EMAIL]")
+            # Create a mock masked document file as JSON
+            masked_file = tmpdir / "masked.json"
+            import json
+
+            masked_doc_data = {"name": "masked.md", "texts": ["Masked content with [EMAIL]"]}
+            masked_file.write_text(json.dumps(masked_doc_data))
 
             # Create a mock cloakmap file
             cloakmap_file = tmpdir / "test.cloakmap"
@@ -210,8 +213,10 @@ class TestUnmaskingEngineCoverage:
                 )
 
             # Test with missing cloakmap file
-            doc_file = tmpdir / "test.md"
-            doc_file.write_text("Test content")
+            doc_file = tmpdir / "test.json"
+            import json
+
+            doc_file.write_text(json.dumps({"name": "test.md", "texts": ["Test content"]}))
 
             with pytest.raises(FileNotFoundError):
                 engine.unmask_from_files(

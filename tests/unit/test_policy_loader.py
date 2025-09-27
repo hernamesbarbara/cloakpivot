@@ -6,8 +6,8 @@ from unittest.mock import Mock, patch
 import pytest
 import yaml
 
-from cloakpivot.core.policies import MaskingPolicy
-from cloakpivot.core.policy_loader import (
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.policies.policy_loader import (
     AllowListItem,
     ContextRuleConfig,
     EntityConfig,
@@ -20,7 +20,7 @@ from cloakpivot.core.policy_loader import (
     PolicyValidationError,
     StrategyConfig,
 )
-from cloakpivot.core.strategies import StrategyKind
+from cloakpivot.core.types.strategies import StrategyKind
 
 
 class TestExceptions:
@@ -328,8 +328,8 @@ class TestPolicyLoader:
         loader = PolicyLoader(base_path=base)
         assert loader.base_path == base
 
-    @patch("cloakpivot.core.policy_loader.Path.exists")
-    @patch("cloakpivot.core.policy_loader.Path.open")
+    @patch("cloakpivot.core.policies.policy_loader.Path.exists")
+    @patch("cloakpivot.core.policies.policy_loader.Path.open")
     def test_load_policy_simple(self, mock_open, mock_exists):
         """Test loading a simple policy."""
         mock_exists.return_value = True
@@ -352,7 +352,7 @@ class TestPolicyLoader:
             assert policy.locale == "en"
             assert policy.default_strategy.kind == StrategyKind.REDACT
 
-    @patch("cloakpivot.core.policy_loader.Path.exists")
+    @patch("cloakpivot.core.policies.policy_loader.Path.exists")
     def test_load_policy_file_not_found(self, mock_exists):
         """Test loading non-existent policy file."""
         mock_exists.return_value = False
@@ -361,8 +361,8 @@ class TestPolicyLoader:
         with pytest.raises(FileNotFoundError, match="Policy file not found"):
             loader.load_policy("nonexistent.yaml")
 
-    @patch("cloakpivot.core.policy_loader.Path.exists")
-    @patch("cloakpivot.core.policy_loader.Path.open")
+    @patch("cloakpivot.core.policies.policy_loader.Path.exists")
+    @patch("cloakpivot.core.policies.policy_loader.Path.open")
     def test_load_policy_invalid_yaml(self, mock_open, mock_exists):
         """Test loading policy with invalid YAML."""
         mock_exists.return_value = True
@@ -373,8 +373,8 @@ class TestPolicyLoader:
             with pytest.raises(PolicyValidationError, match="Invalid YAML"):
                 loader.load_policy("invalid.yaml")
 
-    @patch("cloakpivot.core.policy_loader.Path.exists")
-    @patch("cloakpivot.core.policy_loader.Path.open")
+    @patch("cloakpivot.core.policies.policy_loader.Path.exists")
+    @patch("cloakpivot.core.policies.policy_loader.Path.open")
     def test_circular_inheritance_detection(self, mock_open, mock_exists):
         """Test circular inheritance detection."""
         mock_exists.return_value = True

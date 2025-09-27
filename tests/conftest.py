@@ -1,6 +1,7 @@
 """Shared fixtures for CloakPivot tests."""
 
 import json
+import random
 from collections.abc import Generator
 from pathlib import Path
 
@@ -105,6 +106,50 @@ She can be reached during business hours at her office number: 212-555-1234.
 ## Emergency Contact
 In case of emergency, contact Bob Smith at bob@family.com or 555-emergency.
 """
+
+
+@pytest.fixture(autouse=True)
+def isolate_test_state() -> Generator[None, None, None]:
+    """
+    Reset global/singleton/cached state between tests to guarantee isolation.
+
+    This fixture addresses test isolation issues where tests pass individually
+    but fail when run as part of the full test suite.
+    """
+    # Reset RNG for reproducibility
+    random.seed(42)
+
+    # Reset Faker seed if available
+    try:
+        from faker import Faker
+
+        Faker.seed(42)
+    except ImportError:
+        pass
+
+    # Clean up any Mock patches on DoclingDocument
+    from unittest.mock import Mock
+
+    from docling_core.types import DoclingDocument
+
+    # Store original model_validate if it exists
+    original_model_validate = None
+    if hasattr(DoclingDocument, "model_validate"):
+        original_model_validate = DoclingDocument.model_validate
+        # Check if it's been mocked
+        if isinstance(original_model_validate, Mock):
+            # Remove the mock
+            delattr(DoclingDocument, "model_validate")
+
+    yield
+
+    # Clean up after test
+    # Reset DoclingDocument.model_validate if it was mocked during the test
+    if hasattr(DoclingDocument, "model_validate"):
+        current_model_validate = DoclingDocument.model_validate
+        if isinstance(current_model_validate, Mock):
+            # Remove the mock
+            delattr(DoclingDocument, "model_validate")
 
 
 @pytest.fixture(autouse=True)

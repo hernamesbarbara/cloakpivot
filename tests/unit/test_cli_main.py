@@ -32,7 +32,7 @@ class TestCliMain:
 
     def test_version_command(self):
         """Test the version command."""
-        with patch("cloakpivot.cli.main.__version__", "1.2.3"):
+        with patch("cloakpivot.__version__", "1.2.3"):
             result = self.runner.invoke(cli, ["version"])
             assert result.exit_code == 0
             assert "CloakPivot v1.2.3" in result.output
@@ -95,16 +95,15 @@ class TestCliMain:
         """Test mask command with all options."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
-            input_file = tmpdir / "input.txt"
+            input_file = tmpdir / "input.md"
             output_file = tmpdir / "output.md"
             cloakmap_file = tmpdir / "map.json"
             policy_file = tmpdir / "policy.yaml"
 
             # Create test files
-            input_file.write_text("Test document")
+            input_file.write_text("# Test document\n\nTest content with email john@example.com")
             policy_data = {
-                "name": "test_policy",
-                "entities": ["EMAIL", "PHONE"],
+                "thresholds": {"EMAIL": 0.7, "PHONE": 0.8},
                 "confidence_threshold": 0.8,
             }
             policy_file.write_text(yaml.dump(policy_data))
@@ -395,31 +394,31 @@ class TestCliMain:
 
     def test_cli_context_creation(self):
         """Test that CLI context is properly created."""
-        with patch("cloakpivot.cli.main.click.Context") as mock_context:
+        with patch("cloakpivot.cli.main.click.Context"):
             result = self.runner.invoke(cli, ["--help"])
             # Context is created internally by Click
             assert result.exit_code == 0
 
     def test_mask_invalid_confidence(self):
         """Test mask command with invalid confidence value."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("Test")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write("# Test\n\nTest content")
             input_file = Path(f.name)
 
         try:
             result = self.runner.invoke(
                 cli, ["mask", str(input_file), "--confidence", "2.0"]  # Invalid: > 1.0
             )
-            # Click might not validate this, but the command should handle it
-            # The test passes either way to ensure coverage
-            assert result.exit_code in [0, 2]
+            # The command should fail with exit code 1 due to ValueError
+            assert result.exit_code == 1
+            assert "min_confidence must be between 0.0 and 1.0" in str(result.exception)
         finally:
             input_file.unlink(missing_ok=True)
 
     def test_mask_invalid_format(self):
         """Test mask command with invalid format option."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("Test")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write("# Test\n\nContent")
             input_file = Path(f.name)
 
         try:

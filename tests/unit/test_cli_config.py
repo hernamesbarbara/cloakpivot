@@ -349,7 +349,7 @@ class TestHelperFunctions:
         finally:
             config_path.unlink()
 
-    @patch("cloakpivot.cli.config.MaskingEngine")
+    @patch("cloakpivot.masking.engine.MaskingEngine")
     def test_create_masking_engine(self, mock_engine_class):
         """Test create_masking_engine function."""
         mock_engine = MagicMock()
@@ -374,7 +374,7 @@ class TestHelperFunctions:
         assert call_kwargs["use_presidio_engine"] is True
         assert call_kwargs["resolve_conflicts"] is True
 
-    @patch("cloakpivot.cli.config.MaskingEngine")
+    @patch("cloakpivot.masking.engine.MaskingEngine")
     def test_create_masking_engine_legacy(self, mock_engine_class):
         """Test create_masking_engine with legacy type."""
         mock_engine = MagicMock()
@@ -439,12 +439,14 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True):
-                with patch("cloakpivot.cli.config.logger") as mock_logger:
-                    config = get_config_from_env()
-                    assert "max_batch_size" not in config
-                    mock_logger.warning.assert_called_once()
-                    assert expected_log in str(mock_logger.warning.call_args)
+            with (
+                patch.dict(os.environ, {"CLOAKPIVOT_MAX_BATCH_SIZE": value}, clear=True),
+                patch("cloakpivot.cli.config.logger") as mock_logger,
+            ):
+                config = get_config_from_env()
+                assert "max_batch_size" not in config
+                mock_logger.warning.assert_called_once()
+                assert expected_log in str(mock_logger.warning.call_args)
 
     def test_get_config_from_env_invalid_confidence(self):
         """Test get_config_from_env with invalid confidence threshold."""
@@ -455,12 +457,14 @@ class TestHelperFunctions:
         ]
 
         for value, expected_log in test_cases:
-            with patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True):
-                with patch("cloakpivot.cli.config.logger") as mock_logger:
-                    config = get_config_from_env()
-                    assert "confidence_threshold" not in config
-                    mock_logger.warning.assert_called_once()
-                    assert expected_log in str(mock_logger.warning.call_args)
+            with (
+                patch.dict(os.environ, {"CLOAKPIVOT_CONFIDENCE_THRESHOLD": value}, clear=True),
+                patch("cloakpivot.cli.config.logger") as mock_logger,
+            ):
+                config = get_config_from_env()
+                assert "confidence_threshold" not in config
+                mock_logger.warning.assert_called_once()
+                assert expected_log in str(mock_logger.warning.call_args)
 
     def test_merge_configs_empty(self):
         """Test merge_configs with empty configs."""

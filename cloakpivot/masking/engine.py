@@ -18,12 +18,12 @@ from presidio_analyzer import RecognizerResult
 
 from cloakpivot.core.types import DoclingDocument
 
-from ..core.analyzer import EntityDetectionResult
-from ..core.anchors import AnchorEntry
-from ..core.cloakmap import CloakMap
-from ..core.normalization import ConflictResolutionConfig, EntityNormalizer
-from ..core.policies import MaskingPolicy
-from ..core.strategies import Strategy
+from ..core.policies.policies import MaskingPolicy
+from ..core.processing.analyzer import EntityDetectionResult
+from ..core.processing.normalization import ConflictResolutionConfig, EntityNormalizer
+from ..core.types.anchors import AnchorEntry
+from ..core.types.cloakmap import CloakMap
+from ..core.types.strategies import Strategy
 from ..document.extractor import TextSegment
 from .applicator import StrategyApplicator
 
@@ -213,7 +213,7 @@ class MaskingEngine:
         # Delegate to PresidioMaskingAdapter
         return self.presidio_adapter.mask_document(
             document=document,
-            entities=anonymizer_entities,
+            entities=anonymizer_entities,  # type: ignore[arg-type]
             policy=policy,
             text_segments=text_segments,
             original_format=original_format,

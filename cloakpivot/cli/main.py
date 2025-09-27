@@ -7,8 +7,8 @@ from pathlib import Path
 import click
 from docling.document_converter import DocumentConverter
 
-from cloakpivot.core.cloakmap import CloakMap
-from cloakpivot.core.policies import MaskingPolicy
+from cloakpivot.core.policies.policies import MaskingPolicy
+from cloakpivot.core.types.cloakmap import CloakMap
 from cloakpivot.engine import CloakEngine
 
 
@@ -83,6 +83,8 @@ def mask(
 
         with policy_path.open() as f:
             policy_data = yaml.safe_load(f)
+        # Remove confidence_threshold if present (it's for analyzer, not policy)
+        policy_data.pop("confidence_threshold", None)
         masking_policy = MaskingPolicy(**policy_data)
 
     # Create CloakEngine with configuration

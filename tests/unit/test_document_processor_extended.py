@@ -3,10 +3,11 @@
 import json
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 import pytest
 
-from cloakpivot.document.processor import DocumentProcessor, DocumentProcessingStats
+from cloakpivot.document.processor import DocumentProcessor
 from cloakpivot.type_imports import DoclingDocument
 
 
@@ -189,8 +190,9 @@ class TestDocumentProcessorExtended:
             # Should not log v1.7.0 message
             assert "v1.7.0+ uses segment-local charspans" not in caplog.text
 
-    @patch("cloakpivot.document.processor.Path.open",
-           side_effect=FileNotFoundError("File not found"))
+    @patch(
+        "cloakpivot.document.processor.Path.open", side_effect=FileNotFoundError("File not found")
+    )
     def test_load_document_raises_file_not_found(self, mock_open):
         """Test load_document raises FileNotFoundError."""
         processor = DocumentProcessor(enable_chunked_processing=False)
@@ -201,8 +203,10 @@ class TestDocumentProcessorExtended:
         assert processor._stats.errors_encountered == 1
 
     @patch("cloakpivot.document.processor.Path.open")
-    @patch("cloakpivot.document.processor.json.load",
-           side_effect=json.JSONDecodeError("Invalid JSON", "doc", 0))
+    @patch(
+        "cloakpivot.document.processor.json.load",
+        side_effect=json.JSONDecodeError("Invalid JSON", "doc", 0),
+    )
     def test_load_document_raises_value_error(self, mock_json_load, mock_open):
         """Test load_document raises ValueError on invalid JSON."""
         processor = DocumentProcessor(enable_chunked_processing=False)
@@ -214,8 +218,10 @@ class TestDocumentProcessorExtended:
 
     @patch("cloakpivot.document.processor.Path.open")
     @patch("cloakpivot.document.processor.json.load")
-    @patch("cloakpivot.document.processor.DoclingDocument.model_validate",
-           side_effect=Exception("Unexpected error"))
+    @patch(
+        "cloakpivot.document.processor.DoclingDocument.model_validate",
+        side_effect=Exception("Unexpected error"),
+    )
     def test_load_document_raises_runtime_error(self, mock_validate, mock_json_load, mock_open):
         """Test load_document raises RuntimeError on unexpected exceptions."""
         mock_json_load.return_value = {"test": "data"}
@@ -247,7 +253,7 @@ class TestDocumentProcessorExtended:
             processor = DocumentProcessor(enable_chunked_processing=False)
 
             # Mock _validate_document_structure to verify it's not called
-            with patch.object(processor, '_validate_document_structure') as mock_validate_structure:
+            with patch.object(processor, "_validate_document_structure") as mock_validate_structure:
                 result = processor.load_document("test.json", validate=False)
 
                 assert result == mock_doc
@@ -256,7 +262,7 @@ class TestDocumentProcessorExtended:
     def test_init_with_debug_logging(self, caplog):
         """Test processor initialization with debug logging."""
         with caplog.at_level(logging.DEBUG):
-            processor = DocumentProcessor(enable_chunked_processing=True)
+            DocumentProcessor(enable_chunked_processing=True)
 
         assert "DocumentProcessor initialized" in caplog.text
         assert "chunked_processing=True" in caplog.text

@@ -49,6 +49,14 @@ class ConflictResolutionStrategy(Enum):
     MERGE_ADJACENT = "merge_adjacent"
 
 
+class OverlapPolicy(Enum):
+    """How to handle overlapping detections during normalization."""
+
+    RESOLVE_ALL = "resolve_all"
+    ALLOW_PARTIAL = "allow_partial"
+    MERGE_ADJACENT = "merge_adjacent"
+
+
 class EntityPriority(Enum):
     """Priority levels for entity types in conflict resolution."""
 
@@ -67,7 +75,7 @@ class ConflictResolutionConfig:
         entity_priorities: Priority mapping for entity types
         confidence_threshold: Minimum confidence difference to prefer higher confidence
         merge_threshold_chars: Maximum distance between entities to consider merging
-        allow_partial_overlaps: Whether to allow partial overlaps or resolve all
+        overlap_policy: Policy for handling overlapping detections
         preserve_high_confidence: Always preserve entities above this confidence
     """
 
@@ -75,7 +83,7 @@ class ConflictResolutionConfig:
     entity_priorities: dict[str, EntityPriority] = field(default_factory=dict)
     confidence_threshold: float = 0.1
     merge_threshold_chars: int = 4
-    allow_partial_overlaps: bool = False
+    overlap_policy: OverlapPolicy = OverlapPolicy.RESOLVE_ALL
     preserve_high_confidence: float = DEFAULT_PRESERVE_HIGH_CONFIDENCE
 
     def __post_init__(self) -> None:

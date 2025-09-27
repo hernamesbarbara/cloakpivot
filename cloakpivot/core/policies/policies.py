@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from .strategies import DEFAULT_REDACT, Strategy, StrategyKind
+from ..types.strategies import DEFAULT_REDACT, Strategy, StrategyKind
 
 
 class PrivacyLevel(Enum):
