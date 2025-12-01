@@ -42,7 +42,7 @@ dev = [
     "pytest==8.4.1",
     "pytest-cov==7.0.0",
     "mypy==1.18.1",
-    "pydantic==2.11.7",
+    "pydantic==2.12.5",
     "black==25.1.0",
     "ruff==0.13.0",
     "types-click",
