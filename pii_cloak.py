@@ -3,9 +3,9 @@
 PII Cloak - Mask personally identifiable information in PDF documents
 
 Usage:
-    pii-cloak mask --infile=<path> --outdir=<dir> [--strategy=<strategy>]
-    pii-cloak -h | --help
-    pii-cloak --version
+    pii_cloak.py mask --infile=<path> --outdir=<dir> [--strategy=<strategy>]
+    pii_cloak.py -h | --help
+    pii_cloak.py --version
 
 Options:
     -h --help                   Show this screen
@@ -15,8 +15,8 @@ Options:
     --strategy=<strategy>       Masking strategy: 'redact' (default) or 'replace' [default: redact]
 
 Examples:
-    pii-cloak mask --infile data/pdf/email.pdf --outdir data/md/
-    pii-cloak mask --infile data/pdf/email.pdf --outdir data/md/ --strategy replace
+    pii_cloak.py mask --infile data/pdf/email.pdf --outdir data/md/
+    pii_cloak.py mask --infile data/pdf/email.pdf --outdir data/md/ --strategy replace
 """
 
 import os

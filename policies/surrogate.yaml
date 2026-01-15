@@ -1,0 +1,61 @@
+# Surrogate (Faker) Policy - Generates realistic fake data for PII
+#
+# This policy uses Faker to generate realistic-looking surrogate values
+# instead of generic placeholders like [NAME] or [LOCATION].
+# The cloakmap preserves the original→surrogate mapping for reversible unmasking.
+#
+# Usage:
+#   cloakpivot mask input.pdf -p policies/surrogate.yaml
+
+default_strategy:
+  kind: surrogate
+  parameters:
+    seed: "cloakpivot-demo-2024"
+
+per_entity:
+  PERSON:
+    kind: surrogate
+    parameters:
+      format_type: name
+      seed: "person-seed"
+
+  EMAIL_ADDRESS:
+    kind: surrogate
+    parameters:
+      format_type: email
+      seed: "email-seed"
+
+  PHONE_NUMBER:
+    kind: surrogate
+    parameters:
+      format_type: phone
+      seed: "phone-seed"
+
+  LOCATION:
+    kind: surrogate
+    parameters:
+      format_type: address
+      seed: "location-seed"
+
+  US_SSN:
+    kind: surrogate
+    parameters:
+      format_type: ssn
+      seed: "ssn-seed"
+
+  CREDIT_CARD:
+    kind: surrogate
+    parameters:
+      format_type: credit_card
+      seed: "cc-seed"
+
+thresholds:
+  PERSON: 0.7
+  EMAIL_ADDRESS: 0.7
+  PHONE_NUMBER: 0.7
+  LOCATION: 0.6
+  US_SSN: 0.8
+  CREDIT_CARD: 0.8
+
+locale: en
+seed: "cloakpivot-demo-2024"

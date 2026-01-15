@@ -1,5 +1,5 @@
 """CLI module for CloakPivot."""
 
-from .main import cli, main
+from .main import main
 
-__all__ = ["cli", "main"]
+__all__ = ["main"]

@@ -1,0 +1,18 @@
+# Wrangler gitignore - generated from workspace-schema.json
+
+# Runtime data (don't commit)
+cache/
+config/
+logs/
+metrics/
+artifactTypes
+issue
+issues
+Actionable work items and bug reports
+
+# Backup directories (temporary)
+../.wrangler-migration-backup-*/
+
+# Migration markers (local)
+SKIP_AUTO_MIGRATION
+REMIND_NEXT_SESSION
