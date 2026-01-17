@@ -1,6 +1,6 @@
 # CloakPivot
 
-[![CI](https://github.com/hernamesbarbara/cloakpivot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hernamesbarbara/cloakpivot/actions/workflows/ci.yml)
+[![CI](https://github.com/austinogilvie/cloakpivot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/austinogilvie/cloakpivot/actions/workflows/ci.yml)
 
 **Simple, reversible PII masking for documents.** One-line masking and unmasking while preserving document structure.
 
@@ -21,10 +21,10 @@ CloakPivot provides a Presidio-like simple API for detecting and masking PII in 
 
 ```bash
 # From GitHub (until PyPI release)
-pip install git+https://github.com/hernamesbarbara/cloakpivot.git
+pip install git+https://github.com/austinogilvie/cloakpivot.git
 
 # Or clone and install locally
-git clone https://github.com/hernamesbarbara/cloakpivot.git
+git clone https://github.com/austinogilvie/cloakpivot.git
 cd cloakpivot
 pip install -e .
 ```
@@ -210,7 +210,7 @@ cloakpivot/
 
 ```bash
 # Clone the repository
-git clone https://github.com/hernamesbarbara/cloakpivot.git
+git clone https://github.com/austinogilvie/cloakpivot.git
 cd cloakpivot
 
 # Setup development environment (one command!)
@@ -290,7 +290,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Clone the repository
-git clone https://github.com/hernamesbarbara/cloakpivot.git
+git clone https://github.com/austinogilvie/cloakpivot.git
 cd cloakpivot
 
 # Install in development mode
@@ -307,7 +307,7 @@ CloakPivot is released under the MIT License. See [LICENSE](LICENSE) for details
 ## 🔗 Dependencies
 
 - **[Docling](https://github.com/DS4SD/docling)** - Document parsing and conversion
-- **[DocPivot](https://github.com/hernamesbarbara/docpivot)** v2.0.1+ - Document format conversions
+- **[DocPivot](https://github.com/austinogilvie/docpivot)** v2.0.1+ - Document format conversions
 - **[Presidio](https://github.com/microsoft/presidio)** - PII detection engine
 - **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation
 
@@ -327,8 +327,8 @@ Version 2.0 introduces the simplified CloakEngine API:
 
 ## 💬 Support
 
-- **Issues**: [GitHub Issues](https://github.com/hernamesbarbara/cloakpivot/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/hernamesbarbara/cloakpivot/discussions)
+- **Issues**: [GitHub Issues](https://github.com/austinogilvie/cloakpivot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/austinogilvie/cloakpivot/discussions)
 - **Examples**: [examples/](examples/)
 
 ---
